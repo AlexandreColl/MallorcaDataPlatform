@@ -1,0 +1,40 @@
+name: aemet
+description: AEMET OpenData daily climatological values of the official stations in the region (needs a free API key)
+entrypoint: connectors.aemet.extractor:AemetConnector
+enabled: true
+frequency: 1d          # one value per station and day
+max_days: 366
+lag_days: 3            # AEMET publishes the daily values 2-3 days late: windows end 3 days before yesterday
+secrets: [AEMET_API_KEY]
+
+options:
+  base_url: https://opendata.aemet.es/opendata/api
+  max_days_per_request: 180   # the API rejects ranges longer than 6 months
+  timezone: Europe/Madrid      # daily values are stored at local midnight, like the other daily sources
+
+datasets:
+  daily:
+    # AEMET field -> metric. Values come as strings with a decimal comma; `scale` converts m/s to km/h.
+    variables:
+      tmed:     {metric: temperature_2m_mean}
+      tmin:     {metric: temperature_2m_min}
+      tmax:     {metric: temperature_2m_max}
+      prec:     {metric: precipitation_sum}               # 07-07 UTC; "Ip" (< 0.1 mm) is stored as 0
+      hrMedia:  {metric: relative_humidity_2m_mean}
+      velmedia: {metric: wind_speed_10m_mean, scale: 3.6}
+      racha:    {metric: wind_gusts_10m_max, scale: 3.6}
+      sol:      {metric: sunshine_duration}
+      presMax:  {metric: pressure_station_max}            # at station level, not reduced to sea level
+      presMin:  {metric: pressure_station_min}
+
+metrics:
+  temperature_2m_mean:       {dataset: daily, unit: degC, min: -15, max: 50}
+  temperature_2m_min:        {dataset: daily, unit: degC, min: -15, max: 50}
+  temperature_2m_max:        {dataset: daily, unit: degC, min: -15, max: 50}
+  precipitation_sum:         {dataset: daily, unit: mm, min: 0, max: 500}
+  relative_humidity_2m_mean: {dataset: daily, unit: pct, min: 0, max: 100}
+  wind_speed_10m_mean:       {dataset: daily, unit: km/h, min: 0, max: 250}
+  wind_gusts_10m_max:        {dataset: daily, unit: km/h, min: 0, max: 300}
+  sunshine_duration:         {dataset: daily, unit: h, min: 0, max: 15}
+  pressure_station_max:      {dataset: daily, unit: hPa, min: 850, max: 1060}
+  pressure_station_min:      {dataset: daily, unit: hPa, min: 850, max: 1060}
