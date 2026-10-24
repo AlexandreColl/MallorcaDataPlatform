@@ -39,6 +39,7 @@ def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") ->
         .config("spark.hadoop.fs.s3a.access.key", settings.s3_access_key)
         .config("spark.hadoop.fs.s3a.secret.key", settings.s3_secret_key)
         .config("spark.hadoop.fs.s3a.path.style.access", "true")
+        .config("spark.hadoop.fs.s3a.input.stream.type", settings.s3a_input_stream)
         .config(
             "spark.hadoop.fs.s3a.connection.ssl.enabled",
             str(settings.s3_endpoint_url.startswith("https")).lower(),

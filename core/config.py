@@ -24,6 +24,7 @@ class Settings:
     s3_access_key: str
     s3_secret_key: str
     s3_region: str
+    s3a_input_stream: str
     bronze_bucket: str
     silver_bucket: str
     warehouse_host: str
@@ -43,6 +44,8 @@ class Settings:
             s3_access_key=_env("S3_ACCESS_KEY", "minioadmin"),
             s3_secret_key=_env("S3_SECRET_KEY", "minioadmin"),
             s3_region=_env("S3_REGION", "us-east-1"),
+            # classic works with any S3-compatible store; `analytics` is tuned for AWS S3.
+            s3a_input_stream=_env("S3A_INPUT_STREAM", "classic"),
             bronze_bucket=_env("BRONZE_BUCKET", "bronze"),
             silver_bucket=_env("SILVER_BUCKET", "silver"),
             warehouse_host=_env("WAREHOUSE_HOST", "localhost"),
