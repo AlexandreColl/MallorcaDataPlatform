@@ -11,10 +11,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   and sea level (model data) at 8 sea points around Mallorca. A subclass of the Open-Meteo connector that only
   changes the queried points, since the region's locations are inland.
 - Grafana: wave layer on the map (colour and label by wave height); the other marine metrics are in the selector.
+- AEMET connector: daily climatological values (temperature, rain, humidity, wind, sunshine, pressure) of the 33
+  official stations in Mallorca. Handles AEMET's two-step API, ISO-8859-15 data, decimal commas and its limits
+  (6 months and 25 stations per request). Needs `AEMET_API_KEY` in `.env`; the E2E runs it when the repository
+  has the `AEMET_API_KEY` secret.
+- `lag_days` in `connector.yaml` for sources that publish late (AEMET: 3): the window ends that many days before
+  yesterday, so `days: 1` asks for the last published day and catch-up never marks an unpublished day as loaded.
+- Grafana: AEMET stations on the map with the last published day.
 
 ### Changed
 
 - `OpenMeteoConnector.locations()` hook so subclasses can query their own points.
+- The default connector selection (DAG param and CLI) skips connectors whose API key is not set, instead of
+  failing the run; asking for one explicitly still fails fast naming the missing variable.
 
 ## [0.2.3] - 2026-10-24
 
