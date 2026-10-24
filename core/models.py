@@ -75,6 +75,17 @@ class TimeWindow:
         """First instant after the window."""
         return self.start_dt() + timedelta(days=self.n_days)
 
+    def catch_up(self, last_loaded: date | None, limit_days: int) -> TimeWindow:
+        """Extend the start back to the day after ``last_loaded`` so days missed by failed runs are recovered.
+
+        The result never exceeds ``limit_days`` and never shrinks the requested window. Loads are idempotent,
+        so re-reading a day that was already loaded is harmless.
+        """
+        if last_loaded is None or last_loaded >= self.start - timedelta(days=1):
+            return self
+        start = max(last_loaded + timedelta(days=1), self.end - timedelta(days=limit_days - 1))
+        return TimeWindow(start, self.end) if start < self.start else self
+
     def split(self, max_days: int) -> list[TimeWindow]:
         """Consecutive sub-windows of at most `max_days`, for APIs that limit the range per request."""
         if max_days < 1:

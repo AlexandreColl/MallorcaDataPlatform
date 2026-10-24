@@ -53,6 +53,8 @@ class ConnectorConfig:
     enabled: bool = True
     frequency: str = "1h"
     max_days: int = 31
+    # Longest window a run may grow to when it recovers days missed by failed runs (<= max_days).
+    catch_up_days: int = 31
     secrets: tuple[str, ...] = ()
     datasets: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     metrics: Mapping[str, MetricSpec] = field(default_factory=dict)
@@ -85,6 +87,7 @@ class ConnectorConfig:
                 enabled=bool(data.get("enabled", True)),
                 frequency=str(data.get("frequency", "1h")),
                 max_days=int(data.get("max_days", 31)),
+                catch_up_days=int(data.get("catch_up_days", data.get("max_days", 31))),
                 secrets=tuple(data.get("secrets") or ()),
                 datasets=data.get("datasets") or {},
                 metrics=metrics,
@@ -99,6 +102,9 @@ class ConnectorConfig:
         unknown = {m.dataset for m in metrics.values()} - set(config.datasets)
         if unknown:
             msg = f"{path}: metrics reference unknown datasets {sorted(unknown)}"
+            raise ConnectorError(msg)
+        if not 1 <= config.catch_up_days <= config.max_days:
+            msg = f"{path}: catch_up_days must be between 1 and max_days ({config.max_days})"
             raise ConnectorError(msg)
         for dataset in config.datasets:
             config.frequency_for(dataset)  # fail fast on an invalid frequency

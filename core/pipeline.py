@@ -137,15 +137,20 @@ def _load_silver(
     return rows_silver, upserted, results
 
 
-def run_connector(
+def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     name: str,
     days: int,
     *,
     region_name: str = "mallorca",
     run_id: str | None = None,
     settings: Settings | None = None,
+    catch_up: bool = True,
 ) -> RunSummary:
-    """Run one connector end to end and record the run in ``ops.ingestion_runs``."""
+    """Run one connector end to end and record the run in ``ops.ingestion_runs``.
+
+    With ``catch_up`` the window grows back to the day after the last successful run (up to the
+    connector's ``catch_up_days``), so a source that was down is recovered by its next run.
+    """
     settings = settings or Settings.from_env()
     run_id = run_id or new_run_id()
     region = load_region(region_name, settings.regions_dir)
@@ -155,6 +160,11 @@ def run_connector(
 
     warehouse = Warehouse(settings)
     warehouse.ensure_schema()
+    if catch_up:
+        requested = window
+        window = window.catch_up(warehouse.last_loaded_day(name, region.name), connector.config.catch_up_days)
+        if window != requested:
+            log.warning("run %s: %s catching up missed days, window %s..%s", run_id, name, window.start, window.end)
     warehouse.start_run(run_id, name, region.name, window)
     log.info("run %s: %s %s..%s (%s)", run_id, name, window.start, window.end, region.name)
 
@@ -170,7 +180,8 @@ def run_connector(
             log.info("run %s: no %s events in %s..%s", run_id, name, window.start, window.end)
             rows_silver, upserted, results = 0, 0, []
     except Exception as exc:
-        warehouse.finish_run(run_id, name, "failed", error=str(exc)[:2000])
+        # The exception type lets readers tell an upstream outage (ConnectTimeout, HTTPError 503...) from a bug.
+        warehouse.finish_run(run_id, name, "failed", error=f"{type(exc).__name__}: {exc}"[:2000])
         raise
     else:
         stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)

@@ -49,7 +49,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
     failures = 0
     for name in names:
         try:
-            summary = run_connector(name, days=args.days, region_name=args.region, run_id=run_id)
+            summary = run_connector(
+                name, days=args.days, region_name=args.region, run_id=run_id, catch_up=not args.no_catch_up
+            )
             print(json.dumps(summary.as_dict()))
         except Exception:
             log.exception("connector %s failed", name)
@@ -71,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--days", type=int, default=1)
     run.add_argument("--region", default="mallorca")
     run.add_argument("--run-id")
+    run.add_argument("--no-catch-up", action="store_true", help="do not recover days missed by failed runs")
     run.set_defaults(func=_cmd_run)
 
     args = parser.parse_args(argv)
