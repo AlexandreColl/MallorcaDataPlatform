@@ -19,6 +19,8 @@ def _env(name: str, default: str) -> str:
 
 @dataclass(frozen=True)
 class Settings:
+    """Platform settings. Defaults target a local run against the docker compose stack."""
+
     project_root: Path
     s3_endpoint_url: str
     s3_access_key: str
@@ -38,6 +40,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
+        """Read every setting from environment variables (see ``.env.example``)."""
         return cls(
             project_root=PROJECT_ROOT,
             s3_endpoint_url=_env("S3_ENDPOINT_URL", "http://localhost:9000"),
@@ -60,27 +63,37 @@ class Settings:
 
     @property
     def connectors_dir(self) -> Path:
+        """Folder scanned for ``*/connector.yaml``."""
         return self.project_root / "connectors"
 
     @property
     def regions_dir(self) -> Path:
+        """Folder with one YAML file per region."""
         return self.project_root / "config" / "regions"
 
     @property
     def jdbc_url(self) -> str:
+        """JDBC URL of the warehouse, used by Spark."""
         return f"jdbc:postgresql://{self.warehouse_host}:{self.warehouse_port}/{self.warehouse_db}"
 
 
 def available_regions(regions_dir: Path | None = None) -> list[str]:
+    """Names of the regions defined in ``config/regions``."""
     regions_dir = regions_dir or PROJECT_ROOT / "config" / "regions"
     return sorted(p.stem for p in regions_dir.glob("*.yaml"))
 
 
 def load_region(name: str, regions_dir: Path | None = None) -> Region:
+    """Load ``config/regions/<name>.yaml``.
+
+    Raises:
+        ValueError: if the region does not exist.
+    """
     regions_dir = regions_dir or PROJECT_ROOT / "config" / "regions"
     path = regions_dir / f"{name}.yaml"
     if not path.exists():
-        raise ValueError(f"unknown region '{name}'. Available: {available_regions(regions_dir)}")
+        msg = f"unknown region '{name}'. Available: {available_regions(regions_dir)}"
+        raise ValueError(msg)
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     bbox = data["bbox"]
     return Region(

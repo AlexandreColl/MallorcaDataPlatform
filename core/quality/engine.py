@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from core.connectors.base import ConnectorConfig
 from core.models import Quality, TimeWindow
 from core.quality.rules import (
     DatasetRule,
@@ -18,13 +19,22 @@ from core.quality.rules import (
     RuleResult,
 )
 
+if TYPE_CHECKING:
+    from core.connectors.base import ConnectorConfig
+
 
 class QualityEngine:
+    """Runs row rules and dataset rules over a silver DataFrame."""
+
     def __init__(self, rules: list[Rule]) -> None:
         self.row_rules = [r for r in rules if isinstance(r, RowRule)]
         self.dataset_rules = [r for r in rules if isinstance(r, DatasetRule)]
 
     def run(self, df: DataFrame) -> tuple[DataFrame, list[RuleResult]]:
+        """Label every row (``quality``, ``quality_reasons``) and return the rule results.
+
+        Values are never modified or dropped: flagging and correcting are separate steps.
+        """
         flag_cols = []
         for i, rule in enumerate(self.row_rules):
             failed_col, scope_col = f"_qf_{i}", f"_qs_{i}"
@@ -39,15 +49,15 @@ class QualityEngine:
                 aggs.append(F.sum(F.col(failed_col).cast("long")).alias(failed_col))
                 aggs.append(F.sum(F.col(scope_col).cast("long")).alias(scope_col))
             counts = df.agg(*aggs).first()
-            for rule, failed_col, scope_col in flag_cols:
-                results.append(
-                    RuleResult(
-                        rule=rule.name,
-                        target=rule.target,
-                        checked=int(counts[scope_col] or 0),
-                        failed=int(counts[failed_col] or 0),
-                    )
+            results.extend(
+                RuleResult(
+                    rule=rule.name,
+                    target=rule.target,
+                    checked=int(counts[scope_col] or 0),
+                    failed=int(counts[failed_col] or 0),
                 )
+                for rule, failed_col, scope_col in flag_cols
+            )
 
         for rule in self.dataset_rules:
             results.extend(rule.evaluate(df))
@@ -75,7 +85,9 @@ def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
     freq = config.frequency_delta
     expected_steps = int((window.end_dt_exclusive() - window.start_dt()) / freq)
     rules: list[Rule] = [NotNullRule(), DuplicateRule(), GapRule(expected_steps, freq)]
-    for metric in config.metrics.values():
-        if metric.min is not None or metric.max is not None:
-            rules.append(RangeRule(metric.name, metric.min, metric.max))
+    rules.extend(
+        RangeRule(metric.name, metric.min, metric.max)
+        for metric in config.metrics.values()
+        if metric.min is not None or metric.max is not None
+    )
     return rules

@@ -51,8 +51,7 @@ def test_metric_must_reference_dataset(tmp_path):
     root = _write(
         tmp_path,
         "foo",
-        "name: foo\nentrypoint: x:Y\ndatasets: {a: {}}\n"
-        "metrics: {m: {dataset: b, unit: u}}\n",
+        "name: foo\nentrypoint: x:Y\ndatasets: {a: {}}\nmetrics: {m: {dataset: b, unit: u}}\n",
     )
     with pytest.raises(ConnectorError, match="unknown datasets"):
         registry.discover(root)
@@ -62,8 +61,7 @@ def test_missing_secret_is_reported(tmp_path, monkeypatch):
     root = _write(
         tmp_path,
         "open_meteo",
-        "name: open_meteo\nentrypoint: connectors.open_meteo.extractor:OpenMeteoConnector\n"
-        "secrets: [MDP_TEST_TOKEN]\n",
+        "name: open_meteo\nentrypoint: connectors.open_meteo.extractor:OpenMeteoConnector\nsecrets: [MDP_TEST_TOKEN]\n",
     )
     monkeypatch.delenv("MDP_TEST_TOKEN", raising=False)
     with pytest.raises(ConnectorError, match="MDP_TEST_TOKEN"):

@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Ruff with every rule enabled (`ALL`), 120-character lines and unsafe fixes; documented exceptions only.
+  Public modules, classes and functions now have Google-style docstrings and full type hints.
+- `run_connector`, `registry.load` and `Warehouse.finish_run` take keyword-only options;
+  run counts are passed as a `RunStats` object.
+
 ### Fixed
 
 - Spark could not write to `s3a://`: add the S3 Analytics Accelerator jar required by hadoop-aws 3.5.0

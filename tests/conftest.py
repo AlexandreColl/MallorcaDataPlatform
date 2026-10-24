@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 
@@ -14,3 +16,6 @@ def spark():
     )
     yield session
     session.stop()
+    # py4j logs "Closing down clientserver connection" at interpreter exit, after pytest
+    # has closed its log streams; silence it to keep the test output clean.
+    logging.getLogger("py4j").setLevel(logging.WARNING)

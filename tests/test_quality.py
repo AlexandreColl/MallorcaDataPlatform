@@ -4,6 +4,7 @@ import pytest
 
 from core.connectors import registry
 from core.models import Observation, Quality, TimeWindow
+from core.pipeline import apply_quality, to_dataframe
 
 pytestmark = pytest.mark.spark
 
@@ -16,8 +17,6 @@ def _obs(hour, value, metric="pm10", entity="palma"):
 
 
 def _frame(spark, observations):
-    from core.pipeline import to_dataframe
-
     return to_dataframe(spark, observations, run_id="test")
 
 
@@ -31,8 +30,6 @@ def _results_by_rule(results):
 
 
 def test_clean_series_passes_everything(spark, connector):
-    from core.pipeline import apply_quality
-
     df = _frame(spark, [_obs(h, 10.0 + h) for h in range(24)])
     silver, results = apply_quality(df, connector, WINDOW)
 
@@ -45,8 +42,6 @@ def test_clean_series_passes_everything(spark, connector):
 
 
 def test_out_of_range_is_flagged_not_modified(spark, connector):
-    from core.pipeline import apply_quality
-
     observations = [_obs(h, 10.0) for h in range(24)]
     observations[5] = _obs(5, -3.0)
     observations[6] = _obs(6, 5000.0)
@@ -59,8 +54,6 @@ def test_out_of_range_is_flagged_not_modified(spark, connector):
 
 
 def test_nulls_are_missing_and_count_as_gaps(spark, connector):
-    from core.pipeline import apply_quality
-
     observations = [_obs(h, None if h in (1, 2) else 10.0) for h in range(24)]
     silver, results = apply_quality(_frame(spark, observations), connector, WINDOW)
 
@@ -72,8 +65,6 @@ def test_nulls_are_missing_and_count_as_gaps(spark, connector):
 
 
 def test_missing_hours_are_gaps(spark, connector):
-    from core.pipeline import apply_quality
-
     observations = [_obs(h, 10.0) for h in range(24) if h not in (10, 11, 12)]
     _, results = apply_quality(_frame(spark, observations), connector, WINDOW)
 
@@ -83,8 +74,6 @@ def test_missing_hours_are_gaps(spark, connector):
 
 
 def test_duplicates_are_detected_and_collapsed(spark, connector):
-    from core.pipeline import apply_quality
-
     observations = [*(_obs(h, 10.0) for h in range(24)), _obs(0, 10.0), _obs(1, None)]
     silver, results = apply_quality(_frame(spark, observations), connector, WINDOW)
 
@@ -95,8 +84,6 @@ def test_duplicates_are_detected_and_collapsed(spark, connector):
 
 
 def test_rules_only_apply_to_their_metric(spark, connector):
-    from core.pipeline import apply_quality
-
     # 1013 hPa is valid for pressure but would be out of range for pm10.
     observations = [_obs(h, 1013.0, metric="surface_pressure") for h in range(24)]
     silver, results = apply_quality(_frame(spark, observations), connector, WINDOW)
