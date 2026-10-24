@@ -270,7 +270,7 @@
               "style": {
                 "size": { "field": "magnitud", "min": 6, "max": 22 },
                 "color": { "fixed": "#e02f44" },
-                "opacity": 0.6,
+                "opacity": 0.85,
                 "symbol": { "mode": "fixed", "fixed": "img/icons/marker/star.svg" }
               }
             }
@@ -435,14 +435,15 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS \"Hora (UTC)\", magnitude AS \"Magnitud\", depth_km AS \"Profundidad (km)\", distance_to_palma_km AS \"Distancia a Palma (km)\", lat AS \"Latitud\", lon AS \"Longitud\", event_id AS \"Evento\", CASE WHEN is_suspect THEN quality_reasons ELSE 'ok' END AS \"Calidad\" FROM gold.fct_earthquakes ORDER BY ts DESC LIMIT 100"
+          "rawSql": "SELECT ts AS \"Hora\", magnitude AS \"Magnitud\", depth_km AS \"Profundidad (km)\", distance_to_palma_km AS \"Distancia a Palma (km)\", lat AS \"Latitud\", lon AS \"Longitud\", event_id AS \"Evento\", CASE WHEN is_suspect THEN quality_reasons ELSE 'ok' END AS \"Calidad\" FROM gold.fct_earthquakes ORDER BY ts DESC LIMIT 100"
         }
       ],
       "fieldConfig": {
         "defaults": {},
         "overrides": [
           { "matcher": { "id": "byName", "options": "Magnitud" }, "properties": [ { "id": "decimals", "value": 1 } ] },
-          { "matcher": { "id": "byName", "options": "Profundidad (km)" }, "properties": [ { "id": "decimals", "value": 1 } ] }
+          { "matcher": { "id": "byRegexp", "options": "Profundidad.*|Distancia.*" }, "properties": [ { "id": "decimals", "value": 1 } ] },
+          { "matcher": { "id": "byRegexp", "options": "Latitud|Longitud" }, "properties": [ { "id": "decimals", "value": 4 } ] }
         ]
       },
       "options": { "showHeader": true, "cellHeight": "sm" }
