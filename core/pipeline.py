@@ -114,10 +114,27 @@ def _load_observations(
 ) -> tuple[list[str], list[Observation]]:
     keys = extract_to_bronze(connector, window, region, store)
     observations = bronze_to_observations(connector, keys, region, store)
-    if not observations:
+    if not observations and not connector.config.is_event_source:
         msg = f"connector '{connector.name}' returned no observations for {window}"
         raise NoObservationsError(msg)
     return keys, observations
+
+
+def _load_silver(
+    connector: BaseConnector, observations: list[Observation], window: TimeWindow, run_id: str, warehouse: Warehouse
+) -> tuple[int, int, list[RuleResult]]:
+    """Quality-label the observations and load them into silver. Returns (rows, upserted, rule results)."""
+    settings = warehouse.settings
+    spark = build_spark(settings, app_name=f"mdp-{connector.name}")
+    silver, results = apply_quality(to_dataframe(spark, observations, run_id), connector, window)
+    silver = silver.cache()
+    rows_silver = silver.count()
+
+    landing_table = f"observations_{connector.name}"
+    write_silver(silver, settings, landing_table)
+    upserted = warehouse.merge_observations(landing_table)
+    silver.unpersist()
+    return rows_silver, upserted, results
 
 
 def run_connector(
@@ -145,18 +162,13 @@ def run_connector(
         store = BronzeStore(settings)
         store.ensure()
         keys, observations = _load_observations(connector, window, region, store)
-
-        spark = build_spark(settings, app_name=f"mdp-{name}")
-        ensure_bucket(store.client, settings.silver_bucket)
-        silver, results = apply_quality(to_dataframe(spark, observations, run_id), connector, window)
-        silver = silver.cache()
-        rows_silver = silver.count()
-
-        landing_table = f"observations_{name}"
-        write_silver(silver, settings, landing_table)
-        upserted = warehouse.merge_observations(landing_table)
-        warehouse.record_quality(run_id, name, window, results)
-        silver.unpersist()
+        if observations:
+            ensure_bucket(store.client, settings.silver_bucket)
+            rows_silver, upserted, results = _load_silver(connector, observations, window, run_id, warehouse)
+            warehouse.record_quality(run_id, name, window, results)
+        else:  # event source with no events in the window: raw response kept in bronze, nothing to load
+            log.info("run %s: no %s events in %s..%s", run_id, name, window.start, window.end)
+            rows_silver, upserted, results = 0, 0, []
     except Exception as exc:
         warehouse.finish_run(run_id, name, "failed", error=str(exc)[:2000])
         raise

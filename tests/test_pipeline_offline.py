@@ -9,7 +9,7 @@ import pytest
 
 from core.connectors import registry
 from core.models import Location, Region, TimeWindow
-from core.pipeline import bronze_to_observations, extract_to_bronze
+from core.pipeline import NoObservationsError, _load_observations, bronze_to_observations, extract_to_bronze
 from core.storage import BronzeStore
 
 FIXTURES = Path(__file__).parent.parent / "connectors" / "open_meteo" / "tests" / "fixtures"
@@ -62,3 +62,27 @@ def test_bronze_roundtrip_and_idempotent_keys(store):
     assert len(store.client.objects) == 2
     observations = bronze_to_observations(connector, keys_first, REGION, store)
     assert len(observations) == 2 * 24 * 10
+
+
+class EmptyHttp:
+    """An FDSN service with no events in the window answers ``204 No Content``."""
+
+    def get_text(self, url, params=None, headers=None):
+        return ""
+
+
+def test_event_source_without_events_lands_bronze_and_loads_nothing(store):
+    connector = registry.load("ign", http=EmptyHttp())
+
+    keys, observations = _load_observations(connector, WINDOW, REGION, store)
+
+    assert len(keys) == 1  # the empty response is kept in bronze
+    assert observations == []
+
+
+def test_time_series_source_without_data_fails(store, monkeypatch):
+    connector = registry.load("open_meteo", http=RecordedHttp())
+    monkeypatch.setattr(connector, "normalize", lambda payload, region: [])
+
+    with pytest.raises(NoObservationsError):
+        _load_observations(connector, WINDOW, REGION, store)
