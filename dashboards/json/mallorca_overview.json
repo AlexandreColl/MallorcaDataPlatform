@@ -252,7 +252,7 @@
             "matcher": { "id": "byName", "options": "ola (m)" },
             "properties": [
               { "id": "decimals", "value": 1 },
-              { "id": "unit", "value": "lengthm" },
+              { "id": "unit", "value": "suffix: m" },
               { "id": "color", "value": { "mode": "thresholds" } },
               { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#5794f2", "value": null }, { "color": "green", "value": 0.5 }, { "color": "yellow", "value": 1 }, { "color": "orange", "value": 2 }, { "color": "red", "value": 3 } ] } }
             ]
