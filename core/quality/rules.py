@@ -120,16 +120,23 @@ class DuplicateRule(RowRule):
 
 
 class GapRule(DatasetRule):
-    """Missing time steps per (source, entity, metric) for the expected frequency."""
+    """Missing time steps per (source, entity, metric) for the expected frequency.
+
+    ``metrics`` restricts the rule to the metrics sampled at ``frequency`` (a connector can
+    mix hourly and daily datasets); ``None`` checks every metric.
+    """
 
     name = "gaps"
 
-    def __init__(self, expected_steps: int, frequency: timedelta) -> None:
+    def __init__(self, expected_steps: int, frequency: timedelta, metrics: frozenset[str] | None = None) -> None:
         self.expected_steps = expected_steps
         self.frequency = frequency
+        self.metrics = metrics
 
     def evaluate(self, df: DataFrame) -> list[RuleResult]:
         """One result per metric: expected steps vs. steps with a non-null value."""
+        if self.metrics is not None:
+            df = df.where(F.col("metric").isin(sorted(self.metrics)))
         present = (
             df.where(F.col("value").isNotNull())
             .groupBy("source", "entity", "metric")

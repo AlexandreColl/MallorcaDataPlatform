@@ -34,11 +34,9 @@ x-airflow-common: &airflow-common
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "True"
     AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "30"
   volumes:
-    - ./dags:/opt/airflow/dags
-    - ./core:/opt/project/core
-    - ./connectors:/opt/project/connectors
-    - ./config:/opt/project/config
-    - ./dbt:/opt/project/dbt
+    # The whole checkout, not one mount per folder: git may delete and recreate a folder when
+    # switching branches, and a per-folder bind mount would keep pointing at the deleted one.
+    - ./:/opt/project:ro
     - airflow-logs:/opt/airflow/logs
   depends_on: &airflow-depends
     postgres:

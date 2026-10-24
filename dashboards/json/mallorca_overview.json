@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 2,
+  "version": 3,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -252,10 +252,84 @@
       "options": { "showHeader": true, "cellHeight": "sm" }
     },
     {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Demanda eléctrica de Baleares (MWh/h)",
+      "description": "REData, sistema eléctrico balear completo (Mallorca supone ~80 % de la demanda).",
+      "gridPos": { "h": 9, "w": 10, "x": 0, "y": 23 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, value AS \"Demanda\" FROM gold.fct_observations WHERE source = 'redata' AND metric = 'electricity_demand' AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "MWh", "custom": { "lineWidth": 1, "fillOpacity": 15, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "orange" } },
+        "overrides": []
+      },
+      "options": { "legend": { "showLegend": false }, "tooltip": { "mode": "single" } }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Generación diaria por tecnología (MWh)",
+      "gridPos": { "h": 9, "w": 10, "x": 10, "y": 23 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, replace(metric, 'generation_', '') AS metric, value FROM gold.fct_observations WHERE source = 'redata' AND metric LIKE 'generation\\_%' AND metric <> 'generation_total' AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "MWh",
+          "custom": { "drawStyle": "bars", "barAlignment": 0, "fillOpacity": 80, "lineWidth": 1, "stacking": { "mode": "normal", "group": "A" } }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Intensidad de CO₂ (tCO₂/MWh)",
+      "description": "Emisiones por MWh generado en Baleares (último día disponible).",
+      "gridPos": { "h": 9, "w": 4, "x": 20, "y": 23 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, value AS \"tCO2/MWh\" FROM gold.fct_observations WHERE source = 'redata' AND metric = 'co2_intensity' AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 3,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.3 }, { "color": "red", "value": 0.5 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
       "id": 9,
       "type": "table",
       "title": "Últimas ejecuciones",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {

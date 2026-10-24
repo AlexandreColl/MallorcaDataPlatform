@@ -90,3 +90,18 @@ def test_rules_only_apply_to_their_metric(spark, connector):
 
     assert silver.where(f"quality = '{Quality.OK}'").count() == 24
     assert _results_by_rule(results)[("range", "pm10")].checked == 0
+
+
+def test_gaps_use_each_dataset_frequency(spark):
+    redata = registry.load("redata")
+    hourly = [
+        Observation("redata", "baleares", "electricity_demand", T0 + timedelta(hours=h), 600.0, "MWh")
+        for h in range(24)
+    ]
+    daily = [Observation("redata", "baleares", "generation_total", T0, 14000.0, "MWh")]
+
+    _, results = apply_quality(_frame(spark, hourly + daily), redata, WINDOW)
+
+    by_rule = _results_by_rule(results)
+    assert (by_rule[("gaps", "electricity_demand")].checked, by_rule[("gaps", "electricity_demand")].failed) == (24, 0)
+    assert (by_rule[("gaps", "generation_total")].checked, by_rule[("gaps", "generation_total")].failed) == (1, 0)

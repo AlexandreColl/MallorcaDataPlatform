@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from pyspark.sql import DataFrame
@@ -20,6 +21,8 @@ from core.quality.rules import (
 )
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from core.connectors.base import ConnectorConfig
 
 
@@ -81,10 +84,22 @@ class QualityEngine:
 
 
 def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
-    """Default rule set derived from a connector's YAML."""
-    freq = config.frequency_delta
-    expected_steps = int((window.end_dt_exclusive() - window.start_dt()) / freq)
-    rules: list[Rule] = [NotNullRule(), DuplicateRule(), GapRule(expected_steps, freq)]
+    """Default rule set derived from a connector's YAML.
+
+    One gaps rule per sampling frequency, so hourly and daily datasets of the same
+    connector are each checked against their own expected number of steps.
+    """
+    span = window.end_dt_exclusive() - window.start_dt()
+    by_frequency: dict[timedelta, set[str]] = defaultdict(set)
+    for metric in config.metrics.values():
+        by_frequency[config.frequency_for(metric.dataset)].add(metric.name)
+    if not by_frequency:  # no declared metrics: check everything at the default frequency
+        by_frequency[config.frequency_delta] = set()
+
+    rules: list[Rule] = [NotNullRule(), DuplicateRule()]
+    rules.extend(
+        GapRule(int(span / freq), freq, frozenset(metrics) or None) for freq, metrics in sorted(by_frequency.items())
+    )
     rules.extend(
         RangeRule(metric.name, metric.min, metric.max)
         for metric in config.metrics.values()

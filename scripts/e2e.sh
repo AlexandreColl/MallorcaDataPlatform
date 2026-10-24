@@ -6,7 +6,7 @@ set -euo pipefail
 
 COMPOSE=${COMPOSE:-docker compose}
 DAG_ID=mallorca_pipeline
-CONF=${CONF:-'{"connectors": ["open_meteo"], "days": 1, "region": "mallorca"}'}
+CONF=${CONF:-'{"connectors": ["open_meteo", "redata"], "days": 1, "region": "mallorca"}'}
 TIMEOUT=${TIMEOUT:-900}
 
 sql() { $COMPOSE exec -T postgres psql -U postgres -d "$1" -tAc "$2"; }
@@ -59,6 +59,11 @@ aqi=$(sql warehouse "select count(*) from gold.air_quality_hourly")
 checks=$(sql warehouse "select count(*) from quality.check_results")
 echo "silver=$silver_1 gold=$gold_1 air_quality_hourly=$aqi quality_checks=$checks"
 (( silver_1 > 0 && gold_1 > 0 && aqi > 0 && checks > 0 )) || { echo "expected data in every layer"; false; }
+for source in $(grep -o '"connectors": *\[[^]]*\]' <<<"$CONF" | grep -o '"[a-z_]*"' | tr -d '"' | grep -v connectors); do
+  rows=$(sql warehouse "select count(*) from gold.fct_observations where source = '$source'")
+  echo "  $source: $rows rows in gold"
+  (( rows > 0 )) || { echo "connector $source loaded no data"; false; }
+done
 
 run_dag "e2e_second_$suffix"
 silver_2=$(sql warehouse "select count(*) from silver.observations")
