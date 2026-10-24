@@ -1,0 +1,28 @@
+[project]
+name = "mallorca-data-platform"
+version = "0.1.0"
+description = "Modular local data platform for Mallorca open data: Airflow, PySpark, MinIO, PostgreSQL, dbt and Grafana."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "Alexandre Coll" }]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["dbt/target", "dbt/logs"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "N", "RUF"]
+ignore = [
+    "N812",   # `functions as F` / `types as T` is the PySpark convention
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "connectors"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "connectors"]
+pythonpath = ["."]
+addopts = "-ra --import-mode=importlib"
+markers = ["spark: needs a local SparkSession (Java required)"]

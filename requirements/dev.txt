@@ -1,0 +1,10 @@
+# Local / CI test environment without Airflow. Versions aligned with the
+# Airflow 3.3.2 constraints used in the Docker image.
+pyspark==4.2.0
+boto3==1.43.75
+psycopg[binary]==3.3.5
+requests==2.34.2
+PyYAML==6.0.3
+pytest==9.1.1
+pytest-cov==7.0.0
+ruff==0.17.2

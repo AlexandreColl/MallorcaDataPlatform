@@ -1,0 +1,20 @@
+name: Bug
+description: Algo no funciona
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Qué pasa
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Cómo reproducirlo
+      placeholder: "make run CONNECTORS=open_meteo DAYS=1"
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: shell

@@ -1,0 +1,17 @@
+# Region definition shared by every connector.
+# bbox filters point sources (stations, buoys, earthquakes); locations are the
+# points queried on gridded/model sources such as Open-Meteo.
+name: mallorca
+description: Isla de Mallorca (Illes Balears)
+bbox:
+  min_lat: 39.25
+  min_lon: 2.30
+  max_lat: 39.97
+  max_lon: 3.50
+locations:
+  - {name: palma, lat: 39.5696, lon: 2.6502}
+  - {name: inca, lat: 39.7210, lon: 2.9110}
+  - {name: manacor, lat: 39.5696, lon: 3.2096}
+  - {name: pollenca, lat: 39.8770, lon: 3.0160}
+  - {name: llucmajor, lat: 39.4900, lon: 2.8910}
+  - {name: soller, lat: 39.7667, lon: 2.7150}

@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install ruff==0.17.2
+      - run: ruff check --output-format=github .
+      - run: ruff format --check .
+
+  test:
+    name: Unit tests (PySpark)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: pip install -r requirements/dev.txt
+      - run: pytest --cov=core --cov=connectors --cov-report=term-missing --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage.xml
+
+  dbt:
+    name: dbt build (empty warehouse)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.15-alpine
+        env:
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: warehouse
+          POSTGRES_DB: warehouse
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U warehouse"
+          --health-interval 5s --health-retries 20
+    env:
+      WAREHOUSE_HOST: localhost
+      WAREHOUSE_PORT: "5432"
+      WAREHOUSE_USER: warehouse
+      WAREHOUSE_PASSWORD: warehouse
+      WAREHOUSE_DB: warehouse
+      PGPASSWORD: warehouse
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install dbt-postgres==1.11.0
+      - name: Apply warehouse DDL
+        run: psql -h localhost -U warehouse -d warehouse -v ON_ERROR_STOP=1 -f core/sql/warehouse.sql
+      - name: dbt build
+        working-directory: dbt
+        run: dbt build --profiles-dir .
+
+  compose:
+    name: Docker compose config + image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image (runtime + dev targets)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/airflow/Dockerfile
+          target: dev
+          tags: mallorca-data-platform/airflow:dev
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: DAG integrity and tests inside the image
+        run: >-
+          docker run --rm -v "$PWD:/opt/project" -w /opt/project --entrypoint ""
+          mallorca-data-platform/airflow:dev pytest -q

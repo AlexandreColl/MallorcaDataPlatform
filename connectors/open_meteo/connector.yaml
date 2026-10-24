@@ -1,0 +1,26 @@
+name: open_meteo
+description: Open-Meteo air quality (CAMS model) and weather, hourly, no API key
+entrypoint: connectors.open_meteo.extractor:OpenMeteoConnector
+enabled: true
+frequency: 1h          # expected spacing between samples (used by the gaps rule)
+max_days: 92           # API limit for past data
+secrets: []            # names of env vars required in .env (none for Open-Meteo)
+
+datasets:
+  air_quality:
+    url: https://air-quality-api.open-meteo.com/v1/air-quality
+  weather:
+    url: https://api.open-meteo.com/v1/forecast
+
+# metric name (as returned by the API) -> dataset, canonical unit, valid physical range
+metrics:
+  pm10:                 {dataset: air_quality, unit: ug/m3, min: 0, max: 1000}
+  pm2_5:                {dataset: air_quality, unit: ug/m3, min: 0, max: 800}
+  nitrogen_dioxide:     {dataset: air_quality, unit: ug/m3, min: 0, max: 1000}
+  ozone:                {dataset: air_quality, unit: ug/m3, min: 0, max: 800}
+  european_aqi:         {dataset: air_quality, unit: eaqi, min: 0, max: 500}
+  temperature_2m:       {dataset: weather, unit: degC, min: -15, max: 50}
+  relative_humidity_2m: {dataset: weather, unit: pct, min: 0, max: 100}
+  precipitation:        {dataset: weather, unit: mm, min: 0, max: 300}
+  wind_speed_10m:       {dataset: weather, unit: km/h, min: 0, max: 250}
+  surface_pressure:     {dataset: weather, unit: hPa, min: 900, max: 1100}
