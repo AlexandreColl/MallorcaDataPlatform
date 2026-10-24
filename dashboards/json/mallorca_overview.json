@@ -269,6 +269,7 @@
             "matcher": { "id": "byName", "options": "temperatura media (°C)" },
             "properties": [
               { "id": "decimals", "value": 1 },
+              { "id": "unit", "value": "celsius" },
               { "id": "color", "value": { "mode": "thresholds" } },
               { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "blue", "value": null }, { "color": "green", "value": 10 }, { "color": "yellow", "value": 18 }, { "color": "orange", "value": 24 }, { "color": "red", "value": 30 } ] } }
             ]
@@ -341,7 +342,7 @@
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 18 },
+                "size": { "fixed": 14 },
                 "color": { "field": "temperatura media (°C)" },
                 "opacity": 1,
                 "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/cloud-sun.svg" }
