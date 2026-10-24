@@ -1,6 +1,6 @@
 # Airflow + PySpark (local mode) + dbt in an isolated venv.
 ARG AIRFLOW_VERSION=3.3.2
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 
 FROM apache/airflow:${AIRFLOW_VERSION}-python${PYTHON_VERSION} AS runtime
 ARG AIRFLOW_VERSION
@@ -53,5 +53,6 @@ COPY --chown=airflow:0 dags /opt/airflow/dags
 
 # Dev image: adds test/lint tooling (used by `make test` and `make lint`).
 FROM runtime AS dev
-RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" pytest pytest-cov ruff \
+ARG RUFF_VERSION=0.17.2
+RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" pytest pytest-cov "ruff==${RUFF_VERSION}" \
     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"

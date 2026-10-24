@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyspark.sql import SparkSession
 from pyspark.sql import types as T
 
-from core.config import Settings
+if TYPE_CHECKING:
+    from core.config import Settings
 
 SILVER_SCHEMA = T.StructType(
     [
@@ -23,6 +26,7 @@ SILVER_SCHEMA = T.StructType(
 
 
 def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") -> SparkSession:
+    """Local SparkSession configured for S3A (MinIO or AWS S3), UTC and idempotent overwrites."""
     builder = (
         SparkSession.builder.appName(app_name)
         .master(settings.spark_master)

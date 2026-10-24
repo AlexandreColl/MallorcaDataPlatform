@@ -1,3 +1,5 @@
+"""Reusable data-quality rules and the engine that applies them."""
+
 from core.quality.engine import QualityEngine, rules_for
 from core.quality.rules import (
     DuplicateRule,

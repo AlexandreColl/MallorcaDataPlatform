@@ -5,8 +5,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Python 3.14 (Airflow image, CI and `requires-python`).
+- Ruff with every rule enabled (`ALL`), 120-character lines and unsafe fixes; documented exceptions only.
+  Public modules, classes and functions now have Google-style docstrings and full type hints.
+- `run_connector`, `registry.load` and `Warehouse.finish_run` take keyword-only options;
+  run counts are passed as a `RunStats` object.
+
 ### Fixed
 
+- DAG integrity test failed on Airflow 3.3 (`DagBag(include_examples=...)` removed, `get_dag()` needs the
+  metadata DB).
 - Spark could not write to `s3a://`: add the S3 Analytics Accelerator jar required by hadoop-aws 3.5.0
   and default the S3A input stream to `classic` (configurable with `S3A_INPUT_STREAM`).
 - Default Airflow JWT secret is now long enough for HS512 (removes `InsecureKeyLengthWarning`).

@@ -13,16 +13,21 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as F
+
+if TYPE_CHECKING:
+    from datetime import timedelta
 
 KEY_COLUMNS = ("source", "entity", "metric", "ts")
 
 
 @dataclass(frozen=True)
 class RuleResult:
+    """Outcome of one rule: how many rows/steps were checked and how many failed."""
+
     rule: str
     target: str
     checked: int
@@ -31,15 +36,20 @@ class RuleResult:
 
     @property
     def passed(self) -> bool:
+        """True when nothing failed."""
         return self.failed == 0
 
 
-class Rule(ABC):
+class Rule:
+    """Common attributes of every rule: its name and what it targets (metric, column or ``*``)."""
+
     name: str = "rule"
     target: str = "*"
 
 
-class RowRule(Rule):
+class RowRule(Rule, ABC):
+    """Rule evaluated row by row; failing rows are labelled ``suspect``."""
+
     @abstractmethod
     def failed(self) -> Column:
         """True when the row breaks the rule."""
@@ -49,12 +59,17 @@ class RowRule(Rule):
         return F.lit(True)
 
 
-class DatasetRule(Rule):
+class DatasetRule(Rule, ABC):
+    """Rule evaluated on the whole frame; it only reports, it never labels rows."""
+
     @abstractmethod
-    def evaluate(self, df: DataFrame) -> list[RuleResult]: ...
+    def evaluate(self, df: DataFrame) -> list[RuleResult]:
+        """Return one result per target found in ``df``."""
 
 
 class NotNullRule(RowRule):
+    """Null values (reported, but the row is labelled ``missing`` rather than ``suspect``)."""
+
     name = "not_null"
 
     def __init__(self, column: str = "value") -> None:
@@ -62,36 +77,45 @@ class NotNullRule(RowRule):
         self.target = column
 
     def failed(self) -> Column:
+        """True when the column is null."""
         return F.col(self.column).isNull()
 
 
 class RangeRule(RowRule):
+    """Values of one metric outside its physical range."""
+
     name = "range"
 
     def __init__(self, metric: str, min_value: float | None, max_value: float | None) -> None:
         if min_value is None and max_value is None:
-            raise ValueError("RangeRule needs at least one bound")
+            msg = "RangeRule needs at least one bound"
+            raise ValueError(msg)
         self.metric = metric
         self.target = metric
         self.min_value = min_value
         self.max_value = max_value
 
     def scope(self) -> Column:
+        """Non-null rows of this metric."""
         return (F.col("metric") == self.metric) & F.col("value").isNotNull()
 
     def failed(self) -> Column:
+        """True when the value is below ``min_value`` or above ``max_value``."""
         below = F.col("value") < self.min_value if self.min_value is not None else F.lit(False)
         above = F.col("value") > self.max_value if self.max_value is not None else F.lit(False)
         return self.scope() & (below | above)
 
 
 class DuplicateRule(RowRule):
+    """Rows sharing the same key (source, entity, metric, ts)."""
+
     name = "duplicate"
 
     def __init__(self, keys: tuple[str, ...] = KEY_COLUMNS) -> None:
         self.keys = keys
 
     def failed(self) -> Column:
+        """True for every row whose key appears more than once."""
         return F.count(F.lit(1)).over(Window.partitionBy(*self.keys)) > 1
 
 
@@ -105,15 +129,14 @@ class GapRule(DatasetRule):
         self.frequency = frequency
 
     def evaluate(self, df: DataFrame) -> list[RuleResult]:
+        """One result per metric: expected steps vs. steps with a non-null value."""
         present = (
             df.where(F.col("value").isNotNull())
             .groupBy("source", "entity", "metric")
             .agg(F.countDistinct("ts").alias("present"))
         )
         series = df.select("source", "entity", "metric").distinct()
-        per_series = series.join(present, ["source", "entity", "metric"], "left").fillna(
-            0, subset=["present"]
-        )
+        per_series = series.join(present, ["source", "entity", "metric"], "left").fillna(0, subset=["present"])
         rows = (
             per_series.groupBy("metric")
             .agg(

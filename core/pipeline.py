@@ -10,6 +10,7 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from pyspark.sql import DataFrame, SparkSession, Window
 from pyspark.sql import functions as F
@@ -20,13 +21,19 @@ from core.models import Observation, Region, TimeWindow
 from core.quality import QualityEngine, RuleResult, rules_for
 from core.spark import SILVER_SCHEMA, build_spark
 from core.storage import BronzeStore, ensure_bucket
-from core.warehouse import Warehouse
+from core.warehouse import RunStats, Warehouse
 
 log = logging.getLogger(__name__)
 
 
+class NoObservationsError(RuntimeError):
+    """A connector produced no observations for the requested window."""
+
+
 @dataclass
 class RunSummary:
+    """Outcome of one connector run, returned to Airflow as XCom."""
+
     run_id: str
     source: str
     region: str
@@ -37,17 +44,18 @@ class RunSummary:
     rows_upserted: int
     checks_failed: int
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
+        """Plain dict (JSON-serialisable)."""
         return asdict(self)
 
 
 def new_run_id() -> str:
+    """Run id for executions launched outside Airflow."""
     return f"manual__{datetime.now(UTC):%Y%m%dT%H%M%S}_{uuid.uuid4().hex[:6]}"
 
 
-def extract_to_bronze(
-    connector: BaseConnector, window: TimeWindow, region: Region, store: BronzeStore
-) -> list[str]:
+def extract_to_bronze(connector: BaseConnector, window: TimeWindow, region: Region, store: BronzeStore) -> list[str]:
+    """Call the source API and land every raw response in bronze. Returns the object keys."""
     payloads = connector.extract(window, region)
     return [store.put(p) for p in payloads]
 
@@ -55,13 +63,12 @@ def extract_to_bronze(
 def bronze_to_observations(
     connector: BaseConnector, keys: list[str], region: Region, store: BronzeStore
 ) -> list[Observation]:
-    observations: list[Observation] = []
-    for key in keys:
-        observations.extend(connector.normalize(store.get(key), region))
-    return observations
+    """Read raw payloads back from bronze and normalise them to the common schema."""
+    return [obs for key in keys for obs in connector.normalize(store.get(key), region)]
 
 
 def to_dataframe(spark: SparkSession, observations: list[Observation], run_id: str) -> DataFrame:
+    """Build the silver DataFrame with lineage columns (`run_id`, `ingested_at`)."""
     rows = [o.as_row() for o in observations]
     df = spark.createDataFrame(rows, schema=SILVER_SCHEMA)
     return df.withColumn("run_id", F.lit(run_id)).withColumn("ingested_at", F.current_timestamp())
@@ -69,20 +76,18 @@ def to_dataframe(spark: SparkSession, observations: list[Observation], run_id: s
 
 def deduplicate(df: DataFrame) -> DataFrame:
     """Keep one row per key; prefer a non-null value."""
-    w = Window.partitionBy("source", "entity", "metric", "ts").orderBy(
-        F.col("value").isNull().asc()
-    )
+    w = Window.partitionBy("source", "entity", "metric", "ts").orderBy(F.col("value").isNull().asc())
     return df.withColumn("_rn", F.row_number().over(w)).where("_rn = 1").drop("_rn")
 
 
-def apply_quality(
-    df: DataFrame, connector: BaseConnector, window: TimeWindow
-) -> tuple[DataFrame, list[RuleResult]]:
+def apply_quality(df: DataFrame, connector: BaseConnector, window: TimeWindow) -> tuple[DataFrame, list[RuleResult]]:
+    """Label rows with the connector's rule set, then collapse duplicates."""
     flagged, results = QualityEngine(rules_for(connector.config, window)).run(df)
     return deduplicate(flagged), results
 
 
 def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:
+    """Write silver to the Parquet lake and to a Postgres landing table."""
     # 1) Parquet lake (S3A -> MinIO). Dynamic partition overwrite = idempotent per day.
     (
         df.withColumn("date", F.to_date("ts"))
@@ -104,14 +109,26 @@ def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:
     )
 
 
+def _load_observations(
+    connector: BaseConnector, window: TimeWindow, region: Region, store: BronzeStore
+) -> tuple[list[str], list[Observation]]:
+    keys = extract_to_bronze(connector, window, region, store)
+    observations = bronze_to_observations(connector, keys, region, store)
+    if not observations:
+        msg = f"connector '{connector.name}' returned no observations for {window}"
+        raise NoObservationsError(msg)
+    return keys, observations
+
+
 def run_connector(
     name: str,
     days: int,
+    *,
     region_name: str = "mallorca",
     run_id: str | None = None,
     settings: Settings | None = None,
-    spark: SparkSession | None = None,
 ) -> RunSummary:
+    """Run one connector end to end and record the run in ``ops.ingestion_runs``."""
     settings = settings or Settings.from_env()
     run_id = run_id or new_run_id()
     region = load_region(region_name, settings.regions_dir)
@@ -127,15 +144,11 @@ def run_connector(
     try:
         store = BronzeStore(settings)
         store.ensure()
-        keys = extract_to_bronze(connector, window, region, store)
-        observations = bronze_to_observations(connector, keys, region, store)
-        if not observations:
-            raise RuntimeError(f"connector '{name}' returned no observations for {window}")
+        keys, observations = _load_observations(connector, window, region, store)
 
-        spark = spark or build_spark(settings, app_name=f"mdp-{name}")
+        spark = build_spark(settings, app_name=f"mdp-{name}")
         ensure_bucket(store.client, settings.silver_bucket)
-        df = to_dataframe(spark, observations, run_id)
-        silver, results = apply_quality(df, connector, window)
+        silver, results = apply_quality(to_dataframe(spark, observations, run_id), connector, window)
         silver = silver.cache()
         rows_silver = silver.count()
 
@@ -144,22 +157,22 @@ def run_connector(
         upserted = warehouse.merge_observations(landing_table)
         warehouse.record_quality(run_id, name, window, results)
         silver.unpersist()
-
-        failed_checks = sum(1 for r in results if not r.passed)
-        warehouse.finish_run(run_id, name, "success", len(keys), rows_silver, upserted)
+    except Exception as exc:
+        warehouse.finish_run(run_id, name, "failed", error=str(exc)[:2000])
+        raise
+    else:
+        stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)
+        warehouse.finish_run(run_id, name, "success", stats=stats)
         summary = RunSummary(
             run_id=run_id,
             source=name,
             region=region.name,
             window_start=window.start.isoformat(),
             window_end=window.end.isoformat(),
-            payloads=len(keys),
-            rows_silver=rows_silver,
-            rows_upserted=upserted,
-            checks_failed=failed_checks,
+            payloads=stats.payloads,
+            rows_silver=stats.rows_silver,
+            rows_upserted=stats.rows_upserted,
+            checks_failed=sum(1 for r in results if not r.passed),
         )
         log.info("run summary: %s", summary.as_dict())
         return summary
-    except Exception as exc:
-        warehouse.finish_run(run_id, name, "failed", error=str(exc)[:2000])
-        raise

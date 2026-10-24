@@ -59,11 +59,11 @@ connectors: ## List available connectors and regions
 test: ## Run unit tests (+ DAG integrity) inside the dev image
 	$(COMPOSE) --profile tools run --rm toolbox pytest
 
-lint: ## Lint and format check
-	$(COMPOSE) --profile tools run --rm toolbox bash -c "ruff check . && ruff format --check ."
+lint: ## Lint and format check, report only (same as CI)
+	$(COMPOSE) --profile tools run --rm toolbox bash -c "ruff check --no-fix . && ruff format --check ."
 
-format: ## Auto-format code
-	$(COMPOSE) --profile tools run --rm toolbox bash -c "ruff check --fix . && ruff format ."
+format: ## Apply ruff fixes (including unsafe ones) and format
+	$(COMPOSE) --profile tools run --rm toolbox bash -c "ruff check . && ruff format ."
 
 dbt: ## Run dbt build against the warehouse
 	$(COMPOSE) exec airflow-scheduler bash -c "cd /opt/project/dbt && /opt/dbt-venv/bin/dbt build --profiles-dir . --target-path /tmp/dbt/target --log-path /tmp/dbt/logs"

@@ -13,16 +13,19 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import timedelta
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from core.connectors.http import HttpClient, JsonGetter
-from core.models import Observation, RawPayload, Region, TimeWindow
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+    from pathlib import Path
+
+    from core.models import Observation, RawPayload, Region, TimeWindow
 
 
 class ConnectorError(Exception):
@@ -31,6 +34,8 @@ class ConnectorError(Exception):
 
 @dataclass(frozen=True)
 class MetricSpec:
+    """A metric declared in ``connector.yaml``: dataset, canonical unit and valid range."""
+
     name: str
     dataset: str
     unit: str
@@ -40,6 +45,8 @@ class MetricSpec:
 
 @dataclass(frozen=True)
 class ConnectorConfig:
+    """Declarative part of a connector, loaded from ``connectors/<name>/connector.yaml``."""
+
     name: str
     description: str
     entrypoint: str
@@ -53,6 +60,12 @@ class ConnectorConfig:
 
     @classmethod
     def from_yaml(cls, path: Path) -> ConnectorConfig:
+        """Parse and validate a ``connector.yaml``.
+
+        Raises:
+            ConnectorError: on missing keys, a name that does not match its folder, or
+                metrics pointing to undeclared datasets.
+        """
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         try:
             metrics = {
@@ -78,29 +91,38 @@ class ConnectorConfig:
                 options=data.get("options") or {},
             )
         except KeyError as exc:
-            raise ConnectorError(f"{path}: missing required key {exc}") from exc
+            msg = f"{path}: missing required key {exc}"
+            raise ConnectorError(msg) from exc
         if config.name != path.parent.name:
-            raise ConnectorError(
-                f"{path}: name '{config.name}' must match folder '{path.parent.name}'"
-            )
+            msg = f"{path}: name '{config.name}' must match folder '{path.parent.name}'"
+            raise ConnectorError(msg)
         unknown = {m.dataset for m in metrics.values()} - set(config.datasets)
         if unknown:
-            raise ConnectorError(f"{path}: metrics reference unknown datasets {sorted(unknown)}")
+            msg = f"{path}: metrics reference unknown datasets {sorted(unknown)}"
+            raise ConnectorError(msg)
         return config
 
     @property
     def frequency_delta(self) -> timedelta:
+        """Expected spacing between samples."""
         return parse_frequency(self.frequency)
 
     def metrics_for(self, dataset: str) -> list[MetricSpec]:
+        """Metrics that belong to one dataset, in YAML order."""
         return [m for m in self.metrics.values() if m.dataset == dataset]
 
 
 def parse_frequency(freq: str) -> timedelta:
+    """Parse ``15m``, ``1h`` or ``1d`` into a timedelta.
+
+    Raises:
+        ConnectorError: for any other format.
+    """
     units = {"m": "minutes", "h": "hours", "d": "days"}
     value, unit = freq[:-1], freq[-1]
     if unit not in units or not value.isdigit():
-        raise ConnectorError(f"invalid frequency '{freq}', expected e.g. 15m, 1h, 1d")
+        msg = f"invalid frequency '{freq}', expected e.g. 15m, 1h, 1d"
+        raise ConnectorError(msg)
     return timedelta(**{units[unit]: int(value)})
 
 
@@ -119,22 +141,25 @@ class BaseConnector(ABC):
 
     @property
     def name(self) -> str:
+        """Connector name (same as its folder)."""
         return self.config.name
 
     def _secrets_from_env(self) -> dict[str, str]:
         missing = [s for s in self.config.secrets if not os.environ.get(s)]
         if missing:
-            raise ConnectorError(
-                f"connector '{self.name}' needs secrets {missing}; add them to your .env file"
-            )
+            msg = f"connector '{self.name}' needs secrets {missing}; add them to your .env file"
+            raise ConnectorError(msg)
         return {s: os.environ[s] for s in self.config.secrets}
 
     def validate_window(self, window: TimeWindow) -> None:
+        """Reject windows longer than the source allows.
+
+        Raises:
+            ConnectorError: if the window exceeds ``max_days``.
+        """
         if window.n_days > self.config.max_days:
-            raise ConnectorError(
-                f"connector '{self.name}' supports at most {self.config.max_days} days, "
-                f"got {window.n_days}"
-            )
+            msg = f"connector '{self.name}' supports at most {self.config.max_days} days, got {window.n_days}"
+            raise ConnectorError(msg)
 
     @abstractmethod
     def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:

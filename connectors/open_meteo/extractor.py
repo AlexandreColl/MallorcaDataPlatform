@@ -3,19 +3,30 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from core.connectors import BaseConnector, ConnectorError
 from core.models import Observation, Quality, RawPayload, Region, TimeWindow
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 log = logging.getLogger(__name__)
 
 
 class OpenMeteoConnector(BaseConnector):
+    """Hourly air quality and weather for every location of the region."""
+
     def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:
+        """One request per dataset with all the region's locations.
+
+        Raises:
+            ConnectorError: if the region defines no locations.
+        """
         if not region.locations:
-            raise ConnectorError(f"region '{region.name}' has no locations for Open-Meteo")
+            msg = f"region '{region.name}' has no locations for Open-Meteo"
+            raise ConnectorError(msg)
         payloads = []
         for dataset, spec in self.config.datasets.items():
             metrics = [m.name for m in self.config.metrics_for(dataset)]
@@ -44,11 +55,19 @@ class OpenMeteoConnector(BaseConnector):
         return payloads
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:
-        # A single location returns an object, several locations return a list (same order).
+        """Yield one observation per location, metric and hour.
+
+        A single location returns a JSON object and several locations return a list in
+        request order; both shapes are accepted.
+
+        Raises:
+            ConnectorError: if the number of returned locations does not match the request.
+        """
         bodies = payload.body if isinstance(payload.body, list) else [payload.body]
         names = payload.request["locations"]
         if len(bodies) != len(names):
-            raise ConnectorError(f"expected {len(names)} locations, got {len(bodies)}")
+            msg = f"expected {len(names)} locations, got {len(bodies)}"
+            raise ConnectorError(msg)
 
         for loc_name, body in zip(names, bodies, strict=True):
             location = region.location(loc_name)

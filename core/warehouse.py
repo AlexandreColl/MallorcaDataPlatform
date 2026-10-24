@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import psycopg
 from psycopg import sql
 
-from core.config import Settings
-from core.models import TimeWindow
-from core.quality.rules import RuleResult
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from core.config import Settings
+    from core.models import TimeWindow
+    from core.quality.rules import RuleResult
 
 DDL_PATH = Path(__file__).parent / "sql" / "warehouse.sql"
 
@@ -33,12 +37,24 @@ SILVER_COLUMNS = (
 _COMPARED = ("value", "unit", "quality", "quality_reasons", "lat", "lon")
 
 
+@dataclass(frozen=True)
+class RunStats:
+    """Row counts recorded when a run finishes successfully."""
+
+    payloads: int
+    rows_silver: int
+    rows_upserted: int
+
+
 class Warehouse:
+    """Access to the PostgreSQL warehouse used by the pipeline."""
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
     @contextmanager
     def connect(self) -> Iterator[psycopg.Connection]:
+        """Open a connection; the block is one transaction (commit on success)."""
         s = self.settings
         with psycopg.connect(
             host=s.warehouse_host,
@@ -50,7 +66,10 @@ class Warehouse:
             yield conn
 
     def ensure_schema(self) -> None:
-        # Advisory lock: several connector tasks may start at the same time.
+        """Apply the idempotent DDL in ``core/sql/warehouse.sql``.
+
+        An advisory lock serialises it because several connector tasks may start at once.
+        """
         with self.connect() as conn:
             conn.execute("SELECT pg_advisory_xact_lock(7302)")
             conn.execute(DDL_PATH.read_text(encoding="utf-8"))
@@ -75,9 +94,7 @@ class Warehouse:
             if c not in ("source", "entity", "metric", "ts")
         )
         old = sql.SQL(", ").join(sql.SQL("t.{c}").format(c=sql.Identifier(c)) for c in _COMPARED)
-        new = sql.SQL(", ").join(
-            sql.SQL("EXCLUDED.{c}").format(c=sql.Identifier(c)) for c in _COMPARED
-        )
+        new = sql.SQL(", ").join(sql.SQL("EXCLUDED.{c}").format(c=sql.Identifier(c)) for c in _COMPARED)
         query = sql.SQL(
             """
             INSERT INTO silver.observations AS t ({cols})
@@ -98,9 +115,8 @@ class Warehouse:
             cur = conn.execute(query)
             return cur.rowcount
 
-    def record_quality(
-        self, run_id: str, source: str, window: TimeWindow, results: list[RuleResult]
-    ) -> None:
+    def record_quality(self, run_id: str, source: str, window: TimeWindow, results: list[RuleResult]) -> None:
+        """Store the result of every quality check of a run (re-runs overwrite)."""
         with self.connect() as conn, conn.cursor() as cur:
             cur.executemany(
                 """
@@ -130,6 +146,7 @@ class Warehouse:
             )
 
     def start_run(self, run_id: str, source: str, region: str, window: TimeWindow) -> None:
+        """Register a run as ``running`` (a retry of the same run resets it)."""
         with self.connect() as conn:
             conn.execute(
                 """
@@ -147,11 +164,14 @@ class Warehouse:
         run_id: str,
         source: str,
         status: str,
-        payloads: int | None = None,
-        rows_silver: int | None = None,
-        rows_upserted: int | None = None,
+        *,
+        stats: RunStats | None = None,
         error: str | None = None,
     ) -> None:
+        """Close a run with its final status, row counts and error message."""
+        payloads = stats.payloads if stats else None
+        rows_silver = stats.rows_silver if stats else None
+        rows_upserted = stats.rows_upserted if stats else None
         with self.connect() as conn:
             conn.execute(
                 """

@@ -1,4 +1,6 @@
-# Optional local hooks: pip install pre-commit && pre-commit install
+# Runs on every `git commit`: ruff fixes (including unsafe ones, see pyproject.toml) and formats
+# the staged files before they are committed.
+# Install once (Debian): sudo apt install pre-commit && pre-commit install
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0

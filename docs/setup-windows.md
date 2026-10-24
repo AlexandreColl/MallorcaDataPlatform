@@ -66,7 +66,17 @@ git clone https://github.com/<usuario>/MallorcaDataPlatform.git   # o, antes del
 cd MallorcaDataPlatform
 ```
 
-## 5. Primer arranque
+## 5. Hooks de pre-commit
+
+En cada `git commit`, ruff arregla (incluidos los arreglos *unsafe*) y formatea los ficheros
+modificados antes de guardar el commit:
+
+```bash
+sudo apt install pre-commit
+pre-commit install
+```
+
+## 6. Primer arranque
 
 ```bash
 make up            # ~10 min la primera vez (descarga imágenes y construye la de Airflow)

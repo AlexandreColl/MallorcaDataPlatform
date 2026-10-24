@@ -4,22 +4,60 @@ version = "0.1.0"
 description = "Modular local data platform for Mallorca open data: Airflow, PySpark, MinIO, PostgreSQL, dbt and Grafana."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 authors = [{ name = "Alexandre Coll" }]
 
 [tool.ruff]
-line-length = 100
-target-version = "py312"
+line-length = 120
+target-version = "py314"
 extend-exclude = ["dbt/target", "dbt/logs"]
+# `ruff check` fixes what it can (including unsafe fixes) and lists what it changed.
+# CI runs `ruff check --no-fix` so it only reports.
+fix = true
+unsafe-fixes = true
+show-fixes = true
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "UP", "SIM", "N", "RUF"]
+# Every rule ruff ships; the exceptions below are deliberate and documented.
+select = ["ALL"]
 ignore = [
+    "COM812", # trailing commas are handled by `ruff format`
+    "ISC001", # may conflict with `ruff format`
     "N812",   # `functions as F` / `types as T` is the PySpark convention
+    "FBT003", # boolean literals as positional args are unavoidable with PySpark (F.lit(False))
+    "D105",   # magic methods are self-explanatory
+    "D107",   # __init__ is documented on the class
+    "CPY001", # MIT licence lives in LICENSE; no per-file copyright headers
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = [
+    "S101",    # assert is how pytest works
+    "D",       # test names are the documentation
+    "ANN",     # fixtures and fakes don't need annotations
+    "PLR2004", # expected values in assertions are fine as literals
+    "INP001",  # test folders are not packages
+    "ARG",     # fakes implement full signatures
+    "SLF001",
+]
+"dags/**" = [
+    "INP001",  # the Airflow DAGs folder is not a Python package
+    "PLC0415", # heavy imports inside tasks keep DAG parsing fast (Airflow best practice)
+]
+"core/cli.py" = [
+    "T201",    # printing is the CLI's output
+    "PLC0415", # lazy imports: `list` must not start the JVM
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint.isort]
 known-first-party = ["core", "connectors"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "connectors"]

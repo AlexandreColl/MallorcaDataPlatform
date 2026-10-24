@@ -1,5 +1,6 @@
 """Command line entry point, usable without Airflow.
 
+Examples:
     python -m core.cli list
     python -m core.cli init
     python -m core.cli run --connectors open_meteo --days 1 --region mallorca
@@ -14,6 +15,8 @@ import sys
 
 from core.config import Settings, available_regions
 from core.connectors import registry
+
+log = logging.getLogger("core.cli")
 
 
 def _cmd_list(_: argparse.Namespace) -> int:
@@ -49,12 +52,13 @@ def _cmd_run(args: argparse.Namespace) -> int:
             summary = run_connector(name, days=args.days, region_name=args.region, run_id=run_id)
             print(json.dumps(summary.as_dict()))
         except Exception:
-            logging.exception("connector %s failed", name)
+            log.exception("connector %s failed", name)
             failures += 1
     return 1 if failures else 0
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse arguments and run a sub-command. Returns the process exit code."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     parser = argparse.ArgumentParser(prog="mdp", description="Mallorca Data Platform")
     sub = parser.add_subparsers(dest="command", required=True)

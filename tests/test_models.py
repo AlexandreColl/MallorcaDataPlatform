@@ -20,7 +20,7 @@ def test_last_days_is_deterministic_for_reruns():
 
 @pytest.mark.parametrize("days", [0, -3])
 def test_last_days_rejects_non_positive(days):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="days must be >= 1"):
         TimeWindow.last_days(days)
 
 
@@ -33,12 +33,13 @@ def test_payload_roundtrip():
 
 
 def test_observation_requires_timezone():
-    with pytest.raises(ValueError):
-        Observation("s", "e", "m", datetime(2026, 1, 1), 1.0, "u")
+    naive = datetime(2026, 1, 1)  # noqa: DTZ001 - the naive datetime is what is under test
+    with pytest.raises(ValueError, match="timezone-aware"):
+        Observation("s", "e", "m", naive, 1.0, "u")
 
 
 def test_observation_rejects_unknown_quality():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unknown quality label"):
         Observation("s", "e", "m", datetime(2026, 1, 1, tzinfo=UTC), 1.0, "u", quality="bad")
 
 
