@@ -8,6 +8,8 @@ ARG PYTHON_VERSION
 # Versions matching the Hadoop client bundled with PySpark 4.2 (Hadoop 3.5.0).
 ARG HADOOP_AWS_VERSION=3.5.0
 ARG AWS_SDK_V2_VERSION=2.35.4
+# Compile dependency of hadoop-aws >= 3.5.0 (S3 Analytics Accelerator input stream).
+ARG S3_ANALYTICS_ACCELERATOR_VERSION=1.3.1
 ARG POSTGRES_JDBC_VERSION=42.7.14
 ARG DBT_POSTGRES_VERSION=1.11.0
 
@@ -23,9 +25,11 @@ RUN mkdir -p /opt/spark-jars \
     "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/${HADOOP_AWS_VERSION}/hadoop-aws-${HADOOP_AWS_VERSION}.jar" \
  && curl -fsSL -o /opt/spark-jars/aws-sdk-bundle.jar \
     "https://repo1.maven.org/maven2/software/amazon/awssdk/bundle/${AWS_SDK_V2_VERSION}/bundle-${AWS_SDK_V2_VERSION}.jar" \
+ && curl -fsSL -o /opt/spark-jars/s3-analytics-accelerator.jar \
+    "https://repo1.maven.org/maven2/software/amazon/s3/analyticsaccelerator/analyticsaccelerator-s3/${S3_ANALYTICS_ACCELERATOR_VERSION}/analyticsaccelerator-s3-${S3_ANALYTICS_ACCELERATOR_VERSION}.jar" \
  && curl -fsSL -o /opt/spark-jars/postgresql.jar \
     "https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}/postgresql-${POSTGRES_JDBC_VERSION}.jar"
-ENV SPARK_EXTRA_JARS=/opt/spark-jars/hadoop-aws.jar,/opt/spark-jars/aws-sdk-bundle.jar,/opt/spark-jars/postgresql.jar
+ENV SPARK_EXTRA_JARS=/opt/spark-jars/hadoop-aws.jar,/opt/spark-jars/aws-sdk-bundle.jar,/opt/spark-jars/s3-analytics-accelerator.jar,/opt/spark-jars/postgresql.jar
 
 # dbt lives in its own venv so its dependencies never clash with Airflow's.
 RUN python -m venv /opt/dbt-venv \
