@@ -6,8 +6,10 @@ set -euo pipefail
 
 COMPOSE=${COMPOSE:-docker compose}
 DAG_ID=mallorca_pipeline
-CONF=${CONF:-'{"connectors": ["open_meteo", "redata", "socib"], "days": 1, "region": "mallorca"}'}
+CONF=${CONF:-'{"connectors": ["open_meteo", "redata", "socib", "ign"], "days": 1, "region": "mallorca"}'}
 TIMEOUT=${TIMEOUT:-900}
+# Connectors with `frequency: event`: a 1-day window usually has no events, so they must succeed, not load rows.
+EVENT_SOURCES=${EVENT_SOURCES:-ign}
 
 sql() { $COMPOSE exec -T postgres psql -U postgres -d "$1" -tAc "$2"; }
 
@@ -62,7 +64,12 @@ echo "silver=$silver_1 gold=$gold_1 air_quality_hourly=$aqi quality_checks=$chec
 for source in $(grep -o '"connectors": *\[[^]]*\]' <<<"$CONF" | grep -o '"[a-z_]*"' | tr -d '"' | grep -v connectors); do
   rows=$(sql warehouse "select count(*) from gold.fct_observations where source = '$source'")
   echo "  $source: $rows rows in gold"
-  (( rows > 0 )) || { echo "connector $source loaded no data"; false; }
+  if [[ " $EVENT_SOURCES " == *" $source "* ]]; then
+    ok=$(sql warehouse "select count(*) from ops.ingestion_runs where source = '$source' and run_id = 'e2e_first_$suffix' and status = 'success'")
+    (( ok == 1 )) || { echo "event connector $source did not finish successfully"; false; }
+  else
+    (( rows > 0 )) || { echo "connector $source loaded no data"; false; }
+  fi
 done
 
 run_dag "e2e_second_$suffix"

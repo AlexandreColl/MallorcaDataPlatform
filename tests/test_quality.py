@@ -117,3 +117,17 @@ def test_gaps_use_each_dataset_frequency(spark):
     by_rule = _results_by_rule(results)
     assert (by_rule[("gaps", "electricity_demand")].checked, by_rule[("gaps", "electricity_demand")].failed) == (24, 0)
     assert (by_rule[("gaps", "generation_total")].checked, by_rule[("gaps", "generation_total")].failed) == (1, 0)
+
+
+def test_events_get_range_checks_but_no_gaps_rule(spark):
+    ign = registry.load("ign")
+    quake = [
+        Observation("ign", "20261023_0000001", "magnitude", T0, 2.3, "M"),
+        Observation("ign", "20261023_0000001", "depth_km", T0, 900.0, "km"),  # deeper than any real quake
+    ]
+
+    silver, results = apply_quality(_frame(spark, quake), ign, WINDOW)
+
+    assert not any(r.rule == "gaps" for r in results)  # one event in a whole day is not 23 missing hours
+    suspect = silver.where(f"quality = '{Quality.SUSPECT}'").collect()
+    assert [(r.metric, r.quality_reasons) for r in suspect] == [("depth_km", "range")]

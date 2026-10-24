@@ -1,0 +1,24 @@
+name: ign
+description: Earthquakes located by the Instituto Geográfico Nacional around the region (FDSN event service), no API key
+entrypoint: connectors.ign.extractor:IgnConnector
+enabled: true
+frequency: event       # irregular events: no gaps rule, a window without earthquakes is a valid empty result
+max_days: 3660         # one FDSN request covers the whole window
+secrets: []
+
+options:
+  # FDSN event web service of EMSC: it republishes the IGN locations (Author IGN, MDD in older events) with a
+  # standard, filterable API. The IGN's own catalogue is a web form and its GeoJSON feed only covers 30 days.
+  fdsn_url: https://www.seismicportal.eu/fdsnws/event/1/query
+  margin_deg: 1.0          # the region bbox (the island) widened to the surrounding sea, where most events happen
+  authors: [IGN, MDD]      # keep events located by the IGN; other agencies' solutions stay in bronze only
+
+datasets:
+  earthquakes:
+    columns:               # FDSN text column -> metric
+      Magnitude: magnitude
+      Depth/km: depth_km
+
+metrics:
+  magnitude: {dataset: earthquakes, unit: M, min: -2, max: 10}     # local magnitude (ml) for these events
+  depth_km:  {dataset: earthquakes, unit: km, min: -5, max: 700}

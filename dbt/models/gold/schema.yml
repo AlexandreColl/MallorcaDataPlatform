@@ -46,3 +46,13 @@ models:
     columns:
       - name: rule
         data_tests: [not_null]
+
+  - name: fct_earthquakes
+    description: One row per earthquake located by the IGN (magnitude, depth, epicentre, distance from Palma).
+    columns:
+      - name: event_id
+        data_tests: [not_null, unique]
+      - name: ts
+        data_tests: [not_null]
+      - name: magnitude
+        data_tests: [not_null]

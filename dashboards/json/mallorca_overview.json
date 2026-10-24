@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 5,
+  "version": 6,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -100,7 +100,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(DISTINCT source) AS \"Fuentes\" FROM gold.dim_locations"
+          "rawSql": "SELECT count(DISTINCT source) AS \"Fuentes\" FROM ops.ingestion_runs WHERE status = 'success'"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
@@ -174,7 +174,7 @@
       "id": 7,
       "type": "geomap",
       "title": "Fuentes georreferenciadas",
-      "description": "Una capa por fuente. Círculos: puntos del modelo Open-Meteo coloreados por el índice europeo de calidad del aire. Triángulos: estaciones reales de SOCIB con su última hora. REData no aparece: es el sistema eléctrico balear completo, no un punto.",
+      "description": "Una capa por fuente. Círculos: puntos del modelo Open-Meteo coloreados por el índice europeo de calidad del aire. Triángulos: estaciones reales de SOCIB con su última hora. Estrellas: sismos localizados por el IGN en Mallorca y el mar que la rodea, de tamaño según la magnitud (todos los cargados, sin filtro de tiempo: hay pocos al año). REData no aparece: es el sistema eléctrico balear completo, no un punto.",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 13 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -193,6 +193,14 @@
           "format": "table",
           "rawQuery": true,
           "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'socib' GROUP BY entity) SELECT o.entity AS station, l.lat, l.lon, max(o.value) FILTER (WHERE o.metric = 'temperature_2m') AS \"temperatura (°C)\", max(o.value) FILTER (WHERE o.metric = 'relative_humidity_2m') AS \"humedad (%)\", max(o.value) FILTER (WHERE o.metric = 'wind_speed_10m') AS \"viento (km/h)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts JOIN gold.dim_locations l ON l.source = o.source AND l.entity = o.entity WHERE o.source = 'socib' GROUP BY o.entity, l.lat, l.lon, latest.ts ORDER BY o.entity"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT event_id AS sismo, lat, lon, magnitude AS magnitud, depth_km AS \"profundidad (km)\", distance_to_palma_km AS \"distancia a Palma (km)\", ts AS hora FROM gold.fct_earthquakes ORDER BY ts"
         }
       ],
       "fieldConfig": {
@@ -212,7 +220,7 @@
         "overrides": []
       },
       "options": {
-        "view": { "id": "coords", "lat": 39.62, "lon": 2.95, "zoom": 8.6 },
+        "view": { "id": "coords", "lat": 39.62, "lon": 2.95, "zoom": 8.2 },
         "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
         "basemap": { "type": "osm-standard", "name": "OpenStreetMap", "config": {} },
         "tooltip": { "mode": "details" },
@@ -248,6 +256,22 @@
                 "symbol": { "mode": "fixed", "fixed": "img/icons/marker/triangle.svg" },
                 "text": { "mode": "field", "field": "station" },
                 "textConfig": { "fontSize": 11, "offsetY": 16, "textAlign": "center", "textBaseline": "middle" }
+              }
+            }
+          },
+          {
+            "type": "markers",
+            "name": "Sismos (IGN, todos los registrados)",
+            "tooltip": true,
+            "filterData": { "id": "byRefId", "options": "C" },
+            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": { "field": "magnitud", "min": 6, "max": 22 },
+                "color": { "fixed": "#e02f44" },
+                "opacity": 0.85,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/star.svg" }
               }
             }
           }
@@ -398,10 +422,37 @@
       "options": { "showHeader": true, "cellHeight": "sm" }
     },
     {
+      "id": 15,
+      "type": "table",
+      "title": "Sismos localizados por el IGN (Mallorca y mar balear)",
+      "description": "Todos los sismos cargados, sin filtro de tiempo: la zona tiene pocos eventos al año. Fuente: servicio FDSN de EMSC con la localización del IGN.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS \"Hora\", magnitude AS \"Magnitud\", depth_km AS \"Profundidad (km)\", distance_to_palma_km AS \"Distancia a Palma (km)\", lat AS \"Latitud\", lon AS \"Longitud\", event_id AS \"Evento\", CASE WHEN is_suspect THEN quality_reasons ELSE 'ok' END AS \"Calidad\" FROM gold.fct_earthquakes ORDER BY ts DESC LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Magnitud" }, "properties": [ { "id": "decimals", "value": 1 } ] },
+          { "matcher": { "id": "byRegexp", "options": "Profundidad.*|Distancia.*" }, "properties": [ { "id": "decimals", "value": 1 } ] },
+          { "matcher": { "id": "byRegexp", "options": "Latitud|Longitud" }, "properties": [ { "id": "decimals", "value": 4 } ] }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
       "id": 9,
       "type": "table",
       "title": "Últimas ejecuciones",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 49 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {

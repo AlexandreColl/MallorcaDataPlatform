@@ -1,6 +1,6 @@
 [project]
 name = "mallorca-data-platform"
-version = "0.2.1"
+version = "0.2.2"
 description = "Modular local data platform for Mallorca open data: Airflow, PySpark, MinIO, PostgreSQL, dbt and Grafana."
 readme = "README.md"
 license = "MIT"

@@ -109,14 +109,27 @@ class ConnectorConfig:
         """Default spacing between samples (datasets may override it)."""
         return parse_frequency(self.frequency)
 
-    def frequency_for(self, dataset: str) -> timedelta:
-        """Spacing between samples of one dataset: its own ``frequency`` or the connector default."""
+    def frequency_for(self, dataset: str) -> timedelta | None:
+        """Spacing between samples of one dataset: its own ``frequency`` or the connector default.
+
+        ``None`` for event datasets (``frequency: event``), which have no regular spacing.
+        """
         spec = self.datasets.get(dataset) or {}
-        return parse_frequency(str(spec.get("frequency", self.frequency)))
+        freq = str(spec.get("frequency", self.frequency))
+        return None if freq == EVENT_FREQUENCY else parse_frequency(freq)
+
+    @property
+    def is_event_source(self) -> bool:
+        """True when every dataset holds irregular events: a window without events is a valid, empty result."""
+        return bool(self.datasets) and all(self.frequency_for(d) is None for d in self.datasets)
 
     def metrics_for(self, dataset: str) -> list[MetricSpec]:
         """Metrics that belong to one dataset, in YAML order."""
         return [m for m in self.metrics.values() if m.dataset == dataset]
+
+
+# Dataset frequency of irregular sources (earthquakes...): no gaps rule, empty windows are allowed.
+EVENT_FREQUENCY = "event"
 
 
 def parse_frequency(freq: str) -> timedelta:

@@ -15,4 +15,5 @@ select
         (count(*) filter (where quality <> 'missing'))::numeric / nullif(count(*), 0), 4
     ) as completeness
 from {{ ref('stg_observations') }}
+where source not in {{ event_sources() }}
 group by source, entity, metric, local_date

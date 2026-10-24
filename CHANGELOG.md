@@ -5,6 +5,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-24
+
+Fourth connector and the first event source: earthquakes located by the IGN.
+
+### Added
+
+- IGN connector: earthquakes located by the Instituto Geográfico Nacional around Mallorca (region bbox + 1°),
+  read from the EMSC FDSN event service (standard API, no key). The IGN's own catalogue is a web form and its
+  GeoJSON feed only covers 30 days. Events located by other agencies stay in bronze only.
+- Event sources: datasets with `frequency: event` get no gaps rule, and a window without events is a valid run
+  with 0 rows (the empty response still lands in bronze). Time-series sources still fail when they return nothing.
+- `gold.fct_earthquakes`: one row per earthquake with magnitude, depth and distance to Palma, using the latest
+  ingested solution when an agency revises an event.
+- Grafana: earthquakes as a layer of the map (star size by magnitude) and a table of every loaded earthquake.
+- E2E runs the IGN connector and checks that event sources finish successfully even with no rows.
+
+### Changed
+
+- Event sources are left out of `dim_locations` and `agg_daily_metrics`, which describe time series.
+- The "Fuentes activas" stat counts sources with a successful run instead of sources with locations.
+
 ## [0.2.1] - 2026-10-24
 
 Third connector: real observations from SOCIB, and a map with every georeferenced source.
@@ -72,7 +93,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/releases/tag/v0.1.0
