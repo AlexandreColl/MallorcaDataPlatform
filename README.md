@@ -24,6 +24,7 @@ flowchart LR
         RD[REData]
         SO[SOCIB]
         IG[IGN sismos]
+        EM[EMT Palma GTFS]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -39,7 +40,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & RD & SO & IG --> EX --> BR --> SP
+    OM & RD & SO & IG & EM --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -96,9 +97,9 @@ Otros comandos: `make help`.
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
-| openaq | ⬜ v0.2.3 | Estaciones de calidad del aire | Sí |
-| aqicn | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
-| emt_palma | ⬜ v0.2.5 | GTFS estático de autobuses | No |
+| [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
+| openaq | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
+| aqicn | ⬜ v0.2.5 | Estaciones de calidad del aire | Sí |
 
 ### Open-Meteo
 
@@ -136,6 +137,15 @@ en la caja de la región ampliada 1° alrededor de la isla. Es la primera fuente
 regular, así que su dataset declara `frequency: event` (sin regla de huecos) y una ventana sin sismos, lo habitual,
 es una ejecución correcta con 0 filas. En gold, `fct_earthquakes` da una fila por sismo con su distancia a Palma; en
 Grafana aparecen como estrellas en el mapa y en una tabla. Prueba real: 57 sismos desde 2020, magnitud máxima 3,0.
+
+### EMT Palma (autobús)
+
+El GTFS estático de EMT Palma (abierto en su GitHub, sin clave) convertido en una **serie diaria por parada**: para
+cada día se resuelven los servicios que circulan (calendario semanal más las excepciones de festivos) y se cuentan
+los autobuses programados y las líneas distintas que pasan por cada una de las 875 paradas. EMT publica los viajes
+por frecuencias (`frequencies.txt`: «cada 20 min de 07:15 a 20:35»), que el conector expande. Los días fuera de la
+vigencia del feed no generan filas, así que la regla de huecos los señala. En Grafana es un mapa de calor del
+servicio. Prueba real: unos 78.000 pasos de autobús en un día laborable, 52.800 en domingo.
 
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 

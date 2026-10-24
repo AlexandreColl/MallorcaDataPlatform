@@ -7,6 +7,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- EMT Palma connector: the static GTFS of Palma's city buses turned into a daily series per stop (scheduled
+  departures and lines served), resolving each day's services from the calendar and its holiday exceptions and
+  expanding headway-based trips (`frequencies.txt`). The zip lands untouched in bronze with its SHA-256.
+- `HttpClient.get_bytes` for binary downloads.
 - Catch-up: each run extends its window back to the day after the connector's last successful run (up to
   `catch_up_days`, 28 for SOCIB), so the days lost while a source was down are recovered by its next run. DAG
   param `catch_up` and CLI flag `--no-catch-up` to turn it off.
