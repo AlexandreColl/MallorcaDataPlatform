@@ -14,15 +14,19 @@ from core import __version__
 log = logging.getLogger(__name__)
 
 type JsonValue = dict[str, JsonValue] | list[JsonValue] | str | int | float | bool | None
+# Query parameters; a list value is sent as a repeated key (?var=a&var=b).
+type Params = dict[str, str | list[str]]
 
 
 class JsonGetter(Protocol):
-    """Anything that can GET a URL and return decoded JSON (real client or test fake)."""
+    """Anything that can GET a URL (real client or test fake). Connectors use the methods they need."""
 
-    def get_json(
-        self, url: str, params: dict[str, str] | None = None, headers: dict[str, str] | None = None
-    ) -> JsonValue:
+    def get_json(self, url: str, params: Params | None = None, headers: dict[str, str] | None = None) -> JsonValue:
         """GET ``url`` and return the decoded JSON body."""
+        ...
+
+    def get_text(self, url: str, params: Params | None = None, headers: dict[str, str] | None = None) -> str:
+        """GET ``url`` and return the body as text (CSV, XML...)."""
         ...
 
 
@@ -44,15 +48,24 @@ class HttpClient:
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
-    def get_json(
-        self, url: str, params: dict[str, str] | None = None, headers: dict[str, str] | None = None
-    ) -> JsonValue:
+    def _get(self, url: str, params: Params | None, headers: dict[str, str] | None) -> requests.Response:
+        log.info("GET %s params=%s", url, params)
+        response = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
+        response.raise_for_status()
+        return response
+
+    def get_json(self, url: str, params: Params | None = None, headers: dict[str, str] | None = None) -> JsonValue:
         """GET ``url`` and return the decoded JSON body.
 
         Raises:
             requests.HTTPError: for non-2xx responses once retries are exhausted.
         """
-        log.info("GET %s params=%s", url, params)
-        response = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
-        response.raise_for_status()
-        return response.json()
+        return self._get(url, params, headers).json()
+
+    def get_text(self, url: str, params: Params | None = None, headers: dict[str, str] | None = None) -> str:
+        """GET ``url`` and return the body as text.
+
+        Raises:
+            requests.HTTPError: for non-2xx responses once retries are exhausted.
+        """
+        return self._get(url, params, headers).text

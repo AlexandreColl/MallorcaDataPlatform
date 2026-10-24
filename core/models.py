@@ -136,6 +136,8 @@ class RawPayload:
     request: dict[str, Any]
     body: Any
     fetched_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    # Sub-key when one dataset is fetched in several requests per window (e.g. one per station).
+    partition: str | None = None
 
     @property
     def key(self) -> str:
@@ -144,7 +146,8 @@ class RawPayload:
         Re-running a window overwrites the object, and bucket versioning keeps the
         previous raw response instead of discarding it.
         """
-        return f"{self.source}/{self.dataset}/window={self.window.slug}/payload.json"
+        partition = f"partition={self.partition}/" if self.partition else ""
+        return f"{self.source}/{self.dataset}/{partition}window={self.window.slug}/payload.json"
 
     def to_json(self) -> str:
         """Serialise the payload and its request metadata."""
@@ -156,6 +159,7 @@ class RawPayload:
                     "start": self.window.start.isoformat(),
                     "end": self.window.end.isoformat(),
                 },
+                "partition": self.partition,
                 "request": self.request,
                 "fetched_at": self.fetched_at.isoformat(),
                 "body": self.body,
@@ -177,6 +181,7 @@ class RawPayload:
             request=data["request"],
             body=data["body"],
             fetched_at=datetime.fromisoformat(data["fetched_at"]),
+            partition=data.get("partition"),  # absent in bronze objects written before partitions existed
         )
 
 

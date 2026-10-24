@@ -1,4 +1,5 @@
 import itertools
+import json
 from datetime import UTC, date, datetime
 
 import pytest
@@ -31,6 +32,22 @@ def test_payload_roundtrip():
     restored = RawPayload.from_json(payload.to_json())
     assert restored == payload
     assert payload.key == "src/ds/window=20261001_20261002/payload.json"
+
+
+def test_partition_is_part_of_the_key_and_survives_roundtrip():
+    window = TimeWindow(date(2026, 10, 1), date(2026, 10, 2))
+    payload = RawPayload("src", "ds", window, {}, "a,b\n1,2", partition="station_a")
+
+    assert payload.key == "src/ds/partition=station_a/window=20261001_20261002/payload.json"
+    assert RawPayload.from_json(payload.to_json()) == payload
+
+
+def test_payloads_written_without_partition_still_load():
+    window = TimeWindow(date(2026, 10, 1), date(2026, 10, 1))
+    legacy = json.loads(RawPayload("src", "ds", window, {}, {}).to_json())
+    del legacy["partition"]
+
+    assert RawPayload.from_json(json.dumps(legacy)).partition is None
 
 
 def test_observation_requires_timezone():

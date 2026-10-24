@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as F
 
+from core.models import Quality
+
 if TYPE_CHECKING:
     from datetime import timedelta
 
@@ -79,6 +81,19 @@ class NotNullRule(RowRule):
     def failed(self) -> Column:
         """True when the column is null."""
         return F.col(self.column).isNull()
+
+
+class SourceQcRule(RowRule):
+    """Rows the source itself flagged as doubtful (connectors set ``quality='suspect'`` from the source QC).
+
+    Without this rule the engine would recompute ``quality`` and lose the source's own verdict.
+    """
+
+    name = "source_qc"
+
+    def failed(self) -> Column:
+        """True when the connector labelled a non-null value as suspect."""
+        return (F.col("quality") == Quality.SUSPECT) & F.col("value").isNotNull()
 
 
 class RangeRule(RowRule):

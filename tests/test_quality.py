@@ -92,6 +92,18 @@ def test_rules_only_apply_to_their_metric(spark, connector):
     assert _results_by_rule(results)[("range", "pm10")].checked == 0
 
 
+def test_source_qc_flags_are_kept_and_counted(spark, connector):
+    observations = [_obs(h, 10.0) for h in range(24)]
+    observations[3] = Observation(
+        "open_meteo", "palma", "pm10", T0 + timedelta(hours=3), 11.0, "ug/m3", quality=Quality.SUSPECT
+    )
+    silver, results = apply_quality(_frame(spark, observations), connector, WINDOW)
+
+    suspect = silver.where(f"quality = '{Quality.SUSPECT}'").collect()
+    assert [(r.value, r.quality_reasons) for r in suspect] == [(11.0, "source_qc")]
+    assert _results_by_rule(results)[("source_qc", "*")].failed == 1
+
+
 def test_gaps_use_each_dataset_frequency(spark):
     redata = registry.load("redata")
     hourly = [
