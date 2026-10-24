@@ -234,7 +234,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'open_meteo_marine' AND ts <= $__timeTo() GROUP BY entity) SELECT o.entity AS punto, max(o.lat) AS lat, max(o.lon) AS lon, max(o.value) FILTER (WHERE o.metric = 'wave_height') AS \"ola (m)\", max(o.value) FILTER (WHERE o.metric = 'wave_period') AS \"periodo (s)\", max(o.value) FILTER (WHERE o.metric = 'swell_wave_height') AS \"mar de fondo (m)\", max(o.value) FILTER (WHERE o.metric = 'sea_surface_temperature') AS \"temperatura del mar (°C)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts WHERE o.source = 'open_meteo_marine' AND 'open_meteo_marine' IN ($source) GROUP BY o.entity, latest.ts ORDER BY o.entity"
+          "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'open_meteo_marine' AND ts <= $__timeTo() GROUP BY entity) SELECT o.entity AS punto, l.lat, l.lon, max(o.value) FILTER (WHERE o.metric = 'wave_height') AS \"ola (m)\", max(o.value) FILTER (WHERE o.metric = 'wave_period') AS \"periodo (s)\", max(o.value) FILTER (WHERE o.metric = 'swell_wave_height') AS \"mar de fondo (m)\", max(o.value) FILTER (WHERE o.metric = 'sea_surface_temperature') AS \"temperatura del mar (°C)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts JOIN gold.dim_locations l ON l.source = o.source AND l.entity = o.entity WHERE o.source = 'open_meteo_marine' AND 'open_meteo_marine' IN ($source) GROUP BY o.entity, l.lat, l.lon, latest.ts ORDER BY o.entity"
         }
       ],
       "fieldConfig": {
