@@ -251,7 +251,7 @@
         ]
       },
       "options": {
-        "view": { "id": "coords", "lat": 39.6, "lon": 2.95, "zoom": 7.9 },
+        "view": { "id": "coords", "lat": 39.6, "lon": 2.9, "zoom": 7.5 },
         "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
         "basemap": { "type": "osm-standard", "name": "OpenStreetMap", "config": {} },
         "tooltip": { "mode": "details" },
