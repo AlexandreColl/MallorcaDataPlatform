@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 1,
+  "version": 2,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -205,7 +205,7 @@
       "options": {
         "view": { "id": "coords", "lat": 39.62, "lon": 2.95, "zoom": 8.6 },
         "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
-        "basemap": { "type": "default", "name": "Basemap" },
+        "basemap": { "type": "osm-standard", "name": "OpenStreetMap", "config": {} },
         "tooltip": { "mode": "details" },
         "layers": [
           {
@@ -264,7 +264,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT started_at AS \"Inicio\", source AS \"Fuente\", status AS \"Estado\", window_start AS \"Desde\", window_end AS \"Hasta\", payloads AS \"Payloads\", rows_silver AS \"Filas silver\", rows_upserted AS \"Insertadas/actualizadas\", round(extract(epoch FROM finished_at - started_at)::numeric, 1) AS \"Duración (s)\", error AS \"Error\" FROM ops.ingestion_runs ORDER BY started_at DESC LIMIT 20"
+          "rawSql": "SELECT started_at AS \"Inicio\", source AS \"Fuente\", status AS \"Estado\", window_start::text AS \"Desde\", window_end::text AS \"Hasta\", payloads AS \"Payloads\", rows_silver AS \"Filas silver\", rows_upserted AS \"Insertadas/actualizadas\", round(extract(epoch FROM finished_at - started_at)::numeric, 1) AS \"Duración (s)\", error AS \"Error\" FROM ops.ingestion_runs ORDER BY started_at DESC LIMIT 20"
         }
       ],
       "fieldConfig": { "defaults": {}, "overrides": [] },
