@@ -65,7 +65,8 @@ flowchart LR
 
 ## Puesta en marcha
 
-Requisitos: Docker Desktop (WSL2) con ~8 GB de RAM. Guía para Windows: [docs/setup-windows.md](docs/setup-windows.md).
+Requisitos: Docker Engine con Compose y ~8 GB de RAM libres (Linux, macOS o Windows con WSL2).
+Guía para Windows con WSL2 + Debian: [docs/setup-windows.md](docs/setup-windows.md).
 
 ```bash
 make up                                      # crea .env, construye la imagen y levanta todo
