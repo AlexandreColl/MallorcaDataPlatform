@@ -1,0 +1,13 @@
+version: 2
+
+seeds:
+  - name: dim_sources
+    description: One row per connector with the label shown in Grafana and the kind of data it provides.
+    columns:
+      - name: source
+        data_tests: [not_null, unique]
+      - name: kind
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["model", "observation", "system", "event", "schedule"]
