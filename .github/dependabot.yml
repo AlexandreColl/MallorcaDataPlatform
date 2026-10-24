@@ -4,14 +4,14 @@ updates:
     directory: /
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "ci(deps)" }
+    commit-message: { prefix: "⬆️ ci", include: scope }
   - package-ecosystem: pip
     directory: /requirements
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "build(deps)" }
+    commit-message: { prefix: "⬆️ build", include: scope }
   - package-ecosystem: docker
     directory: /docker/airflow
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "build(deps)" }
+    commit-message: { prefix: "⬆️ build", include: scope }

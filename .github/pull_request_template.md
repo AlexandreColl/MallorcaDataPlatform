@@ -1,6 +1,7 @@
 ## Qué cambia
 
-<!-- Resumen en 1-3 frases. El título del PR sigue Conventional Commits: feat(connector): add REData -->
+<!-- Resumen en 1-3 frases. Título: gitmoji + Conventional Commits, p. ej. "✨ feat(connector): add REData" -->
+<!-- Tabla de emojis en docs/git-workflow.md -->
 
 ## Tipo
 

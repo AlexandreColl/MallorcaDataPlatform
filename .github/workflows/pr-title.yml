@@ -1,6 +1,7 @@
 name: PR title
 
-# Enforce Conventional Commits on PR titles (they become the squash-merge commit).
+# Enforce gitmoji + Conventional Commits on PR titles (they become the squash-merge commit):
+#   ✨ feat(connector): add REData
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
@@ -16,6 +17,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # Leading emoji, then type(scope): subject
+          headerPattern: '^\S+ (\w*)(?:\(([\w$.\-*/ ]*)\))?: (.*)$'
+          headerPatternCorrespondence: type, scope, subject
           types: |
             feat
             fix
@@ -36,3 +40,13 @@ jobs:
             deps
             release
           requireScope: false
+
+      - name: Title starts with an emoji
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          first_byte=$(printf '%s' "$TITLE" | head -c1 | od -An -tu1 | tr -d ' ')
+          if (( first_byte < 128 )); then
+            echo "PR title must start with a gitmoji, e.g. '✨ feat(connector): add REData'"
+            exit 1
+          fi
