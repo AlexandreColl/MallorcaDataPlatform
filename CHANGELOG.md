@@ -11,6 +11,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   departures and lines served), resolving each day's services from the calendar and its holiday exceptions and
   expanding headway-based trips (`frequencies.txt`). The zip lands untouched in bronze with its SHA-256.
 - `HttpClient.get_bytes` for binary downloads.
+- `dim_sources` dbt seed (label and kind per source) and a test that every source in silver has a row.
 - Catch-up: each run extends its window back to the day after the connector's last successful run (up to
   `catch_up_days`, 28 for SOCIB), so the days lost while a source was down are recovered by its next run. DAG
   param `catch_up` and CLI flag `--no-catch-up` to turn it off.
@@ -19,6 +20,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- Grafana: one dashboard instead of a panel per source, filtered by a multi-select **source** selector (plus
+  metric and entity): stats on top, then the map, four charts (metric by source and by entity, Balearic
+  electricity, daily quality per source) and a table with every time series. Run and quality-rule tables move to
+  a collapsed row. Clearer map symbols: air-quality dots in EAQI colours, thermometers for SOCIB stations, ripples
+  sized and coloured by magnitude for earthquakes and a heatmap of EMT bus service.
 - A failing source no longer stops the pipeline: `dbt_build` runs with `trigger_rule=all_done` and rebuilds gold
   with whatever loaded. Ingest tasks retry 3 times with exponential backoff (2, 4, 8 min; `MDP_TASK_RETRIES`).
 - HTTP client: 10 s connect timeout (fail fast on an unreachable host) and 60 s read timeout, longer backoff.
