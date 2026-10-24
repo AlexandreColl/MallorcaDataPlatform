@@ -147,6 +147,8 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/mallorca_overview.json
       GF_ANALYTICS_REPORTING_ENABLED: "false"
+      # No background plugin downloads at start-up: only built-in datasources are used.
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
       # The default CARTO basemap now needs an API key; use OpenStreetMap tiles instead.
       GF_GEOMAP_DEFAULT_BASELAYER_CONFIG: '{"type": "osm-standard", "config": {}}'
       WAREHOUSE_DB: ${WAREHOUSE_DB:-warehouse}
