@@ -12,7 +12,7 @@ datasources:
     jsonData:
       database: ${WAREHOUSE_DB}
       sslmode: disable
-      postgresVersion: 1600
+      postgresVersion: 1800
       timescaledb: false
     secureJsonData:
       password: ${GRAFANA_DB_PASSWORD}
