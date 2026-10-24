@@ -229,9 +229,7 @@
                 "size": { "fixed": 12 },
                 "color": { "field": "european_aqi" },
                 "opacity": 0.8,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" },
-                "text": { "mode": "field", "field": "entity" },
-                "textConfig": { "fontSize": 12, "offsetY": -16, "textAlign": "center", "textBaseline": "middle" }
+                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
               }
             }
           },
