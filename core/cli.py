@@ -44,7 +44,7 @@ def _cmd_init(_: argparse.Namespace) -> int:
 def _cmd_run(args: argparse.Namespace) -> int:
     from core.pipeline import new_run_id, run_connector
 
-    names = args.connectors or registry.enabled_names()
+    names = args.connectors or registry.runnable_names()
     run_id = args.run_id or new_run_id()
     failures = 0
     for name in names:
