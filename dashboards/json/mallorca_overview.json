@@ -251,7 +251,7 @@
         ]
       },
       "options": {
-        "view": { "id": "coords", "lat": 39.6, "lon": 2.95, "zoom": 8.4 },
+        "view": { "id": "coords", "lat": 39.6, "lon": 2.95, "zoom": 7.9 },
         "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
         "basemap": { "type": "osm-standard", "name": "OpenStreetMap", "config": {} },
         "tooltip": { "mode": "details" },
@@ -427,7 +427,7 @@
       "id": 12,
       "type": "table",
       "title": "Series temporales",
-      "description": "Una fila por serie (fuente, entidad y métrica) en el rango: días con datos, completitud, valores sospechosos y estadísticos diarios. Los sismos, que son eventos, están en el mapa y en el indicador.",
+      "description": "Una fila por serie (fuente, entidad y métrica) en el rango; las fuentes con más de 50 entidades (las paradas de EMT) se resumen en una fila por métrica con la media de todas: días con datos, completitud, valores sospechosos y estadísticos diarios. Los sismos, que son eventos, están en el mapa y en el indicador.",
       "gridPos": { "h": 13, "w": 24, "x": 0, "y": 35 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -437,7 +437,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT s.label AS \"Fuente\", a.entity AS \"Entidad\", a.metric AS \"Métrica\", max(a.unit) AS \"Unidad\", count(*) AS \"Días\", 100 * avg(a.completeness) AS \"Completitud\", 100.0 * sum(a.n_suspect) / nullif(sum(a.n_valid), 0) AS \"Sospechosos\", min(a.min_value) AS \"Mínimo\", avg(a.avg_value) AS \"Media\", max(a.max_value) AS \"Máximo\", (array_agg(a.avg_value ORDER BY a.local_date DESC))[1] AS \"Último día (media)\", max(a.local_date)::text AS \"Último día\" FROM gold.agg_daily_metrics a JOIN gold.dim_sources s USING (source) WHERE a.source IN ($source) AND a.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY s.label, a.entity, a.metric ORDER BY 1, 3, 2"
+          "rawSql": "WITH daily AS (SELECT * FROM gold.agg_daily_metrics WHERE source IN ($source) AND local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date), sizes AS (SELECT source, count(DISTINCT entity) AS n FROM daily GROUP BY source), series AS (SELECT d.source, CASE WHEN z.n > 50 THEN concat('media de ', z.n, ' entidades') ELSE d.entity END AS entity, d.metric, max(d.unit) AS unit, d.local_date, avg(d.completeness) AS completeness, sum(d.n_suspect) AS n_suspect, sum(d.n_valid) AS n_valid, min(d.min_value) AS min_value, avg(d.avg_value) AS avg_value, max(d.max_value) AS max_value FROM daily d JOIN sizes z USING (source) GROUP BY 1, 2, 3, 5) SELECT s.label AS \"Fuente\", r.entity AS \"Entidad\", r.metric AS \"Métrica\", max(r.unit) AS \"Unidad\", count(*) AS \"Días\", 100 * avg(r.completeness) AS \"Completitud\", 100.0 * sum(r.n_suspect) / nullif(sum(r.n_valid), 0) AS \"Sospechosos\", min(r.min_value) AS \"Mínimo\", avg(r.avg_value) AS \"Media\", max(r.max_value) AS \"Máximo\", (array_agg(r.avg_value ORDER BY r.local_date DESC))[1] AS \"Último día (media)\", max(r.local_date)::text AS \"Último día\" FROM series r JOIN gold.dim_sources s USING (source) GROUP BY s.label, r.entity, r.metric ORDER BY 1, 3, 2"
         }
       ],
       "fieldConfig": {
