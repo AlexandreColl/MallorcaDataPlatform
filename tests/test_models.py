@@ -1,3 +1,4 @@
+import itertools
 from datetime import UTC, date, datetime
 
 import pytest
@@ -41,6 +42,27 @@ def test_observation_requires_timezone():
 def test_observation_rejects_unknown_quality():
     with pytest.raises(ValueError, match="unknown quality label"):
         Observation("s", "e", "m", datetime(2026, 1, 1, tzinfo=UTC), 1.0, "u", quality="bad")
+
+
+def test_split_covers_the_window_without_overlaps():
+    window = TimeWindow(date(2026, 1, 1), date(2026, 3, 31))  # 90 days
+
+    chunks = window.split(31)
+
+    assert [c.n_days for c in chunks] == [31, 31, 28]
+    assert chunks[0].start == window.start
+    assert chunks[-1].end == window.end
+    assert all(a.end.toordinal() + 1 == b.start.toordinal() for a, b in itertools.pairwise(chunks))
+
+
+def test_split_shorter_window_is_unchanged():
+    window = TimeWindow(date(2026, 10, 1), date(2026, 10, 2))
+    assert window.split(31) == [window]
+
+
+def test_split_rejects_non_positive_size():
+    with pytest.raises(ValueError, match="max_days must be >= 1"):
+        TimeWindow(date(2026, 10, 1), date(2026, 10, 2)).split(0)
 
 
 def test_mallorca_region_is_available():
