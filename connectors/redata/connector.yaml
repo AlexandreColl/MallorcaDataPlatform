@@ -1,0 +1,65 @@
+name: redata
+description: Red Eléctrica (REData) - Balearic electricity demand (hourly), generation mix and CO2 (daily), no API key
+entrypoint: connectors.redata.extractor:REDataConnector
+enabled: true
+frequency: 1d          # default sampling; datasets below may override it
+max_days: 92
+secrets: []
+
+options:
+  base_url: https://apidatos.ree.es/en/datos   # English titles: stable series names
+  geo_trunc: electric_system
+  geo_limit: baleares
+  geo_id: 8743
+  # REData publishes the Balearic electric system as a whole (Mallorca is ~80 % of its demand).
+  entity: baleares
+  covers_regions: [mallorca]
+
+# Each dataset is one REData widget. `series` maps the API series title to our metric name;
+# `ignore` lists titles we deliberately skip. Any other title is logged as a warning, so a new
+# technology appearing in the mix is noticed instead of silently dropped.
+datasets:
+  demand:
+    path: demanda/evolucion
+    time_trunc: hour
+    frequency: 1h
+    max_days_per_request: 28     # hourly ranges must span less than one calendar month
+    series:
+      Demand: electricity_demand
+  generation:
+    path: generacion/estructura-generacion
+    time_trunc: day              # hourly is not available for the Balearic system
+    max_days_per_request: 366
+    series:
+      Combined cycle: generation_combined_cycle
+      Gas turbine: generation_gas_turbine
+      Diesel engines: generation_diesel_engines
+      Cogeneration: generation_cogeneration
+      Non-renewable waste: generation_non_renewable_waste
+      Renewable waste: generation_renewable_waste
+      Solar photovoltaic: generation_solar_pv
+      Other renewables: generation_other_renewables
+      Total generation: generation_total
+  emissions:
+    path: generacion/no-renovables-detalle-emisiones-CO2
+    time_trunc: day
+    max_days_per_request: 366
+    series:
+      Total tCO2 eq.: co2_emissions
+      tCO2 eq./MWh: co2_intensity
+    ignore: [Diesel engines, Gas turbine, Combined cycle, Cogeneration, Non-renewable waste]
+
+# metric -> dataset, canonical unit, valid physical range
+metrics:
+  electricity_demand:             {dataset: demand, unit: MWh, min: 0, max: 2500}
+  generation_combined_cycle:      {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_gas_turbine:         {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_diesel_engines:      {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_cogeneration:        {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_non_renewable_waste: {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_renewable_waste:     {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_solar_pv:            {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_other_renewables:    {dataset: generation, unit: MWh, min: 0, max: 60000}
+  generation_total:               {dataset: generation, unit: MWh, min: 0, max: 60000}
+  co2_emissions:                  {dataset: emissions, unit: tCO2eq, min: 0, max: 50000}
+  co2_intensity:                  {dataset: emissions, unit: tCO2eq/MWh, min: 0, max: 2}

@@ -100,12 +100,19 @@ class ConnectorConfig:
         if unknown:
             msg = f"{path}: metrics reference unknown datasets {sorted(unknown)}"
             raise ConnectorError(msg)
+        for dataset in config.datasets:
+            config.frequency_for(dataset)  # fail fast on an invalid frequency
         return config
 
     @property
     def frequency_delta(self) -> timedelta:
-        """Expected spacing between samples."""
+        """Default spacing between samples (datasets may override it)."""
         return parse_frequency(self.frequency)
+
+    def frequency_for(self, dataset: str) -> timedelta:
+        """Spacing between samples of one dataset: its own ``frequency`` or the connector default."""
+        spec = self.datasets.get(dataset) or {}
+        return parse_frequency(str(spec.get("frequency", self.frequency)))
 
     def metrics_for(self, dataset: str) -> list[MetricSpec]:
         """Metrics that belong to one dataset, in YAML order."""

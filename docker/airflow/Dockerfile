@@ -42,14 +42,15 @@ RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r /tmp/requ
     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
 
 ENV MDP_PROJECT_ROOT=/opt/project \
-    PYTHONPATH=/opt/project
+    PYTHONPATH=/opt/project \
+    AIRFLOW__CORE__DAGS_FOLDER=/opt/project/dags
 
 # Project code is baked in for releases; docker-compose mounts it over for development.
 COPY --chown=airflow:0 core /opt/project/core
 COPY --chown=airflow:0 connectors /opt/project/connectors
 COPY --chown=airflow:0 config /opt/project/config
 COPY --chown=airflow:0 dbt /opt/project/dbt
-COPY --chown=airflow:0 dags /opt/airflow/dags
+COPY --chown=airflow:0 dags /opt/project/dags
 
 # Dev image: adds test/lint tooling (used by `make test` and `make lint`).
 FROM runtime AS dev

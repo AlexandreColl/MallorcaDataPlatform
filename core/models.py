@@ -75,6 +75,19 @@ class TimeWindow:
         """First instant after the window."""
         return self.start_dt() + timedelta(days=self.n_days)
 
+    def split(self, max_days: int) -> list[TimeWindow]:
+        """Consecutive sub-windows of at most `max_days`, for APIs that limit the range per request."""
+        if max_days < 1:
+            msg = "max_days must be >= 1"
+            raise ValueError(msg)
+        chunks: list[TimeWindow] = []
+        start = self.start
+        while start <= self.end:
+            end = min(start + timedelta(days=max_days - 1), self.end)
+            chunks.append(TimeWindow(start, end))
+            start = end + timedelta(days=1)
+        return chunks
+
 
 @dataclass(frozen=True)
 class Location:
