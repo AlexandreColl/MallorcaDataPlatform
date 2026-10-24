@@ -59,7 +59,7 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Fuentes al día",
+      "title": "Fuentes OK",
       "description": "Fuentes seleccionadas cuya última ejecución terminó bien.",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
@@ -126,7 +126,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Ejecuciones fallidas",
+      "title": "Fallos",
       "description": "Ejecuciones de las fuentes seleccionadas que fallaron en el rango (p. ej. una API caída). La siguiente ejecución recupera los días perdidos.",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
@@ -149,7 +149,7 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Última ingesta correcta",
+      "title": "Última ingesta",
       "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -192,7 +192,7 @@
       "id": 7,
       "type": "geomap",
       "title": "Mapa de fuentes",
-      "description": "Nubes: calidad del aire del modelo Open-Meteo (color según el índice europeo). Termómetros: estaciones reales de SOCIB con su última hora. Círculos: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: autobuses programados por parada de EMT Palma el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
+      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: autobuses programados por parada de EMT Palma el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
       "gridPos": { "h": 13, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -274,10 +274,10 @@
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 22 },
+                "size": { "fixed": 14 },
                 "color": { "field": "european_aqi" },
-                "opacity": 0.95,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/cloud.svg" }
+                "opacity": 0.9,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
               }
             }
           },
@@ -310,8 +310,8 @@
               "style": {
                 "size": { "field": "magnitud", "min": 6, "max": 26 },
                 "color": { "field": "magnitud" },
-                "opacity": 0.7,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
+                "opacity": 0.85,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/solid/circle-layer.svg" }
               }
             }
           }
