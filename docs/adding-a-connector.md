@@ -18,7 +18,9 @@ connectors/<nombre>/
 
 4. `connector.yaml`: el campo `name` debe coincidir con la carpeta. `frequency` alimenta la regla de
    huecos (`1h`, `1d`…); si los datasets tienen granularidades distintas, cada uno puede declarar la suya
-   (`datasets.<x>.frequency`, ver `connectors/redata`). Para fuentes de eventos sin muestreo regular (sismos…)
+   (`datasets.<x>.frequency`, ver `connectors/redata`). `catch_up_days` (por defecto `max_days`) limita cuánto se
+   alarga una ventana para recuperar días de ejecuciones fallidas; bájalo si la fuente no guarda tanto histórico
+   (SOCIB: 28). Para fuentes de eventos sin muestreo regular (sismos…)
    usa `frequency: event`: no se aplica la regla de huecos y una ventana sin eventos no es un error (ver
    `connectors/ign`); añádela también a `vars.event_sources` en `dbt/dbt_project.yml` y a `EVENT_SOURCES` en
    `scripts/e2e.sh`. `secrets` lista las variables que deben estar en `.env`.
