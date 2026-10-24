@@ -15,14 +15,32 @@
 feature/connector-redata ──PR(squash)──► develop ──PR(release/v0.2.0)──► main ──tag v0.2.0──► Release
 ```
 
-## Commits: Conventional Commits
+## Commits: gitmoji + Conventional Commits
 
-`tipo(ámbito): descripción` — tipos `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `build`, `chore`, `perf`;
-ámbitos `core`, `connector`, `airflow`, `dbt`, `grafana`, `infra`, `deps`, `release`.
+`<emoji> tipo(ámbito): descripción` — el emoji en Unicode (✨, no `:sparkles:`) para que se vea igual en
+GitHub, en la terminal y en el IDE. Ámbitos: `core`, `connector`, `airflow`, `dbt`, `grafana`, `infra`,
+`deps`, `release`.
+
+| Emoji | Tipo | Cuándo |
+|---|---|---|
+| ✨ | `feat` | nueva funcionalidad o conector |
+| 🐛 | `fix` | corrección de un error |
+| 📝 | `docs` | documentación |
+| ♻️ | `refactor` | refactorización sin cambio de comportamiento |
+| ✅ | `test` | añadir o arreglar tests |
+| 👷 | `ci` | workflows de CI/CD |
+| ⬆️ | `build(deps)` | actualizar dependencias |
+| 🐳 | `build` | Docker, imágenes |
+| ⚡️ | `perf` | rendimiento |
+| 🔥 | `chore` | borrar código o ficheros |
+| 🔧 | `chore` | configuración |
+| 🔖 | `chore(release)` | publicar versión |
+| 🎉 | `chore` | primer commit |
+| 🔀 | — | merges (`🔀 Merge branch '...' into develop`) |
 
 ```
-feat(connector): add REData electricity demand for Balearic Islands
-fix(core): keep non-null value when collapsing duplicates
+✨ feat(connector): add REData electricity demand for Balearic Islands
+🐛 fix(core): keep non-null value when collapsing duplicates
 ```
 
 El workflow `pr-title.yml` exige este formato en el título del PR (que es el mensaje del squash).
@@ -34,7 +52,7 @@ git switch develop && git pull
 git switch -c release/v0.2.0
 # 1. sube la versión en pyproject.toml y core/__init__.py
 # 2. mueve lo de [Unreleased] a [0.2.0] - AAAA-MM-DD en CHANGELOG.md
-git commit -am "chore(release): v0.2.0"
+git commit -am "🔖 chore(release): v0.2.0"
 git push -u origin release/v0.2.0      # PR a main; tras mergear:
 git switch main && git pull
 git tag -a v0.2.0 -m "v0.2.0" && git push origin v0.2.0

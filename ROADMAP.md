@@ -1,7 +1,7 @@
 # Roadmap
 
 Cada versión es una release en GitHub (`vX.Y.Z`) con su entrada en el [CHANGELOG](CHANGELOG.md).
-Cada conector es una rama `feature/connector-<nombre>`, un PR a `develop`, un commit `feat(connector): ...`
+Cada conector es una rama `feature/connector-<nombre>`, un PR a `develop`, un commit `✨ feat(connector): ...`
 y una sección en el README.
 
 Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigación

@@ -24,7 +24,7 @@ connectors/<nombre>/
      Filtra por `region.contains(lat, lon)` si la fuente es de puntos (estaciones, boyas).
 6. Tests contra las fixtures (sin red). Ver `connectors/open_meteo/tests/` como plantilla.
 7. Probar de punta a punta: `make run CONNECTORS=<nombre> DAYS=1` y mirar Grafana.
-8. Sección en el README, entrada en `CHANGELOG.md` → PR `feat(connector): add <nombre>`.
+8. Sección en el README, entrada en `CHANGELOG.md` → PR `✨ feat(connector): add <nombre>`.
 
 No hace falta tocar el núcleo, el DAG ni dbt: el registro descubre el conector, el DAG lo ofrece como
 parámetro y los modelos gold lo incluyen automáticamente.
