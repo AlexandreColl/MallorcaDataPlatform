@@ -1,0 +1,6 @@
+source,label,kind,description
+open_meteo,Open-Meteo (modelo),model,Calidad del aire (CAMS) y meteorología modelizadas en 6 localidades
+socib,SOCIB (estaciones),observation,Observaciones reales de 3 estaciones meteorológicas y la boya de la bahía de Palma
+redata,REData (electricidad),system,"Demanda, generación y emisiones del sistema eléctrico balear"
+ign,IGN (sismos),event,Sismos localizados por el IGN en Mallorca y el mar que la rodea
+emt_palma,EMT Palma (bus),schedule,Servicio de autobús programado por parada (GTFS)

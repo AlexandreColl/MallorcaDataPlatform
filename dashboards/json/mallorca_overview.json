@@ -1,41 +1,56 @@
 {
   "uid": "mallorca-overview",
   "title": "Mallorca · Visión general",
-  "description": "Calidad del aire, meteorología y calidad de datos de todas las fuentes.",
+  "description": "Todas las fuentes en una vista: indicadores, mapa, gráficas y la tabla de series temporales. Filtra por una o varias fuentes con el selector.",
   "tags": ["mallorca", "gold"],
   "timezone": "browser",
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 6,
+  "version": 7,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
     "list": [
       {
-        "name": "location",
-        "label": "Localidad",
+        "name": "source",
+        "label": "Fuentes",
+        "description": "Una o varias fuentes: filtra indicadores, mapa, gráficas y tabla.",
         "type": "query",
         "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-        "query": "SELECT DISTINCT entity FROM gold.dim_locations ORDER BY 1",
-        "definition": "SELECT DISTINCT entity FROM gold.dim_locations ORDER BY 1",
+        "query": "SELECT label AS __text, source AS __value FROM gold.dim_sources ORDER BY label",
+        "definition": "SELECT label AS __text, source AS __value FROM gold.dim_sources ORDER BY label",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
         "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
-        "sort": 1
+        "sort": 0
       },
       {
         "name": "metric",
         "label": "Métrica",
         "type": "query",
         "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-        "query": "SELECT DISTINCT metric FROM gold.fct_observations ORDER BY 1",
-        "definition": "SELECT DISTINCT metric FROM gold.fct_observations ORDER BY 1",
+        "query": "SELECT DISTINCT metric FROM gold.agg_daily_metrics WHERE source IN ($source) ORDER BY 1",
+        "definition": "SELECT DISTINCT metric FROM gold.agg_daily_metrics WHERE source IN ($source) ORDER BY 1",
         "refresh": 1,
         "multi": false,
         "includeAll": false,
         "current": { "selected": true, "text": "temperature_2m", "value": "temperature_2m" },
+        "sort": 1
+      },
+      {
+        "name": "entity",
+        "label": "Entidad",
+        "description": "Localidad, estación o parada que tiene la métrica elegida.",
+        "type": "query",
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+        "query": "SELECT DISTINCT entity FROM gold.agg_daily_metrics WHERE source IN ($source) AND metric = '$metric' ORDER BY 1",
+        "definition": "SELECT DISTINCT entity FROM gold.agg_daily_metrics WHERE source IN ($source) AND metric = '$metric' ORDER BY 1",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
         "sort": 1
       }
     ]
@@ -44,8 +59,9 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Observaciones en el rango",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "title": "Fuentes OK",
+      "description": "Fuentes seleccionadas cuya última ejecución terminó bien.",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -54,18 +70,18 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(*) AS \"Observaciones\" FROM gold.fct_observations WHERE $__timeFilter(ts)"
+          "rawSql": "SELECT concat(count(*) FILTER (WHERE status = 'success'), ' / ', count(*)) AS \"Fuentes\" FROM (SELECT DISTINCT ON (source) source, status FROM ops.ingestion_runs WHERE source IN ($source) AND status <> 'running' ORDER BY source, started_at DESC) last_runs"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/.*/", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
     },
     {
       "id": 2,
       "type": "stat",
-      "title": "% sospechosos",
-      "description": "Valores marcados por las reglas de calidad (rango, duplicados). No se modifican.",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "title": "Observaciones",
+      "description": "Valores no ausentes de las fuentes seleccionadas en el rango de tiempo.",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -74,7 +90,27 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT coalesce(100.0 * avg(is_suspect::int), 0) AS \"% sospechosos\" FROM gold.fct_observations WHERE $__timeFilter(ts)"
+          "rawSql": "SELECT count(*) AS \"Observaciones\" FROM gold.fct_observations WHERE source IN ($source) AND $__timeFilter(ts)"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Sospechosos",
+      "description": "Porcentaje de valores marcados como sospechosos por las reglas de calidad o por la propia fuente.",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(100.0 * avg(is_suspect::int), 0) AS \"% sospechosos\" FROM gold.fct_observations WHERE source IN ($source) AND $__timeFilter(ts)"
         }
       ],
       "fieldConfig": {
@@ -85,32 +121,14 @@
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Fuentes activas",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT count(DISTINCT source) AS \"Fuentes\" FROM ops.ingestion_runs WHERE status = 'success'"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
     },
     {
       "id": 4,
       "type": "stat",
-      "title": "Última ingesta correcta",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "title": "Fallos",
+      "description": "Ejecuciones de las fuentes seleccionadas que fallaron en el rango (p. ej. una API caída). La siguiente ejecución recupera los días perdidos.",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -119,63 +137,63 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT extract(epoch FROM max(finished_at)) * 1000 AS \"Última ingesta\" FROM ops.ingestion_runs WHERE status = 'success'"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "dateTimeFromNow", "color": { "mode": "fixed", "fixedColor": "text" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
-    },
-    {
-      "id": 5,
-      "type": "timeseries",
-      "title": "PM2.5 por localidad (µg/m³)",
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = 'pm2_5' AND entity IN ($location) AND $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT count(*) AS \"Fallidas\" FROM ops.ingestion_runs WHERE status = 'failed' AND source IN ($source) AND $__timeFilter(started_at)"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "conμgm3",
-          "custom": { "lineWidth": 1, "fillOpacity": 5, "showPoints": "never" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 25 } ] }
-        },
+        "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
     },
     {
-      "id": 6,
-      "type": "timeseries",
-      "title": "$metric por localidad",
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "id": 5,
+      "type": "stat",
+      "title": "Última ingesta",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND entity IN ($location) AND $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT extract(epoch FROM max(finished_at)) * 1000 AS \"Última ingesta\" FROM ops.ingestion_runs WHERE status = 'success' AND source IN ($source)"
         }
       ],
-      "fieldConfig": { "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 5, "showPoints": "never" } }, "overrides": [] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+      "fieldConfig": { "defaults": { "unit": "dateTimeFromNow", "color": { "mode": "fixed", "fixedColor": "text" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Sismos",
+      "description": "Sismos localizados por el IGN en el rango (Mallorca y el mar que la rodea) y su magnitud máxima.",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Sismos\", max(magnitude) AS \"Magnitud máx.\" FROM gold.fct_earthquakes WHERE 'ign' IN ($source) AND $__timeFilter(ts)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } },
+        "overrides": [ { "matcher": { "id": "byName", "options": "Magnitud máx." }, "properties": [ { "id": "decimals", "value": 1 } ] } ]
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" }
     },
     {
       "id": 7,
       "type": "geomap",
-      "title": "Fuentes georreferenciadas",
-      "description": "Una capa por fuente. Círculos: puntos del modelo Open-Meteo coloreados por el índice europeo de calidad del aire. Triángulos: estaciones reales de SOCIB con su última hora. Estrellas: sismos localizados por el IGN en Mallorca y el mar que la rodea, de tamaño según la magnitud (todos los cargados, sin filtro de tiempo: hay pocos al año). REData no aparece: es el sistema eléctrico balear completo, no un punto.",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 13 },
+      "title": "Mapa de fuentes",
+      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: autobuses programados por parada de EMT Palma el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
+      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -184,7 +202,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT ON (a.entity) a.entity, l.lat, l.lon, a.european_aqi_model AS european_aqi, a.eaqi_label, a.ts FROM gold.air_quality_hourly a JOIN gold.dim_locations l USING (source, entity) WHERE a.european_aqi_model IS NOT NULL ORDER BY a.entity, a.ts DESC"
+          "rawSql": "SELECT DISTINCT ON (a.entity) a.entity AS localidad, l.lat, l.lon, a.european_aqi_model AS european_aqi, a.eaqi_label AS calidad, a.ts AS hora FROM gold.air_quality_hourly a JOIN gold.dim_locations l USING (source, entity) WHERE 'open_meteo' IN ($source) AND a.european_aqi_model IS NOT NULL AND a.ts <= $__timeTo() ORDER BY a.entity, a.ts DESC"
         },
         {
           "refId": "B",
@@ -192,7 +210,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'socib' GROUP BY entity) SELECT o.entity AS station, l.lat, l.lon, max(o.value) FILTER (WHERE o.metric = 'temperature_2m') AS \"temperatura (°C)\", max(o.value) FILTER (WHERE o.metric = 'relative_humidity_2m') AS \"humedad (%)\", max(o.value) FILTER (WHERE o.metric = 'wind_speed_10m') AS \"viento (km/h)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts JOIN gold.dim_locations l ON l.source = o.source AND l.entity = o.entity WHERE o.source = 'socib' GROUP BY o.entity, l.lat, l.lon, latest.ts ORDER BY o.entity"
+          "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'socib' AND ts <= $__timeTo() GROUP BY entity) SELECT o.entity AS estacion, l.lat, l.lon, max(o.value) FILTER (WHERE o.metric = 'temperature_2m') AS \"temperatura (°C)\", max(o.value) FILTER (WHERE o.metric = 'relative_humidity_2m') AS \"humedad (%)\", max(o.value) FILTER (WHERE o.metric = 'wind_speed_10m') AS \"viento (km/h)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts JOIN gold.dim_locations l ON l.source = o.source AND l.entity = o.entity WHERE o.source = 'socib' AND 'socib' IN ($source) GROUP BY o.entity, l.lat, l.lon, latest.ts ORDER BY o.entity"
         },
         {
           "refId": "C",
@@ -200,31 +218,53 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT event_id AS sismo, lat, lon, magnitude AS magnitud, depth_km AS \"profundidad (km)\", distance_to_palma_km AS \"distancia a Palma (km)\", ts AS hora FROM gold.fct_earthquakes ORDER BY ts"
+          "rawSql": "SELECT event_id AS sismo, lat, lon, magnitude AS magnitud, depth_km AS \"profundidad (km)\", distance_to_palma_km AS \"distancia a Palma (km)\", ts AS hora FROM gold.fct_earthquakes WHERE 'ign' IN ($source) AND $__timeFilter(ts) ORDER BY magnitude"
+        },
+        {
+          "refId": "D",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE 'emt_palma' IN ($source) AND a.source = 'emt_palma' AND a.metric = 'scheduled_departures' AND a.local_date = (SELECT max(local_date) FROM gold.agg_daily_metrics WHERE source = 'emt_palma' AND local_date <= $__timeTo()::date)"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 20 },
-              { "color": "orange", "value": 40 },
-              { "color": "red", "value": 60 },
-              { "color": "purple", "value": 80 }
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "european_aqi" },
+            "properties": [
+              { "id": "displayName", "value": "Índice europeo (EAQI)" },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 20 }, { "color": "orange", "value": 40 }, { "color": "red", "value": 60 }, { "color": "purple", "value": 80 } ] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "magnitud" },
+            "properties": [
+              { "id": "decimals", "value": 1 },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#fade2a", "value": null }, { "color": "orange", "value": 2 }, { "color": "red", "value": 3 } ] } }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
       "options": {
-        "view": { "id": "coords", "lat": 39.62, "lon": 2.95, "zoom": 8.2 },
+        "view": { "id": "coords", "lat": 39.6, "lon": 2.9, "zoom": 7.5 },
         "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
         "basemap": { "type": "osm-standard", "name": "OpenStreetMap", "config": {} },
         "tooltip": { "mode": "details" },
         "layers": [
+          {
+            "type": "heatmap",
+            "name": "Autobuses programados por parada (EMT Palma)",
+            "tooltip": false,
+            "filterData": { "id": "byRefId", "options": "D" },
+            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "opacity": 0.55,
+            "config": { "blur": 18, "radius": 6, "weight": { "field": "buses", "fixed": 1, "min": 0, "max": 1 } }
+          },
           {
             "type": "markers",
             "name": "Calidad del aire (modelo Open-Meteo)",
@@ -234,9 +274,9 @@
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 12 },
+                "size": { "fixed": 14 },
                 "color": { "field": "european_aqi" },
-                "opacity": 0.8,
+                "opacity": 0.9,
                 "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
               }
             }
@@ -250,28 +290,28 @@
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 14 },
+                "size": { "fixed": 22 },
                 "color": { "fixed": "#1f60c4" },
-                "opacity": 0.9,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/triangle.svg" },
-                "text": { "mode": "field", "field": "station" },
-                "textConfig": { "fontSize": 11, "offsetY": 16, "textAlign": "center", "textBaseline": "middle" }
+                "opacity": 1,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/temperature-half.svg" },
+                "text": { "mode": "field", "field": "estacion" },
+                "textConfig": { "fontSize": 11, "offsetY": 18, "textAlign": "center", "textBaseline": "middle" }
               }
             }
           },
           {
             "type": "markers",
-            "name": "Sismos (IGN, todos los registrados)",
+            "name": "Sismos (IGN)",
             "tooltip": true,
             "filterData": { "id": "byRefId", "options": "C" },
             "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "field": "magnitud", "min": 6, "max": 22 },
-                "color": { "fixed": "#e02f44" },
+                "size": { "field": "magnitud", "min": 6, "max": 26 },
+                "color": { "field": "magnitud" },
                 "opacity": 0.85,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/star.svg" }
+                "symbol": { "mode": "fixed", "fixed": "img/icons/solid/circle-layer.svg" }
               }
             }
           }
@@ -280,34 +320,50 @@
     },
     {
       "id": 8,
-      "type": "table",
-      "title": "Calidad de datos (último chequeo)",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 13 },
+      "type": "timeseries",
+      "title": "$metric · media por fuente",
+      "description": "Media horaria de la métrica en cada fuente seleccionada. Con temperatura o viento compara las estaciones reales de SOCIB con el modelo de Open-Meteo.",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 17 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT source AS \"Fuente\", rule AS \"Regla\", target AS \"Objetivo\", checked AS \"Revisados\", failed AS \"Fallos\", passed AS \"OK\", failed_ratio AS \"% fallos\", checked_at AS \"Fecha\" FROM gold.data_quality_summary ORDER BY passed, failed DESC, source, rule"
+          "rawSql": "SELECT date_trunc('hour', o.ts) AS time, s.label AS metric, avg(o.value) AS value FROM gold.fct_observations o JOIN gold.dim_sources s USING (source) WHERE o.metric = '$metric' AND o.source IN ($source) AND $__timeFilter(o.ts) GROUP BY 1, 2 ORDER BY 1"
         }
       ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "% fallos" }, "properties": [ { "id": "unit", "value": "percentunit" } ] }
-        ]
-      },
-      "options": { "showHeader": true, "cellHeight": "sm" }
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 0, "showPoints": "never", "spanNulls": false } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "$metric · por entidad",
+      "description": "Cada localidad, estación o parada elegida en el selector Entidad.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 17 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
     },
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Demanda eléctrica de Baleares (MWh/h)",
-      "description": "REData, sistema eléctrico balear completo (Mallorca supone ~80 % de la demanda).",
-      "gridPos": { "h": 9, "w": 10, "x": 0, "y": 23 },
+      "title": "Electricidad de Baleares: demanda e intensidad de CO₂",
+      "description": "REData: demanda horaria (MWh, eje izquierdo) e intensidad diaria de emisiones (tCO₂/MWh, eje derecho). El mix por tecnología está en la tabla de series.",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 26 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -316,143 +372,63 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, value AS \"Demanda\" FROM gold.fct_observations WHERE source = 'redata' AND metric = 'electricity_demand' AND $__timeFilter(ts) ORDER BY 1"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "MWh", "custom": { "lineWidth": 1, "fillOpacity": 15, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "orange" } },
-        "overrides": []
-      },
-      "options": { "legend": { "showLegend": false }, "tooltip": { "mode": "single" } }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Generación diaria por tecnología (MWh)",
-      "gridPos": { "h": 9, "w": 10, "x": 10, "y": 23 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT ts AS time, replace(metric, 'generation_', '') AS metric, value FROM gold.fct_observations WHERE source = 'redata' AND metric LIKE 'generation\\_%' AND metric <> 'generation_total' AND $__timeFilter(ts) ORDER BY 1"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "MWh",
-          "custom": { "drawStyle": "bars", "barAlignment": 0, "fillOpacity": 80, "lineWidth": 1, "stacking": { "mode": "normal", "group": "A" } }
+          "rawSql": "SELECT ts AS time, value AS \"Demanda (MWh)\" FROM gold.fct_observations WHERE 'redata' IN ($source) AND source = 'redata' AND metric = 'electricity_demand' AND $__timeFilter(ts) ORDER BY 1"
         },
-        "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "Intensidad de CO₂ (tCO₂/MWh)",
-      "description": "Emisiones por MWh generado en Baleares (último día disponible).",
-      "gridPos": { "h": 9, "w": 4, "x": 20, "y": 23 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
         {
-          "refId": "A",
+          "refId": "B",
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, value AS \"tCO2/MWh\" FROM gold.fct_observations WHERE source = 'redata' AND metric = 'co2_intensity' AND $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT ts AS time, value AS \"Intensidad CO₂ (tCO₂/MWh)\" FROM gold.fct_observations WHERE 'redata' IN ($source) AND source = 'redata' AND metric = 'co2_intensity' AND $__timeFilter(ts) ORDER BY 1"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "decimals": 3,
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.3 }, { "color": "red", "value": 0.5 } ] }
-        },
-        "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
-    },
-    {
-      "id": 13,
-      "type": "timeseries",
-      "title": "$metric: estación real (SOCIB ParcBit) vs modelo (Open-Meteo Palma)",
-      "description": "Misma métrica y unidad en las dos fuentes. Métricas comparables: temperature_2m, relative_humidity_2m, wind_speed_10m.",
-      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 32 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT ts AS time, CASE source WHEN 'socib' THEN 'ParcBit (estación SOCIB)' ELSE 'Palma (modelo Open-Meteo)' END AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND ((source = 'socib' AND entity = 'parcbit') OR (source = 'open_meteo' AND entity = 'palma')) AND $__timeFilter(ts) ORDER BY 1"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } },
+        "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 12, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "orange" } },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "ParcBit (estación SOCIB)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
-          { "matcher": { "id": "byName", "options": "Palma (modelo Open-Meteo)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [6, 4] } } ] }
+          {
+            "matcher": { "id": "byName", "options": "Intensidad CO₂ (tCO₂/MWh)" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "custom.drawStyle", "value": "points" },
+              { "id": "custom.pointSize", "value": 7 },
+              { "id": "decimals", "value": 3 },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#8f8f8f" } }
+            ]
+          }
         ]
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } }
     },
     {
-      "id": 14,
-      "type": "table",
-      "title": "Estaciones SOCIB: última hora",
-      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 32 },
+      "id": 11,
+      "type": "timeseries",
+      "title": "Calidad diaria por fuente",
+      "description": "Porcentaje de valores válidos y no sospechosos de cada fuente por día.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 26 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "editorMode": "code",
-          "format": "table",
+          "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT entity AS \"Estación\", max(value) FILTER (WHERE metric = 'temperature_2m') AS \"Temp (°C)\", max(value) FILTER (WHERE metric = 'relative_humidity_2m') AS \"HR (%)\", max(value) FILTER (WHERE metric = 'wind_speed_10m') AS \"Viento (km/h)\", max(value) FILTER (WHERE metric = 'pressure_msl') AS \"Presión (hPa)\", max(ts) AS \"Hora\" FROM gold.fct_observations o WHERE source = 'socib' AND ts = (SELECT max(ts) FROM gold.fct_observations WHERE source = 'socib' AND entity = o.entity) GROUP BY entity ORDER BY entity"
-        }
-      ],
-      "fieldConfig": { "defaults": { "decimals": 1 }, "overrides": [] },
-      "options": { "showHeader": true, "cellHeight": "sm" }
-    },
-    {
-      "id": 15,
-      "type": "table",
-      "title": "Sismos localizados por el IGN (Mallorca y mar balear)",
-      "description": "Todos los sismos cargados, sin filtro de tiempo: la zona tiene pocos eventos al año. Fuente: servicio FDSN de EMSC con la localización del IGN.",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT ts AS \"Hora\", magnitude AS \"Magnitud\", depth_km AS \"Profundidad (km)\", distance_to_palma_km AS \"Distancia a Palma (km)\", lat AS \"Latitud\", lon AS \"Longitud\", event_id AS \"Evento\", CASE WHEN is_suspect THEN quality_reasons ELSE 'ok' END AS \"Calidad\" FROM gold.fct_earthquakes ORDER BY ts DESC LIMIT 100"
+          "rawSql": "SELECT a.local_date::timestamptz AS time, s.label AS metric, 100.0 * sum(a.n_valid - a.n_suspect) / nullif(sum(a.n_samples), 0) AS value FROM gold.agg_daily_metrics a JOIN gold.dim_sources s USING (source) WHERE a.source IN ($source) AND a.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY 1, 2 ORDER BY 1"
         }
       ],
       "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "Magnitud" }, "properties": [ { "id": "decimals", "value": 1 } ] },
-          { "matcher": { "id": "byRegexp", "options": "Profundidad.*|Distancia.*" }, "properties": [ { "id": "decimals", "value": 1 } ] },
-          { "matcher": { "id": "byRegexp", "options": "Latitud|Longitud" }, "properties": [ { "id": "decimals", "value": 4 } ] }
-        ]
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "decimals": 1, "custom": { "lineWidth": 2, "fillOpacity": 0, "showPoints": "always", "pointSize": 5 } },
+        "overrides": []
       },
-      "options": { "showHeader": true, "cellHeight": "sm" }
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "asc" } }
     },
     {
-      "id": 9,
+      "id": 12,
       "type": "table",
-      "title": "Últimas ejecuciones",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 49 },
+      "title": "Series temporales",
+      "description": "Una fila por serie (fuente, entidad y métrica) en el rango; las fuentes con más de 50 entidades (las paradas de EMT) se resumen en una fila por métrica con la media de todas: días con datos, completitud, valores sospechosos y estadísticos diarios. Los sismos, que son eventos, están en el mapa y en el indicador.",
+      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 35 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -461,11 +437,92 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT started_at AS \"Inicio\", source AS \"Fuente\", status AS \"Estado\", window_start::text AS \"Desde\", window_end::text AS \"Hasta\", payloads AS \"Payloads\", rows_silver AS \"Filas silver\", rows_upserted AS \"Insertadas/actualizadas\", round(extract(epoch FROM finished_at - started_at)::numeric, 1) AS \"Duración (s)\", error AS \"Error\" FROM ops.ingestion_runs ORDER BY started_at DESC LIMIT 20"
+          "rawSql": "WITH daily AS (SELECT * FROM gold.agg_daily_metrics WHERE source IN ($source) AND local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date), sizes AS (SELECT source, count(DISTINCT entity) AS n FROM daily GROUP BY source), series AS (SELECT d.source, CASE WHEN z.n > 50 THEN concat('media de ', z.n, ' entidades') ELSE d.entity END AS entity, d.metric, max(d.unit) AS unit, d.local_date, avg(d.completeness) AS completeness, sum(d.n_suspect) AS n_suspect, sum(d.n_valid) AS n_valid, min(d.min_value) AS min_value, avg(d.avg_value) AS avg_value, max(d.max_value) AS max_value FROM daily d JOIN sizes z USING (source) GROUP BY 1, 2, 3, 5) SELECT s.label AS \"Fuente\", r.entity AS \"Entidad\", r.metric AS \"Métrica\", max(r.unit) AS \"Unidad\", count(*) AS \"Días\", 100 * avg(r.completeness) AS \"Completitud\", 100.0 * sum(r.n_suspect) / nullif(sum(r.n_valid), 0) AS \"Sospechosos\", min(r.min_value) AS \"Mínimo\", avg(r.avg_value) AS \"Media\", max(r.max_value) AS \"Máximo\", (array_agg(r.avg_value ORDER BY r.local_date DESC))[1] AS \"Último día (media)\", max(r.local_date)::text AS \"Último día\" FROM series r JOIN gold.dim_sources s USING (source) GROUP BY s.label, r.entity, r.metric ORDER BY 1, 3, 2"
         }
       ],
-      "fieldConfig": { "defaults": {}, "overrides": [] },
-      "options": { "showHeader": true, "cellHeight": "sm" }
+      "fieldConfig": {
+        "defaults": { "decimals": 2, "custom": { "filterable": true, "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Días" }, "properties": [ { "id": "decimals", "value": 0 } ] },
+          {
+            "matcher": { "id": "byName", "options": "Completitud" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "decimals", "value": 1 },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 90 }, { "color": "green", "value": 99 } ] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Sospechosos" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "decimals", "value": 1 },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 } ] } }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm", "enablePagination": true, "sortBy": [ { "displayName": "Fuente", "desc": false } ] }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Operación: ejecuciones y reglas de calidad",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 },
+      "panels": [
+        {
+          "id": 14,
+          "type": "table",
+          "title": "Últimas ejecuciones",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 49 },
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT r.started_at AS \"Inicio\", s.label AS \"Fuente\", r.status AS \"Estado\", r.window_start::text AS \"Desde\", r.window_end::text AS \"Hasta\", r.payloads AS \"Payloads\", r.rows_silver AS \"Filas silver\", r.rows_upserted AS \"Insertadas/actualizadas\", round(extract(epoch FROM r.finished_at - r.started_at)::numeric, 1) AS \"Duración (s)\", r.error AS \"Error\" FROM ops.ingestion_runs r LEFT JOIN gold.dim_sources s USING (source) WHERE r.source IN ($source) ORDER BY r.started_at DESC LIMIT 50"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Estado" },
+                "properties": [
+                  { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+                  { "id": "mappings", "value": [ { "type": "value", "options": { "success": { "color": "green", "index": 0 }, "failed": { "color": "red", "index": 1 }, "running": { "color": "blue", "index": 2 } } } ] }
+                ]
+              }
+            ]
+          },
+          "options": { "showHeader": true, "cellHeight": "sm" }
+        },
+        {
+          "id": 15,
+          "type": "table",
+          "title": "Reglas de calidad (último chequeo)",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 57 },
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT s.label AS \"Fuente\", q.rule AS \"Regla\", q.target AS \"Objetivo\", q.checked AS \"Revisados\", q.failed AS \"Fallos\", q.passed AS \"OK\", q.failed_ratio AS \"% fallos\", q.checked_at AS \"Fecha\" FROM gold.data_quality_summary q LEFT JOIN gold.dim_sources s USING (source) WHERE q.source IN ($source) ORDER BY q.passed, q.failed DESC, s.label, q.rule"
+            }
+          ],
+          "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "% fallos" }, "properties": [ { "id": "unit", "value": "percentunit" } ] } ] },
+          "options": { "showHeader": true, "cellHeight": "sm" }
+        }
+      ]
     }
   ]
 }

@@ -35,8 +35,10 @@ connectors/<nombre>/
      para que cada respuesta tenga su propio objeto en bronze.
    - Para respuestas que no son JSON (CSV, XML) usa `self.http.get_text`.
 6. Tests contra las fixtures (sin red). Ver `connectors/open_meteo/tests/` como plantilla.
-7. Probar de punta a punta: `make run CONNECTORS=<nombre> DAYS=1` y mirar Grafana.
-8. Sección en el README, entrada en `CHANGELOG.md` → PR `✨ feat(connector): add <nombre>`.
+7. Añadir una fila a `dbt/seeds/dim_sources.csv` (nombre visible en el selector de fuentes de Grafana y tipo de
+   datos); un test de dbt falla si una fuente de silver no la tiene.
+8. Probar de punta a punta: `make run CONNECTORS=<nombre> DAYS=1` y mirar Grafana.
+9. Sección en el README, entrada en `CHANGELOG.md` → PR `✨ feat(connector): add <nombre>`.
 
 No hace falta tocar el núcleo, el DAG ni dbt: el registro descubre el conector, el DAG lo ofrece como
 parámetro y los modelos gold lo incluyen automáticamente.

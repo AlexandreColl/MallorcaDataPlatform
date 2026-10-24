@@ -119,8 +119,8 @@ con granularidad distinta, cada uno con su propia `frequency` para la regla de h
 | Emisiones | diaria | `co2_emissions` (tCO2eq), `co2_intensity` (tCO2eq/MWh) |
 
 Las series de la API se mapean a métricas en el YAML; una serie nueva (p. ej. una tecnología que aparece en el
-mix) genera un aviso en lugar de perderse en silencio. En Grafana: demanda horaria, mix diario por tecnología e
-intensidad de CO₂.
+mix) genera un aviso en lugar de perderse en silencio. En Grafana: demanda horaria e intensidad de CO₂ en
+una gráfica, y el mix por tecnología en la tabla de series.
 
 ### SOCIB
 
@@ -136,7 +136,7 @@ Sismos localizados por el Instituto Geográfico Nacional, leídos del servicio F
 en la caja de la región ampliada 1° alrededor de la isla. Es la primera fuente de **eventos**: no hay muestreo
 regular, así que su dataset declara `frequency: event` (sin regla de huecos) y una ventana sin sismos, lo habitual,
 es una ejecución correcta con 0 filas. En gold, `fct_earthquakes` da una fila por sismo con su distancia a Palma; en
-Grafana aparecen como estrellas en el mapa y en una tabla. Prueba real: 57 sismos desde 2020, magnitud máxima 3,0.
+Grafana aparecen en el mapa (tamaño y color según la magnitud) y en un indicador. Prueba real: 57 sismos desde 2020, magnitud máxima 3,0.
 
 ### EMT Palma (autobús)
 
@@ -161,7 +161,24 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 | `duplicate` | fila | misma (fuente, entidad, métrica, ts) repetida → se colapsa conservando el valor no nulo |
 | `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector (no se aplica a fuentes de eventos) |
 
-Resultados por ejecución en `quality.check_results` y en el panel *Calidad de datos* de Grafana.
+Resultados por ejecución en `quality.check_results`; en Grafana, la gráfica *Calidad diaria por fuente* y la fila
+plegada *Operación*.
+
+## Grafana
+
+Un único dashboard, *Mallorca · Visión general* (http://localhost:3000), con un selector de **una o varias fuentes**
+que filtra todo lo demás, más los selectores de métrica y entidad:
+
+1. **Indicadores**: fuentes al día, observaciones, % sospechosos, ejecuciones fallidas, última ingesta y sismos.
+2. **Mapa**: calidad del aire de Open-Meteo (puntos con el color del índice europeo), estaciones SOCIB (termómetros
+   con su última hora), sismos del IGN (ondas según la magnitud) y un mapa de calor del servicio de EMT Palma.
+3. **Gráficas**: la métrica elegida como media por fuente (con temperatura compara estación real y modelo) y por
+   entidad, la electricidad de Baleares (demanda y CO₂) y la calidad diaria de cada fuente.
+4. **Tabla de series temporales**: una fila por fuente, entidad y métrica con días, completitud, % sospechosos y
+   estadísticos; las fuentes con muchas entidades (las 875 paradas de EMT) se resumen en una fila por métrica.
+
+Las ejecuciones y las reglas de calidad están en una fila plegada al final. Los nombres de las fuentes salen del
+seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su fila.
 
 ## Estructura
 
