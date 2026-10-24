@@ -10,17 +10,21 @@ Trigger with a config such as:
 {"connectors": ["open_meteo"], "days": 30, "region": "mallorca"}
 ```
 
-* One mapped task per connector; a failing source does not stop the others.
+* One mapped task per connector; a failing source does not stop the others, and dbt still
+  builds gold with whatever loaded. Failed runs are visible in `ops.ingestion_runs` and Grafana.
+* With `catch_up` (default) each connector extends its window back to the day after its last
+  successful run, so the days lost while a source was down are recovered by the next run.
 * Re-running the same window is idempotent (no duplicated rows).
 """
 
 from __future__ import annotations
 
+import os
 from datetime import timedelta
 from typing import Any
 
 import pendulum
-from airflow.sdk import Param, dag, get_current_context, task
+from airflow.sdk import Param, TriggerRule, dag, get_current_context, task
 
 from core.config import available_regions
 from core.connectors import registry
@@ -39,7 +43,13 @@ DBT_COMMAND = (
     max_active_runs=1,
     doc_md=__doc__,
     tags=["mallorca", "bronze", "silver", "gold"],
-    default_args={"retries": 1, "retry_delay": timedelta(minutes=1)},
+    # Upstream APIs have short outages: retry with growing waits (2, 4, 8 min) before giving up on a source.
+    default_args={
+        "retries": int(os.environ.get("MDP_TASK_RETRIES", "3")),
+        "retry_delay": timedelta(minutes=2),
+        "retry_exponential_backoff": True,
+        "max_retry_delay": timedelta(minutes=10),
+    },
     params={
         "connectors": Param(
             registry.enabled_names(),
@@ -49,6 +59,7 @@ DBT_COMMAND = (
         ),
         "days": Param(1, type="integer", minimum=1, maximum=92, description="Days back"),
         "region": Param("mallorca", type="string", enum=available_regions()),
+        "catch_up": Param(True, type="boolean", description="Recover days missed by failed runs"),
     },
 )
 def mallorca_pipeline() -> None:
@@ -76,12 +87,18 @@ def mallorca_pipeline() -> None:
 
         params = params or {}
         get_current_context()["connector_name"] = connector
-        summary = run_connector(connector, days=int(params["days"]), region_name=params["region"], run_id=run_id)
+        summary = run_connector(
+            connector,
+            days=int(params["days"]),
+            region_name=params["region"],
+            run_id=run_id,
+            catch_up=bool(params.get("catch_up", True)),
+        )
         return summary.as_dict()
 
-    @task.bash
+    @task.bash(trigger_rule=TriggerRule.ALL_DONE, retries=0)
     def dbt_build() -> str:
-        """Build and test the gold models."""
+        """Build and test the gold models, also when some sources failed (gold keeps their previous data)."""
         return DBT_COMMAND
 
     ingest.expand(connector=resolve_connectors()) >> dbt_build()
