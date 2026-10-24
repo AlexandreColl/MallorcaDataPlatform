@@ -4,17 +4,15 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("airflow")
+dagbag = pytest.importorskip("airflow.dag_processing.dagbag")
 
 DAGS_DIR = Path(__file__).parent.parent / "dags"
 
 
 def test_dags_import_without_errors():
-    from airflow.models import DagBag
-
-    bag = DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
+    bag = dagbag.DagBag(dag_folder=DAGS_DIR)
     assert bag.import_errors == {}
-    dag = bag.get_dag("mallorca_pipeline")
-    assert dag is not None
+    assert "mallorca_pipeline" in bag.dags  # get_dag() would query the metadata DB
+    dag = bag.dags["mallorca_pipeline"]
     assert set(dag.params.keys()) == {"connectors", "days", "region"}
     assert {"resolve_connectors", "ingest", "dbt_build"} <= set(dag.task_ids)
