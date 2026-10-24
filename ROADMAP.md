@@ -15,7 +15,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | Nombre del proyecto: **MallorcaDataPlatform** |
 | ✅ | Comprobar Docker → **no está instalado** (WSL presente, sin distribución). Ver [docs/setup-windows.md](docs/setup-windows.md) |
 | ✅ | WSL2 con Debian 13 (trixie) |
-| ⬜ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
+| ✅ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
 | ⬜ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`sudo apt install gh`) |
 | ⬜ | Confirmar **Grafana** como visor principal (implementado como propuesta en v0.1) |
 | ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`, solo granularidad **diaria** |
@@ -38,7 +38,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | Grafana provisionado: datasource de solo lectura + dashboard "Mallorca · Visión general" |
 | ✅ | CI: ruff, pytest + PySpark, dbt build, build de imagen, test E2E con idempotencia |
 | ✅ | Release automática por tag + imagen en GHCR |
-| ⬜ | **Primer `docker compose up` real** en tu equipo y ajustes que salgan |
+| ✅ | **Primer `docker compose up` real** y `make e2e` en verde (fixes: jar S3A analytics accelerator, mapa OSM en Grafana) |
 | ⬜ | Primer push a GitHub, CI en verde, tag `v0.1.0` |
 | ⬜ | Captura del dashboard en el README |
 
