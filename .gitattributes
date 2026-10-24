@@ -1,0 +1,4 @@
+# Always LF: shell scripts and SQL run inside Linux containers even when edited on Windows.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
