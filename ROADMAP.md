@@ -14,8 +14,9 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 |---|---|
 | ✅ | Nombre del proyecto: **MallorcaDataPlatform** |
 | ✅ | Comprobar Docker → **no está instalado** (WSL presente, sin distribución). Ver [docs/setup-windows.md](docs/setup-windows.md) |
-| ⬜ | Instalar WSL2 + Docker Desktop, asignar ~8 GB de RAM a WSL |
-| ⬜ | Instalar `make` (`winget install ezwinports.make`) y GitHub CLI (`winget install GitHub.cli`) |
+| ✅ | WSL2 con Debian 13 (trixie) |
+| ⬜ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
+| ⬜ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`sudo apt install gh`) |
 | ⬜ | Confirmar **Grafana** como visor principal (implementado como propuesta en v0.1) |
 | ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`, solo granularidad **diaria** |
 | ✅ | Probar SOCIB → API abierta, 1.598 fuentes, **estaciones activas en Mallorca** (p. ej. `Mobims_CalaMillor`) |
@@ -116,5 +117,5 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 
 - **MinIO** dejó de publicar imágenes Docker en 2025. Se usa `pgsty/minio` (build comunitario). Alternativas S3-compatibles: RustFS, SeaweedFS, Garage.
 - **Open-Meteo** son datos de modelo (CAMS), no de estación: útiles como referencia y para el Plan B, no como verdad de campo.
-- **RAM**: el stack completo usa ~5-6 GB. Con 16 GB va bien, pero conviene limitar WSL a 8 GB.
+- **RAM**: el stack completo usa ~5-6 GB. Con 16 GB va bien; WSL limitado a 10 GB en `.wslconfig`.
 - **REData** devuelve 502 con algunos `geo_ids`; el conector debe reintentar y registrar el error sin romper el resto.
