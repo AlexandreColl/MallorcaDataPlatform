@@ -15,6 +15,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - `RawPayload.partition` (one bronze object per station/partition within a dataset) and `HttpClient.get_text`
   for non-JSON responses.
 - Grafana: station (SOCIB ParcBit) vs model (Open-Meteo Palma) chart and latest SOCIB readings table.
+- Grafana map with one layer per georeferenced source: Open-Meteo points coloured by EAQI and SOCIB stations
+  with their latest temperature, humidity and wind. REData stays off the map (system-wide, not a point).
+
+### Fixed
+
+- Map labels were unreadable (yellow on yellow) and coordinates showed float noise from `avg()`
+  (`39.4983999999987`); `dim_locations` now rounds them to 6 decimals.
 
 ## [0.2.0] - 2026-10-24
 
