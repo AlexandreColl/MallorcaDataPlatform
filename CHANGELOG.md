@@ -7,6 +7,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- Dependencies on their latest releases: PostgreSQL 18.6 (new `postgres18-data` volume mounted at
+  `/var/lib/postgresql`), Grafana 13.0.2, gitleaks 8.30.1, boto3/psycopg/pytest-cov in `dev.txt`.
+- GitHub Actions on their Node.js 24 majors (checkout v7, setup-python v7, setup-java v6,
+  upload-artifact v7, docker/* v4-v7, action-gh-release v3, action-semantic-pull-request v6);
+  runners pinned to `ubuntu-26.04`.
 - Python 3.14 (Airflow image, CI and `requires-python`).
 - Ruff with every rule enabled (`ALL`), 120-character lines and unsafe fixes; documented exceptions only.
   Public modules, classes and functions now have Google-style docstrings and full type hints.
