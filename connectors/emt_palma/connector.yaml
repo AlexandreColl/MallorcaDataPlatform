@@ -1,0 +1,20 @@
+name: emt_palma
+description: EMT Palma city buses (static GTFS) - scheduled departures and lines per stop and day, no API key
+entrypoint: connectors.emt_palma.extractor:EmtPalmaConnector
+enabled: true
+frequency: 1d          # one value per stop and local day
+max_days: 92
+secrets: []
+
+options:
+  # Published by EMT Palma on GitHub (also listed by the Mobility Database). The national access point
+  # (NAP) serves the same feed but needs registration.
+  gtfs_url: https://github.com/emtpalma/Open-Data/raw/master/lineas-paradas-horarios-gtfs.zip
+  timezone: Europe/Madrid     # GTFS service days are local days
+
+datasets:
+  schedule: {}
+
+metrics:
+  scheduled_departures: {dataset: schedule, unit: buses, min: 0, max: 5000}   # buses calling at the stop that day
+  lines_served:         {dataset: schedule, unit: lines, min: 0, max: 60}     # distinct lines calling at the stop
