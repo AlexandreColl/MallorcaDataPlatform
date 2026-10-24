@@ -48,7 +48,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 |---|---|---|---|
 | ✅ | v0.2.0 | **REData** (sistema eléctrico balear) | Demanda **horaria** con `demanda/evolucion?time_trunc=hour` (rango < 1 mes natural: bloques de 28 días); generación por tecnología y CO₂ solo diarios. `demanda-tiempo-real` no existe para Baleares. Núcleo ampliado: frecuencia por dataset y `TimeWindow.split` |
 | ✅ | v0.2.1 | **SOCIB** (estaciones meteo y boya) | THREDDS NCSS en CSV, sin clave (la API REST `entries` exige clave). 4 estaciones activas en Mallorca; despliegue vigente resuelto del catálogo; agregación horaria con el QC de SOCIB (`source_qc`). Mismas métricas que Open-Meteo → comparación estación vs modelo |
-| ⬜ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | Catálogo del Instituto Geográfico Nacional, filtrar por bbox de Mallorca. Es una fuente de eventos, no serie temporal: el GapRule no aplica |
+| ✅ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | El catálogo del IGN es un formulario web (ignora los filtros sin sesión) y su GeoJSON solo cubre 30 días: se leen las localizaciones del IGN desde el **FDSN de EMSC** (estándar, sin clave). Zona muy tranquila: 57 sismos del IGN en 2020-2026 incluso ampliando la caja 1° alrededor de la isla. Núcleo ampliado: `frequency: event` (sin regla de huecos, ventanas vacías válidas) y `fct_earthquakes` en gold |
 | ⬜ | v0.2.3 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…) |
 | ⬜ | v0.2.4 | **aqicn** | Requiere `AQICN_TOKEN`. Alternativa a OpenAQ para estaciones reales |
 | ⬜ | v0.2.5 | **EMT Palma** (GTFS estático) | Paradas y líneas → dimensión geográfica, no serie temporal. Carga mensual |
