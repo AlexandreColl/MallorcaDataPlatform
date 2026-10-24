@@ -6,7 +6,7 @@ set -euo pipefail
 
 COMPOSE=${COMPOSE:-docker compose}
 DAG_ID=mallorca_pipeline
-CONF=${CONF:-'{"connectors": ["open_meteo", "redata"], "days": 1, "region": "mallorca"}'}
+CONF=${CONF:-'{"connectors": ["open_meteo", "redata", "socib"], "days": 1, "region": "mallorca"}'}
 TIMEOUT=${TIMEOUT:-900}
 
 sql() { $COMPOSE exec -T postgres psql -U postgres -d "$1" -tAc "$2"; }

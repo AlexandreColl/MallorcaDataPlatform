@@ -5,6 +5,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- SOCIB connector: real observations from 3 weather stations and the Bahía de Palma buoy via THREDDS NCSS (CSV,
+  no API key). Raw 1-10 minute samples land in bronze; `normalize` aggregates them to hourly values using only
+  samples the SOCIB QC marks as good. Metric names and units match Open-Meteo for station-vs-model comparison.
+- `source_qc` quality rule: rows a connector labels `suspect` from the source's own QC keep that label and are
+  counted in `quality.check_results`.
+- `RawPayload.partition` (one bronze object per station/partition within a dataset) and `HttpClient.get_text`
+  for non-JSON responses.
+- Grafana: station (SOCIB ParcBit) vs model (Open-Meteo Palma) chart and latest SOCIB readings table.
+
 ## [0.2.0] - 2026-10-24
 
 Second connector: electricity of the Balearic system from Red Eléctrica.

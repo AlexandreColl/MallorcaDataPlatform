@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<capabilities location="/thredds/ncss/mooring/weather_station/station_parcbit-scb_met023/L1/dep0001_station-parcbit_scb-met023_L1_latest.nc">
+  <featureDataset type="station" url="/thredds/ncss/mooring/weather_station/station_parcbit-scb_met023/L1/dep0001_station-parcbit_scb-met023_L1_latest.nc" />
+  <variable name="AIR_PRE" type="double">
+    <attribute name="standard_name" value="air_pressure" />
+    <attribute name="long_name" value="Air pressure" />
+    <attribute name="units" value="hPa" />
+    <attribute name="ancillary_variables" value="QC_AIR_PRE" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="hPa" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="0.1" />
+  </variable>
+  <variable name="AIR_TEM" type="double">
+    <attribute name="standard_name" value="air_temperature" />
+    <attribute name="long_name" value="Air temperature in dry bulb" />
+    <attribute name="units" value="degrees_C" />
+    <attribute name="ancillary_variables" value="QC_AIR_TEM" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="degrees_C" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="0.1" />
+  </variable>
+  <variable name="QC_AIR_PRE" type="byte">
+    <attribute name="standard_name" value="air_pressure status_flag" />
+    <attribute name="long_name" value="Quality flag for air_pressure" />
+    <attribute name="quality_control_convention" value="SOCIB Quality control Data Protocol" />
+    <attribute name="valid_min" type="int" value="0" />
+    <attribute name="valid_max" type="int" value="9" />
+    <attribute name="_FillValue" type="byte" value="10" />
+    <attribute name="flag_values" type="byte" value="0 1 2 3 4 9" />
+    <attribute name="flag_meanings" value="no_qc_performed good_data probably_good_data probably_bad_data bad_data missing_value" />
+  </variable>
+  <variable name="QC_AIR_TEM" type="byte">
+    <attribute name="standard_name" value="air_temperature status_flag" />
+    <attribute name="long_name" value="Quality flag for air_temperature" />
+    <attribute name="quality_control_convention" value="SOCIB Quality control Data Protocol" />
+    <attribute name="valid_min" type="int" value="0" />
+    <attribute name="valid_max" type="int" value="9" />
+    <attribute name="_FillValue" type="byte" value="10" />
+    <attribute name="flag_values" type="byte" value="0 1 2 3 4 9" />
+    <attribute name="flag_meanings" value="no_qc_performed good_data probably_good_data probably_bad_data bad_data missing_value" />
+  </variable>
+  <variable name="QC_REL_HUM" type="byte">
+    <attribute name="standard_name" value="relative_humidity status_flag" />
+    <attribute name="long_name" value="Quality flag for relative_humidity" />
+    <attribute name="quality_control_convention" value="SOCIB Quality control Data Protocol" />
+    <attribute name="valid_min" type="int" value="0" />
+    <attribute name="valid_max" type="int" value="9" />
+    <attribute name="_FillValue" type="byte" value="10" />
+    <attribute name="flag_values" type="byte" value="0 1 2 3 4 9" />
+    <attribute name="flag_meanings" value="no_qc_performed good_data probably_good_data probably_bad_data bad_data missing_value" />
+  </variable>
+  <variable name="QC_WIN_DIR" type="byte">
+    <attribute name="standard_name" value="wind_from_direction status_flag" />
+    <attribute name="long_name" value="Quality flag for wind_from_direction" />
+    <attribute name="quality_control_convention" value="SOCIB Quality control Data Protocol" />
+    <attribute name="valid_min" type="int" value="0" />
+    <attribute name="valid_max" type="int" value="9" />
+    <attribute name="_FillValue" type="byte" value="10" />
+    <attribute name="flag_values" type="byte" value="0 1 2 3 4 9" />
+    <attribute name="flag_meanings" value="no_qc_performed good_data probably_good_data probably_bad_data bad_data missing_value" />
+  </variable>
+  <variable name="QC_WIN_SPE" type="byte">
+    <attribute name="standard_name" value="wind_speed status_flag" />
+    <attribute name="long_name" value="Quality flag for wind_speed" />
+    <attribute name="quality_control_convention" value="SOCIB Quality control Data Protocol" />
+    <attribute name="valid_min" type="int" value="0" />
+    <attribute name="valid_max" type="int" value="9" />
+    <attribute name="_FillValue" type="byte" value="10" />
+    <attribute name="flag_values" type="byte" value="0 1 2 3 4 9" />
+    <attribute name="flag_meanings" value="no_qc_performed good_data probably_good_data probably_bad_data bad_data missing_value" />
+  </variable>
+  <variable name="QC_WIN_SPE_GUS" type="byte">
+    <attribute name="standard_name" value="wind_speed_of_gust status_flag" />
+    <attribute name="long_name" value="Quality flag for wind_speed_of_gust" />
+    <attribute name="quality_control_convention" value="SOCIB Quality control Data Protocol" />
+    <attribute name="valid_min" type="int" value="0" />
+    <attribute name="valid_max" type="int" value="9" />
+    <attribute name="_FillValue" type="byte" value="10" />
+    <attribute name="flag_values" type="byte" value="0 1 2 3 4 9" />
+    <attribute name="flag_meanings" value="no_qc_performed good_data probably_good_data probably_bad_data bad_data missing_value" />
+  </variable>
+  <variable name="RAIN_ACC" type="double">
+    <attribute name="standard_name" value="lwe_thickness_of_precipitation_amount" />
+    <attribute name="long_name" value="Amount of precipitation (liquid water equivalent)" />
+    <attribute name="units" value="mm" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="mm" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="0.01" />
+  </variable>
+  <variable name="RAIN_INT" type="double">
+    <attribute name="standard_name" value="lwe_precipitation_rate" />
+    <attribute name="long_name" value="Hourly precipitation rate (liquid water equivalent)" />
+    <attribute name="units" value="mm h-1" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="mm h-1" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="0.01" />
+  </variable>
+  <variable name="REL_HUM" type="double">
+    <attribute name="standard_name" value="relative_humidity" />
+    <attribute name="long_name" value="Relative humidity" />
+    <attribute name="units" value="%" />
+    <attribute name="ancillary_variables" value="QC_REL_HUM" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="%" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="1" />
+  </variable>
+  <variable name="WIN_DIR" type="double">
+    <attribute name="standard_name" value="wind_from_direction" />
+    <attribute name="long_name" value="Wind from direction relative true north" />
+    <attribute name="units" value="degree" />
+    <attribute name="ancillary_variables" value="QC_WIN_DIR" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="degree" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="1" />
+  </variable>
+  <variable name="WIN_DIR_GUS" type="double">
+    <attribute name="standard_name" value="wind_gust_from_direction" />
+    <attribute name="long_name" value="Gust wind from direction relative true north" />
+    <attribute name="units" value="degree" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="degree" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="1" />
+  </variable>
+  <variable name="WIN_SPE" type="double">
+    <attribute name="standard_name" value="wind_speed" />
+    <attribute name="long_name" value="Horizontal wind speed" />
+    <attribute name="units" value="m s-1" />
+    <attribute name="ancillary_variables" value="QC_WIN_SPE" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="m s-1" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="0.1" />
+  </variable>
+  <variable name="WIN_SPE_GUS" type="double">
+    <attribute name="standard_name" value="wind_speed_of_gust" />
+    <attribute name="long_name" value="Gust wind speed" />
+    <attribute name="units" value="m s-1" />
+    <attribute name="ancillary_variables" value="QC_WIN_SPE_GUS" />
+    <attribute name="coordinates" value="time LAT LON HEIGHT" />
+    <attribute name="original_units" value="m s-1" />
+    <attribute name="observation_type" value="measured" />
+    <attribute name="precision" value="0.1" />
+  </variable>
+  <LatLonBox>
+    <west>2.631375</west>
+    <east>2.632378</east>
+    <south>39.635232</south>
+    <north>39.636234</north>
+  </LatLonBox>
+  <TimeSpan>
+    <begin>2026-09-01T00:01:00Z</begin>
+    <end>2026-10-24T14:28:00Z</end>
+  </TimeSpan>
+  <AcceptList>
+    <accept displayName="csv">csv</accept>
+    <accept displayName="csv (file)">text/csv</accept>
+    <accept displayName="geocsv">geocsv</accept>
+    <accept displayName="geocsv (file)">text/geocsv</accept>
+    <accept displayName="xml">xml</accept>
+    <accept displayName="xml (file)">text/xml</accept>
+    <accept displayName="WaterML 2.0">waterml2</accept>
+    <accept displayName="CF/NetCDF-3">netcdf</accept>
+    <accept displayName="CF/NetCDF-4">netcdf4</accept>
+  </AcceptList>
+</capabilities>

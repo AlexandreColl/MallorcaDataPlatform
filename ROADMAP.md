@@ -47,13 +47,14 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | Estado | Versión | Conector | Notas de la prueba real |
 |---|---|---|---|
 | ✅ | v0.2.0 | **REData** (sistema eléctrico balear) | Demanda **horaria** con `demanda/evolucion?time_trunc=hour` (rango < 1 mes natural: bloques de 28 días); generación por tecnología y CO₂ solo diarios. `demanda-tiempo-real` no existe para Baleares. Núcleo ampliado: frecuencia por dataset y `TimeWindow.split` |
-| ⬜ | v0.2.1 | **SOCIB** (estaciones meteo, boyas, nivel del mar) | `api.socib.es/data-sources/?instrument_type=Weather Station&is_active=true` (12 activas). Datos reales de estación → base para validar Open-Meteo. Datos en NetCDF/THREDDS: decidir entre API `entries` o OPeNDAP 🔬 |
+| ✅ | v0.2.1 | **SOCIB** (estaciones meteo y boya) | THREDDS NCSS en CSV, sin clave (la API REST `entries` exige clave). 4 estaciones activas en Mallorca; despliegue vigente resuelto del catálogo; agregación horaria con el QC de SOCIB (`source_qc`). Mismas métricas que Open-Meteo → comparación estación vs modelo |
 | ⬜ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | Catálogo del Instituto Geográfico Nacional, filtrar por bbox de Mallorca. Es una fuente de eventos, no serie temporal: el GapRule no aplica |
 | ⬜ | v0.2.3 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…) |
 | ⬜ | v0.2.4 | **aqicn** | Requiere `AQICN_TOKEN`. Alternativa a OpenAQ para estaciones reales |
 | ⬜ | v0.2.5 | **EMT Palma** (GTFS estático) | Paradas y líneas → dimensión geográfica, no serie temporal. Carga mensual |
 | ⬜ | — | Plantilla `make new-connector NAME=x` que genere la carpeta, YAML y test vacíos |
 | ⬜ | — | Script `make record-fixtures CONNECTOR=x` para regrabar respuestas reales |
+| ⬜ | — | SOCIB: histórico por ficheros mensuales (`L1/<año>/..._<año>-<mes>.nc`) para ventanas anteriores al `latest`; añadir mareógrafo (Porto Cristo) y oleaje (boyas) |
 
 Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtures reales · tests · aparece en Grafana · sección en README · ≤ 1 día de trabajo.
 
