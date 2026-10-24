@@ -4,6 +4,7 @@ entrypoint: connectors.socib.extractor:SocibConnector
 enabled: true
 frequency: 1h          # raw data is every 1-10 min; normalize() aggregates it to hourly values
 max_days: 61           # the *_latest.nc file starts on the 1st of the previous month (checked per request)
+catch_up_days: 28      # always inside the latest file, whatever the day of the month
 secrets: []
 
 options:

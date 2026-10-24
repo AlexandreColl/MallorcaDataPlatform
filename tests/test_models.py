@@ -82,6 +82,28 @@ def test_split_rejects_non_positive_size():
         TimeWindow(date(2026, 10, 1), date(2026, 10, 2)).split(0)
 
 
+def test_catch_up_recovers_days_after_the_last_successful_run():
+    window = TimeWindow(date(2026, 10, 23), date(2026, 10, 23))
+
+    recovered = window.catch_up(last_loaded=date(2026, 10, 19), limit_days=31)
+
+    assert recovered == TimeWindow(date(2026, 10, 20), date(2026, 10, 23))
+
+
+@pytest.mark.parametrize("last_loaded", [None, date(2026, 10, 22), date(2026, 10, 23), date(2026, 10, 30)])
+def test_catch_up_keeps_the_window_when_nothing_was_missed(last_loaded):
+    window = TimeWindow(date(2026, 10, 23), date(2026, 10, 23))
+
+    assert window.catch_up(last_loaded, limit_days=31) == window
+
+
+def test_catch_up_is_capped_and_never_shrinks_the_window():
+    window = TimeWindow(date(2026, 10, 20), date(2026, 10, 23))
+
+    assert window.catch_up(date(2026, 1, 1), limit_days=10) == TimeWindow(date(2026, 10, 14), date(2026, 10, 23))
+    assert window.catch_up(date(2026, 1, 1), limit_days=2) == window  # requested 4 days > limit: unchanged
+
+
 def test_mallorca_region_is_available():
     assert "mallorca" in available_regions()
     region = load_region("mallorca")

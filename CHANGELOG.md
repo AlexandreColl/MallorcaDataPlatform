@@ -5,6 +5,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Catch-up: each run extends its window back to the day after the connector's last successful run (up to
+  `catch_up_days`, 28 for SOCIB), so the days lost while a source was down are recovered by its next run. DAG
+  param `catch_up` and CLI flag `--no-catch-up` to turn it off.
+- Failed runs record the exception type in `ops.ingestion_runs.error` (`ConnectTimeout: ...`), so an upstream
+  outage can be told from a bug.
+
+### Changed
+
+- A failing source no longer stops the pipeline: `dbt_build` runs with `trigger_rule=all_done` and rebuilds gold
+  with whatever loaded. Ingest tasks retry 3 times with exponential backoff (2, 4, 8 min; `MDP_TASK_RETRIES`).
+- HTTP client: 10 s connect timeout (fail fast on an unreachable host) and 60 s read timeout, longer backoff.
+- E2E: a connector that fails because its API is down (connection errors, timeouts, 5xx) is reported as a GitHub
+  warning instead of failing the job; any other error still fails it. Idempotency is checked per source.
+
 ## [0.2.2] - 2026-10-24
 
 Fourth connector and the first event source: earthquakes located by the IGN.

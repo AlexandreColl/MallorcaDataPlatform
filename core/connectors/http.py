@@ -31,10 +31,16 @@ class JsonGetter(Protocol):
 
 
 class HttpClient:
-    """``requests`` session with retries and backoff on 429/5xx."""
+    """``requests`` session with retries and backoff on connection errors, 429 and 5xx.
 
-    def __init__(self, timeout: float = 30.0, retries: int = 5, backoff: float = 1.0) -> None:
-        self.timeout = timeout
+    A short connect timeout fails fast on an unreachable host so the retries (and then the Airflow task
+    retries) get a chance; the read timeout is longer for slow but working APIs.
+    """
+
+    def __init__(
+        self, connect_timeout: float = 10.0, read_timeout: float = 60.0, retries: int = 5, backoff: float = 2.0
+    ) -> None:
+        self.timeout = (connect_timeout, read_timeout)
         self.session = requests.Session()
         self.session.headers["User-Agent"] = f"mallorca-data-platform/{__version__}"
         retry = Retry(

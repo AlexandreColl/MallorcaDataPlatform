@@ -98,3 +98,11 @@ def test_invalid_dataset_frequency_fails_on_load(tmp_path):
     root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\ndatasets: {a: {frequency: often}}\n")
     with pytest.raises(ConnectorError, match="invalid frequency 'often'"):
         registry.discover(root)
+
+
+def test_catch_up_days_defaults_to_max_days_and_is_validated(tmp_path):
+    assert registry.discover()["open_meteo"].catch_up_days == registry.discover()["open_meteo"].max_days
+    assert registry.discover()["socib"].catch_up_days == 28
+    root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nmax_days: 10\ncatch_up_days: 20\n")
+    with pytest.raises(ConnectorError, match="catch_up_days"):
+        registry.discover(root)

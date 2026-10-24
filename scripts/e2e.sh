@@ -55,27 +55,62 @@ run_dag() {
 
 suffix=$(date +%s)
 run_dag "e2e_first_$suffix"
-silver_1=$(sql warehouse "select count(*) from silver.observations")
+sources=$(grep -o '"connectors": *\[[^]]*\]' <<<"$CONF" | grep -o '"[a-z_]*"' | tr -d '"' | grep -v connectors)
+
+# A connector may fail only because its upstream API is down (connection errors, timeouts, 5xx): that is
+# a warning, because the DAG keeps going without it and its next run catches up the missed days. Any other
+# error (a bug, an API that changed its format) fails the E2E.
+UPSTREAM_ERRORS='^(ConnectTimeout|ConnectionError|ReadTimeout|Timeout|SSLError|ChunkedEncodingError|RetryError|HTTPError: 5[0-9][0-9])'
+succeeded=""
+check_runs() {
+  local run_id=$1 source status error
+  succeeded=""
+  for source in $sources; do
+    status=$(sql warehouse "select status from ops.ingestion_runs where run_id = '$run_id' and source = '$source'")
+    if [[ "$status" == success ]]; then
+      succeeded+=" $source"
+      continue
+    fi
+    error=$(sql warehouse "select coalesce(error, '') from ops.ingestion_runs where run_id = '$run_id' and source = '$source'")
+    if [[ "$status" == failed ]] && grep -Eq "$UPSTREAM_ERRORS" <<<"$error"; then
+      echo "::warning title=Upstream outage::$source unavailable in $run_id: ${error:0:300}"
+    else
+      echo "connector $source in $run_id: status=${status:-missing} ${error:0:500}"
+      return 1
+    fi
+  done
+  [[ -n "$succeeded" ]] || { echo "no connector succeeded in $run_id"; return 1; }
+}
+
+check_runs "e2e_first_$suffix"
+first_ok=$succeeded
 gold_1=$(sql warehouse "select count(*) from gold.fct_observations")
-aqi=$(sql warehouse "select count(*) from gold.air_quality_hourly")
 checks=$(sql warehouse "select count(*) from quality.check_results")
-echo "silver=$silver_1 gold=$gold_1 air_quality_hourly=$aqi quality_checks=$checks"
-(( silver_1 > 0 && gold_1 > 0 && aqi > 0 && checks > 0 )) || { echo "expected data in every layer"; false; }
-for source in $(grep -o '"connectors": *\[[^]]*\]' <<<"$CONF" | grep -o '"[a-z_]*"' | tr -d '"' | grep -v connectors); do
+echo "gold=$gold_1 quality_checks=$checks succeeded:$first_ok"
+(( gold_1 > 0 && checks > 0 )) || { echo "expected data in gold and quality results"; false; }
+if [[ " $first_ok " == *" open_meteo "* ]]; then
+  aqi=$(sql warehouse "select count(*) from gold.air_quality_hourly")
+  (( aqi > 0 )) || { echo "open_meteo loaded but gold.air_quality_hourly is empty"; false; }
+fi
+declare -A silver_1
+for source in $first_ok; do
   rows=$(sql warehouse "select count(*) from gold.fct_observations where source = '$source'")
+  silver_1[$source]=$(sql warehouse "select count(*) from silver.observations where source = '$source'")
   echo "  $source: $rows rows in gold"
-  if [[ " $EVENT_SOURCES " == *" $source "* ]]; then
-    ok=$(sql warehouse "select count(*) from ops.ingestion_runs where source = '$source' and run_id = 'e2e_first_$suffix' and status = 'success'")
-    (( ok == 1 )) || { echo "event connector $source did not finish successfully"; false; }
-  else
+  # Event sources usually have no events in one day: succeeding is enough.
+  if [[ " $EVENT_SOURCES " != *" $source "* ]]; then
     (( rows > 0 )) || { echo "connector $source loaded no data"; false; }
   fi
 done
 
 run_dag "e2e_second_$suffix"
-silver_2=$(sql warehouse "select count(*) from silver.observations")
-echo "silver after rerun=$silver_2"
-[[ "$silver_1" == "$silver_2" ]] || { echo "rerun duplicated rows ($silver_1 -> $silver_2)"; false; }
+check_runs "e2e_second_$suffix"
+for source in $first_ok; do
+  [[ " $succeeded " == *" $source "* ]] || continue  # down in the second run: nothing to compare
+  rows=$(sql warehouse "select count(*) from silver.observations where source = '$source'")
+  echo "  $source: silver ${silver_1[$source]} -> $rows after rerun"
+  [[ "$rows" == "${silver_1[$source]}" ]] || { echo "rerun duplicated $source rows"; false; }
+done
 
 versions=$($COMPOSE exec -T airflow-scheduler python - <<'PY'
 from core.config import Settings
