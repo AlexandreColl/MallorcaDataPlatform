@@ -5,6 +5,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-24
+
+Fifth connector (EMT Palma buses), a pipeline that survives a source outage and recovers the missed days, and
+one Grafana dashboard for every source.
+
+### Added
+
+- EMT Palma connector: the static GTFS of Palma's city buses turned into a daily series per stop (scheduled
+  departures and lines served), resolving each day's services from the calendar and its holiday exceptions and
+  expanding headway-based trips (`frequencies.txt`). The zip lands untouched in bronze with its SHA-256.
+- `HttpClient.get_bytes` for binary downloads.
+- `dim_sources` dbt seed (label and kind per source) and a test that every source in silver has a row.
+- Catch-up: each run extends its window back to the day after the connector's last successful run (up to
+  `catch_up_days`, 28 for SOCIB), so the days lost while a source was down are recovered by its next run. DAG
+  param `catch_up` and CLI flag `--no-catch-up` to turn it off.
+- Failed runs record the exception type in `ops.ingestion_runs.error` (`ConnectTimeout: ...`), so an upstream
+  outage can be told from a bug.
+
+### Changed
+
+- Grafana: one dashboard instead of a panel per source, filtered by a multi-select **source** selector (plus
+  metric and entity): stats on top, then the map, four charts (metric by source and by entity, Balearic
+  electricity, daily quality per source) and a table with every time series. Run and quality-rule tables move to
+  a collapsed row. Clearer map symbols: air-quality dots in EAQI colours, thermometers for SOCIB stations, ripples
+  sized and coloured by magnitude for earthquakes and a heatmap of EMT bus service.
+- A failing source no longer stops the pipeline: `dbt_build` runs with `trigger_rule=all_done` and rebuilds gold
+  with whatever loaded. Ingest tasks retry 3 times with exponential backoff (2, 4, 8 min; `MDP_TASK_RETRIES`).
+- HTTP client: 10 s connect timeout (fail fast on an unreachable host) and 60 s read timeout, longer backoff.
+- E2E: a connector that fails because its API is down (connection errors, timeouts, 5xx) is reported as a GitHub
+  warning instead of failing the job; any other error still fails it. Idempotency is checked per source.
+
 ## [0.2.2] - 2026-10-24
 
 Fourth connector and the first event source: earthquakes located by the IGN.
@@ -93,7 +124,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.1.0...v0.2.0

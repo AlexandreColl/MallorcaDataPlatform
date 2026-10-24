@@ -24,7 +24,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - run: cp .env.example .env
+      # One retry per source: an upstream outage is reported as a warning instead of stalling the job.
+      - run: cp .env.example .env && echo "MDP_TASK_RETRIES=1" >> .env
       - uses: docker/setup-buildx-action@v4
       - name: Build image
         uses: docker/build-push-action@v7

@@ -1,9 +1,10 @@
 name: mallorca
-version: "0.2.2"
+version: "0.2.3"
 config-version: 2
 profile: mallorca
 
 model-paths: ["models"]
+seed-paths: ["seeds"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
 clean-targets: ["target", "dbt_packages"]
@@ -11,6 +12,10 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   # Connectors with `frequency: event` (see macros/event_sources.sql).
   event_sources: ["ign"]
+
+seeds:
+  mallorca:
+    +schema: gold
 
 models:
   mallorca:

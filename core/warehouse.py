@@ -12,6 +12,7 @@ from psycopg import sql
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from datetime import date
 
     from core.config import Settings
     from core.models import TimeWindow
@@ -144,6 +145,16 @@ class Warehouse:
                     for r in results
                 ],
             )
+
+    def last_loaded_day(self, source: str, region: str) -> date | None:
+        """Last day covered by a successful run of ``source`` for ``region`` (None if it never succeeded)."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT max(window_end) FROM ops.ingestion_runs"
+                " WHERE source = %s AND region = %s AND status = 'success'",
+                (source, region),
+            ).fetchone()
+        return row[0] if row else None
 
     def start_run(self, run_id: str, source: str, region: str, window: TimeWindow) -> None:
         """Register a run as ``running`` (a retry of the same run resets it)."""

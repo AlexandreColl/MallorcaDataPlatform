@@ -18,7 +18,9 @@ connectors/<nombre>/
 
 4. `connector.yaml`: el campo `name` debe coincidir con la carpeta. `frequency` alimenta la regla de
    huecos (`1h`, `1d`…); si los datasets tienen granularidades distintas, cada uno puede declarar la suya
-   (`datasets.<x>.frequency`, ver `connectors/redata`). Para fuentes de eventos sin muestreo regular (sismos…)
+   (`datasets.<x>.frequency`, ver `connectors/redata`). `catch_up_days` (por defecto `max_days`) limita cuánto se
+   alarga una ventana para recuperar días de ejecuciones fallidas; bájalo si la fuente no guarda tanto histórico
+   (SOCIB: 28). Para fuentes de eventos sin muestreo regular (sismos…)
    usa `frequency: event`: no se aplica la regla de huecos y una ventana sin eventos no es un error (ver
    `connectors/ign`); añádela también a `vars.event_sources` en `dbt/dbt_project.yml` y a `EVENT_SOURCES` en
    `scripts/e2e.sh`. `secrets` lista las variables que deben estar en `.env`.
@@ -33,8 +35,10 @@ connectors/<nombre>/
      para que cada respuesta tenga su propio objeto en bronze.
    - Para respuestas que no son JSON (CSV, XML) usa `self.http.get_text`.
 6. Tests contra las fixtures (sin red). Ver `connectors/open_meteo/tests/` como plantilla.
-7. Probar de punta a punta: `make run CONNECTORS=<nombre> DAYS=1` y mirar Grafana.
-8. Sección en el README, entrada en `CHANGELOG.md` → PR `✨ feat(connector): add <nombre>`.
+7. Añadir una fila a `dbt/seeds/dim_sources.csv` (nombre visible en el selector de fuentes de Grafana y tipo de
+   datos); un test de dbt falla si una fuente de silver no la tiene.
+8. Probar de punta a punta: `make run CONNECTORS=<nombre> DAYS=1` y mirar Grafana.
+9. Sección en el README, entrada en `CHANGELOG.md` → PR `✨ feat(connector): add <nombre>`.
 
 No hace falta tocar el núcleo, el DAG ni dbt: el registro descubre el conector, el DAG lo ofrece como
 parámetro y los modelos gold lo incluyen automáticamente.

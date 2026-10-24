@@ -24,6 +24,7 @@ flowchart LR
         RD[REData]
         SO[SOCIB]
         IG[IGN sismos]
+        EM[EMT Palma GTFS]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -39,7 +40,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & RD & SO & IG --> EX --> BR --> SP
+    OM & RD & SO & IG & EM --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -60,6 +61,10 @@ flowchart LR
 - **Idempotencia en todas las capas**: ventanas de días completos (siempre la misma petición), claves
   deterministas en bronze, `overwrite` dinámico de particiones en Parquet y `INSERT … ON CONFLICT … WHERE
   IS DISTINCT FROM` en Postgres. El E2E de CI lanza el DAG dos veces y comprueba que no cambia el número de filas.
+- **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
+  si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
+  error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
+  su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída (aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
   (`quality_reasons`), pero nunca modifican el valor. Las correcciones irán en una capa propia (ver roadmap).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.
@@ -92,9 +97,9 @@ Otros comandos: `make help`.
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
-| openaq | ⬜ v0.2.3 | Estaciones de calidad del aire | Sí |
-| aqicn | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
-| emt_palma | ⬜ v0.2.5 | GTFS estático de autobuses | No |
+| [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
+| openaq | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
+| aqicn | ⬜ v0.2.5 | Estaciones de calidad del aire | Sí |
 
 ### Open-Meteo
 
@@ -114,8 +119,8 @@ con granularidad distinta, cada uno con su propia `frequency` para la regla de h
 | Emisiones | diaria | `co2_emissions` (tCO2eq), `co2_intensity` (tCO2eq/MWh) |
 
 Las series de la API se mapean a métricas en el YAML; una serie nueva (p. ej. una tecnología que aparece en el
-mix) genera un aviso en lugar de perderse en silencio. En Grafana: demanda horaria, mix diario por tecnología e
-intensidad de CO₂.
+mix) genera un aviso en lugar de perderse en silencio. En Grafana: demanda horaria e intensidad de CO₂ en
+una gráfica, y el mix por tecnología en la tabla de series.
 
 ### SOCIB
 
@@ -131,7 +136,16 @@ Sismos localizados por el Instituto Geográfico Nacional, leídos del servicio F
 en la caja de la región ampliada 1° alrededor de la isla. Es la primera fuente de **eventos**: no hay muestreo
 regular, así que su dataset declara `frequency: event` (sin regla de huecos) y una ventana sin sismos, lo habitual,
 es una ejecución correcta con 0 filas. En gold, `fct_earthquakes` da una fila por sismo con su distancia a Palma; en
-Grafana aparecen como estrellas en el mapa y en una tabla. Prueba real: 57 sismos desde 2020, magnitud máxima 3,0.
+Grafana aparecen en el mapa (tamaño y color según la magnitud) y en un indicador. Prueba real: 57 sismos desde 2020, magnitud máxima 3,0.
+
+### EMT Palma (autobús)
+
+El GTFS estático de EMT Palma (abierto en su GitHub, sin clave) convertido en una **serie diaria por parada**: para
+cada día se resuelven los servicios que circulan (calendario semanal más las excepciones de festivos) y se cuentan
+los autobuses programados y las líneas distintas que pasan por cada una de las 875 paradas. EMT publica los viajes
+por frecuencias (`frequencies.txt`: «cada 20 min de 07:15 a 20:35»), que el conector expande. Los días fuera de la
+vigencia del feed no generan filas, así que la regla de huecos los señala. En Grafana es un mapa de calor del
+servicio. Prueba real: unos 78.000 pasos de autobús en un día laborable, 52.800 en domingo.
 
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 
@@ -147,7 +161,24 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 | `duplicate` | fila | misma (fuente, entidad, métrica, ts) repetida → se colapsa conservando el valor no nulo |
 | `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector (no se aplica a fuentes de eventos) |
 
-Resultados por ejecución en `quality.check_results` y en el panel *Calidad de datos* de Grafana.
+Resultados por ejecución en `quality.check_results`; en Grafana, la gráfica *Calidad diaria por fuente* y la fila
+plegada *Operación*.
+
+## Grafana
+
+Un único dashboard, *Mallorca · Visión general* (http://localhost:3000), con un selector de **una o varias fuentes**
+que filtra todo lo demás, más los selectores de métrica y entidad:
+
+1. **Indicadores**: fuentes al día, observaciones, % sospechosos, ejecuciones fallidas, última ingesta y sismos.
+2. **Mapa**: calidad del aire de Open-Meteo (puntos con el color del índice europeo), estaciones SOCIB (termómetros
+   con su última hora), sismos del IGN (ondas según la magnitud) y un mapa de calor del servicio de EMT Palma.
+3. **Gráficas**: la métrica elegida como media por fuente (con temperatura compara estación real y modelo) y por
+   entidad, la electricidad de Baleares (demanda y CO₂) y la calidad diaria de cada fuente.
+4. **Tabla de series temporales**: una fila por fuente, entidad y métrica con días, completitud, % sospechosos y
+   estadísticos; las fuentes con muchas entidades (las 875 paradas de EMT) se resumen en una fila por métrica.
+
+Las ejecuciones y las reglas de calidad están en una fila plegada al final. Los nombres de las fuentes salen del
+seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su fila.
 
 ## Estructura
 
