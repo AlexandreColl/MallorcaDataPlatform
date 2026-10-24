@@ -5,6 +5,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-24
+
+Second connector: electricity of the Balearic system from Red Eléctrica.
+
 ### Added
 
 - REData connector (Red Eléctrica, Balearic electric system): hourly electricity demand (28-day request
@@ -15,6 +19,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   sampling frequency, so one connector can mix hourly and daily datasets.
 - `TimeWindow.split(max_days)` to page APIs that limit the date range per request.
 - Grafana: electricity row with hourly demand, daily generation mix and CO2 intensity.
+- E2E runs every connector and checks that each one loaded data.
+
+### Fixed
+
+- `No module named core.cli` after switching git branches: per-folder bind mounts kept pointing at folders
+  git had deleted and recreated. Compose now mounts the whole checkout read-only and Airflow reads the DAGs
+  from `/opt/project/dags`.
 
 ## [0.1.0] - 2026-10-24
 
@@ -39,5 +50,6 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/releases/tag/v0.1.0
