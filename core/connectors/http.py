@@ -29,6 +29,10 @@ class JsonGetter(Protocol):
         """GET ``url`` and return the body as text (CSV, XML...)."""
         ...
 
+    def get_bytes(self, url: str, params: Params | None = None, headers: dict[str, str] | None = None) -> bytes:
+        """GET ``url`` and return the raw body (zip files...)."""
+        ...
+
 
 class HttpClient:
     """``requests`` session with retries and backoff on connection errors, 429 and 5xx.
@@ -75,3 +79,11 @@ class HttpClient:
             requests.HTTPError: for non-2xx responses once retries are exhausted.
         """
         return self._get(url, params, headers).text
+
+    def get_bytes(self, url: str, params: Params | None = None, headers: dict[str, str] | None = None) -> bytes:
+        """GET ``url`` and return the raw body.
+
+        Raises:
+            requests.HTTPError: for non-2xx responses once retries are exhausted.
+        """
+        return self._get(url, params, headers).content
