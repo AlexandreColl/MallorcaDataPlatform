@@ -1,0 +1,274 @@
+{
+  "uid": "mallorca-overview",
+  "title": "Mallorca · Visión general",
+  "description": "Calidad del aire, meteorología y calidad de datos de todas las fuentes.",
+  "tags": ["mallorca", "gold"],
+  "timezone": "browser",
+  "editable": false,
+  "graphTooltip": 1,
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "location",
+        "label": "Localidad",
+        "type": "query",
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+        "query": "SELECT DISTINCT entity FROM gold.dim_locations ORDER BY 1",
+        "definition": "SELECT DISTINCT entity FROM gold.dim_locations ORDER BY 1",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "sort": 1
+      },
+      {
+        "name": "metric",
+        "label": "Métrica",
+        "type": "query",
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+        "query": "SELECT DISTINCT metric FROM gold.fct_observations ORDER BY 1",
+        "definition": "SELECT DISTINCT metric FROM gold.fct_observations ORDER BY 1",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": { "selected": true, "text": "temperature_2m", "value": "temperature_2m" },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Observaciones en el rango",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Observaciones\" FROM gold.fct_observations WHERE $__timeFilter(ts)"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "% sospechosos",
+      "description": "Valores marcados por las reglas de calidad (rango, duplicados). No se modifican.",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(100.0 * avg(is_suspect::int), 0) AS \"% sospechosos\" FROM gold.fct_observations WHERE $__timeFilter(ts)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Fuentes activas",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT source) AS \"Fuentes\" FROM gold.dim_locations"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Última ingesta correcta",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT extract(epoch FROM max(finished_at)) * 1000 AS \"Última ingesta\" FROM ops.ingestion_runs WHERE status = 'success'"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "dateTimeFromNow", "color": { "mode": "fixed", "fixedColor": "text" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "PM2.5 por localidad (µg/m³)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = 'pm2_5' AND entity IN ($location) AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "conμgm3",
+          "custom": { "lineWidth": 1, "fillOpacity": 5, "showPoints": "never" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 25 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "$metric por localidad",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND entity IN ($location) AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 5, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 7,
+      "type": "geomap",
+      "title": "Último índice europeo de calidad del aire",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (a.entity) a.entity, l.lat, l.lon, a.european_aqi_model AS european_aqi, a.eaqi_label, a.ts FROM gold.air_quality_hourly a JOIN gold.dim_locations l USING (source, entity) WHERE a.european_aqi_model IS NOT NULL ORDER BY a.entity, a.ts DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 20 },
+              { "color": "orange", "value": 40 },
+              { "color": "red", "value": 60 },
+              { "color": "purple", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": { "id": "coords", "lat": 39.62, "lon": 2.95, "zoom": 8.6 },
+        "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
+        "basemap": { "type": "default", "name": "Basemap" },
+        "tooltip": { "mode": "details" },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Localidades",
+            "tooltip": true,
+            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": { "fixed": 12 },
+                "color": { "field": "european_aqi" },
+                "opacity": 0.8,
+                "text": { "mode": "field", "field": "entity" },
+                "textConfig": { "fontSize": 12, "offsetY": -16, "textAlign": "center", "textBaseline": "middle" }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Calidad de datos (último chequeo)",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT source AS \"Fuente\", rule AS \"Regla\", target AS \"Objetivo\", checked AS \"Revisados\", failed AS \"Fallos\", passed AS \"OK\", failed_ratio AS \"% fallos\", checked_at AS \"Fecha\" FROM gold.data_quality_summary ORDER BY passed, failed DESC, source, rule"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "% fallos" }, "properties": [ { "id": "unit", "value": "percentunit" } ] }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Últimas ejecuciones",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT started_at AS \"Inicio\", source AS \"Fuente\", status AS \"Estado\", window_start AS \"Desde\", window_end AS \"Hasta\", payloads AS \"Payloads\", rows_silver AS \"Filas silver\", rows_upserted AS \"Insertadas/actualizadas\", round(extract(epoch FROM finished_at - started_at)::numeric, 1) AS \"Duración (s)\", error AS \"Error\" FROM ops.ingestion_runs ORDER BY started_at DESC LIMIT 20"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    }
+  ]
+}
