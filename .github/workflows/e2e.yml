@@ -1,0 +1,48 @@
+name: E2E
+
+# Full platform with real API calls: docker compose up, run the DAG twice,
+# assert data in every layer and that the rerun is idempotent.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 5 * * 1" # weekly: detects upstream API changes
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - run: cp .env.example .env
+      - uses: docker/setup-buildx-action@v4
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/airflow/Dockerfile
+          target: runtime
+          tags: mallorca-data-platform/airflow:local
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start platform
+        run: docker compose up -d --no-build
+      - name: Run pipeline twice and check idempotency
+        run: ./scripts/e2e.sh
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --tail 300
+      - name: Stop platform
+        if: always()
+        run: docker compose down -v

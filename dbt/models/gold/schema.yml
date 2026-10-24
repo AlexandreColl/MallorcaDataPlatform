@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fct_observations
+    description: Non-missing observations from every source, with quality flags.
+    columns:
+      - name: source
+        data_tests: [not_null]
+      - name: entity
+        data_tests: [not_null]
+      - name: metric
+        data_tests: [not_null]
+      - name: ts
+        data_tests: [not_null]
+      - name: value
+        data_tests: [not_null]
+      - name: quality
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["ok", "suspect"]
+
+  - name: dim_locations
+    description: One row per source/entity with coordinates and time coverage.
+    columns:
+      - name: entity
+        data_tests: [not_null]
+
+  - name: agg_daily_metrics
+    description: Daily min/avg/max (ok values only) and completeness per series.
+    columns:
+      - name: completeness
+        data_tests: [not_null]
+
+  - name: air_quality_hourly
+    description: Hourly pollutants with the European AQI band derived from the worst pollutant.
+    columns:
+      - name: eaqi_label
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["good", "fair", "moderate", "poor", "very poor", "extremely poor"]
+
+  - name: data_quality_summary
+    description: Latest quality-check result per source, rule and target.
+    columns:
+      - name: rule
+        data_tests: [not_null]
