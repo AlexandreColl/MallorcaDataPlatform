@@ -1,0 +1,33 @@
+name: open_meteo_marine
+description: Open-Meteo Marine (wave and ocean models) at coastal points around the island, hourly, no API key
+entrypoint: connectors.open_meteo_marine.extractor:OpenMeteoMarineConnector
+enabled: true
+frequency: 1h
+max_days: 92
+secrets: []
+
+options:
+  # Sea points around Mallorca (the region's locations are inland towns, where wave models have no data).
+  # Only the points inside the region bbox are queried. The API answers with the nearest model cell (~5 km).
+  points:
+    - {name: bahia_de_palma, lat: 39.50, lon: 2.68}       # next to the SOCIB Bahía de Palma buoy
+    - {name: dragonera, lat: 39.58, lon: 2.30}
+    - {name: soller, lat: 39.80, lon: 2.68}
+    - {name: pollenca, lat: 39.90, lon: 3.12}
+    - {name: alcudia, lat: 39.82, lon: 3.17}
+    - {name: cala_millor, lat: 39.60, lon: 3.42}
+    - {name: portocolom, lat: 39.41, lon: 3.28}
+    - {name: colonia_sant_jordi, lat: 39.30, lon: 3.00}
+
+datasets:
+  marine:
+    url: https://marine-api.open-meteo.com/v1/marine
+
+metrics:
+  wave_height:             {dataset: marine, unit: m, min: 0, max: 20}       # significant wave height
+  wave_period:             {dataset: marine, unit: s, min: 0, max: 30}
+  wave_direction:          {dataset: marine, unit: deg, min: 0, max: 360}
+  swell_wave_height:       {dataset: marine, unit: m, min: 0, max: 20}
+  sea_surface_temperature: {dataset: marine, unit: degC, min: 5, max: 35}
+  ocean_current_velocity:  {dataset: marine, unit: km/h, min: 0, max: 15}
+  sea_level_height_msl:    {dataset: marine, unit: m, min: -3, max: 3}       # tides and surge, not waves

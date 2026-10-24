@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from core.connectors import BaseConnector, ConnectorError
-from core.models import Observation, Quality, RawPayload, Region, TimeWindow
+from core.models import Location, Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -18,21 +18,26 @@ log = logging.getLogger(__name__)
 class OpenMeteoConnector(BaseConnector):
     """Hourly air quality and weather for every location of the region."""
 
-    def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:
-        """One request per dataset with all the region's locations.
+    def locations(self, region: Region) -> tuple[Location, ...]:
+        """Points to query: the region's locations (subclasses may use their own points).
 
         Raises:
-            ConnectorError: if the region defines no locations.
+            ConnectorError: if there are none.
         """
         if not region.locations:
             msg = f"region '{region.name}' has no locations for Open-Meteo"
             raise ConnectorError(msg)
+        return region.locations
+
+    def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:
+        """One request per dataset with all the points at once."""
+        locations = self.locations(region)
         payloads = []
         for dataset, spec in self.config.datasets.items():
             metrics = [m.name for m in self.config.metrics_for(dataset)]
             params = {
-                "latitude": ",".join(f"{loc.lat:.4f}" for loc in region.locations),
-                "longitude": ",".join(f"{loc.lon:.4f}" for loc in region.locations),
+                "latitude": ",".join(f"{loc.lat:.4f}" for loc in locations),
+                "longitude": ",".join(f"{loc.lon:.4f}" for loc in locations),
                 "hourly": ",".join(metrics),
                 "start_date": window.start.isoformat(),
                 "end_date": window.end.isoformat(),
@@ -47,7 +52,7 @@ class OpenMeteoConnector(BaseConnector):
                     request={
                         "url": spec["url"],
                         "params": params,
-                        "locations": [loc.name for loc in region.locations],
+                        "locations": [loc.name for loc in locations],
                     },
                     body=body,
                 )
@@ -69,8 +74,9 @@ class OpenMeteoConnector(BaseConnector):
             msg = f"expected {len(names)} locations, got {len(bodies)}"
             raise ConnectorError(msg)
 
+        by_name = {loc.name: loc for loc in self.locations(region)}
         for loc_name, body in zip(names, bodies, strict=True):
-            location = region.location(loc_name)
+            location = by_name[loc_name]
             hourly = body.get("hourly") or {}
             times = hourly.get("time") or []
             for metric in self.config.metrics_for(payload.dataset):

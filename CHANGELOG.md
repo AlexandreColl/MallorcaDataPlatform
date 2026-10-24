@@ -5,6 +5,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Open-Meteo Marine connector: hourly wave height, period and direction, swell, sea surface temperature, currents
+  and sea level (model data) at 8 sea points around Mallorca. A subclass of the Open-Meteo connector that only
+  changes the queried points, since the region's locations are inland.
+- Grafana: wave layer on the map (colour and label by wave height); the other marine metrics are in the selector.
+
+### Changed
+
+- `OpenMeteoConnector.locations()` hook so subclasses can query their own points.
+
 ## [0.2.3] - 2026-10-24
 
 Fifth connector (EMT Palma buses), a pipeline that survives a source outage and recovers the missed days, and

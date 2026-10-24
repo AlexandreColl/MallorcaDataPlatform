@@ -6,7 +6,7 @@ set -euo pipefail
 
 COMPOSE=${COMPOSE:-docker compose}
 DAG_ID=mallorca_pipeline
-CONF=${CONF:-'{"connectors": ["open_meteo", "redata", "socib", "ign", "emt_palma"], "days": 1, "region": "mallorca"}'}
+CONF=${CONF:-'{"connectors": ["open_meteo", "open_meteo_marine", "redata", "socib", "ign", "emt_palma"], "days": 1, "region": "mallorca"}'}
 TIMEOUT=${TIMEOUT:-900}
 # Connectors with `frequency: event`: a 1-day window usually has no events, so they must succeed, not load rows.
 EVENT_SOURCES=${EVENT_SOURCES:-ign}
