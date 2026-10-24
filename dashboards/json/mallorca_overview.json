@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 3,
+  "version": 4,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -326,10 +326,55 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
     },
     {
+      "id": 13,
+      "type": "timeseries",
+      "title": "$metric: estación real (SOCIB ParcBit) vs modelo (Open-Meteo Palma)",
+      "description": "Misma métrica y unidad en las dos fuentes. Métricas comparables: temperature_2m, relative_humidity_2m, wind_speed_10m.",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 32 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, CASE source WHEN 'socib' THEN 'ParcBit (estación SOCIB)' ELSE 'Palma (modelo Open-Meteo)' END AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND ((source = 'socib' AND entity = 'parcbit') OR (source = 'open_meteo' AND entity = 'palma')) AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ParcBit (estación SOCIB)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
+          { "matcher": { "id": "byName", "options": "Palma (modelo Open-Meteo)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [6, 4] } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Estaciones SOCIB: última hora",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 32 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT entity AS \"Estación\", max(value) FILTER (WHERE metric = 'temperature_2m') AS \"Temp (°C)\", max(value) FILTER (WHERE metric = 'relative_humidity_2m') AS \"HR (%)\", max(value) FILTER (WHERE metric = 'wind_speed_10m') AS \"Viento (km/h)\", max(value) FILTER (WHERE metric = 'pressure_msl') AS \"Presión (hPa)\", max(ts) AS \"Hora\" FROM gold.fct_observations o WHERE source = 'socib' AND ts = (SELECT max(ts) FROM gold.fct_observations WHERE source = 'socib' AND entity = o.entity) GROUP BY entity ORDER BY entity"
+        }
+      ],
+      "fieldConfig": { "defaults": { "decimals": 1 }, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
       "id": 9,
       "type": "table",
       "title": "Últimas ejecuciones",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {

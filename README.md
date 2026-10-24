@@ -22,7 +22,7 @@ flowchart LR
     subgraph Fuentes
         OM[Open-Meteo]
         RD[REData]
-        SO[SOCIB]:::next
+        SO[SOCIB]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -89,7 +89,7 @@ Otros comandos: `make help`.
 |---|---|---|---|
 | [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS) y meteorología, horario, 6 localidades | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
-| socib | ⬜ v0.2.1 | Estaciones meteorológicas y boyas reales | No |
+| [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
 | ign_sismicidad | ⬜ v0.2.2 | Terremotos (sustituye a USGS: 0 eventos en la zona) | No |
 | openaq | ⬜ v0.2.3 | Estaciones de calidad del aire | Sí |
 | aqicn | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
@@ -116,6 +116,14 @@ Las series de la API se mapean a métricas en el YAML; una serie nueva (p. ej. u
 mix) genera un aviso en lugar de perderse en silencio. En Grafana: demanda horaria, mix diario por tecnología e
 intensidad de CO₂.
 
+### SOCIB
+
+Observaciones **reales** de estaciones meteorológicas (ParcBit, Cala Millor, Muro) y de la boya de la Bahía de
+Palma, leídas del servidor THREDDS de SOCIB en CSV (sin clave). Los datos llegan cada 1-10 minutos con el QC de
+SOCIB por variable; el conector los agrega por hora usando solo las muestras buenas y marca `suspect` las horas
+con menos del 50 % de muestras válidas. Las métricas se llaman igual que en Open-Meteo, así que Grafana compara
+estación real y modelo en la misma gráfica.
+
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 
 ## Calidad de datos
@@ -125,6 +133,7 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 | Regla | Tipo | Qué detecta |
 |---|---|---|
 | `not_null` | fila | valores nulos → `missing` |
+| `source_qc` | fila | valores que la propia fuente marca como dudosos (p. ej. QC de SOCIB) → `suspect` |
 | `range` | fila | valores fuera del rango físico de la métrica → `suspect` |
 | `duplicate` | fila | misma (fuente, entidad, métrica, ts) repetida → se colapsa conservando el valor no nulo |
 | `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector |
