@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Modular local data platform for Mallorca open data: Airflow, PySpark, MinIO, PostgreSQL, dbt and Grafana."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 authors = [{ name = "Alexandre Coll" }]
 
 [tool.ruff]

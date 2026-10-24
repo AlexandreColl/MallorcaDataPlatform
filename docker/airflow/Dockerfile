@@ -1,6 +1,6 @@
 # Airflow + PySpark (local mode) + dbt in an isolated venv.
 ARG AIRFLOW_VERSION=3.3.2
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 
 FROM apache/airflow:${AIRFLOW_VERSION}-python${PYTHON_VERSION} AS runtime
 ARG AIRFLOW_VERSION
