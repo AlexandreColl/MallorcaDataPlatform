@@ -8,6 +8,7 @@ from core.quality.rules import (
     RangeRule,
     Rule,
     RuleResult,
+    SourceQcRule,
 )
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "RangeRule",
     "Rule",
     "RuleResult",
+    "SourceQcRule",
     "rules_for",
 ]

@@ -1,0 +1,35 @@
+name: socib
+description: SOCIB weather stations and buoy in Mallorca (real observations, hourly from 1-10 min data), no API key
+entrypoint: connectors.socib.extractor:SocibConnector
+enabled: true
+frequency: 1h          # raw data is every 1-10 min; normalize() aggregates it to hourly values
+max_days: 61           # the *_latest.nc file starts on the 1st of the previous month (checked per request)
+secrets: []
+
+options:
+  thredds_url: https://thredds.socib.es/thredds
+  good_qc_flags: [1, 2]      # SOCIB QC: 1 good, 2 probably good, 3-4 bad, 9 missing
+  min_good_share: 0.5        # an hour with fewer good samples is labelled suspect (reason source_qc)
+  # Active Mallorca stations; folder = THREDDS dataset folder, the current deployment is resolved at run time.
+  stations:
+    - {entity: parcbit, folder: mooring/weather_station/station_parcbit-scb_met023, lat: 39.6352, lon: 2.6314}
+    - {entity: cala_millor, folder: mooring/weather_station/mobims_calamillor-scb_met012, lat: 39.5958, lon: 3.3826}
+    - {entity: muro, folder: mooring/weather_station/mobims_muro-scb_met016, lat: 39.8117, lon: 3.1161}
+    - {entity: bahia_de_palma_buoy, folder: mooring/weather_station/buoy_bahiadepalma-scb_met029, lat: 39.4984, lon: 2.7016}
+
+datasets:
+  weather:
+    # SOCIB variable -> metric. Metric names and units match Open-Meteo so stations and model compare 1:1.
+    variables:
+      AIR_TEM:     {metric: temperature_2m, agg: mean}
+      REL_HUM:     {metric: relative_humidity_2m, agg: mean}
+      AIR_PRE:     {metric: pressure_msl, agg: mean}
+      WIN_SPE:     {metric: wind_speed_10m, agg: mean, scale: 3.6}    # m/s -> km/h
+      WIN_SPE_GUS: {metric: wind_gusts_10m, agg: max, scale: 3.6}     # m/s -> km/h
+
+metrics:
+  temperature_2m:       {dataset: weather, unit: degC, min: -15, max: 50}
+  relative_humidity_2m: {dataset: weather, unit: pct, min: 0, max: 100}
+  pressure_msl:         {dataset: weather, unit: hPa, min: 940, max: 1060}
+  wind_speed_10m:       {dataset: weather, unit: km/h, min: 0, max: 250}
+  wind_gusts_10m:       {dataset: weather, unit: km/h, min: 0, max: 300}

@@ -18,6 +18,7 @@ from core.quality.rules import (
     RowRule,
     Rule,
     RuleResult,
+    SourceQcRule,
 )
 
 if TYPE_CHECKING:
@@ -96,7 +97,7 @@ def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
     if not by_frequency:  # no declared metrics: check everything at the default frequency
         by_frequency[config.frequency_delta] = set()
 
-    rules: list[Rule] = [NotNullRule(), DuplicateRule()]
+    rules: list[Rule] = [NotNullRule(), SourceQcRule(), DuplicateRule()]
     rules.extend(
         GapRule(int(span / freq), freq, frozenset(metrics) or None) for freq, metrics in sorted(by_frequency.items())
     )

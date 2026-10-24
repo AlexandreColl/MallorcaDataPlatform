@@ -5,6 +5,28 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-24
+
+Third connector: real observations from SOCIB, and a map with every georeferenced source.
+
+### Added
+
+- SOCIB connector: real observations from 3 weather stations and the Bahía de Palma buoy via THREDDS NCSS (CSV,
+  no API key). Raw 1-10 minute samples land in bronze; `normalize` aggregates them to hourly values using only
+  samples the SOCIB QC marks as good. Metric names and units match Open-Meteo for station-vs-model comparison.
+- `source_qc` quality rule: rows a connector labels `suspect` from the source's own QC keep that label and are
+  counted in `quality.check_results`.
+- `RawPayload.partition` (one bronze object per station/partition within a dataset) and `HttpClient.get_text`
+  for non-JSON responses.
+- Grafana: station (SOCIB ParcBit) vs model (Open-Meteo Palma) chart and latest SOCIB readings table.
+- Grafana map with one layer per georeferenced source: Open-Meteo points coloured by EAQI and SOCIB stations
+  with their latest temperature, humidity and wind. REData stays off the map (system-wide, not a point).
+
+### Fixed
+
+- Map labels were unreadable (yellow on yellow) and coordinates showed float noise from `avg()`
+  (`39.4983999999987`); `dim_locations` now rounds them to 6 decimals.
+
 ## [0.2.0] - 2026-10-24
 
 Second connector: electricity of the Balearic system from Red Eléctrica.
@@ -50,6 +72,7 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/releases/tag/v0.1.0

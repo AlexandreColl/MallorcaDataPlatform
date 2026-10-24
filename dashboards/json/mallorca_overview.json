@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 3,
+  "version": 5,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -173,7 +173,8 @@
     {
       "id": 7,
       "type": "geomap",
-      "title": "Último índice europeo de calidad del aire",
+      "title": "Fuentes georreferenciadas",
+      "description": "Una capa por fuente. Círculos: puntos del modelo Open-Meteo coloreados por el índice europeo de calidad del aire. Triángulos: estaciones reales de SOCIB con su última hora. REData no aparece: es el sistema eléctrico balear completo, no un punto.",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 13 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -184,6 +185,14 @@
           "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT DISTINCT ON (a.entity) a.entity, l.lat, l.lon, a.european_aqi_model AS european_aqi, a.eaqi_label, a.ts FROM gold.air_quality_hourly a JOIN gold.dim_locations l USING (source, entity) WHERE a.european_aqi_model IS NOT NULL ORDER BY a.entity, a.ts DESC"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'socib' GROUP BY entity) SELECT o.entity AS station, l.lat, l.lon, max(o.value) FILTER (WHERE o.metric = 'temperature_2m') AS \"temperatura (°C)\", max(o.value) FILTER (WHERE o.metric = 'relative_humidity_2m') AS \"humedad (%)\", max(o.value) FILTER (WHERE o.metric = 'wind_speed_10m') AS \"viento (km/h)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts JOIN gold.dim_locations l ON l.source = o.source AND l.entity = o.entity WHERE o.source = 'socib' GROUP BY o.entity, l.lat, l.lon, latest.ts ORDER BY o.entity"
         }
       ],
       "fieldConfig": {
@@ -210,8 +219,9 @@
         "layers": [
           {
             "type": "markers",
-            "name": "Localidades",
+            "name": "Calidad del aire (modelo Open-Meteo)",
             "tooltip": true,
+            "filterData": { "id": "byRefId", "options": "A" },
             "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
             "config": {
               "showLegend": true,
@@ -219,8 +229,25 @@
                 "size": { "fixed": 12 },
                 "color": { "field": "european_aqi" },
                 "opacity": 0.8,
-                "text": { "mode": "field", "field": "entity" },
-                "textConfig": { "fontSize": 12, "offsetY": -16, "textAlign": "center", "textBaseline": "middle" }
+                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
+              }
+            }
+          },
+          {
+            "type": "markers",
+            "name": "Estaciones SOCIB (observación real)",
+            "tooltip": true,
+            "filterData": { "id": "byRefId", "options": "B" },
+            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": { "fixed": 14 },
+                "color": { "fixed": "#1f60c4" },
+                "opacity": 0.9,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/triangle.svg" },
+                "text": { "mode": "field", "field": "station" },
+                "textConfig": { "fontSize": 11, "offsetY": 16, "textAlign": "center", "textBaseline": "middle" }
               }
             }
           }
@@ -326,10 +353,55 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
     },
     {
+      "id": 13,
+      "type": "timeseries",
+      "title": "$metric: estación real (SOCIB ParcBit) vs modelo (Open-Meteo Palma)",
+      "description": "Misma métrica y unidad en las dos fuentes. Métricas comparables: temperature_2m, relative_humidity_2m, wind_speed_10m.",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 32 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, CASE source WHEN 'socib' THEN 'ParcBit (estación SOCIB)' ELSE 'Palma (modelo Open-Meteo)' END AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND ((source = 'socib' AND entity = 'parcbit') OR (source = 'open_meteo' AND entity = 'palma')) AND $__timeFilter(ts) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ParcBit (estación SOCIB)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
+          { "matcher": { "id": "byName", "options": "Palma (modelo Open-Meteo)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [6, 4] } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Estaciones SOCIB: última hora",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 32 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT entity AS \"Estación\", max(value) FILTER (WHERE metric = 'temperature_2m') AS \"Temp (°C)\", max(value) FILTER (WHERE metric = 'relative_humidity_2m') AS \"HR (%)\", max(value) FILTER (WHERE metric = 'wind_speed_10m') AS \"Viento (km/h)\", max(value) FILTER (WHERE metric = 'pressure_msl') AS \"Presión (hPa)\", max(ts) AS \"Hora\" FROM gold.fct_observations o WHERE source = 'socib' AND ts = (SELECT max(ts) FROM gold.fct_observations WHERE source = 'socib' AND entity = o.entity) GROUP BY entity ORDER BY entity"
+        }
+      ],
+      "fieldConfig": { "defaults": { "decimals": 1 }, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
       "id": 9,
       "type": "table",
       "title": "Últimas ejecuciones",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
