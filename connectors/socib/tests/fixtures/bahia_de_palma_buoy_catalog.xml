@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0.1">
+  <service name="baseServices" serviceType="Compound" base="">
+    <service name="odap" serviceType="OPENDAP" base="/thredds/dodsC/" />
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <service name="wcs" serviceType="WCS" base="/thredds/wcs/" />
+    <service name="wms" serviceType="WMS" base="/thredds/wms/" />
+    <service name="ncss" serviceType="NetcdfSubset" base="/thredds/ncss/" />
+    <service name="ncml" serviceType="NCML" base="/thredds/ncml/" />
+    <service name="uddc" serviceType="UDDC" base="/thredds/uddc/" />
+    <service name="iso" serviceType="ISO" base="/thredds/iso/" />
+    <service name="sos" serviceType="SOS" base="/thredds/sos/" />
+  </service>
+  <dataset name="L1" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1">
+    <metadata inherited="true">
+      <serviceName>baseServices</serviceName>
+      <dataType>STATION</dataType>
+      <property name="viewer" value="http://www.socib.es/jwebchart/webncdump/?file={url},webncdump" />
+      <property name="viewer2" value="http://www.socib.es/jwebchart/?file={url},jwebchart" />
+    </metadata>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_latest.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/dep0002_buoy-bahiadepalma_scb-met029_L1_latest.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/dep0002_buoy-bahiadepalma_scb-met029_L1_latest.nc">
+      <dataSize units="Kbytes">815.8</dataSize>
+      <date type="modified">2026-10-24T14:10:20Z</date>
+    </dataset>
+    <dataset name="dep0001_buoy-bahiadepalma_scb-met029_L1_latest.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/dep0001_buoy-bahiadepalma_scb-met029_L1_latest.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/dep0001_buoy-bahiadepalma_scb-met029_L1_latest.nc">
+      <dataSize units="Kbytes">527.6</dataSize>
+      <date type="modified">2025-11-11T07:41:01Z</date>
+    </dataset>
+    <catalogRef xlink:href="2026/catalog.xml" xlink:title="2026" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026" name="" />
+    <catalogRef xlink:href="2025/catalog.xml" xlink:title="2025" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2025" name="" />
+  </dataset>
+</catalog>
