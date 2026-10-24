@@ -87,6 +87,13 @@ def test_dataset_frequency_overrides_connector_default():
     assert cfg.frequency_for("generation") == timedelta(days=1)
 
 
+def test_event_datasets_have_no_frequency():
+    cfg = registry.discover()["ign"]
+    assert cfg.frequency_for("earthquakes") is None
+    assert cfg.is_event_source
+    assert not registry.discover()["redata"].is_event_source
+
+
 def test_invalid_dataset_frequency_fails_on_load(tmp_path):
     root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\ndatasets: {a: {frequency: often}}\n")
     with pytest.raises(ConnectorError, match="invalid frequency 'often'"):

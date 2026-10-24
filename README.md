@@ -23,6 +23,7 @@ flowchart LR
         OM[Open-Meteo]
         RD[REData]
         SO[SOCIB]
+        IG[IGN sismos]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -38,7 +39,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & RD & SO --> EX --> BR --> SP
+    OM & RD & SO & IG --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -90,7 +91,7 @@ Otros comandos: `make help`.
 | [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS) y meteorología, horario, 6 localidades | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
-| ign_sismicidad | ⬜ v0.2.2 | Terremotos (sustituye a USGS: 0 eventos en la zona) | No |
+| [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
 | openaq | ⬜ v0.2.3 | Estaciones de calidad del aire | Sí |
 | aqicn | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
 | emt_palma | ⬜ v0.2.5 | GTFS estático de autobuses | No |
@@ -124,6 +125,14 @@ SOCIB por variable; el conector los agrega por hora usando solo las muestras bue
 con menos del 50 % de muestras válidas. Las métricas se llaman igual que en Open-Meteo, así que Grafana compara
 estación real y modelo en la misma gráfica.
 
+### IGN (sismos)
+
+Sismos localizados por el Instituto Geográfico Nacional, leídos del servicio FDSN de EMSC (estándar, sin clave)
+en la caja de la región ampliada 1° alrededor de la isla. Es la primera fuente de **eventos**: no hay muestreo
+regular, así que su dataset declara `frequency: event` (sin regla de huecos) y una ventana sin sismos, lo habitual,
+es una ejecución correcta con 0 filas. En gold, `fct_earthquakes` da una fila por sismo con su distancia a Palma; en
+Grafana aparecen como estrellas en el mapa y en una tabla. Prueba real: 57 sismos desde 2020, magnitud máxima 3,0.
+
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 
 ## Calidad de datos
@@ -136,7 +145,7 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 | `source_qc` | fila | valores que la propia fuente marca como dudosos (p. ej. QC de SOCIB) → `suspect` |
 | `range` | fila | valores fuera del rango físico de la métrica → `suspect` |
 | `duplicate` | fila | misma (fuente, entidad, métrica, ts) repetida → se colapsa conservando el valor no nulo |
-| `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector |
+| `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector (no se aplica a fuentes de eventos) |
 
 Resultados por ejecución en `quality.check_results` y en el panel *Calidad de datos* de Grafana.
 

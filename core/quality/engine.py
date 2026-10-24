@@ -88,13 +88,16 @@ def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
     """Default rule set derived from a connector's YAML.
 
     One gaps rule per sampling frequency, so hourly and daily datasets of the same
-    connector are each checked against their own expected number of steps.
+    connector are each checked against their own expected number of steps. Event
+    datasets have no expected steps and get no gaps rule.
     """
     span = window.end_dt_exclusive() - window.start_dt()
     by_frequency: dict[timedelta, set[str]] = defaultdict(set)
     for metric in config.metrics.values():
-        by_frequency[config.frequency_for(metric.dataset)].add(metric.name)
-    if not by_frequency:  # no declared metrics: check everything at the default frequency
+        freq = config.frequency_for(metric.dataset)
+        if freq is not None:
+            by_frequency[freq].add(metric.name)
+    if not by_frequency and not config.is_event_source:  # no declared metrics: check all at the default frequency
         by_frequency[config.frequency_delta] = set()
 
     rules: list[Rule] = [NotNullRule(), SourceQcRule(), DuplicateRule()]
