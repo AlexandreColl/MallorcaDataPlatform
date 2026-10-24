@@ -58,13 +58,16 @@ def test_two_step_requests_with_the_key_header_for_every_mallorca_station():
 
     payloads = _connector(http).extract(WINDOW, MALLORCA)
 
-    assert [p.dataset for p in payloads] == ["stations", "daily"]
+    assert [p.dataset for p in payloads] == ["stations", "daily", "daily"]  # 33 stations: groups of 25 and 8
     api_calls = [(url, headers) for url, headers in http.calls if url.startswith("https://opendata.aemet.es")]
     assert all(headers == {"api_key": "test-key"} for _, headers in api_calls)
     daily_path = payloads[1].request["path"]
     assert "fechaini/2026-10-19T00:00:00UTC/fechafin/2026-10-21T23:59:59UTC" in daily_path
-    stations = payloads[1].request["stations"]
-    assert len(stations) == 33  # Mallorca stations of the Balearic inventory (Cabrera, Menorca, Ibiza are out)
+    groups = [p.request["stations"] for p in payloads[1:]]
+    assert [len(g) for g in groups] == [25, 8]  # 33 Mallorca stations (Cabrera, Menorca, Ibiza are out)
+    assert [p.partition for p in payloads[1:]] == ["B013X-B640X", "B644B-B780X"]
+    assert len({p.key for p in payloads}) == 3
+    stations = groups[0]
     assert {"B278", "B228", "B051A"} <= set(stations)
     assert stations["B278"]["lat"] == pytest.approx(39.560833)  # 393339N
     assert "test-key" not in json.dumps([p.request for p in payloads])  # the key never lands in bronze

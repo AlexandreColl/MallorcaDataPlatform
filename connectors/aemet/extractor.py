@@ -6,8 +6,8 @@ small JSON with ``estado`` and a temporary ``datos`` URL, and the data itself is
 for days it has not published yet.
 
 Per window: the station inventory (to find the stations inside the region and their coordinates, which the
-daily values do not carry) and one request with every station per chunk of at most 6 months. The hourly
-observation endpoint is not used: it only covers the last hours, never a complete past day.
+daily values do not carry) and one request per chunk of at most 6 months and group of at most 25 stations
+(the API limits). The hourly observation endpoint is not used: it only covers the last hours, never a complete past day.
 """
 
 from __future__ import annotations
@@ -67,21 +67,25 @@ class AemetConnector(BaseConnector):
                 source=self.name, dataset="stations", window=window, request={"path": _INVENTORY}, body=inventory
             )
         ]
-        ids = ",".join(sorted(stations))
+        ids = sorted(stations)
+        size = int(self.config.options["max_stations_per_request"])
+        groups = [ids[i : i + size] for i in range(0, len(ids), size)]
         for chunk in window.split(int(self.config.options["max_days_per_request"])):
-            path = (
-                f"/valores/climatologicos/diarios/datos/fechaini/{chunk.start.isoformat()}T00:00:00UTC"
-                f"/fechafin/{chunk.end.isoformat()}T23:59:59UTC/estacion/{ids}"
-            )
-            payloads.append(
-                RawPayload(
-                    source=self.name,
-                    dataset="daily",
-                    window=chunk,
-                    request={"path": path, "stations": stations},
-                    body=self._fetch(path),
+            for group in groups:
+                path = (
+                    f"/valores/climatologicos/diarios/datos/fechaini/{chunk.start.isoformat()}T00:00:00UTC"
+                    f"/fechafin/{chunk.end.isoformat()}T23:59:59UTC/estacion/{','.join(group)}"
                 )
-            )
+                payloads.append(
+                    RawPayload(
+                        source=self.name,
+                        dataset="daily",
+                        window=chunk,
+                        request={"path": path, "stations": {i: stations[i] for i in group}},
+                        body=self._fetch(path),
+                        partition=f"{group[0]}-{group[-1]}",  # one bronze object per station group
+                    )
+                )
         return payloads
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:  # noqa: ARG002 - stations were filtered in extract

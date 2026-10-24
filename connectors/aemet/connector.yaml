@@ -10,6 +10,7 @@ secrets: [AEMET_API_KEY]
 options:
   base_url: https://opendata.aemet.es/opendata/api
   max_days_per_request: 180   # the API rejects ranges longer than 6 months
+  max_stations_per_request: 25  # "No se permite mas de 25 Idemas"
   timezone: Europe/Madrid      # daily values are stored at local midnight, like the other daily sources
 
 datasets:
