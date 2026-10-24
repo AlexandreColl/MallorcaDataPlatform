@@ -46,7 +46,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 
 | Estado | Versión | Conector | Notas de la prueba real |
 |---|---|---|---|
-| ✅ | v0.2.0 | **REData** (sistema eléctrico balear) | Demanda **horaria** con `demanda/evolucion?time_trunc=hour` (máx. 31 días por petición, troceado); generación por tecnología y CO₂ solo diarios. `demanda-tiempo-real` no existe para Baleares. Núcleo ampliado: frecuencia por dataset y `TimeWindow.split` |
+| ✅ | v0.2.0 | **REData** (sistema eléctrico balear) | Demanda **horaria** con `demanda/evolucion?time_trunc=hour` (rango < 1 mes natural: bloques de 28 días); generación por tecnología y CO₂ solo diarios. `demanda-tiempo-real` no existe para Baleares. Núcleo ampliado: frecuencia por dataset y `TimeWindow.split` |
 | ⬜ | v0.2.1 | **SOCIB** (estaciones meteo, boyas, nivel del mar) | `api.socib.es/data-sources/?instrument_type=Weather Station&is_active=true` (12 activas). Datos reales de estación → base para validar Open-Meteo. Datos en NetCDF/THREDDS: decidir entre API `entries` o OPeNDAP 🔬 |
 | ⬜ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | Catálogo del Instituto Geográfico Nacional, filtrar por bbox de Mallorca. Es una fuente de eventos, no serie temporal: el GapRule no aplica |
 | ⬜ | v0.2.3 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…) |

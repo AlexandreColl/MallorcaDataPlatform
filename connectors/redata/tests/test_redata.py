@@ -53,13 +53,13 @@ def test_extract_requests_each_dataset_with_its_granularity(connector):
     assert all(url.startswith("https://apidatos.ree.es/en/datos/") for url, _ in connector.http.calls)
 
 
-def test_long_hourly_windows_are_split_into_31_day_requests(connector):
+def test_long_hourly_windows_are_split_into_28_day_requests(connector):
     window = TimeWindow(date(2026, 7, 1), date(2026, 9, 8))  # 70 days
 
     payloads = connector.extract(window, MALLORCA)
 
     demand = [p.window for p in payloads if p.dataset == "demand"]
-    assert [w.n_days for w in demand] == [31, 31, 8]
+    assert [w.n_days for w in demand] == [28, 28, 14]
     assert demand[0].start == window.start
     assert demand[-1].end == window.end
     assert len({p.key for p in payloads}) == len(payloads)  # one bronze object per chunk

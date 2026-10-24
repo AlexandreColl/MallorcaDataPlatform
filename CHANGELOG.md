@@ -7,7 +7,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
-- REData connector (Red Eléctrica, Balearic electric system): hourly electricity demand, daily generation
+- REData connector (Red Eléctrica, Balearic electric system): hourly electricity demand (28-day request
+  chunks, the API rejects hourly ranges of one calendar month or more), daily generation
   mix by technology and daily CO2 emissions and intensity. Series are mapped to metrics in `connector.yaml`;
   unmapped series are logged instead of silently dropped.
 - Per-dataset `frequency` in `connector.yaml`: the gaps rule checks each group of metrics against its own

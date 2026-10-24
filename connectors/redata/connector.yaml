@@ -23,7 +23,7 @@ datasets:
     path: demanda/evolucion
     time_trunc: hour
     frequency: 1h
-    max_days_per_request: 31     # the API rejects longer hourly ranges
+    max_days_per_request: 28     # hourly ranges must span less than one calendar month
     series:
       Demand: electricity_demand
   generation:

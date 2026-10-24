@@ -108,7 +108,7 @@ con granularidad distinta, cada uno con su propia `frequency` para la regla de h
 
 | Dataset | Granularidad | Métricas |
 |---|---|---|
-| Demanda | horaria (peticiones troceadas en bloques de 31 días) | `electricity_demand` (MWh) |
+| Demanda | horaria (peticiones troceadas en bloques de 28 días) | `electricity_demand` (MWh) |
 | Generación | diaria | `generation_<tecnología>` y `generation_total` (MWh) |
 | Emisiones | diaria | `co2_emissions` (tCO2eq), `co2_intensity` (tCO2eq/MWh) |
 

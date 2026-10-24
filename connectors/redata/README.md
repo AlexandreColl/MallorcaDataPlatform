@@ -9,7 +9,7 @@
 
 | Dataset | Widget | Granularidad | Límite por petición | Métricas |
 |---|---|---|---|---|
-| `demand` | `demanda/evolucion` | horaria | 31 días (troceado automático) | `electricity_demand` (MWh) |
+| `demand` | `demanda/evolucion` | horaria | menos de un mes natural → bloques de 28 días | `electricity_demand` (MWh) |
 | `generation` | `generacion/estructura-generacion` | diaria | 366 días | `generation_<tecnología>` y `generation_total` (MWh) |
 | `emissions` | `generacion/no-renovables-detalle-emisiones-CO2` | diaria | 366 días | `co2_emissions` (tCO2eq), `co2_intensity` (tCO2eq/MWh) |
 
