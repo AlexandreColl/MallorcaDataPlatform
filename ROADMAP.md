@@ -18,7 +18,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
 | ✅ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`gh`) |
 | ⬜ | Confirmar **Grafana** como visor principal (implementado como propuesta en v0.1) |
-| ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`, solo granularidad **diaria** |
+| ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`; demanda horaria, generación y CO₂ diarios |
 | ✅ | Probar SOCIB → API abierta, 1.598 fuentes, **estaciones activas en Mallorca** (p. ej. `Mobims_CalaMillor`) |
 | ✅ | Probar USGS → **0 eventos** en 12 meses en la zona; sustituir por IGN (ver Fase 4) |
 | ✅ | Repo público en GitHub, `main` y `develop` protegidas con rulesets (`scripts/github-setup.sh`) |
@@ -46,7 +46,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 
 | Estado | Versión | Conector | Notas de la prueba real |
 |---|---|---|---|
-| ⬜ | v0.2.0 | **REData** (demanda eléctrica Baleares) | `apidatos.ree.es/es/datos/demanda/evolucion?geo_limit=baleares&geo_ids=8743&time_trunc=day`. `frequency: 1d`. El endpoint horario `demanda-tiempo-real` devuelve 400 para Baleares → investigar `balance/balance-electrico` |
+| ✅ | v0.2.0 | **REData** (sistema eléctrico balear) | Demanda **horaria** con `demanda/evolucion?time_trunc=hour` (máx. 31 días por petición, troceado); generación por tecnología y CO₂ solo diarios. `demanda-tiempo-real` no existe para Baleares. Núcleo ampliado: frecuencia por dataset y `TimeWindow.split` |
 | ⬜ | v0.2.1 | **SOCIB** (estaciones meteo, boyas, nivel del mar) | `api.socib.es/data-sources/?instrument_type=Weather Station&is_active=true` (12 activas). Datos reales de estación → base para validar Open-Meteo. Datos en NetCDF/THREDDS: decidir entre API `entries` o OPeNDAP 🔬 |
 | ⬜ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | Catálogo del Instituto Geográfico Nacional, filtrar por bbox de Mallorca. Es una fuente de eventos, no serie temporal: el GapRule no aplica |
 | ⬜ | v0.2.3 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…) |

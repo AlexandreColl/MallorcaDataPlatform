@@ -17,7 +17,9 @@ connectors/<nombre>/
 ```
 
 4. `connector.yaml`: el campo `name` debe coincidir con la carpeta. `frequency` alimenta la regla de
-   huecos (`1h`, `1d`…). `secrets` lista las variables que deben estar en `.env`.
+   huecos (`1h`, `1d`…); si los datasets tienen granularidades distintas, cada uno puede declarar la suya
+   (`datasets.<x>.frequency`, ver `connectors/redata`). `secrets` lista las variables que deben estar en `.env`.
+   Si la API limita el rango por petición, trocea con `window.split(max_days)` y genera un payload por trozo.
 5. `extractor.py` implementa dos métodos:
    - `extract(window, region) -> list[RawPayload]`: llama a la API y devuelve la respuesta **sin tocar**.
    - `normalize(payload, region) -> Iterable[Observation]`: convierte al esquema común.

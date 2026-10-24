@@ -21,7 +21,7 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 flowchart LR
     subgraph Fuentes
         OM[Open-Meteo]
-        RD[REData]:::next
+        RD[REData]
         SO[SOCIB]:::next
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
@@ -88,7 +88,7 @@ Otros comandos: `make help`.
 | Conector | Estado | Datos | Clave |
 |---|---|---|---|
 | [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS) y meteorología, horario, 6 localidades | No |
-| redata | ⬜ v0.2.0 | Demanda eléctrica de Baleares (diaria) | No |
+| [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | socib | ⬜ v0.2.1 | Estaciones meteorológicas y boyas reales | No |
 | ign_sismicidad | ⬜ v0.2.2 | Terremotos (sustituye a USGS: 0 eventos en la zona) | No |
 | openaq | ⬜ v0.2.3 | Estaciones de calidad del aire | Sí |
@@ -100,6 +100,21 @@ Otros comandos: `make help`.
 Una petición por dataset con todas las localidades de la región. 10 métricas horarias
 (PM10, PM2.5, NO₂, O₃, EAQI, temperatura, humedad, precipitación, viento, presión).
 Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de estación.
+
+### REData
+
+Red Eléctrica publica el sistema eléctrico balear completo (Mallorca es ~80 % de la demanda). Tres datasets
+con granularidad distinta, cada uno con su propia `frequency` para la regla de huecos:
+
+| Dataset | Granularidad | Métricas |
+|---|---|---|
+| Demanda | horaria (peticiones troceadas en bloques de 31 días) | `electricity_demand` (MWh) |
+| Generación | diaria | `generation_<tecnología>` y `generation_total` (MWh) |
+| Emisiones | diaria | `co2_emissions` (tCO2eq), `co2_intensity` (tCO2eq/MWh) |
+
+Las series de la API se mapean a métricas en el YAML; una serie nueva (p. ej. una tecnología que aparece en el
+mix) genera un aviso en lugar de perderse en silencio. En Grafana: demanda horaria, mix diario por tecnología e
+intensidad de CO₂.
 
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 

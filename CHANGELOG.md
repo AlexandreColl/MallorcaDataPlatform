@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- REData connector (Red Eléctrica, Balearic electric system): hourly electricity demand, daily generation
+  mix by technology and daily CO2 emissions and intensity. Series are mapped to metrics in `connector.yaml`;
+  unmapped series are logged instead of silently dropped.
+- Per-dataset `frequency` in `connector.yaml`: the gaps rule checks each group of metrics against its own
+  sampling frequency, so one connector can mix hourly and daily datasets.
+- `TimeWindow.split(max_days)` to page APIs that limit the date range per request.
+- Grafana: electricity row with hourly demand, daily generation mix and CO2 intensity.
+
 ## [0.1.0] - 2026-10-24
 
 First release: the platform core with one connector working end to end.
