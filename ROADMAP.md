@@ -16,12 +16,12 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | Comprobar Docker → **no está instalado** (WSL presente, sin distribución). Ver [docs/setup-windows.md](docs/setup-windows.md) |
 | ✅ | WSL2 con Debian 13 (trixie) |
 | ✅ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
-| ⬜ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`sudo apt install gh`) |
+| ✅ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`gh`) |
 | ⬜ | Confirmar **Grafana** como visor principal (implementado como propuesta en v0.1) |
 | ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`, solo granularidad **diaria** |
 | ✅ | Probar SOCIB → API abierta, 1.598 fuentes, **estaciones activas en Mallorca** (p. ej. `Mobims_CalaMillor`) |
 | ✅ | Probar USGS → **0 eventos** en 12 meses en la zona; sustituir por IGN (ver Fase 4) |
-| ⬜ | Crear repo en GitHub, subir `main` y `develop`, activar protección de ramas ([docs/git-workflow.md](docs/git-workflow.md)) |
+| ✅ | Repo público en GitHub, `main` y `develop` protegidas con rulesets (`scripts/github-setup.sh`) |
 
 ## Fase 1 · v0.1.0 — Núcleo + Open-Meteo de punta a punta
 
@@ -39,7 +39,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | CI: ruff, pytest + PySpark, dbt build, build de imagen, test E2E con idempotencia |
 | ✅ | Release automática por tag + imagen en GHCR |
 | ✅ | **Primer `docker compose up` real** y `make e2e` en verde (fixes: jar S3A analytics accelerator, mapa OSM en Grafana) |
-| ⬜ | Primer push a GitHub, CI en verde, tag `v0.1.0` |
+| ✅ | Primer push a GitHub, CI en verde, release `v0.1.0` |
 | ⬜ | Captura del dashboard en el README |
 
 ## Fase 2 · v0.2.x — Más conectores (uno por PR)

@@ -24,9 +24,11 @@ jobs:
       - name: Extract release notes
         run: |
           version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" '
-            $0 ~ "^## \\[" v "\\]" {found=1; next}
-            found && /^## \[/ {exit}
+          # Literal prefix match (a regex would treat "[0.1.0]" as a character class).
+          awk -v header="## [$version]" '
+            index($0, header) == 1 {found=1; next}
+            found && index($0, "## [") == 1 {exit}
+            found && index($0, "[") == 1 && index($0, "]: ") > 0 {exit}
             found {print}
           ' CHANGELOG.md > release-notes.md
           test -s release-notes.md || { echo "no CHANGELOG entry for $version"; exit 1; }
