@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 8,
+  "version": 9,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -192,7 +192,7 @@
       "id": 7,
       "type": "geomap",
       "title": "Mapa de fuentes",
-      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: autobuses programados por parada de EMT Palma el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
+      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: autobuses programados por parada de EMT Palma el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
       "gridPos": { "h": 13, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -235,6 +235,14 @@
           "format": "table",
           "rawQuery": true,
           "rawSql": "WITH latest AS (SELECT entity, max(ts) AS ts FROM gold.fct_observations WHERE source = 'open_meteo_marine' AND ts <= $__timeTo() GROUP BY entity) SELECT o.entity AS punto, l.lat, l.lon, max(o.value) FILTER (WHERE o.metric = 'wave_height') AS \"ola (m)\", max(o.value) FILTER (WHERE o.metric = 'wave_period') AS \"periodo (s)\", max(o.value) FILTER (WHERE o.metric = 'swell_wave_height') AS \"mar de fondo (m)\", max(o.value) FILTER (WHERE o.metric = 'sea_surface_temperature') AS \"temperatura del mar (°C)\", latest.ts AS hora FROM gold.fct_observations o JOIN latest ON latest.entity = o.entity AND latest.ts = o.ts JOIN gold.dim_locations l ON l.source = o.source AND l.entity = o.entity WHERE o.source = 'open_meteo_marine' AND 'open_meteo_marine' IN ($source) GROUP BY o.entity, l.lat, l.lon, latest.ts ORDER BY o.entity"
+        },
+        {
+          "refId": "F",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH last_day AS (SELECT max(local_date) AS d FROM gold.agg_daily_metrics WHERE source = 'aemet' AND local_date <= $__timeTo()::date) SELECT a.entity AS estacion, l.lat, l.lon, max(a.avg_value) FILTER (WHERE a.metric = 'temperature_2m_mean') AS \"temperatura media (°C)\", max(a.avg_value) FILTER (WHERE a.metric = 'temperature_2m_min') AS \"mínima (°C)\", max(a.avg_value) FILTER (WHERE a.metric = 'temperature_2m_max') AS \"máxima (°C)\", max(a.avg_value) FILTER (WHERE a.metric = 'precipitation_sum') AS \"lluvia (mm)\", max(a.avg_value) FILTER (WHERE a.metric = 'wind_gusts_10m_max') AS \"racha (km/h)\", a.local_date::text AS dia FROM gold.agg_daily_metrics a JOIN last_day ON a.local_date = last_day.d JOIN gold.dim_locations l USING (source, entity) WHERE a.source = 'aemet' AND 'aemet' IN ($source) GROUP BY a.entity, l.lat, l.lon, a.local_date ORDER BY a.entity"
         }
       ],
       "fieldConfig": {
@@ -255,6 +263,15 @@
               { "id": "unit", "value": "suffix: m" },
               { "id": "color", "value": { "mode": "thresholds" } },
               { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#5794f2", "value": null }, { "color": "green", "value": 0.5 }, { "color": "yellow", "value": 1 }, { "color": "orange", "value": 2 }, { "color": "red", "value": 3 } ] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "temperatura media (°C)" },
+            "properties": [
+              { "id": "decimals", "value": 1 },
+              { "id": "unit", "value": "celsius" },
+              { "id": "color", "value": { "mode": "thresholds" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "blue", "value": null }, { "color": "green", "value": 10 }, { "color": "yellow", "value": 18 }, { "color": "orange", "value": 24 }, { "color": "red", "value": 30 } ] } }
             ]
           },
           {
@@ -313,6 +330,22 @@
                 "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/water.svg" },
                 "text": { "mode": "field", "field": "ola (m)" },
                 "textConfig": { "fontSize": 10, "offsetY": 16, "textAlign": "center", "textBaseline": "middle" }
+              }
+            }
+          },
+          {
+            "type": "markers",
+            "name": "Estaciones AEMET (último día publicado)",
+            "tooltip": true,
+            "filterData": { "id": "byRefId", "options": "F" },
+            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": { "fixed": 14 },
+                "color": { "field": "temperatura media (°C)" },
+                "opacity": 1,
+                "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/cloud-sun.svg" }
               }
             }
           },

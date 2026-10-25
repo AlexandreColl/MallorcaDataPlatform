@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import importlib
+import os
 from typing import TYPE_CHECKING
 
 from core.config import PROJECT_ROOT
 from core.connectors.base import BaseConnector, ConnectorConfig, ConnectorError
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
     from core.connectors.http import JsonGetter
@@ -27,6 +29,16 @@ def discover(connectors_dir: Path | None = None) -> dict[str, ConnectorConfig]:
 def enabled_names(connectors_dir: Path | None = None) -> list[str]:
     """Names of the connectors with ``enabled: true``."""
     return [name for name, cfg in discover(connectors_dir).items() if cfg.enabled]
+
+
+def runnable_names(connectors_dir: Path | None = None, env: Mapping[str, str] | None = None) -> list[str]:
+    """Enabled connectors whose secrets are set: the default selection.
+
+    A connector without its API key is left out of a default run instead of failing it; asking for it
+    explicitly still fails fast with the missing variable.
+    """
+    env = os.environ if env is None else env
+    return [n for n, cfg in discover(connectors_dir).items() if cfg.enabled and all(env.get(s) for s in cfg.secrets)]
 
 
 def load(

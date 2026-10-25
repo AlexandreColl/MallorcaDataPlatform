@@ -5,3 +5,4 @@ redata,REData (electricidad),system,"Demanda, generación y emisiones del sistem
 ign,IGN (sismos),event,Sismos localizados por el IGN en Mallorca y el mar que la rodea
 emt_palma,EMT Palma (bus),schedule,Servicio de autobús programado por parada (GTFS)
 open_meteo_marine,Open-Meteo Marine (modelo),model,"Oleaje, temperatura del mar, corrientes y nivel del mar modelizados en 8 puntos de la costa"
+aemet,AEMET (estaciones oficiales),observation,"Valores diarios de 33 estaciones oficiales de AEMET en Mallorca: temperatura, lluvia, humedad, viento, sol y presión"
