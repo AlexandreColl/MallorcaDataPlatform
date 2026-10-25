@@ -5,6 +5,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-25
+
+Two weather sources: sea conditions from Open-Meteo Marine and the official AEMET stations.
+
 ### Added
 
 - Open-Meteo Marine connector: hourly wave height, period and direction, swell, sea surface temperature, currents
@@ -144,7 +148,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.0...v0.2.1
