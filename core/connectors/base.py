@@ -14,18 +14,19 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from core.connectors.http import HttpClient, JsonGetter
+from core.models import TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
     from pathlib import Path
 
-    from core.models import Observation, RawPayload, Region, TimeWindow
+    from core.models import Observation, RawPayload, Region
 
 
 class ConnectorError(Exception):
@@ -55,6 +56,8 @@ class ConnectorConfig:
     max_days: int = 31
     # Longest window a run may grow to when it recovers days missed by failed runs (<= max_days).
     catch_up_days: int = 31
+    # Days the source publishes late (AEMET daily values: ~3). Windows end that many days before yesterday.
+    lag_days: int = 0
     secrets: tuple[str, ...] = ()
     datasets: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     metrics: Mapping[str, MetricSpec] = field(default_factory=dict)
@@ -88,6 +91,7 @@ class ConnectorConfig:
                 frequency=str(data.get("frequency", "1h")),
                 max_days=int(data.get("max_days", 31)),
                 catch_up_days=int(data.get("catch_up_days", data.get("max_days", 31))),
+                lag_days=int(data.get("lag_days", 0)),
                 secrets=tuple(data.get("secrets") or ()),
                 datasets=data.get("datasets") or {},
                 metrics=metrics,
@@ -109,6 +113,11 @@ class ConnectorConfig:
         for dataset in config.datasets:
             config.frequency_for(dataset)  # fail fast on an invalid frequency
         return config
+
+    def window(self, days: int, today: date | None = None) -> TimeWindow:
+        """Last ``days`` complete days the source has already published (shifted back by ``lag_days``)."""
+        today = today or datetime.now(UTC).date()
+        return TimeWindow.last_days(days, today - timedelta(days=self.lag_days))
 
     @property
     def frequency_delta(self) -> timedelta:

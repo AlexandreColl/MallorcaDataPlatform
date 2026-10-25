@@ -26,6 +26,10 @@ jobs:
       - uses: actions/checkout@v7
       # One retry per source: an upstream outage is reported as a warning instead of stalling the job.
       - run: cp .env.example .env && echo "MDP_TASK_RETRIES=1" >> .env
+      # Optional: connectors that need a key run only when the repository has the secret.
+      - run: echo "AEMET_API_KEY=$AEMET_API_KEY" >> .env
+        env:
+          AEMET_API_KEY: ${{ secrets.AEMET_API_KEY }}
       - uses: docker/setup-buildx-action@v4
       - name: Build image
         uses: docker/build-push-action@v7

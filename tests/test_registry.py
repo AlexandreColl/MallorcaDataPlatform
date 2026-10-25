@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -106,3 +106,22 @@ def test_catch_up_days_defaults_to_max_days_and_is_validated(tmp_path):
     root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nmax_days: 10\ncatch_up_days: 20\n")
     with pytest.raises(ConnectorError, match="catch_up_days"):
         registry.discover(root)
+
+
+def test_window_ends_lag_days_before_yesterday(tmp_path):
+    root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nlag_days: 3\n")
+    cfg = registry.discover(root)["foo"]
+
+    window = cfg.window(2, today=date(2026, 10, 24))
+
+    assert window == TimeWindow(date(2026, 10, 19), date(2026, 10, 20))
+    assert registry.discover()["open_meteo"].window(1, today=date(2026, 10, 24)).end == date(2026, 10, 23)
+
+
+def test_default_selection_skips_connectors_without_their_key():
+    without_key = registry.runnable_names(env={})
+    with_key = registry.runnable_names(env={"AEMET_API_KEY": "x"})
+
+    assert "aemet" not in without_key
+    assert "open_meteo" in without_key
+    assert set(with_key) - set(without_key) == {"aemet"}

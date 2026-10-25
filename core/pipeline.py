@@ -10,18 +10,20 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import DataFrame, SparkSession, Window
 from pyspark.sql import functions as F
 
 from core.config import Settings, load_region
 from core.connectors import BaseConnector, registry
-from core.models import Observation, Region, TimeWindow
 from core.quality import QualityEngine, RuleResult, rules_for
 from core.spark import SILVER_SCHEMA, build_spark
 from core.storage import BronzeStore, ensure_bucket
 from core.warehouse import RunStats, Warehouse
+
+if TYPE_CHECKING:
+    from core.models import Observation, Region, TimeWindow
 
 log = logging.getLogger(__name__)
 
@@ -154,8 +156,8 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     settings = settings or Settings.from_env()
     run_id = run_id or new_run_id()
     region = load_region(region_name, settings.regions_dir)
-    window = TimeWindow.last_days(days)
     connector = registry.load(name, connectors_dir=settings.connectors_dir)
+    window = connector.config.window(days)  # ends `lag_days` before yesterday for sources that publish late
     connector.validate_window(window)
 
     warehouse = Warehouse(settings)

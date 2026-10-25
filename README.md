@@ -21,6 +21,8 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 flowchart LR
     subgraph Fuentes
         OM[Open-Meteo]
+        OMM[Open-Meteo Marine]
+        AE[AEMET]
         RD[REData]
         SO[SOCIB]
         IG[IGN sismos]
@@ -40,7 +42,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & RD & SO & IG & EM --> EX --> BR --> SP
+    OM & OMM & AE & RD & SO & IG & EM --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -98,14 +100,31 @@ Otros comandos: `make help`.
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
-| openaq | ⬜ v0.2.4 | Estaciones de calidad del aire | Sí |
-| aqicn | ⬜ v0.2.5 | Estaciones de calidad del aire | Sí |
+| [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Oleaje, temperatura del mar, corrientes y nivel del mar (modelo) en 8 puntos de la costa | No |
+| [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Valores diarios oficiales de 33 estaciones de AEMET en Mallorca (temperatura, lluvia, humedad, viento, sol, presión) | Sí |
+| openaq | ⬜ v0.2.6 | Estaciones de calidad del aire | Sí |
+| aqicn | ⬜ v0.2.7 | Estaciones de calidad del aire | Sí |
 
 ### Open-Meteo
 
 Una petición por dataset con todas las localidades de la región. 10 métricas horarias
 (PM10, PM2.5, NO₂, O₃, EAQI, temperatura, humedad, precipitación, viento, presión).
 Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de estación.
+
+### Open-Meteo Marine
+
+La misma API con modelos de oleaje y océano en 8 puntos de mar alrededor de la isla: altura, periodo y dirección de
+ola, mar de fondo, temperatura del mar, corrientes y nivel del mar. Es una subclase del conector de Open-Meteo que
+solo cambia los puntos consultados (las localidades de la región están en el interior). En Grafana, gotas en el mapa
+con el color y la altura de ola; el resto de métricas, en el selector.
+
+### AEMET
+
+Valores climatológicos **diarios** de las estaciones oficiales de AEMET en Mallorca (temperatura media, mínima y
+máxima, lluvia, humedad, viento, horas de sol y presión). Necesita una API key gratuita en `.env`
+(`AEMET_API_KEY`); sin ella el conector queda fuera de la selección por defecto. La API es de dos pasos, acepta
+hasta 25 estaciones por petición y publica con 2-3 días de retraso, por eso declara `lag_days: 3`. En Grafana,
+iconos de sol y nube en el mapa con el último día publicado.
 
 ### REData
 
@@ -170,7 +189,8 @@ Un único dashboard, *Mallorca · Visión general* (http://localhost:3000), con 
 que filtra todo lo demás, más los selectores de métrica y entidad:
 
 1. **Indicadores**: fuentes al día, observaciones, % sospechosos, ejecuciones fallidas, última ingesta y sismos.
-2. **Mapa**: calidad del aire de Open-Meteo (puntos con el color del índice europeo), estaciones SOCIB (termómetros
+2. **Mapa**: calidad del aire de Open-Meteo (puntos con el color del índice europeo), oleaje de Open-Meteo Marine
+   (gotas con la altura de ola), estaciones AEMET (sol y nube, último día publicado), estaciones SOCIB (termómetros
    con su última hora), sismos del IGN (ondas según la magnitud) y un mapa de calor del servicio de EMT Palma.
 3. **Gráficas**: la métrica elegida como media por fuente (con temperatura compara estación real y modelo) y por
    entidad, la electricidad de Baleares (demanda y CO₂) y la calidad diaria de cada fuente.

@@ -1,0 +1,398 @@
+[
+  {
+    "latitud": "394924N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "490",
+    "indicativo": "B013X",
+    "nombre": "ESCORCA, LLUC",
+    "indsinop": "08304",
+    "longitud": "025309E"
+  },
+  {
+    "latitud": "394744N",
+    "provincia": "BALEARES",
+    "altitud": "5",
+    "indicativo": "B051A",
+    "nombre": "SÓLLER, PUERTO",
+    "indsinop": "08316",
+    "longitud": "024129E"
+  },
+  {
+    "latitud": "394121N",
+    "provincia": "BALEARES",
+    "altitud": "60",
+    "indicativo": "B087X",
+    "nombre": "BANYALBUFAR",
+    "indsinop": "",
+    "longitud": "023046E"
+  },
+  {
+    "latitud": "393446N",
+    "provincia": "BALEARES",
+    "altitud": "52",
+    "indicativo": "B103B",
+    "nombre": "ANDRATX - SANT ELM",
+    "indsinop": "",
+    "longitud": "022208E"
+  },
+  {
+    "latitud": "393305N",
+    "provincia": "BALEARES",
+    "altitud": "50",
+    "indicativo": "B158X",
+    "nombre": "CALVIÀ, ES CAPDELLÀ",
+    "indsinop": "",
+    "longitud": "022759E"
+  },
+  {
+    "latitud": "393315N",
+    "provincia": "BALEARES",
+    "altitud": "3",
+    "indicativo": "B228",
+    "nombre": "PALMA, PUERTO",
+    "indsinop": "08301",
+    "longitud": "023731E"
+  },
+  {
+    "latitud": "393832N",
+    "provincia": "BALEARES",
+    "altitud": "95",
+    "indicativo": "B236C",
+    "nombre": "PALMA, UNIVERSITAT",
+    "indsinop": "",
+    "longitud": "023838E"
+  },
+  {
+    "latitud": "394406N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "1030",
+    "indicativo": "B248",
+    "nombre": "SIERRA DE ALFABIA, BUNYOLA",
+    "indsinop": "08303",
+    "longitud": "024247E"
+  },
+  {
+    "latitud": "393621N",
+    "provincia": "BALEARES",
+    "altitud": "47",
+    "indicativo": "B275E",
+    "nombre": "SON BONET, AEROPUERTO",
+    "indsinop": "08302",
+    "longitud": "024224E"
+  },
+  {
+    "latitud": "393339N",
+    "provincia": "BALEARES",
+    "altitud": "5",
+    "indicativo": "B278",
+    "nombre": "PALMA DE MALLORCA, AEROPUERTO",
+    "indsinop": "08306",
+    "longitud": "024412E"
+  },
+  {
+    "latitud": "392247N",
+    "provincia": "BALEARES",
+    "altitud": "113",
+    "indicativo": "B301",
+    "nombre": "LLUCMAJOR, RADAR",
+    "indsinop": "08308",
+    "longitud": "024706E"
+  },
+  {
+    "latitud": "392944N",
+    "provincia": "BALEARES",
+    "altitud": "140",
+    "indicativo": "B334X",
+    "nombre": "LLUCMAJOR",
+    "indsinop": "",
+    "longitud": "025330E"
+  },
+  {
+    "latitud": "393022N",
+    "provincia": "BALEARES",
+    "altitud": "149",
+    "indicativo": "B341X",
+    "nombre": "PORRERES",
+    "indsinop": "",
+    "longitud": "030020E"
+  },
+  {
+    "latitud": "393118N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "120",
+    "indicativo": "B346X",
+    "nombre": "PORRERES",
+    "indsinop": "08310",
+    "longitud": "030109E"
+  },
+  {
+    "latitud": "392421N",
+    "provincia": "BALEARES",
+    "altitud": "40",
+    "indicativo": "B362X",
+    "nombre": "CAMPOS, CAN SION",
+    "indsinop": "",
+    "longitud": "030351E"
+  },
+  {
+    "latitud": "392104N",
+    "provincia": "BALEARES",
+    "altitud": "3",
+    "indicativo": "B373X",
+    "nombre": "CAMPOS, SALINES LLEVANT",
+    "indsinop": "",
+    "longitud": "030043E"
+  },
+  {
+    "latitud": "390808N",
+    "provincia": "BALEARES",
+    "altitud": "165",
+    "indicativo": "B398A",
+    "nombre": "CABRERA, PARQUE NACIONAL DE CABRERA",
+    "indsinop": "",
+    "longitud": "025612E"
+  },
+  {
+    "latitud": "392024N",
+    "provincia": "BALEARES",
+    "altitud": "45",
+    "indicativo": "B410B",
+    "nombre": "SANTANYÍ",
+    "indsinop": "",
+    "longitud": "030845E"
+  },
+  {
+    "latitud": "392452N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "17",
+    "indicativo": "B434X",
+    "nombre": "PORTOCOLOM  ",
+    "indsinop": "08309",
+    "longitud": "031618E"
+  },
+  {
+    "latitud": "393749N",
+    "provincia": "BALEARES",
+    "altitud": "25",
+    "indicativo": "B496X",
+    "nombre": "SON SERVERA",
+    "indsinop": "",
+    "longitud": "032301E"
+  },
+  {
+    "latitud": "394119N",
+    "provincia": "BALEARES",
+    "altitud": "110",
+    "indicativo": "B526X",
+    "nombre": "ARTÀ",
+    "indsinop": "",
+    "longitud": "032104E"
+  },
+  {
+    "latitud": "394300N",
+    "provincia": "BALEARES",
+    "altitud": "57",
+    "indicativo": "B569X",
+    "nombre": "CAPDEPERA",
+    "indsinop": "08311",
+    "longitud": "032841E"
+  },
+  {
+    "latitud": "394323N",
+    "provincia": "BALEARES",
+    "altitud": "99",
+    "indicativo": "B603X",
+    "nombre": "ARTÀ-COLÒNIA DE SANT PERE",
+    "indsinop": "",
+    "longitud": "031643E"
+  },
+  {
+    "latitud": "394748N",
+    "provincia": "BALEARES",
+    "altitud": "2",
+    "indicativo": "B605X",
+    "nombre": "MURO, S'ALBUFERA",
+    "indsinop": "",
+    "longitud": "030617E"
+  },
+  {
+    "latitud": "393325N",
+    "provincia": "BALEARES",
+    "altitud": "100",
+    "indicativo": "B614E",
+    "nombre": "MANACOR",
+    "indsinop": "",
+    "longitud": "031304E"
+  },
+  {
+    "latitud": "393659N",
+    "provincia": "BALEARES",
+    "altitud": "95",
+    "indicativo": "B640X",
+    "nombre": "PETRA",
+    "indsinop": "",
+    "longitud": "030716E"
+  },
+  {
+    "latitud": "393836N",
+    "provincia": "BALEARES",
+    "altitud": "120",
+    "indicativo": "B644B",
+    "nombre": "SINEU",
+    "indsinop": "",
+    "longitud": "030008E"
+  },
+  {
+    "latitud": "393909N",
+    "provincia": "BALEARES",
+    "altitud": "121",
+    "indicativo": "B656A",
+    "nombre": "SANTA MARÍA DEL CAMÍ",
+    "indsinop": "",
+    "longitud": "024801E"
+  },
+  {
+    "latitud": "394041N",
+    "provincia": "BALEARES",
+    "altitud": "105",
+    "indicativo": "B662X",
+    "nombre": "BINISSALEM",
+    "indsinop": "",
+    "longitud": "025226E"
+  },
+  {
+    "latitud": "394734N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "842",
+    "indicativo": "B684A",
+    "nombre": "ESCORCA, SON TORRELLA",
+    "indsinop": "",
+    "longitud": "024716E"
+  },
+  {
+    "latitud": "394454N",
+    "provincia": "BALEARES",
+    "altitud": "40",
+    "indicativo": "B691",
+    "nombre": "LA PUEBLA (SA CANOVA)",
+    "indsinop": "",
+    "longitud": "030055E"
+  },
+  {
+    "latitud": "394457N",
+    "provincia": "BALEARES",
+    "altitud": "32",
+    "indicativo": "B691Y",
+    "nombre": "SA POBLA",
+    "indsinop": "08312",
+    "longitud": "030100E"
+  },
+  {
+    "latitud": "395237N",
+    "provincia": "BALEARES",
+    "altitud": "45",
+    "indicativo": "B760X",
+    "nombre": "POLLENÇA",
+    "indsinop": "",
+    "longitud": "030127E"
+  },
+  {
+    "latitud": "395434N",
+    "provincia": "BALEARES",
+    "altitud": "2",
+    "indicativo": "B780X",
+    "nombre": "PORT DE POLLENÇA",
+    "indsinop": "",
+    "longitud": "030601E"
+  },
+  {
+    "latitud": "395234N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "78",
+    "indicativo": "B800X",
+    "nombre": "LA MOLA, MAÓ",
+    "indsinop": "",
+    "longitud": "041926E"
+  },
+  {
+    "latitud": "395926N",
+    "provincia": "BALEARES",
+    "altitud": "80",
+    "indicativo": "B825B",
+    "nombre": "ES MERCADAL",
+    "indsinop": "",
+    "longitud": "040511E"
+  },
+  {
+    "latitud": "395934N",
+    "provincia": "BALEARES",
+    "altitud": "20",
+    "indicativo": "B860X",
+    "nombre": "CIUTADELLA",
+    "indsinop": "",
+    "longitud": "035114E"
+  },
+  {
+    "latitud": "395641N",
+    "provincia": "BALEARES",
+    "altitud": "43",
+    "indicativo": "B870C",
+    "nombre": "CIUTADELLA, CALA GALDANA",
+    "indsinop": "",
+    "longitud": "035724E"
+  },
+  {
+    "latitud": "395117N",
+    "provincia": "BALEARES",
+    "altitud": "91",
+    "indicativo": "B893",
+    "nombre": "MENORCA, AEROPUERTO",
+    "indsinop": "08314",
+    "longitud": "041256E"
+  },
+  {
+    "latitud": "390322N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "110",
+    "indicativo": "B908X",
+    "nombre": "SANT JOAN DE LABRITJA",
+    "indsinop": "",
+    "longitud": "012933E"
+  },
+  {
+    "latitud": "385747N",
+    "provincia": "BALEARES",
+    "altitud": "32",
+    "indicativo": "B925",
+    "nombre": "SANT ANTONI DE PORTMANY",
+    "indsinop": "",
+    "longitud": "011917E"
+  },
+  {
+    "latitud": "385235N",
+    "provincia": "ILLES BALEARS",
+    "altitud": "6",
+    "indicativo": "B954",
+    "nombre": "IBIZA, AEROPUERTO",
+    "indsinop": "08373",
+    "longitud": "012304E"
+  },
+  {
+    "latitud": "385521N",
+    "provincia": "BALEARES",
+    "altitud": "3",
+    "indicativo": "B957",
+    "nombre": "EIVISSA",
+    "indsinop": "",
+    "longitud": "012629E"
+  },
+  {
+    "latitud": "384137N",
+    "provincia": "BALEARES",
+    "altitud": "24",
+    "indicativo": "B986",
+    "nombre": "FORMENTERA",
+    "indsinop": "",
+    "longitud": "012749E"
+  }
+]

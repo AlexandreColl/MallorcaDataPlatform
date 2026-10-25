@@ -52,10 +52,10 @@ DBT_COMMAND = (
     },
     params={
         "connectors": Param(
-            registry.enabled_names(),
+            registry.runnable_names(),
             type="array",
             items={"type": "string", "enum": sorted(registry.discover())},
-            description="Connectors to run. Default: every enabled connector.",
+            description="Connectors to run. Default: every enabled connector whose API key is set.",
         ),
         "days": Param(1, type="integer", minimum=1, maximum=92, description="Days back"),
         "region": Param("mallorca", type="string", enum=available_regions()),
@@ -69,7 +69,7 @@ def mallorca_pipeline() -> None:
     def resolve_connectors(params: dict[str, Any] | None = None) -> list[str]:
         """Validate the requested connectors and their secrets before extracting anything."""
         params = params or {}
-        requested = list(params.get("connectors") or []) or registry.enabled_names()
+        requested = list(params.get("connectors") or []) or registry.runnable_names()
         known = registry.discover()
         unknown = sorted(set(requested) - set(known))
         if unknown:
