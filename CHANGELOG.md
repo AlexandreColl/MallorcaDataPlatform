@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-27
+
+dbt in depth: staging, intermediate and domain marts, incremental facts, per-source freshness, station vs model
+bias, weather episodes, an SCD2 snapshot, packages, contracts, unit tests, exposures, docs on GitHub Pages, slim CI
+and sqlfluff.
+
 ### Added
 
 - dbt exposures: the Grafana dashboard and the planned corrections phase, in the lineage graph and selectable
@@ -195,7 +201,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...v0.2.2
