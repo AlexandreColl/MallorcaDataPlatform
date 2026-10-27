@@ -51,6 +51,9 @@ jobs:
   dbt:
     name: dbt build (empty warehouse)
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: read  # download the develop manifest for slim CI
     services:
       postgres:
         image: postgres:18.6-alpine
@@ -74,19 +77,40 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - run: pip install dbt-core==1.12.6 dbt-postgres==1.11.0  # dbt-core pinned: see the Dockerfile
+      - run: >-
+          pip install dbt-core==1.12.6 dbt-postgres==1.11.0
+          sqlfluff==4.4.0 sqlfluff-templater-dbt==4.4.0
       - name: Apply warehouse DDL
         run: psql -h localhost -U warehouse -d warehouse -v ON_ERROR_STOP=1 -f core/sql/warehouse.sql
       - name: dbt deps
         working-directory: dbt
         run: dbt deps
+      - name: sqlfluff
+        working-directory: dbt
+        run: sqlfluff lint models --format github-annotation-native
+      # Slim CI: a pull request only builds what it changed (state:modified) plus its children, compared with the
+      # manifest of develop published by dbt-docs.yml. The warehouse is empty, so the parents (+) are built too.
+      # Without that manifest (first run, expired artifact) or outside pull requests, everything is built.
+      - name: Manifest of develop (slim CI)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow dbt-docs.yml --branch develop --status success \
+            --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$run_id" ] && gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name dbt-manifest --dir dbt/state; then
+            echo "DBT_SELECTION=--select +state:modified+ --state state" >> "$GITHUB_ENV"
+            echo "Slim CI against develop (run $run_id)"
+          else
+            echo "No manifest of develop: full build"
+          fi
       - name: dbt build
         working-directory: dbt
-        run: dbt build --profiles-dir .
+        run: dbt build --profiles-dir . $DBT_SELECTION
       # A second build takes the incremental path (is_incremental), so its SQL is compiled and run too.
       - name: dbt build (incremental run)
         working-directory: dbt
-        run: dbt build --profiles-dir .
+        run: dbt build --profiles-dir . $DBT_SELECTION
 
   compose:
     name: Docker compose config + image build
