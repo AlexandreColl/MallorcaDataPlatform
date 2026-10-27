@@ -7,25 +7,31 @@ with rain as (
         entity as max_rain_station
     from {{ ref('fct_weather_daily') }}
     where source = 'aemet' and precipitation_sum is not null
-    order by local_date, precipitation_sum desc, entity
+    order by local_date asc, precipitation_sum desc, entity asc
 ),
 
 rain_stations as (
-    select local_date, count(*) as stations_over_rain_threshold
+    select
+        local_date,
+        count(*) as stations_over_rain_threshold
     from {{ ref('fct_weather_daily') }}
     where source = 'aemet' and precipitation_sum >= {{ var('episode_rain_mm') }}
     group by local_date
 ),
 
 gust as (
-    select local_date, max(wind_gust_max) as max_gust_kmh
+    select
+        local_date,
+        max(wind_gust_max) as max_gust_kmh
     from {{ ref('fct_weather_daily') }}
     where source_kind = 'observation'
     group by local_date
 ),
 
 waves as (
-    select local_date, max(wave_height_m) as max_wave_m
+    select
+        local_date,
+        max(wave_height_m) as max_wave_m
     from {{ ref('fct_sea_conditions_hourly') }}
     group by local_date
 ),

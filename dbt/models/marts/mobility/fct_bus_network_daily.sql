@@ -13,7 +13,7 @@ with per_stop as (
 ranked as (
     select
         *,
-        row_number() over (partition by local_date order by departures desc, stop) as rank_in_day
+        row_number() over (partition by local_date order by departures desc, stop asc) as rank_in_day
     from per_stop
 )
 

@@ -20,11 +20,17 @@ with observations as (
 
 {% if is_incremental() %}
 changed_days as (
-    select distinct source, entity, metric, local_date
+    select distinct
+        source,
+        entity,
+        metric,
+        local_date
     from observations
     where updated_at > (
-        select coalesce(max(last_updated_at), '-infinity'::timestamptz) - interval '{{ var("incremental_lookback") }}'
-        from {{ this }}
+        select
+            coalesce(max(built.last_updated_at), '-infinity'::timestamptz)
+            - interval '{{ var("incremental_lookback") }}'
+        from {{ this }} as built
     )
 ),
 {% endif %}

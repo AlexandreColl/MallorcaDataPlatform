@@ -8,9 +8,11 @@ with observations as (
 -- Agencies revise locations: a later run may bring the same event with another origin time.
 -- Silver keeps every version (its key includes ts); gold uses the latest one ingested.
 latest as (
-    select distinct on (entity) entity, ts
+    select distinct on (entity)
+        entity,
+        ts
     from observations
-    order by entity, ingested_at desc, ts desc
+    order by entity asc, ingested_at desc, ts desc
 ),
 
 events as (

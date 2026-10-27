@@ -2,11 +2,21 @@
 -- hourly sources (Open-Meteo model, SOCIB stations) are aggregated to the local day; AEMET is already daily.
 -- `hours_observed` says how complete an aggregated day is (null for sources that are daily at origin).
 with hourly as (
-    select source, entity, local_date, metric, value
+    select
+        source,
+        entity,
+        local_date,
+        metric,
+        value
     from {{ ref('stg_open_meteo__observations') }}
     where not is_missing
     union all
-    select source, entity, local_date, metric, value
+    select
+        source,
+        entity,
+        local_date,
+        metric,
+        value
     from {{ ref('stg_socib__observations') }}
     where not is_missing
 ),
