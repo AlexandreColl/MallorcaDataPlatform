@@ -181,8 +181,8 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 | `duplicate` | fila | misma (fuente, entidad, métrica, ts) repetida → se colapsa conservando el valor no nulo |
 | `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector (no se aplica a fuentes de eventos) |
 
-Resultados por ejecución en `quality.check_results`; en Grafana, la gráfica *Calidad diaria por fuente* y la fila
-plegada *Operación*.
+Resultados por ejecución en `quality.check_results`; en Grafana, el % de sospechosos, la completitud de la tabla de
+series y la fila plegada *Operación*.
 
 ## Grafana
 
@@ -194,7 +194,9 @@ que filtra todo lo demás, más los selectores de métrica y entidad:
    (gotas con la altura de ola), estaciones AEMET (sol y nube, último día publicado), estaciones SOCIB (termómetros
    con su última hora), sismos del IGN (ondas según la magnitud) y un mapa de calor del servicio de EMT Palma.
 3. **Gráficas**: la métrica elegida como media por fuente (con temperatura compara estación real y modelo) y por
-   entidad, la electricidad de Baleares (demanda y CO₂) y la calidad diaria de cada fuente.
+   entidad (la demanda y el CO₂ de Baleares se eligen ahí como métricas de REData), y dos vistas de los marts de dbt:
+   el error del modelo de Open-Meteo frente a cada estación de AEMET y SOCIB, y los episodios de lluvia fuerte,
+   viento u oleaje.
 4. **Tabla de series temporales**: una fila por fuente, entidad y métrica con días, completitud, % sospechosos y
    estadísticos; las fuentes con muchas entidades (las 875 paradas de EMT) se resumen en una fila por métrica.
 

@@ -22,6 +22,8 @@ exposures:
       - ref('air_quality_hourly')
       - ref('fct_earthquakes')
       - ref('data_quality_summary')
+      - ref('fct_model_bias_daily')
+      - ref('fct_weather_episodes')
       - source('ops', 'ingestion_runs')
 
   - name: corrections_phase
