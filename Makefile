@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt psql e2e
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -65,8 +65,14 @@ lint: ## Lint and format check, report only (same as CI)
 format: ## Apply ruff fixes (including unsafe ones) and format
 	$(COMPOSE) --profile tools run --rm toolbox bash -c "ruff check . && ruff format ."
 
-dbt: ## Run dbt build against the warehouse
-	$(COMPOSE) exec airflow-scheduler bash -c "cd /opt/project/dbt && /opt/dbt-venv/bin/dbt build --profiles-dir . --target-path /tmp/dbt/target --log-path /tmp/dbt/logs"
+DBT = cd /opt/project/dbt && /opt/dbt-venv/bin/dbt
+DBT_ARGS = --profiles-dir . --target-path /tmp/dbt/target --log-path /tmp/dbt/logs
+
+dbt: ## Run dbt source freshness (warnings only) and dbt build against the warehouse
+	$(COMPOSE) exec airflow-scheduler bash -c "($(DBT) source freshness $(DBT_ARGS) || true) && $(DBT) build $(DBT_ARGS)"
+
+dbt-full-refresh: ## Rebuild every dbt model from scratch (incremental ones included)
+	$(COMPOSE) exec airflow-scheduler bash -c "$(DBT) build --full-refresh $(DBT_ARGS)"
 
 psql: ## Open psql on the warehouse
 	$(COMPOSE) exec postgres psql -U postgres -d warehouse

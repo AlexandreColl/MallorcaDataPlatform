@@ -80,6 +80,10 @@ jobs:
       - name: dbt build
         working-directory: dbt
         run: dbt build --profiles-dir .
+      # A second build takes the incremental path (is_incremental), so its SQL is compiled and run too.
+      - name: dbt build (incremental run)
+        working-directory: dbt
+        run: dbt build --profiles-dir .
 
   compose:
     name: Docker compose config + image build

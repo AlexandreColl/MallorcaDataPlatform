@@ -60,6 +60,20 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 
 Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtures reales · tests · aparece en Grafana · sección en README · ≤ 1 día de trabajo.
 
+## Fase 2b · v0.2.5–v0.2.6 — dbt avanzado
+
+| Estado | Tarea |
+|---|---|
+| ✅ | Capas `staging` (una vista por conector, macro común) → `intermediate` → `marts` por dominio ([dbt/README.md](dbt/README.md)) |
+| ✅ | Incrementales: `fct_observations` (merge) y `agg_daily_metrics` (delete+insert) con `updated_at` de silver como marca de agua |
+| ✅ | `dbt source freshness` por conector (misma tabla, `filter`), solo avisos, antes del build en el DAG |
+| ✅ | Marts nuevos: `fct_weather_daily` (observación junto a modelo), `fct_sea_conditions_hourly`, `fct_electricity_daily`, `fct_bus_network_daily`, `source_health`, `dim_date` |
+| ✅ | Tests genéricos propios (`unique_combination`, `value_between`) y `relationships` |
+| ⬜ | Snapshot SCD2 de estaciones y paradas (cambios de nombre o ubicación) |
+| ⬜ | Paquetes `dbt_utils` / `dbt_expectations`, contratos (`contract: enforced`) en los marts y `unit_tests` de dbt (EAQI, Haversine) |
+| ⬜ | Sesgo estación vs modelo por variable y estación; episodios meteorológicos (lluvia AEMET + oleaje + rachas) |
+| ⬜ | Exposures (Grafana), `dbt docs` en GitHub Pages, slim CI (`state:modified+`) y `sqlfluff` |
+
 ## Fase 3 · v0.3.0 — Detección de anomalías
 
 | Estado | Tarea |
@@ -87,9 +101,6 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Contratos de datos en dbt (`contract: enforced`) y tests de frescura de fuentes |
-| ⬜ | Modelos dbt incrementales para `fct_observations` |
-| ⬜ | Documentación dbt publicada en GitHub Pages (`dbt docs generate`) |
 | ⬜ | Linaje con OpenLineage (proveedor de Airflow) 🔬 |
 | ⬜ | Alertas de Grafana cuando falla una regla de calidad |
 | ⬜ | Cobertura de tests ≥ 80 % en `core/` con badge en el README |
