@@ -26,7 +26,7 @@ select
     round((
         (coalesce(solar_pv_mwh, 0) + coalesce(renewable_waste_mwh, 0) + coalesce(other_renewables_mwh, 0))
         / nullif(generation_total_mwh, 0)
-    )::numeric, 4) as renewable_share,
+    )::numeric, 4)::numeric(5, 4) as renewable_share,
     -- generation below demand means the islands imported the rest through the Mallorca-mainland link
-    round((demand_mwh - generation_total_mwh)::numeric, 1) as net_import_mwh
+    round((demand_mwh - generation_total_mwh)::numeric, 1)::numeric(10, 1) as net_import_mwh
 from daily

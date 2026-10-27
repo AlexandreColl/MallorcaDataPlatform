@@ -24,7 +24,7 @@ select
     count(*) as stops,
     count(*) filter (where r.departures > 0) as stops_with_service,
     sum(r.departures) as scheduled_stop_calls,
-    round((avg(r.lines) filter (where r.departures > 0))::numeric, 2) as avg_lines_per_served_stop,
+    round((avg(r.lines) filter (where r.departures > 0))::numeric, 2)::numeric(6, 2) as avg_lines_per_served_stop,
     max(r.stop) filter (where r.rank_in_day = 1) as busiest_stop,
     max(r.departures) as busiest_stop_departures
 from ranked as r
