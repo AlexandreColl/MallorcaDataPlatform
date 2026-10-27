@@ -1,8 +1,8 @@
 -- One row per earthquake: magnitude, depth and distance from Palma.
 with observations as (
     select *
-    from {{ ref('stg_observations') }}
-    where source = 'ign' and quality <> 'missing'
+    from {{ ref('stg_ign__observations') }}
+    where not is_missing
 ),
 
 -- Agencies revise locations: a later run may bring the same event with another origin time.

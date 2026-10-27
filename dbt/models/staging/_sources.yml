@@ -1,0 +1,42 @@
+version: 2
+
+# Tables written by the Python pipeline. dbt only reads them.
+#
+# silver.observations holds every connector. It is declared once per connector (same identifier, a `filter`)
+# so `dbt source freshness` checks each source against its own cadence: hourly APIs are expected every day,
+# AEMET publishes 2-3 days late and IGN only has rows when there are earthquakes (no freshness check).
+sources:
+  - name: silver
+    description: Clean observations in the common schema, written by the PySpark pipeline (one row per series and ts).
+    loaded_at_field: updated_at
+    freshness:
+      warn_after: {count: 36, period: hour}
+    tables:
+      - name: observations
+        description: Every connector, unfiltered. Used by the generic staging model.
+        freshness: null
+        columns:
+          - name: source
+            data_tests: [not_null]
+          - name: ts
+            data_tests: [not_null]
+      - {name: open_meteo, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'open_meteo'"}}
+      - {name: open_meteo_marine, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'open_meteo_marine'"}}
+      - {name: socib, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'socib'"}}
+      - {name: redata, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'redata'"}}
+      - {name: emt_palma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'emt_palma'"}}
+      - {name: aemet, identifier: observations, freshness: {warn_after: {count: 5, period: day}, filter: "source = 'aemet'"}}
+      - {name: ign, identifier: observations, freshness: null}
+
+  - name: quality
+    tables:
+      - name: check_results
+        description: One row per run, source, rule and target with checked and failed counts.
+
+  - name: ops
+    tables:
+      - name: ingestion_runs
+        description: Audit of every connector run (window, status, row counts, error with its exception type).
+        loaded_at_field: coalesce(finished_at, started_at)
+        freshness:
+          warn_after: {count: 36, period: hour}

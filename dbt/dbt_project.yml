@@ -10,6 +10,9 @@ macro-paths: ["macros"]
 clean-targets: ["target", "dbt_packages"]
 
 vars:
+  local_timezone: Europe/Madrid   # local day used by every daily model
+  incremental_lookback: 1 hour     # re-read rows changed just before the last build (commit races)
+  date_spine_start: "2020-01-01"  # first day of dim_date
   # Connectors with `frequency: event` (see macros/event_sources.sql).
   event_sources: ["ign"]
 
@@ -19,9 +22,15 @@ seeds:
 
 models:
   mallorca:
+    # staging: one light model per source table (rename, types, local day). Views: always current, no storage.
     staging:
       +materialized: view
       +schema: dbt_staging
-    gold:
+    # intermediate: reusable joins and pivots that several marts build on. Views, not exposed to users.
+    intermediate:
+      +materialized: view
+      +schema: dbt_intermediate
+    # marts: what Grafana and analysts read, grouped by domain. Tables (the big facts are incremental).
+    marts:
       +materialized: table
       +schema: gold

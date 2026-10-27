@@ -1,0 +1,34 @@
+version: 2
+
+# One staging model per source table: the same projection for every connector (macro staging_observations),
+# so marts read `stg_<connector>__observations` and lineage shows which source feeds which mart.
+models:
+  - name: stg_silver__observations
+    description: Every connector's observations, with the local day and missing/suspect flags.
+    columns:
+      - name: local_date
+        data_tests: [not_null]
+  - name: stg_open_meteo__observations
+    description: Open-Meteo air quality and weather (model), hourly.
+  - name: stg_open_meteo_marine__observations
+    description: Open-Meteo Marine sea state (model), hourly.
+  - name: stg_socib__observations
+    description: SOCIB weather stations and buoy (observation), hourly.
+  - name: stg_aemet__observations
+    description: AEMET official stations (observation), daily.
+  - name: stg_redata__observations
+    description: REData Balearic electric system, hourly demand and daily generation and CO2.
+  - name: stg_emt_palma__observations
+    description: EMT Palma scheduled service per stop, daily.
+  - name: stg_ign__observations
+    description: IGN earthquakes (events), one row per event and metric.
+  - name: stg_quality__check_results
+    description: Results of the quality rules per run.
+  - name: stg_ops__ingestion_runs
+    description: Connector runs with their duration and the exception type of failures.
+    columns:
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["running", "success", "failed"]
