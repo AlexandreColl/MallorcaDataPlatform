@@ -72,6 +72,11 @@ class Settings:
         return self.project_root / "config" / "regions"
 
     @property
+    def anomaly_config(self) -> Path:
+        """Detectors, their parameters and the series they skip."""
+        return self.project_root / "config" / "anomaly.yaml"
+
+    @property
     def jdbc_url(self) -> str:
         """JDBC URL of the warehouse, used by Spark."""
         return f"jdbc:postgresql://{self.warehouse_host}:{self.warehouse_port}/{self.warehouse_db}"
