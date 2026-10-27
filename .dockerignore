@@ -11,3 +11,4 @@ dbt/target
 dbt/logs
 logs
 docs
+dbt/dbt_packages
