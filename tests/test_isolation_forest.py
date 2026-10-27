@@ -31,9 +31,11 @@ def test_one_row_per_input_value():
     assert scored["score"].notna().mean() > 0.95  # only the first values lack change and spread
 
 
-def test_clean_location_raises_few_flags():
-    scored = IsolationForestDetector().score_entity(location())
-    assert scored["is_anomaly"].mean() < 0.02
+def test_one_metric_is_blamed_per_flagged_timestamp():
+    scored = IsolationForestDetector(contamination=0.01).score_entity(location())
+    per_ts = scored[scored["is_anomaly"]].groupby("ts").size()
+    assert (per_ts == 1).all()
+    assert scored["is_anomaly"].mean() < 0.01
 
 
 def test_spike_is_flagged_and_blamed_on_its_metric():

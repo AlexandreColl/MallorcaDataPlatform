@@ -37,10 +37,10 @@ class IsolationForestDetector(Detector):
 
     name = "isolation_forest"
 
-    def __init__(  # noqa: PLR0913 - every argument is a documented setting of config/anomaly.yaml
+    def __init__(
         self,
         *,
-        contamination: float | str = 0.01,
+        contamination: float | str = 0.05,
         n_estimators: int = 200,
         min_points: int = 48,
         min_coverage: float = 0.8,

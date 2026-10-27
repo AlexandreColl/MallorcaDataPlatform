@@ -11,7 +11,8 @@ detectors:
     threshold: 3.5    # |modified z-score| above which a value is flagged (Iglewicz & Hoaglin)
     min_points: 5     # windows with fewer values are not scored
   isolation_forest:   # every metric of a location together: value, change and stillness of each, plus hour of day
-    contamination: 0.01  # share of each location's timestamps flagged (scikit-learn's "auto" flags ~15 % of clean data)
+    contamination: 0.05  # share of each location's timestamps flagged: about as many values as the z-score flags
+                         # (one metric per timestamp); scikit-learn's "auto" flags ~15 % of clean data
     n_estimators: 200
     min_points: 48       # locations with fewer complete timestamps are not scored
     min_coverage: 0.8    # metrics present at fewer timestamps (another frequency) are left out of the forest
