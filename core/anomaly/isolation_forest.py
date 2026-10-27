@@ -24,9 +24,11 @@ class IsolationForestDetector(Detector):
     """Isolation Forest (Liu, Ting and Zhou) on the joint behaviour of the metrics of one entity.
 
     Each timestamp is a point described, for every metric, by its value, its change since the previous value
-    and its spread over the last ``flat_window`` values, plus the hour of day for sub-daily series. The forest
+    and how many values in a row it has stayed the same, plus the hour of day for sub-daily series. The forest
     isolates points that few random splits are needed to separate: a temperature that does not match the
-    humidity, a jump no other metric shows, or a spread of zero where the series always moves (a frozen sensor).
+    humidity or the hour, a jump no other metric shows, or a series that always moves and has stopped (a frozen
+    sensor). A rolling spread is not enough for that last case: near the top or bottom of a daily cycle the
+    spread is almost zero anyway, while a run of identical values is rare.
 
     The forest flags a timestamp; the metric whose features stray furthest from their median at that time is
     the one flagged, so the result fits ``silver.anomalies`` like any univariate detector.
@@ -39,31 +41,33 @@ class IsolationForestDetector(Detector):
         *,
         contamination: float | str = 0.01,
         n_estimators: int = 200,
-        flat_window: int = 4,
         min_points: int = 48,
         min_coverage: float = 0.8,
         random_state: int = 42,
     ) -> None:
         self.contamination = contamination
         self.n_estimators = int(n_estimators)
-        self.flat_window = int(flat_window)
         self.min_points = int(min_points)
         self.min_coverage = float(min_coverage)  # metrics present at fewer timestamps (another frequency) are left out
         self.random_state = int(random_state)
 
     @property
     def context(self) -> pd.Timedelta:
-        """The change and spread features look a few values back."""
+        """The change and stillness features look back a few values."""
         return pd.Timedelta(days=1)
 
-    def features(self, wide: pd.DataFrame) -> pd.DataFrame:
-        """Value, change and rolling spread of every metric (columns ``(metric, feature)``), plus the hour of day."""
+    @staticmethod
+    def features(wide: pd.DataFrame) -> pd.DataFrame:
+        """Value, change and stillness of every metric (columns ``(metric, feature)``), plus the hour of day."""
         columns: dict[tuple[str, str], pd.Series] = {}
         for metric in wide.columns:
             values = wide[metric]
+            change = values.diff()
+            unchanged = change.eq(0)
             columns[metric, "value"] = values
-            columns[metric, "change"] = values.diff()
-            columns[metric, "spread"] = values.rolling(self.flat_window).std()
+            columns[metric, "change"] = change
+            # Values in a row equal to the previous one: 0 while the series moves, it grows on a frozen sensor.
+            columns[metric, "still"] = unchanged.groupby((~unchanged).cumsum()).cumsum().astype(float)
         index = pd.DatetimeIndex(wide.index)
         if len(index) > 1 and pd.Series(index).diff().median() < pd.Timedelta(days=1):
             angle = 2 * np.pi * index.hour.to_numpy() / 24
