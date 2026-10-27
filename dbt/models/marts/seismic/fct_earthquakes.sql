@@ -31,9 +31,7 @@ events as (
 
 select
     *,
-    -- Haversine distance to Palma (39.5696 N, 2.6502 E), in km.
-    round((2 * 6371 * asin(sqrt(
-        power(sin(radians(lat - 39.5696) / 2), 2)
-        + cos(radians(39.5696)) * cos(radians(lat)) * power(sin(radians(lon - 2.6502) / 2), 2)
-    )))::numeric, 1)::double precision as distance_to_palma_km
+    -- distance to Palma (var palma: 39.5696 N, 2.6502 E)
+    round({{ haversine_km(var("palma")["lat"], var("palma")["lon"], "lat", "lon") }}::numeric, 1)::double precision
+        as distance_to_palma_km
 from events
