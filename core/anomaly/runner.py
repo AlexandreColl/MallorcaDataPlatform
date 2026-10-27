@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 import yaml
 
+from core.anomaly.isolation_forest import IsolationForestDetector
 from core.anomaly.zscore import RobustZScore
 from core.config import Settings
 from core.connectors import registry
@@ -27,9 +28,10 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-DETECTORS: dict[str, type[Detector]] = {RobustZScore.name: RobustZScore}
+DETECTORS: dict[str, type[Detector]] = {d.name: d for d in (RobustZScore, IsolationForestDetector)}
 
-SERIES_KEYS = ("source", "entity", "metric")
+ENTITY_KEYS = ("source", "entity")
+SERIES_KEYS = (*ENTITY_KEYS, "metric")
 ANOMALY_COLUMNS = (*SERIES_KEYS, "ts", "detector", "value", "expected", "score", "threshold")
 ANOMALY_SCHEMA = (
     "source string, entity string, metric string, ts timestamp, detector string,"
@@ -86,16 +88,16 @@ class DetectionSummary:
         return asdict(self)
 
 
-def score_series(series: pd.DataFrame, detector: Detector, window: TimeWindow) -> pd.DataFrame:
-    """Score one series and keep its anomalies inside ``window`` (earlier values are only context)."""
-    series = series.assign(ts=pd.to_datetime(series["ts"], utc=True)).sort_values("ts")
-    scored = detector.score(series[["ts", "value"]].reset_index(drop=True))
+def score_entity(observations: pd.DataFrame, detector: Detector, window: TimeWindow) -> pd.DataFrame:
+    """Score every series of one entity and keep the anomalies inside ``window`` (earlier values are only context)."""
+    observations = observations.assign(ts=pd.to_datetime(observations["ts"], utc=True))
+    scored = detector.score_entity(observations[["metric", "ts", "value"]])
     in_window = scored["ts"].ge(pd.Timestamp(window.start_dt())) & scored["ts"].lt(
         pd.Timestamp(window.end_dt_exclusive())
     )
     flagged = scored[scored["is_anomaly"] & in_window]
-    first = series.iloc[0]
-    return flagged.assign(**{k: first[k] for k in SERIES_KEYS}, detector=detector.name)[list(ANOMALY_COLUMNS)]
+    first = observations.iloc[0]
+    return flagged.assign(**{k: first[k] for k in ENTITY_KEYS}, detector=detector.name)[list(ANOMALY_COLUMNS)]
 
 
 def _quoted(values: list[str]) -> str:
@@ -158,9 +160,9 @@ def detect_anomalies(
 
     warehouse = Warehouse(settings)
     warehouse.ensure_schema()
-    grouped = observations.groupBy(*SERIES_KEYS)
+    grouped = observations.groupBy(*ENTITY_KEYS)  # multivariate detectors see every metric of a location
     for detector in detectors:
-        flagged = grouped.applyInPandas(partial(score_series, detector=detector, window=window), ANOMALY_SCHEMA)
+        flagged = grouped.applyInPandas(partial(score_entity, detector=detector, window=window), ANOMALY_SCHEMA)
         # Anomalies are rare (a handful per series), so collecting them is cheap. Spark returns naive local
         # datetimes: going through the epoch makes them explicit UTC whatever the container's time zone.
         rows = [(*r[:3], datetime.fromtimestamp(r.ts.timestamp(), UTC), *r[4:]) for r in flagged.collect()]

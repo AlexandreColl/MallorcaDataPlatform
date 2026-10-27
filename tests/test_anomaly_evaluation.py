@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from core.anomaly import RobustZScore
-from core.anomaly.base import SCORE_COLUMNS, Detector
+from core.anomaly.base import SCORE_COLUMNS, UnivariateDetector
 from core.anomaly.evaluation import Evaluation, EvaluationConfig, evaluate
 from core.anomaly.faults import FaultInjector, FaultSpec, robust_sigma
 from core.anomaly.runner import AnomalyConfig
@@ -35,7 +35,7 @@ def observations(n_series=4):
     return pd.concat(frames, ignore_index=True)
 
 
-class FlagIndexes(Detector):
+class FlagIndexes(UnivariateDetector):
     """Flags fixed positions, to check the arithmetic of the evaluation."""
 
     name = "fixed"

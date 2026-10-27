@@ -10,6 +10,13 @@ detectors:
     daily_window: 31D # the same for daily series (AEMET, REData): a week of daily values is too few
     threshold: 3.5    # |modified z-score| above which a value is flagged (Iglewicz & Hoaglin)
     min_points: 5     # windows with fewer values are not scored
+  isolation_forest:   # every metric of a location together: value, change and spread of each, plus hour of day
+    contamination: 0.01  # share of each location's timestamps flagged (scikit-learn's "auto" flags ~15 % of clean data)
+    n_estimators: 200
+    flat_window: 4       # values in the rolling spread: zero spread exposes a frozen sensor
+    min_points: 48       # locations with fewer complete timestamps are not scored
+    min_coverage: 0.8    # metrics present at fewer timestamps (another frequency) are left out of the forest
+    random_state: 42     # same forest on every run
 
 skip:
   # Events and timetables, not measurements of a continuous quantity.
