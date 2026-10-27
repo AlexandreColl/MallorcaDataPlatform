@@ -23,12 +23,13 @@ class FaultSpec:
     """How many faults of one kind each series gets, how long and how big.
 
     ``length`` is in values and ``size`` in robust standard deviations of the series, both drawn uniformly
-    from their ``(min, max)`` range.
+    from their ``(min, max)`` range. ``lag`` (values) only applies to ``shift``.
     """
 
     count: int
     length: tuple[int, int] = (1, 1)
     size: tuple[float, float] = (0.0, 0.0)
+    lag: int = 12
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FaultSpec:
@@ -39,6 +40,7 @@ class FaultSpec:
             count=int(data["count"]),
             length=tuple(length) if isinstance(length, list) else (int(length), int(length)),
             size=tuple(size) if isinstance(size, list) else (float(size), float(size)),
+            lag=int(data.get("lag", 12)),
         )
 
 
@@ -49,14 +51,16 @@ def robust_sigma(values: np.ndarray) -> float:
 
 
 class FaultInjector:
-    """Corrupts a series with non-overlapping faults of three kinds.
+    """Corrupts a series with non-overlapping faults of four kinds.
 
     * ``spike``: one value pushed up or down by ``size`` sigmas (a glitch, a decimal-point error).
     * ``frozen``: ``length`` values stuck at the last good reading (a frozen sensor or a repeated payload).
     * ``drift``: ``length`` values with a linear offset growing to ``size`` sigmas (a sensor losing calibration).
+    * ``shift``: ``length`` values replaced by the ones ``lag`` steps earlier (a clock or time-zone error). Every
+      value is plausible on its own; only its time of day, or the other metrics of the place, give it away.
     """
 
-    KINDS = ("spike", "frozen", "drift")
+    KINDS = ("spike", "frozen", "drift", "shift")
 
     def __init__(self, specs: dict[str, FaultSpec], margin: int = 6, max_attempts: int = 200) -> None:
         unknown = sorted(set(specs) - set(self.KINDS))
@@ -74,7 +78,8 @@ class FaultInjector:
         A constant series is returned unchanged: no fault size can be defined on it.
         """
         out = series.reset_index(drop=True).copy()
-        values = out["value"].to_numpy(dtype=float).copy()
+        clean = out["value"].to_numpy(dtype=float)
+        values = clean.copy()
         fault = np.full(len(values), None, dtype=object)
         event = np.full(len(values), -1)
         sigma = robust_sigma(values) if len(values) else 0.0
@@ -84,11 +89,14 @@ class FaultInjector:
             for kind in self.KINDS:
                 spec = self.specs.get(kind)
                 for _ in range(spec.count if spec else 0):
-                    span = self._place(spec, taken, rng)
+                    span = self._place(spec, taken, rng, first=spec.lag if kind == "shift" else 1)
                     if span is None:
                         break  # series too short for more faults
                     start, stop = span
-                    self._apply(kind, values[start:stop], values[start - 1], sigma * rng.uniform(*spec.size), rng)
+                    if kind == "shift":
+                        values[start:stop] = clean[start - spec.lag : stop - spec.lag]
+                    else:
+                        self._apply(kind, values[start:stop], values[start - 1], sigma * rng.uniform(*spec.size), rng)
                     fault[start:stop] = kind
                     event[start:stop] = event_id
                     taken[max(0, start - self.margin) : stop + self.margin] = True
@@ -98,13 +106,15 @@ class FaultInjector:
         out["event"] = event
         return out
 
-    def _place(self, spec: FaultSpec, taken: np.ndarray, rng: np.random.Generator) -> tuple[int, int] | None:
-        """Random free span of the spec's length, never at the very start (frozen needs a previous value)."""
+    def _place(
+        self, spec: FaultSpec, taken: np.ndarray, rng: np.random.Generator, first: int = 1
+    ) -> tuple[int, int] | None:
+        """Random free span of the spec's length starting at ``first`` or later (frozen needs a previous value)."""
         length = int(rng.integers(spec.length[0], spec.length[1] + 1))
-        if length + 1 >= len(taken):
+        if first + length >= len(taken):
             return None
         for _ in range(self.max_attempts):
-            start = int(rng.integers(1, len(taken) - length + 1))
+            start = int(rng.integers(first, len(taken) - length + 1))
             if not taken[start : start + length].any():
                 return start, start + length
         return None

@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from core.anomaly.faults import FaultInjector, FaultSpec
-from core.anomaly.runner import SERIES_KEYS, AnomalyConfig
+from core.anomaly.runner import ENTITY_KEYS, SERIES_KEYS, AnomalyConfig
 from core.config import Settings
 from core.models import Quality, TimeWindow
 from core.warehouse import Warehouse
@@ -136,18 +136,35 @@ class Evaluation:
 
 
 def evaluate(detector: Detector, observations: pd.DataFrame, injector: FaultInjector, seed: int) -> Evaluation:
-    """Inject faults into every series of ``observations`` and score them clean and corrupted.
+    """Inject faults into every series of ``observations``, then score each entity clean and corrupted.
 
-    The random generator of each series derives from ``seed`` and its position, so a run is reproducible.
+    Entities are scored whole so multivariate detectors see all their metrics. The random generator of each
+    series derives from ``seed`` and its position, so a run is reproducible and every detector gets the same faults.
     """
     result = Evaluation(detector.name)
-    for i, (_, group) in enumerate(observations.sort_values([*SERIES_KEYS, "ts"]).groupby(list(SERIES_KEYS))):
-        clean = group[["ts", "value"]].reset_index(drop=True)
-        corrupted = injector.inject(clean, np.random.default_rng([seed, i]))
-        baseline = detector.score(clean)["is_anomaly"].to_numpy()
-        flagged = detector.score(corrupted[["ts", "value"]])["is_anomaly"].to_numpy()
-        result.add_series(flagged, baseline, corrupted)
+    position = 0
+    for _, entity in observations.sort_values([*SERIES_KEYS, "ts"]).groupby(list(ENTITY_KEYS)):
+        clean, corrupted = [], []
+        for metric, series in entity.groupby("metric"):
+            values = series[["ts", "value"]].reset_index(drop=True)
+            clean.append(values.assign(metric=metric))
+            corrupted.append(injector.inject(values, np.random.default_rng([seed, position])).assign(metric=metric))
+            position += 1
+        baseline = _flags_by_value(detector.score_entity(pd.concat(clean, ignore_index=True)))
+        flagged = _flags_by_value(detector.score_entity(pd.concat(corrupted, ignore_index=True)[clean[0].columns]))
+        for series in corrupted:
+            keys = pd.MultiIndex.from_arrays([series["metric"], series["ts"]])
+            result.add_series(
+                flagged.reindex(keys, fill_value=False).to_numpy(),
+                baseline.reindex(keys, fill_value=False).to_numpy(),
+                series,
+            )
     return result
+
+
+def _flags_by_value(scored: pd.DataFrame) -> pd.Series:
+    """``is_anomaly`` indexed by (metric, ts)."""
+    return scored.set_index(["metric", "ts"])["is_anomaly"].astype(bool)
 
 
 def load_series(settings: Settings, source: str, window: TimeWindow, skip_metrics: frozenset[str]) -> pd.DataFrame:

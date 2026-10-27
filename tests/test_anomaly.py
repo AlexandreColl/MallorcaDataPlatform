@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.anomaly import SCORE_COLUMNS, RobustZScore
-from core.anomaly.runner import ANOMALY_COLUMNS, ANOMALY_SCHEMA, SERIES_KEYS, AnomalyConfig, score_series
+from core.anomaly import SCORE_COLUMNS, IsolationForestDetector, RobustZScore
+from core.anomaly.runner import ANOMALY_COLUMNS, ANOMALY_SCHEMA, ENTITY_KEYS, AnomalyConfig, score_entity
 from core.config import PROJECT_ROOT
 from core.models import TimeWindow
 
@@ -92,13 +92,13 @@ def test_context_is_half_the_centred_window():
     assert RobustZScore(window="7D", daily_window="1D").context == pd.Timedelta(days=3, hours=12)
 
 
-def test_score_series_keeps_only_anomalies_inside_the_window():
+def test_score_entity_keeps_only_anomalies_inside_the_window():
     values = temperature(days=10)
     values[30] = 45.0  # 2026-10-02: context, before the window
     values[150] = 45.0  # 2026-10-07: inside
     series = hourly(values).assign(source="socib", entity="palma", metric="temperature_2m")
     window = TimeWindow(date(2026, 10, 5), date(2026, 10, 10))
-    flagged = score_series(series.sample(frac=1, random_state=1), RobustZScore(), window)  # unsorted input
+    flagged = score_entity(series.sample(frac=1, random_state=1), RobustZScore(), window)  # unsorted input
     assert list(flagged.columns) == list(ANOMALY_COLUMNS)
     assert flagged["ts"].tolist() == [pd.Timestamp("2026-10-07 06:00", tz="UTC")]
     row = flagged.iloc[0]
@@ -111,13 +111,13 @@ def test_score_series_keeps_only_anomalies_inside_the_window():
     assert row["value"] == 45.0
 
 
-def test_score_series_accepts_naive_utc_timestamps():
+def test_score_entity_accepts_naive_utc_timestamps():
     """applyInPandas hands timestamps over without a time zone."""
     values = temperature()
     values[150] = 45.0
     series = hourly(values).assign(source="s", entity="e", metric="m")
     series["ts"] = series["ts"].dt.tz_localize(None)
-    flagged = score_series(series, RobustZScore(), TimeWindow(date(2026, 10, 5), date(2026, 10, 10)))
+    flagged = score_entity(series, RobustZScore(), TimeWindow(date(2026, 10, 5), date(2026, 10, 10)))
     assert len(flagged) == 1
 
 
@@ -126,9 +126,10 @@ def test_project_config_loads():
     assert config.rescore_days >= 1
     assert "ign" in config.skip_sources
     assert "precipitation" in config.skip_metrics
-    (detector,) = config.build()
-    assert isinstance(detector, RobustZScore)
-    assert detector.threshold == 3.5
+    zscore, forest = config.build()
+    assert isinstance(zscore, RobustZScore)
+    assert zscore.threshold == 3.5
+    assert isinstance(forest, IsolationForestDetector)
 
 
 def test_unknown_detector_is_rejected(tmp_path):
@@ -139,7 +140,7 @@ def test_unknown_detector_is_rejected(tmp_path):
 
 
 @pytest.mark.spark
-def test_apply_in_pandas_scores_each_series_separately(spark):
+def test_apply_in_pandas_scores_each_entity_separately(spark):
     window = TimeWindow(date(2026, 10, 1), date(2026, 10, 10))
     calm = hourly(temperature(seed=1)).assign(source="socib", entity="palma", metric="temperature_2m")
     spiky_values = temperature(seed=2)
@@ -148,8 +149,8 @@ def test_apply_in_pandas_scores_each_series_separately(spark):
     df = spark.createDataFrame(pd.concat([calm, spiky])[["source", "entity", "metric", "ts", "value"]])
 
     flagged = (
-        df.groupBy(*SERIES_KEYS)
-        .applyInPandas(partial(score_series, detector=RobustZScore(), window=window), ANOMALY_SCHEMA)
+        df.groupBy(*ENTITY_KEYS)
+        .applyInPandas(partial(score_entity, detector=RobustZScore(), window=window), ANOMALY_SCHEMA)
         .collect()
     )
     assert [(r.entity, r.value) for r in flagged] == [("soller", 45.0)]
