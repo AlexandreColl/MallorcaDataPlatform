@@ -80,11 +80,12 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 |---|---|
 | ✅ | Interfaz `Detector` reutilizable en `core/anomaly/` (entrada: serie silver; salida: score + etiqueta): pandas por serie, repartida con `applyInPandas` |
 | ✅ | Detector estadístico: z-score robusto (mediana/MAD) sobre ventana móvil, por serie; 7 días en series horarias y 31 en diarias |
-| ⬜ | Detector Isolation Forest (scikit-learn) multivariable por localidad |
+| ✅ | Detector Isolation Forest (scikit-learn) multivariable por localidad: valor, cambio, valores seguidos iguales y distancia al valor habitual a esa hora; 49 % de picos y 52 % de congelados (el z-score, 0 %), precisión 85 % |
 | ✅ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
 | ✅ | Tarea `detect_anomalies` en el DAG tras la carga silver (`all_done`); repuntúa los últimos 14 días y es idempotente |
-| ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 82 % |
-| ⬜ | Detector de valores repetidos (sensor congelado), el punto ciego del z-score |
+| ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, desfase horario) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 80 % |
+| ⬜ | Combinar detectores (unión o votación) y medirlo con el benchmark: el z-score y el bosque fallan en cosas distintas |
+| ⬜ | Desfase horario (reloj o zona horaria): ninguno pasa del 6 %; probar un detector estacional (residuo frente a la misma hora de días anteriores) |
 | ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
 
 ## Fase 4 · v0.4.0 — Correcciones con fuentes de apoyo

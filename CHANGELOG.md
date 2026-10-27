@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   precision and recall of every detector, by value and by fault, in `quality.anomaly_evaluations`
   (`python -m core.cli evaluate`, `make evaluate`). Robust z-score: 90 % of spikes, 22 % of drifts, no frozen
   sensors, 82 % precision.
+- Isolation Forest detector (scikit-learn), multivariate per location: value, change, run of unchanged values and
+  distance to the usual value at that hour for every metric, plus the hour of day; flags 5 % of each location's
+  timestamps and blames the metric that strays furthest. Catches 52 % of frozen sensors (z-score 0 %) and 49 % of
+  spikes at 85 % precision. Detectors now score a whole entity (`score_entity`; `UnivariateDetector` for
+  per-metric ones) and the runner groups by source and entity.
+- Clock-shift fault (values from 12 hours earlier) in the benchmark; neither detector catches more than 6 %.
 - Grafana: station vs model temperature error and weather episodes panels, from the dbt marts.
 
 ### Removed
