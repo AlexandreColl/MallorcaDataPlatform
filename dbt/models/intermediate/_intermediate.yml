@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: int_weather__daily
+    description: >
+      Daily weather on common columns for every weather source: Open-Meteo and SOCIB aggregated from hourly
+      values to the local day, AEMET as published. Feeds fct_weather_daily.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [source, entity, local_date]
+    columns:
+      - name: hours_observed
+        description: Hours with temperature in the day (null when the source is daily at origin).
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 25}  # 25 on the day clocks go back
+
+  - name: int_station_model_pairs
+    description: Each observation station paired with its nearest Open-Meteo point within `model_pairing_max_km`.
+    columns:
+      - name: station
+        data_tests: [not_null]
+      - name: distance_km
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0, max_value: 25}
+
+  - name: int_weather_extremes__daily
+    description: Island-wide daily extremes (wettest AEMET station, strongest gust, highest wave) and their flags.
+    columns:
+      - name: local_date
+        data_tests: [not_null, unique]

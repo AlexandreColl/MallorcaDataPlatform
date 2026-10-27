@@ -12,6 +12,8 @@ ARG AWS_SDK_V2_VERSION=2.35.4
 ARG S3_ANALYTICS_ACCELERATOR_VERSION=1.3.1
 ARG POSTGRES_JDBC_VERSION=42.7.14
 ARG DBT_POSTGRES_VERSION=1.11.0
+# Pinned: dbt-postgres accepts dbt-core>=1.8.0rc1, and that pre-release marker lets pip pick dbt-core betas.
+ARG DBT_CORE_VERSION=1.12.6
 
 USER root
 RUN apt-get update \
@@ -33,8 +35,10 @@ ENV SPARK_EXTRA_JARS=/opt/spark-jars/hadoop-aws.jar,/opt/spark-jars/aws-sdk-bund
 
 # dbt lives in its own venv so its dependencies never clash with Airflow's.
 RUN python -m venv /opt/dbt-venv \
- && /opt/dbt-venv/bin/pip install --no-cache-dir "dbt-postgres==${DBT_POSTGRES_VERSION}" \
- && chown -R airflow:0 /opt/dbt-venv
+ && /opt/dbt-venv/bin/pip install --no-cache-dir "dbt-core==${DBT_CORE_VERSION}" "dbt-postgres==${DBT_POSTGRES_VERSION}" \
+ && chown -R airflow:0 /opt/dbt-venv \
+ && mkdir -p /opt/dbt \
+ && chown airflow:0 /opt/dbt
 
 USER airflow
 COPY requirements/runtime.txt /tmp/requirements-runtime.txt
@@ -50,6 +54,11 @@ COPY --chown=airflow:0 core /opt/project/core
 COPY --chown=airflow:0 connectors /opt/project/connectors
 COPY --chown=airflow:0 config /opt/project/config
 COPY --chown=airflow:0 dbt /opt/project/dbt
+# dbt packages (dbt/package-lock.yml) are installed outside the project: compose mounts the checkout read-only
+# over /opt/project, so they could not be installed there at run time.
+# dbt deps deletes and recreates the folder, so it must sit in a directory the airflow user owns.
+ENV DBT_PACKAGES_INSTALL_PATH=/opt/dbt/packages
+RUN cd /opt/project/dbt && /opt/dbt-venv/bin/dbt deps --log-path /tmp/dbt-deps-logs && rm -rf /tmp/dbt-deps-logs
 COPY --chown=airflow:0 dags /opt/project/dags
 
 # Dev image: adds test/lint tooling (used by `make test` and `make lint`).

@@ -2,10 +2,11 @@
 
 [![CI](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml)
 [![E2E](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml/badge.svg)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml)
+[![dbt docs](https://img.shields.io/badge/dbt_docs-lineage-FF694B)](https://alexandrecoll.github.io/MallorcaDataPlatform/)
 ![Python](https://img.shields.io/badge/python-3.14-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
 ![Spark](https://img.shields.io/badge/pyspark-4.2-E25A1C)
-![dbt](https://img.shields.io/badge/dbt-1.11-FF694B)
+![dbt](https://img.shields.io/badge/dbt-1.12-FF694B)
 
 Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mallorca.
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
@@ -54,7 +55,7 @@ flowchart LR
 |---|---|---|
 | **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json` | Respuesta de la API sin tocar. Clave determinista + versionado del bucket: relanzar no duplica y el crudo anterior se conserva |
 | **silver** | `s3://silver/observations/source=…/date=…` y `silver.observations` | Esquema común: `source, entity, metric, ts, value, unit, quality, lat, lon` (+ `quality_reasons`, `run_id`, `ingested_at`) |
-| **gold** | esquema `gold` (dbt) | `fct_observations`, `agg_daily_metrics`, `air_quality_hourly` (índice europeo EAQI), `dim_locations`, `data_quality_summary` |
+| **gold** | esquema `gold` (dbt: staging → intermediate → marts, [detalle](dbt/README.md)) | hechos incrementales (`fct_observations`, `agg_daily_metrics`), marts por dominio (tiempo diario, mar, electricidad, bus, calidad del aire, sismos) y salud de las fuentes |
 
 ### Decisiones de diseño
 
@@ -207,7 +208,7 @@ seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su 
 ├── connectors/<fuente>/  # connector.yaml + extractor.py + tests/fixtures
 ├── config/regions/       # bbox y puntos de cada región
 ├── dags/                 # DAG de Airflow
-├── dbt/                  # modelos gold y tests
+├── dbt/                  # staging → intermediate → marts, tests y seeds (ver dbt/README.md)
 ├── dashboards/           # provisioning y dashboards de Grafana
 ├── docker/               # Dockerfile de Airflow+Spark+dbt, init de Postgres
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
@@ -218,7 +219,8 @@ seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su 
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · dbt build sobre Postgres vacío · build de la imagen + test de integridad del DAG |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/) y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` | Release con notas del CHANGELOG + imagen en GHCR |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |

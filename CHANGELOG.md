@@ -5,6 +5,59 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-27
+
+dbt in depth: staging, intermediate and domain marts, incremental facts, per-source freshness, station vs model
+bias, weather episodes, an SCD2 snapshot, packages, contracts, unit tests, exposures, docs on GitHub Pages, slim CI
+and sqlfluff.
+
+### Added
+
+- dbt exposures: the Grafana dashboard and the planned corrections phase, in the lineage graph and selectable
+  (`+exposure:grafana_overview`).
+- `dbt docs` published to GitHub Pages on every push to `develop` (workflow `dbt-docs.yml`), which also keeps the
+  `develop` manifest; `scripts/github-setup.sh` enables Pages with the Actions source.
+- Slim CI: pull requests build `+state:modified+` against the `develop` manifest (full build when there is none).
+- `sqlfluff` 4.4 with the dbt templater in CI, reported as PR annotations; existing models fixed.
+
+- Station vs model: `int_station_model_pairs` (nearest Open-Meteo point within 25 km, `haversine_km` macro),
+  `fct_model_bias_daily` and `agg_model_bias_by_station` (bias, MAE, RMSE, rain bias and rainy-day agreement).
+- Weather episodes: `int_weather_extremes__daily` and `fct_weather_episodes` (consecutive days of heavy rain,
+  strong wind or rough sea grouped with gaps and islands; thresholds in `vars`).
+- SCD2 snapshot `snap_locations` of station, model point and stop coordinates.
+- dbt packages `dbt_utils` 1.4.1 and `dbt_expectations` 0.10.10 (lockfile), installed in the image; `dim_date`
+  on `dbt_utils.date_spine`, `episode_id` with `generate_surrogate_key`, recency and expression tests.
+- Model contracts (`contract: enforced`, primary keys) on `dim_date`, `fct_electricity_daily`,
+  `fct_bus_network_daily`, `agg_model_bias_by_station` and `fct_weather_episodes`.
+- dbt unit tests: European AQI band, Haversine distance and event revisions, episode grouping.
+
+
+- dbt marts by domain: `fct_weather_daily` (AEMET and SOCIB observations next to the Open-Meteo model on common
+  columns), `fct_sea_conditions_hourly`, `fct_electricity_daily` (renewable share and net import through the link
+  with the mainland), `fct_bus_network_daily`, `source_health` (last run, failure rate, data age per source) and
+  `dim_date`.
+- `dbt source freshness` per connector: silver is declared once per connector (same table, `filter`) with its own
+  threshold (AEMET: 5 days, IGN: none). The DAG runs it before the build, as warnings only.
+- Custom generic dbt tests `unique_combination` (model grain) and `value_between`, plus `relationships` to
+  `dim_sources`.
+- `make dbt-full-refresh`.
+
+### Changed
+
+- `dbt-core` pinned to 1.12.6 in the image and CI: `dbt-postgres` accepts `dbt-core>=1.8.0rc1`, and that
+  pre-release marker let pip install a beta.
+
+
+- dbt project in three layers: `staging` (one view per connector built by the `staging_observations` macro),
+  `intermediate` (`int_weather__daily`) and `marts` grouped by domain. Mart names Grafana reads are unchanged.
+- `fct_observations` is incremental (merge on silver's `updated_at`, post-hook removes values that became missing)
+  and `agg_daily_metrics` is incremental (delete+insert of the series-days touched since the last build).
+- Index on `silver.observations (updated_at)` for the incremental watermark.
+
+### Upgrade
+
+- Run `make dbt-full-refresh` once: the existing gold tables do not have the columns the incremental models use.
+
 ## [0.2.4] - 2026-10-25
 
 Two weather sources: sea conditions from Open-Meteo Marine and the official AEMET stations.
@@ -148,7 +201,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.1...v0.2.2

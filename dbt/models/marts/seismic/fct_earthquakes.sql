@@ -1,16 +1,18 @@
 -- One row per earthquake: magnitude, depth and distance from Palma.
 with observations as (
     select *
-    from {{ ref('stg_observations') }}
-    where source = 'ign' and quality <> 'missing'
+    from {{ ref('stg_ign__observations') }}
+    where not is_missing
 ),
 
 -- Agencies revise locations: a later run may bring the same event with another origin time.
 -- Silver keeps every version (its key includes ts); gold uses the latest one ingested.
 latest as (
-    select distinct on (entity) entity, ts
+    select distinct on (entity)
+        entity,
+        ts
     from observations
-    order by entity, ingested_at desc, ts desc
+    order by entity asc, ingested_at desc, ts desc
 ),
 
 events as (
@@ -31,9 +33,7 @@ events as (
 
 select
     *,
-    -- Haversine distance to Palma (39.5696 N, 2.6502 E), in km.
-    round((2 * 6371 * asin(sqrt(
-        power(sin(radians(lat - 39.5696) / 2), 2)
-        + cos(radians(39.5696)) * cos(radians(lat)) * power(sin(radians(lon - 2.6502) / 2), 2)
-    )))::numeric, 1)::double precision as distance_to_palma_km
+    -- distance to Palma (var palma: 39.5696 N, 2.6502 E)
+    round({{ haversine_km(var("palma")["lat"], var("palma")["lon"], "lat", "lon") }}::numeric, 1)::double precision
+        as distance_to_palma_km
 from events

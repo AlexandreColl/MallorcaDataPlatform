@@ -1,0 +1,38 @@
+version: 2
+
+# Downstream consumers of the marts. They show up in the lineage graph of `dbt docs` and can be selected:
+# `dbt build --select +exposure:grafana_overview` rebuilds and tests everything the dashboard depends on.
+exposures:
+  - name: grafana_overview
+    label: Grafana · Mallorca · Visión general
+    type: dashboard
+    maturity: high
+    url: http://localhost:3000/d/mallorca-overview
+    description: >
+      The single Grafana dashboard (dashboards/json/mallorca_overview.json): stats, the map of every
+      georeferenced source, charts by metric, entity and source, and the table of every time series, filtered by
+      a multi-select source selector.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_observations')
+      - ref('agg_daily_metrics')
+      - ref('dim_locations')
+      - ref('dim_sources')
+      - ref('air_quality_hourly')
+      - ref('fct_earthquakes')
+      - ref('data_quality_summary')
+      - source('ops', 'ingestion_runs')
+
+  - name: corrections_phase
+    label: Model corrections (planned)
+    type: analysis
+    maturity: low
+    description: >
+      Planned phase 4 (ROADMAP): correct model values with nearby real stations. It needs the bias of the model
+      per station and day, including the altitude effect seen at the mountain stations.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_model_bias_daily')
+      - ref('agg_model_bias_by_station')

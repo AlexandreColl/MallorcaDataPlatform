@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS silver.observations (
 );
 
 CREATE INDEX IF NOT EXISTS ix_observations_metric_ts ON silver.observations (metric, ts);
+-- Watermark of the incremental dbt models (fct_observations, agg_daily_metrics).
+CREATE INDEX IF NOT EXISTS ix_observations_updated_at ON silver.observations (updated_at);
 
 CREATE TABLE IF NOT EXISTS quality.check_results (
     run_id        text        NOT NULL,

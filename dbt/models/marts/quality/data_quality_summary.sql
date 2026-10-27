@@ -5,7 +5,7 @@ with ranked as (
         row_number() over (
             partition by source, rule, target order by created_at desc
         ) as rn
-    from {{ ref('stg_quality_checks') }}
+    from {{ ref('stg_quality__check_results') }}
 )
 
 select

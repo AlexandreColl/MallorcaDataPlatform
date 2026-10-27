@@ -1,0 +1,36 @@
+[sqlfluff]
+dialect = postgres
+# The dbt templater compiles every model with dbt itself (refs, macros, packages, is_incremental).
+templater = dbt
+max_line_length = 120
+# ST06 (column order) and ST07 (no USING): columns are grouped by meaning and USING is used on purpose for
+# same-named join keys.
+exclude_rules = ST06, ST07
+
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = .
+
+[sqlfluff:indentation]
+tab_space_size = 4
+# Jinja blocks ({% if is_incremental() %}) do not add an indentation level.
+template_blocks_indent = false
+
+[sqlfluff:rules:references.keywords]
+# Column names that are part of model contracts and of the Grafana queries.
+ignore_words = year, quarter, month, days, point, stop, model, lines
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = lower
