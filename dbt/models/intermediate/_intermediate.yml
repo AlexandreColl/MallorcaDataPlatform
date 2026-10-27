@@ -15,3 +15,19 @@ models:
         data_tests:
           - value_between:
               arguments: {min_value: 0, max_value: 25}  # 25 on the day clocks go back
+
+  - name: int_station_model_pairs
+    description: Each observation station paired with its nearest Open-Meteo point within `model_pairing_max_km`.
+    columns:
+      - name: station
+        data_tests: [not_null]
+      - name: distance_km
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0, max_value: 25}
+
+  - name: int_weather_extremes__daily
+    description: Island-wide daily extremes (wettest AEMET station, strongest gust, highest wave) and their flags.
+    columns:
+      - name: local_date
+        data_tests: [not_null, unique]
