@@ -23,8 +23,9 @@ def _robust_standardise(features: pd.DataFrame) -> pd.DataFrame:
 class IsolationForestDetector(Detector):
     """Isolation Forest (Liu, Ting and Zhou) on the joint behaviour of the metrics of one entity.
 
-    Each timestamp is a point described, for every metric, by its value, its change since the previous value
-    and how many values in a row it has stayed the same, plus the hour of day for sub-daily series. The forest
+    Each timestamp is a point described, for every metric, by its value, its change since the previous value,
+    how many values in a row it has stayed the same and, for sub-daily series, its distance to the usual value
+    at that hour of day, plus the hour itself. The forest
     isolates points that few random splits are needed to separate: a temperature that does not match the
     humidity or the hour, a jump no other metric shows, or a series that always moves and has stopped (a frozen
     sensor). A rolling spread is not enough for that last case: near the top or bottom of a daily cycle the
@@ -70,6 +71,11 @@ class IsolationForestDetector(Detector):
             columns[metric, "still"] = unchanged.groupby((~unchanged).cumsum()).cumsum().astype(float)
         index = pd.DatetimeIndex(wide.index)
         if len(index) > 1 and pd.Series(index).diff().median() < pd.Timedelta(days=1):
+            # Distance to the usual value at that hour: trees split one feature at a time, so "a daytime
+            # temperature at night" has to be a feature of its own to be seen.
+            hour_median = wide.groupby(index.hour).transform("median")
+            for metric in wide.columns:
+                columns[metric, "vs_hour"] = wide[metric] - hour_median[metric]
             angle = 2 * np.pi * index.hour.to_numpy() / 24
             columns[_TIME, "hour_sin"] = pd.Series(np.sin(angle), index=wide.index)
             columns[_TIME, "hour_cos"] = pd.Series(np.cos(angle), index=wide.index)
