@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 9,
+  "version": 10,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -428,75 +428,91 @@
     },
     {
       "id": 10,
-      "type": "timeseries",
-      "title": "Electricidad de Baleares: demanda e intensidad de CO₂",
-      "description": "REData: demanda horaria (MWh, eje izquierdo) e intensidad diaria de emisiones (tCO₂/MWh, eje derecho). El mix por tecnología está en la tabla de series.",
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 26 },
+      "type": "barchart",
+      "title": "Modelo vs estaciones: error de temperatura",
+      "description": "dbt (fct_model_bias_daily): temperatura media diaria de Open-Meteo menos la medida por cada estación de AEMET y SOCIB en el punto del modelo más cercano, en el rango elegido. Sesgo positivo = el modelo calienta de más. Las 15 estaciones con más error; las de montaña de la Serra de Tramuntana delatan que el modelo no corrige la altitud.",
+      "gridPos": { "h": 11, "w": 12, "x": 0, "y": 26 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "editorMode": "code",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, value AS \"Demanda (MWh)\" FROM gold.fct_observations WHERE 'redata' IN ($source) AND source = 'redata' AND metric = 'electricity_demand' AND $__timeFilter(ts) ORDER BY 1"
-        },
-        {
-          "refId": "B",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT ts AS time, value AS \"Intensidad CO₂ (tCO₂/MWh)\" FROM gold.fct_observations WHERE 'redata' IN ($source) AND source = 'redata' AND metric = 'co2_intensity' AND $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT concat(b.station, ' → ', b.model_point, ' (', round(b.distance_km::numeric, 1), ' km)') AS \"Estación\", avg(b.temperature_mean_bias) AS \"Sesgo medio\", avg(abs(b.temperature_mean_bias)) AS \"Error absoluto medio\" FROM gold.fct_model_bias_daily b WHERE (b.station_source IN ($source) OR 'open_meteo' IN ($source)) AND b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY b.station, b.model_point, b.distance_km ORDER BY 3 DESC LIMIT 15"
         }
       ],
       "fieldConfig": {
-        "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 12, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "orange" } },
+        "defaults": { "unit": "celsius", "decimals": 2, "custom": { "fillOpacity": 80, "lineWidth": 0 } },
         "overrides": [
+          { "matcher": { "id": "byName", "options": "Sesgo medio" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#5794F2" } } ] },
+          { "matcher": { "id": "byName", "options": "Error absoluto medio" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#FF9830" } } ] }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Estación",
+        "barWidth": 0.8,
+        "groupWidth": 0.75,
+        "showValue": "never",
+        "stacking": "none",
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Episodios meteorológicos",
+      "description": "dbt (fct_weather_episodes): días seguidos con lluvia fuerte (≥ 30 mm en alguna estación), rachas ≥ 70 km/h u oleaje ≥ 2,5 m en cualquier punto de la isla, agrupados en episodios. Los 20 más recientes, sin depender del rango de tiempo.",
+      "gridPos": { "h": 11, "w": 12, "x": 12, "y": 26 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT start_date::text AS \"Inicio\", end_date::text AS \"Fin\", days AS \"Días\", replace(replace(replace(episode_type, 'rain', 'lluvia'), 'wind', 'viento'), 'sea', 'mar') AS \"Tipo\", peak_rain_mm AS \"Lluvia máx. (mm)\", concat(peak_rain_station, ' · ', peak_rain_day) AS \"Dónde y cuándo\", max_stations_over_rain_threshold AS \"Estaciones ≥ 30 mm\", peak_gust_kmh AS \"Racha máx. (km/h)\", peak_wave_m AS \"Ola máx. (m)\" FROM gold.fct_weather_episodes ORDER BY start_date DESC LIMIT 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "decimals": 1, "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "Días|Estaciones.*" }, "properties": [ { "id": "decimals", "value": 0 } ] },
           {
-            "matcher": { "id": "byName", "options": "Intensidad CO₂ (tCO₂/MWh)" },
+            "matcher": { "id": "byName", "options": "Lluvia máx. (mm)" },
             "properties": [
-              { "id": "custom.axisPlacement", "value": "right" },
-              { "id": "custom.drawStyle", "value": "points" },
-              { "id": "custom.pointSize", "value": 7 },
-              { "id": "decimals", "value": 3 },
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#8f8f8f" } }
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#C0D8FF", "value": null }, { "color": "#5794F2", "value": 50 }, { "color": "#1F60C4", "value": 80 } ] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Racha máx. (km/h)" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 90 } ] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Ola máx. (m)" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "orange", "value": 2.5 }, { "color": "red", "value": 4 } ] } }
             ]
           }
         ]
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Calidad diaria por fuente",
-      "description": "Porcentaje de valores válidos y no sospechosos de cada fuente por día.",
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 26 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT a.local_date::timestamptz AS time, s.label AS metric, 100.0 * sum(a.n_valid - a.n_suspect) / nullif(sum(a.n_samples), 0) AS value FROM gold.agg_daily_metrics a JOIN gold.dim_sources s USING (source) WHERE a.source IN ($source) AND a.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY 1, 2 ORDER BY 1"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "percent", "min": 0, "max": 100, "decimals": 1, "custom": { "lineWidth": 2, "fillOpacity": 0, "showPoints": "always", "pointSize": 5 } },
-        "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "asc" } }
+      "options": { "showHeader": true, "cellHeight": "sm", "sortBy": [ { "displayName": "Inicio", "desc": true } ] }
     },
     {
       "id": 12,
       "type": "table",
       "title": "Series temporales",
       "description": "Una fila por serie (fuente, entidad y métrica) en el rango; las fuentes con más de 50 entidades (las paradas de EMT) se resumen en una fila por métrica con la media de todas: días con datos, completitud, valores sospechosos y estadísticos diarios. Los sismos, que son eventos, están en el mapa y en el indicador.",
-      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 35 },
+      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 37 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
         {
@@ -539,13 +555,13 @@
       "type": "row",
       "title": "Operación: ejecuciones y reglas de calidad",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
       "panels": [
         {
           "id": 14,
           "type": "table",
           "title": "Últimas ejecuciones",
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 49 },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 51 },
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "targets": [
             {
@@ -575,7 +591,7 @@
           "id": 15,
           "type": "table",
           "title": "Reglas de calidad (último chequeo)",
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 57 },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 59 },
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
           "targets": [
             {
