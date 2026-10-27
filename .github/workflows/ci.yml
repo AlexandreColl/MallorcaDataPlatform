@@ -74,7 +74,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - run: pip install dbt-postgres==1.11.0
+      - run: pip install dbt-core==1.12.6 dbt-postgres==1.11.0  # dbt-core pinned: see the Dockerfile
       - name: Apply warehouse DDL
         run: psql -h localhost -U warehouse -d warehouse -v ON_ERROR_STOP=1 -f core/sql/warehouse.sql
       - name: dbt deps
