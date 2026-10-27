@@ -46,6 +46,7 @@ class AnomalyConfig:
     detectors: dict[str, dict[str, Any]]
     skip_sources: frozenset[str] = frozenset()
     skip_metrics: frozenset[str] = frozenset()
+    evaluation: dict[str, Any] = field(default_factory=dict)  # fault-injection benchmark (core.anomaly.evaluation)
 
     @classmethod
     def load(cls, path: Path) -> AnomalyConfig:
@@ -61,6 +62,7 @@ class AnomalyConfig:
             detectors={name: params or {} for name, params in data["detectors"].items()},
             skip_sources=frozenset(skip.get("sources") or ()),
             skip_metrics=frozenset(skip.get("metrics") or ()),
+            evaluation=data.get("evaluation") or {},
         )
 
     def build(self) -> list[Detector]:

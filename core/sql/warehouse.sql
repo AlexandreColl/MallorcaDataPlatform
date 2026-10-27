@@ -44,6 +44,30 @@ CREATE TABLE IF NOT EXISTS silver.anomalies (
     PRIMARY KEY (source, entity, metric, ts, detector)
 );
 
+-- Fault-injection benchmark of the detectors (core/anomaly/evaluation.py): one row per detector and fault kind,
+-- plus fault = 'all' with the totals and the precision.
+CREATE TABLE IF NOT EXISTS quality.anomaly_evaluations (
+    run_id           text        NOT NULL,
+    detector         text        NOT NULL,
+    fault            text        NOT NULL,
+    source           text        NOT NULL,
+    window_start     date        NOT NULL,
+    window_end       date        NOT NULL,
+    seed             integer     NOT NULL,
+    series           integer     NOT NULL,
+    events           integer     NOT NULL,
+    events_detected  integer     NOT NULL,
+    points           integer     NOT NULL,
+    points_detected  integer     NOT NULL,
+    recall           double precision,
+    event_recall     double precision,
+    false_alarms     integer,                  -- new flags on clean values ('all' row only)
+    baseline_flags   integer,                  -- flags on the clean series: real events, not judged
+    precision        double precision,
+    evaluated_at     timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (run_id, detector, fault)
+);
+
 CREATE TABLE IF NOT EXISTS quality.check_results (
     run_id        text        NOT NULL,
     source        text        NOT NULL,

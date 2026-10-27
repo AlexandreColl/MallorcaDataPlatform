@@ -83,7 +83,8 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 | ⬜ | Detector Isolation Forest (scikit-learn) multivariable por localidad |
 | ✅ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
 | ✅ | Tarea `detect_anomalies` en el DAG tras la carga silver (`all_done`); repuntúa los últimos 14 días y es idempotente |
-| ⬜ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, huecos) para medir precisión/recall de cada detector |
+| ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 82 % |
+| ⬜ | Detector de valores repetidos (sensor congelado), el punto ciego del z-score |
 | ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
 
 ## Fase 4 · v0.4.0 — Correcciones con fuentes de apoyo
