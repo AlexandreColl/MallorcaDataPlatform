@@ -12,6 +12,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   31 days for daily ones). Flags go to `silver.anomalies` and never change silver.
 - DAG task `detect_anomalies` after ingestion (`all_done`), re-scoring at least the last `rescore_days` and replacing
   its previous result; `config/anomaly.yaml`, `python -m core.cli detect` and `make detect`.
+- Fault-injection benchmark: `FaultInjector` (spikes, frozen sensors, drifts on Open-Meteo series, seeded) and the
+  precision and recall of every detector, by value and by fault, in `quality.anomaly_evaluations`
+  (`python -m core.cli evaluate`, `make evaluate`). Robust z-score: 90 % of spikes, 22 % of drifts, no frozen
+  sensors, 82 % precision.
 - Grafana: station vs model temperature error and weather episodes panels, from the dbt marts.
 
 ### Removed

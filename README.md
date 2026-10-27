@@ -202,7 +202,32 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
   (sismos y horarios de EMT; precipitación, insolación y dirección del oleaje). A mano: `make detect DAYS=30`.
 
 Con 30 días reales marca ~1 % de 103 000 valores, sobre todo episodios de verdad (el temporal del 18-19 de octubre,
-mar de fondo en Alcúdia) y los picos nocturnos de NO₂; medir su precisión con fallos inyectados es el siguiente paso.
+mar de fondo en Alcúdia) y los picos nocturnos de NO₂.
+
+### Medir los detectores con fallos inyectados
+
+Las anomalías reales no vienen etiquetadas, así que no se puede saber cuántas se escapan. `make evaluate` crea esa
+verdad: toma las series recientes de Open-Meteo (modelo, completas y suaves), les **inyecta fallos conocidos** con
+una semilla fija y puntúa cada serie limpia y corrompida (`core/anomaly/faults.py` y `evaluation.py`):
+
+| Fallo | Qué simula | Forma |
+|---|---|---|
+| `spike` | lectura errónea, coma decimal | un valor ± 4-8 σ robustas |
+| `frozen` | sensor congelado, payload repetido | 6-24 horas con el último valor bueno |
+| `drift` | sensor que se descalibra | rampa de 2-4 σ durante 48-120 horas |
+
+Un aviso sobre un valor inyectado es un acierto; uno nuevo sobre un valor limpio, una falsa alarma. Lo que el
+detector ya marcaba en la serie limpia (episodios reales) se cuenta aparte y no penaliza. Los huecos no se inyectan:
+un valor que falta no se puede marcar, y ya los cuenta la regla `gaps`. Resultados en
+`quality.anomaly_evaluations`; con 54 series de 30 días:
+
+| Detector | Picos | Derivas | Congelados | Precisión |
+|---|---|---|---|---|
+| `robust_zscore` | 90 % | 22 % de los fallos (1 % de los valores) | 0 % | 82 % |
+
+El z-score robusto ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal: un sensor
+congelado en 18 °C no está lejos de la mediana, y una deriva lenta arrastra la mediana con ella. Eso es lo que deben
+cubrir los siguientes detectores (Isolation Forest multivariable, detector de valores repetidos).
 
 ## Grafana
 
