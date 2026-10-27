@@ -219,7 +219,8 @@ seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su 
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · dbt build sobre Postgres vacío · build de la imagen + test de integridad del DAG |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/) y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` | Release con notas del CHANGELOG + imagen en GHCR |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |
