@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml)
 [![E2E](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml/badge.svg)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml)
+[![dbt docs](https://img.shields.io/badge/dbt_docs-lineage-FF694B)](https://alexandrecoll.github.io/MallorcaDataPlatform/)
 ![Python](https://img.shields.io/badge/python-3.14-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
 ![Spark](https://img.shields.io/badge/pyspark-4.2-E25A1C)
@@ -218,7 +219,8 @@ seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su 
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · dbt build sobre Postgres vacío · build de la imagen + test de integridad del DAG |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/) y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` | Release con notas del CHANGELOG + imagen en GHCR |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |

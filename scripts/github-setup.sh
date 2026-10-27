@@ -66,4 +66,11 @@ apply() {
 apply "protect-develop" "$(ruleset protect-develop develop "$CI_CHECKS")"
 apply "protect-main" "$(ruleset protect-main main "$CI_CHECKS, {\"context\": \"e2e\"}")"
 
+# GitHub Pages served by the dbt-docs workflow (build_type workflow, no gh-pages branch).
+if gh api "repos/$REPO/pages" >/dev/null 2>&1; then
+  gh api -X PUT "repos/$REPO/pages" -f build_type=workflow >/dev/null && echo "pages: built by GitHub Actions"
+else
+  gh api -X POST "repos/$REPO/pages" -f build_type=workflow >/dev/null && echo "pages: enabled (GitHub Actions)"
+fi
+
 echo "done: https://github.com/$REPO/settings/rules"

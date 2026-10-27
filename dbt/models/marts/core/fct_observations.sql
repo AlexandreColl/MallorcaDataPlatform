@@ -35,10 +35,11 @@ select
     updated_at
 from {{ ref('stg_silver__observations') }}
 {% if is_incremental() %}
-where updated_at > (
-    select coalesce(max(updated_at), '-infinity'::timestamptz) - interval '{{ var("incremental_lookback") }}'
-    from {{ this }}
-)
+where
+    updated_at > (
+        select coalesce(max(built.updated_at), '-infinity'::timestamptz) - interval '{{ var("incremental_lookback") }}'
+        from {{ this }} as built
+    )
 {% else %}
 where not is_missing
 {% endif %}

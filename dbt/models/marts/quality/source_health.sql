@@ -11,7 +11,7 @@ last_run as (
         finished_at as last_run_at,
         error_type as last_error_type
     from runs
-    order by source, started_at desc
+    order by source asc, started_at desc
 ),
 
 stats as (
@@ -26,7 +26,10 @@ stats as (
 ),
 
 data as (
-    select source, max(ts) as latest_observation_ts, count(*) as observations
+    select
+        source,
+        max(ts) as latest_observation_ts,
+        count(*) as observations
     from {{ ref('fct_observations') }}
     group by source
 )

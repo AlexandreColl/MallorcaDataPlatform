@@ -131,3 +131,26 @@ no en Grafana.
 make dbt                # source freshness (avisos) + dbt build
 make dbt-full-refresh   # reconstruye también los incrementales
 ```
+
+## Exposures
+
+`models/exposures.yml` declara quién consume los marts: el dashboard de Grafana (`grafana_overview`) y la futura
+fase de correcciones (`corrections_phase`). Aparecen en el grafo de linaje de la documentación y se pueden
+seleccionar: `dbt build --select +exposure:grafana_overview` reconstruye y prueba todo lo que lee el dashboard.
+
+## Documentación publicada
+
+El workflow `dbt-docs.yml` genera `dbt docs` (modelos, columnas, tests y el grafo de linaje con las exposures) en
+cada push a `develop` y lo publica en GitHub Pages:
+**<https://alexandrecoll.github.io/MallorcaDataPlatform/>**. También guarda el `manifest.json` de `develop`, que
+usa el slim CI.
+
+## CI de dbt
+
+- **sqlfluff** con el templater de dbt (compila cada modelo con dbt: refs, macros, paquetes e incrementales). Los
+  avisos salen como anotaciones en el PR. Reglas en `.sqlfluff`; se excluyen ST06 (orden de columnas) y ST07
+  (`USING`), que son decisiones de estilo del proyecto.
+- **Slim CI**: en un PR, `dbt build --select +state:modified+ --state state` construye solo lo que cambia, sus
+  hijos y, como el warehouse de CI está vacío, sus padres. El estado de referencia es el manifest de `develop`. Si no
+  existe (primera vez o artefacto caducado), se construye todo.
+- El build se ejecuta dos veces para que también corra el camino incremental.

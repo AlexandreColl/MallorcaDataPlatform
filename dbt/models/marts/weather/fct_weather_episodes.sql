@@ -20,7 +20,7 @@ peaks as (
         max_rain_station as peak_rain_station,
         local_date as peak_rain_day
     from islands
-    order by island, max_rain_mm desc nulls last
+    order by island asc, max_rain_mm desc nulls last
 )
 
 select
