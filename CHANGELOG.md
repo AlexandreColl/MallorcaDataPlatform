@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Dependencies: PySpark 4.2.1 (still Hadoop 3.5.0, so hadoop-aws 3.5.0 and AWS SDK 2.35.4 stay), ruff 0.17.3, and
+  in CI pandas 3.1.0, pyarrow 26.0.0 and boto3 1.43.120 (the image keeps the versions of the Airflow 3.3.2
+  constraints). The AWS SDK bundle is not bumped to 2.57: it must match the hadoop-aws build.
+
 ## [0.3.0] - 2026-10-27
 
 Anomaly detection: two detectors that flag silver values without changing them, measured against injected faults.
