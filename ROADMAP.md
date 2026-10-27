@@ -51,7 +51,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | El catálogo del IGN es un formulario web (ignora los filtros sin sesión) y su GeoJSON solo cubre 30 días: se leen las localizaciones del IGN desde el **FDSN de EMSC** (estándar, sin clave). Zona muy tranquila: 57 sismos del IGN en 2020-2026 incluso ampliando la caja 1° alrededor de la isla. Núcleo ampliado: `frequency: event` (sin regla de huecos, ventanas vacías válidas) y `fct_earthquakes` en gold |
 | ✅ | v0.2.3 | **EMT Palma** (GTFS estático) | Feed abierto en el GitHub de EMT (el NAP exige registro). En lugar de una dimensión estática, una serie diaria por parada (autobuses programados y líneas) a partir del calendario y de `frequencies.txt`. Junto con: **robustez** (una fuente caída no para el DAG, reintentos con espera creciente, recuperación de días perdidos, E2E que avisa de APIs caídas) y **dashboard único** con selector de fuentes |
 | ✅ | v0.2.4 | **Open-Meteo Marine** (oleaje y mar) | Sin clave. Los 8 puntos de la costa devuelven datos completos y hay histórico. Subclase del conector de Open-Meteo con sus propios puntos de mar (las localidades de la región están en el interior) |
-| ✅ | v0.2.5 | **AEMET OpenData** | Clave gratuita en `.env`. Las observaciones horarias solo cubren las últimas horas: se usan los valores climatológicos diarios (33 estaciones). API en dos pasos, máximo 6 meses y 25 estaciones por petición, publicación con 2-3 días de retraso. Núcleo ampliado: `lag_days` y selección por defecto que omite conectores sin su clave |
+| ✅ | v0.2.4 | **AEMET OpenData** | Clave gratuita en `.env`. Las observaciones horarias solo cubren las últimas horas: se usan los valores climatológicos diarios (33 estaciones). API en dos pasos, máximo 6 meses y 25 estaciones por petición, publicación con 2-3 días de retraso. Núcleo ampliado: `lag_days` y selección por defecto que omite conectores sin su clave |
 | ⬜ | v0.2.6 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…) |
 | ⬜ | v0.2.7 | **aqicn** | Requiere `AQICN_TOKEN`. Alternativa a OpenAQ para estaciones reales |
 | ⬜ | — | Plantilla `make new-connector NAME=x` que genere la carpeta, YAML y test vacíos |
@@ -60,7 +60,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 
 Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtures reales · tests · aparece en Grafana · sección en README · ≤ 1 día de trabajo.
 
-## Fase 2b · v0.2.5–v0.2.6 — dbt avanzado
+## Fase 2b · v0.2.5 — dbt avanzado
 
 | Estado | Tarea |
 |---|---|
@@ -78,11 +78,11 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Interfaz `Detector` reutilizable en `core/anomaly/` (entrada: serie silver; salida: score + etiqueta) |
-| ⬜ | Detector estadístico: z-score robusto (mediana/MAD) sobre ventana móvil, por serie |
+| ✅ | Interfaz `Detector` reutilizable en `core/anomaly/` (entrada: serie silver; salida: score + etiqueta): pandas por serie, repartida con `applyInPandas` |
+| ✅ | Detector estadístico: z-score robusto (mediana/MAD) sobre ventana móvil, por serie; 7 días en series horarias y 31 en diarias |
 | ⬜ | Detector Isolation Forest (scikit-learn) multivariable por localidad |
-| ⬜ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
-| ⬜ | Tarea `detect_anomalies` en el DAG tras la carga silver |
+| ✅ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
+| ✅ | Tarea `detect_anomalies` en el DAG tras la carga silver (`all_done`); repuntúa los últimos 14 días y es idempotente |
 | ⬜ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, huecos) para medir precisión/recall de cada detector |
 | ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
 
