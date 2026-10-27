@@ -7,6 +7,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- dbt exposures: the Grafana dashboard and the planned corrections phase, in the lineage graph and selectable
+  (`+exposure:grafana_overview`).
+- `dbt docs` published to GitHub Pages on every push to `develop` (workflow `dbt-docs.yml`), which also keeps the
+  `develop` manifest; `scripts/github-setup.sh` enables Pages with the Actions source.
+- Slim CI: pull requests build `+state:modified+` against the `develop` manifest (full build when there is none).
+- `sqlfluff` 4.4 with the dbt templater in CI, reported as PR annotations; existing models fixed.
+
 - Station vs model: `int_station_model_pairs` (nearest Open-Meteo point within 25 km, `haversine_km` macro),
   `fct_model_bias_daily` and `agg_model_bias_by_station` (bias, MAE, RMSE, rain bias and rainy-day agreement).
 - Weather episodes: `int_weather_extremes__daily` and `fct_weather_episodes` (consecutive days of heavy rain,

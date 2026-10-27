@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml)
 [![E2E](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml/badge.svg)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml)
+[![dbt docs](https://img.shields.io/badge/dbt_docs-lineage-FF694B)](https://alexandrecoll.github.io/MallorcaDataPlatform/)
 ![Python](https://img.shields.io/badge/python-3.14-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
 ![Spark](https://img.shields.io/badge/pyspark-4.2-E25A1C)

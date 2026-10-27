@@ -72,7 +72,7 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 | ✅ | Snapshot SCD2 de estaciones, puntos de modelo y paradas (cambios de ubicación) |
 | ✅ | Paquetes `dbt_utils` / `dbt_expectations` instalados en la imagen, contratos (`contract: enforced`) en 5 marts y 3 `unit_tests` de dbt (EAQI, Haversine, episodios) |
 | ✅ | Sesgo estación vs modelo por día y por estación; episodios meteorológicos con *gaps and islands* (lluvia AEMET + rachas + oleaje) |
-| ⬜ | Exposures (Grafana), `dbt docs` en GitHub Pages, slim CI (`state:modified+`) y `sqlfluff` |
+| ✅ | Exposures (Grafana y fase de correcciones), `dbt docs` en GitHub Pages, slim CI (`+state:modified+` contra el manifest de `develop`) y `sqlfluff` con el templater de dbt |
 
 ## Fase 3 · v0.3.0 — Detección de anomalías
 
