@@ -1,14 +1,14 @@
--- Calendar dimension: one row per day from `date_spine_start` to a year ahead.
+-- Calendar dimension: one row per day from `date_spine_start` to a year ahead (dbt_utils.date_spine).
 with days as (
-    select generate_series(
-        '{{ var("date_spine_start") }}'::date,
-        (current_date + interval '1 year')::date,
-        interval '1 day'
-    )::date as date_day
+    {{ dbt_utils.date_spine(
+        datepart="day",
+        start_date="cast('" ~ var('date_spine_start') ~ "' as date)",
+        end_date="cast(current_date + interval '1 year' as date)",
+    ) }}
 )
 
 select
-    date_day,
+    date_day::date as date_day,
     extract(year from date_day)::int as year,
     extract(quarter from date_day)::int as quarter,
     extract(month from date_day)::int as month,
