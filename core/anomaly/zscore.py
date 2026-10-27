@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from core.anomaly.base import SCORE_COLUMNS, Detector
+from core.anomaly.base import SCORE_COLUMNS, UnivariateDetector
 
 # Scales the MAD to the standard deviation of normally distributed data, so thresholds read like z-scores.
 _MAD_TO_SIGMA = 0.6745
@@ -16,7 +16,7 @@ def _mad(values: np.ndarray) -> float:
     return float(np.median(np.abs(values - np.median(values))))
 
 
-class RobustZScore(Detector):
+class RobustZScore(UnivariateDetector):
     """Modified z-score of Iglewicz and Hoaglin over a centred rolling window.
 
     Median and MAD barely move when the window contains the spike being looked for, unlike the mean and
