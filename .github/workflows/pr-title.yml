@@ -33,6 +33,7 @@ jobs:
           scopes: |
             core
             connector
+            anomaly
             airflow
             dbt
             grafana
