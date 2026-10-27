@@ -6,7 +6,8 @@ rescore_days: 14
 
 detectors:
   robust_zscore:
-    window: 7D        # centred rolling window around each value
+    window: 7D        # centred rolling window around each value of hourly series
+    daily_window: 31D # the same for daily series (AEMET, REData): a week of daily values is too few
     threshold: 3.5    # |modified z-score| above which a value is flagged (Iglewicz & Hoaglin)
     min_points: 5     # windows with fewer values are not scored
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from functools import partial
@@ -33,6 +35,7 @@ ANOMALY_SCHEMA = (
     "source string, entity string, metric string, ts timestamp, detector string,"
     " value double, expected double, score double, threshold double"
 )
+_PANDAS3_WARNING = "PySpark does not yet fully support pandas"
 
 
 @dataclass(frozen=True)
@@ -133,6 +136,11 @@ def detect_anomalies(
            AND ts >= '{read_from.isoformat()}' AND ts < '{window.end_dt_exclusive().isoformat()}'
     """  # noqa: S608 - every interpolated value comes from the registry, the config or the clock
 
+    # Airflow 3.3's constraints pin pandas 3, which PySpark 4.2 has not certified yet and warns about in every
+    # Python worker. applyInPandas is covered by the tests, so the warning is silenced in the driver and, through
+    # the environment the JVM passes on, in the workers.
+    warnings.filterwarnings("ignore", _PANDAS3_WARNING, FutureWarning)
+    os.environ.setdefault("PYTHONWARNINGS", f"ignore:{_PANDAS3_WARNING}:FutureWarning")
     spark = build_spark(settings, app_name="mdp-anomalies")
     observations = (
         spark.read.format("jdbc")

@@ -62,6 +62,23 @@ def test_too_few_points_are_not_scored():
     assert scored["score"].isna().all()
 
 
+def test_daily_series_use_the_daily_window():
+    detector = RobustZScore(window="7D", daily_window="31D")
+    daily = pd.Series(pd.date_range("2026-09-01", periods=40, freq="D", tz="UTC"))
+    assert detector.window_for(daily) == "31D"
+    assert detector.window_for(hourly(temperature())["ts"]) == "7D"
+    assert detector.context == pd.Timedelta(days=15, hours=12)
+
+
+def test_a_month_of_daily_values_raises_fewer_false_alarms_than_a_week():
+    """Pure noise has no anomalies: with 7 daily values the MAD swings and ordinary days get flagged."""
+    ts = pd.date_range("2026-01-01", periods=365, freq="D", tz="UTC")
+    series = pd.DataFrame({"ts": ts, "value": 24 + np.random.default_rng(3).normal(0, 1.5, ts.size)})
+    week = RobustZScore(daily_window="7D").score(series)["is_anomaly"].sum()
+    month = RobustZScore(daily_window="31D").score(series)["is_anomaly"].sum()
+    assert month < week / 2
+
+
 def test_threshold_controls_sensitivity():
     values = temperature()
     values[120] = 28.0  # unusual but not extreme
@@ -72,7 +89,7 @@ def test_threshold_controls_sensitivity():
 
 
 def test_context_is_half_the_centred_window():
-    assert RobustZScore(window="7D").context == pd.Timedelta(days=3, hours=12)
+    assert RobustZScore(window="7D", daily_window="1D").context == pd.Timedelta(days=3, hours=12)
 
 
 def test_score_series_keeps_only_anomalies_inside_the_window():
