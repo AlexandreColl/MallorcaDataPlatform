@@ -54,7 +54,7 @@ flowchart LR
 |---|---|---|
 | **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json` | Respuesta de la API sin tocar. Clave determinista + versionado del bucket: relanzar no duplica y el crudo anterior se conserva |
 | **silver** | `s3://silver/observations/source=…/date=…` y `silver.observations` | Esquema común: `source, entity, metric, ts, value, unit, quality, lat, lon` (+ `quality_reasons`, `run_id`, `ingested_at`) |
-| **gold** | esquema `gold` (dbt) | `fct_observations`, `agg_daily_metrics`, `air_quality_hourly` (índice europeo EAQI), `dim_locations`, `data_quality_summary` |
+| **gold** | esquema `gold` (dbt: staging → intermediate → marts, [detalle](dbt/README.md)) | hechos incrementales (`fct_observations`, `agg_daily_metrics`), marts por dominio (tiempo diario, mar, electricidad, bus, calidad del aire, sismos) y salud de las fuentes |
 
 ### Decisiones de diseño
 
@@ -207,7 +207,7 @@ seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su 
 ├── connectors/<fuente>/  # connector.yaml + extractor.py + tests/fixtures
 ├── config/regions/       # bbox y puntos de cada región
 ├── dags/                 # DAG de Airflow
-├── dbt/                  # modelos gold y tests
+├── dbt/                  # staging → intermediate → marts, tests y seeds (ver dbt/README.md)
 ├── dashboards/           # provisioning y dashboards de Grafana
 ├── docker/               # Dockerfile de Airflow+Spark+dbt, init de Postgres
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)

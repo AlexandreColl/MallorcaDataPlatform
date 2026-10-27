@@ -5,6 +5,30 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- dbt marts by domain: `fct_weather_daily` (AEMET and SOCIB observations next to the Open-Meteo model on common
+  columns), `fct_sea_conditions_hourly`, `fct_electricity_daily` (renewable share and net import through the link
+  with the mainland), `fct_bus_network_daily`, `source_health` (last run, failure rate, data age per source) and
+  `dim_date`.
+- `dbt source freshness` per connector: silver is declared once per connector (same table, `filter`) with its own
+  threshold (AEMET: 5 days, IGN: none). The DAG runs it before the build, as warnings only.
+- Custom generic dbt tests `unique_combination` (model grain) and `value_between`, plus `relationships` to
+  `dim_sources`.
+- `make dbt-full-refresh`.
+
+### Changed
+
+- dbt project in three layers: `staging` (one view per connector built by the `staging_observations` macro),
+  `intermediate` (`int_weather__daily`) and `marts` grouped by domain. Mart names Grafana reads are unchanged.
+- `fct_observations` is incremental (merge on silver's `updated_at`, post-hook removes values that became missing)
+  and `agg_daily_metrics` is incremental (delete+insert of the series-days touched since the last build).
+- Index on `silver.observations (updated_at)` for the incremental watermark.
+
+### Upgrade
+
+- Run `make dbt-full-refresh` once: the existing gold tables do not have the columns the incremental models use.
+
 ## [0.2.4] - 2026-10-25
 
 Two weather sources: sea conditions from Open-Meteo Marine and the official AEMET stations.

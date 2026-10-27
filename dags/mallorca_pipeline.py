@@ -32,9 +32,7 @@ from core.connectors import registry
 DBT = "/opt/dbt-venv/bin/dbt"
 DBT_ARGS = "--profiles-dir . --target-path /tmp/dbt/target --log-path /tmp/dbt/logs"
 # Freshness only warns (a late source is visible in the logs and in gold.source_health) and never blocks the build.
-DBT_COMMAND = (
-    f"cd /opt/project/dbt && ({DBT} source freshness {DBT_ARGS} || true) && {DBT} build {DBT_ARGS}"
-)
+DBT_COMMAND = f"cd /opt/project/dbt && ({DBT} source freshness {DBT_ARGS} || true) && {DBT} build {DBT_ARGS}"
 
 
 @dag(
