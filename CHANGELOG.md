@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-27
+
+Anomaly detection: two detectors that flag silver values without changing them, measured against injected faults.
+Also two Grafana panels built on the dbt marts, and the new open-data sources probed for the roadmap.
+
 ### Added
 
 - Anomaly detection (phase 3, first block): `Detector` interface in `core/anomaly/` (pandas, distributed per series
@@ -15,7 +20,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Fault-injection benchmark: `FaultInjector` (spikes, frozen sensors, drifts on Open-Meteo series, seeded) and the
   precision and recall of every detector, by value and by fault, in `quality.anomaly_evaluations`
   (`python -m core.cli evaluate`, `make evaluate`). Robust z-score: 90 % of spikes, 22 % of drifts, no frozen
-  sensors, 82 % precision.
+  sensors, 80 % precision.
 - Isolation Forest detector (scikit-learn), multivariate per location: value, change, run of unchanged values and
   distance to the usual value at that hour for every metric, plus the hour of day; flags 5 % of each location's
   timestamps and blames the metric that strays furthest. Catches 52 % of frozen sensors (z-score 0 %) and 49 % of
@@ -23,6 +28,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   per-metric ones) and the runner groups by source and entity.
 - Clock-shift fault (values from 12 hours earlier) in the benchmark; neither detector catches more than 6 %.
 - Grafana: station vs model temperature error and weather episodes panels, from the dbt marts.
+
+### Changed
+
+- pandas, pyarrow and scikit-learn are explicit runtime dependencies (already in the image through the Airflow
+  constraints).
+- Roadmap: CTM/TIB (GTFS of the whole island) and Dataestur (tourism) probed and planned as connectors; GOIB air
+  quality is history only (its CSVs end in 2019).
+- PR titles accept the `anomaly` scope.
 
 ### Removed
 
@@ -225,7 +238,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.2...v0.2.3
