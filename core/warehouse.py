@@ -146,6 +146,51 @@ class Warehouse:
                 ],
             )
 
+    def replace_anomalies(
+        self,
+        detector: str,
+        sources: list[str],
+        window: TimeWindow,
+        rows: list[tuple],
+        run_id: str,
+    ) -> int:
+        """Replace what ``detector`` flagged for ``sources`` in ``window`` (one transaction). Returns the row count.
+
+        Rows follow ``core.anomaly.runner.ANOMALY_COLUMNS``. A value that is no longer anomalous after
+        re-scoring (e.g. its neighbours arrived late) disappears instead of lingering.
+        """
+        with self.connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM silver.anomalies WHERE detector = %s AND source = ANY(%s) AND ts >= %s AND ts < %s",
+                (detector, sources, window.start_dt(), window.end_dt_exclusive()),
+            )
+            cur.executemany(
+                """
+                INSERT INTO silver.anomalies
+                    (source, entity, metric, ts, detector, value, expected, score, threshold, run_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                [(*row, run_id) for row in rows],
+            )
+        return len(rows)
+
+    def record_evaluation(self, run_id: str, seed: int, rows: list[dict]) -> None:
+        """Store a detector benchmark (rows of ``core.anomaly.evaluation.Evaluation.rows``); re-runs overwrite."""
+        with self.connect() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM quality.anomaly_evaluations WHERE run_id = %s", (run_id,))
+            cur.executemany(
+                """
+                INSERT INTO quality.anomaly_evaluations
+                    (run_id, detector, fault, source, window_start, window_end, seed, series, events,
+                     events_detected, points, points_detected, recall, event_recall, false_alarms,
+                     baseline_flags, precision)
+                VALUES (%(run_id)s, %(detector)s, %(fault)s, %(source)s, %(window_start)s, %(window_end)s,
+                        %(seed)s, %(series)s, %(events)s, %(events_detected)s, %(points)s, %(points_detected)s,
+                        %(recall)s, %(event_recall)s, %(false_alarms)s, %(baseline_flags)s, %(precision)s)
+                """,
+                [{**row, "run_id": run_id, "seed": seed} for row in rows],
+            )
+
     def last_loaded_day(self, source: str, region: str) -> date | None:
         """Last day covered by a successful run of ``source`` for ``region`` (None if it never succeeded)."""
         with self.connect() as conn:

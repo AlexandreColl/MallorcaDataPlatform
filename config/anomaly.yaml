@@ -1,0 +1,38 @@
+# Anomaly detection. Detectors only flag values (silver.anomalies); they never change silver.observations.
+
+# Every run re-scores at least the last N days, so values published late (AEMET) or recovered by catch-up are
+# scored once their neighbours exist. Re-scoring a day replaces its previous result.
+rescore_days: 14
+
+detectors:
+  robust_zscore:
+    window: 7D        # centred rolling window around each value of hourly series
+    daily_window: 31D # the same for daily series (AEMET, REData): a week of daily values is too few
+    threshold: 3.5    # |modified z-score| above which a value is flagged (Iglewicz & Hoaglin)
+    min_points: 5     # windows with fewer values are not scored
+  isolation_forest:   # every metric of a location together: value, change and stillness of each, plus hour of day
+    contamination: 0.05  # share of each location's timestamps flagged: about as many values as the z-score flags
+                         # (one metric per timestamp); scikit-learn's "auto" flags ~15 % of clean data
+    n_estimators: 200
+    min_points: 48       # locations with fewer complete timestamps are not scored
+    min_coverage: 0.8    # metrics present at fewer timestamps (another frequency) are left out of the forest
+    random_state: 42     # same forest on every run
+
+skip:
+  # Events and timetables, not measurements of a continuous quantity.
+  sources: [ign, emt_palma]
+  # Zero most of the time (any rain or sunshine change would stand out) or circular (350° and 10° are close).
+  metrics: [precipitation, precipitation_sum, sunshine_duration, wave_direction]
+
+# Fault-injection benchmark (`make evaluate`): corrupts recent series of one source with known faults and measures
+# the precision and recall of every detector. Open-Meteo is model output, complete and smooth, so the injected
+# faults are the only errors that matter; what a detector already flags on the clean series is counted apart.
+evaluation:
+  source: open_meteo
+  days: 30
+  seed: 42
+  faults:   # per series; length in values (hours for Open-Meteo), size in robust standard deviations of the series
+    spike:  {count: 3, size: [4, 8]}
+    frozen: {count: 1, length: [6, 24]}
+    drift:  {count: 1, length: [48, 120], size: [2, 4]}
+    shift:  {count: 1, length: [6, 24], lag: 12}   # clock or time-zone error: values from 12 hours earlier

@@ -6,3 +6,6 @@ boto3
 psycopg[binary]
 requests
 PyYAML
+pandas
+pyarrow
+scikit-learn

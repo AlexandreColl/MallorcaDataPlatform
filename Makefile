@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -52,6 +52,12 @@ run: ## Trigger the Airflow DAG: make run CONNECTORS=open_meteo,redata DAYS=30
 
 run-local: ## Run the pipeline without Airflow (CLI inside the image)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli run --connectors $(subst $(comma),$(space),$(CONNECTORS)) --days $(DAYS) --region $(REGION)
+
+detect: ## Flag anomalies in the recent silver values: make detect DAYS=30 (at least rescore_days)
+	$(COMPOSE) exec airflow-scheduler python -m core.cli detect --days $(DAYS)
+
+evaluate: ## Measure the anomaly detectors against injected faults (precision and recall)
+	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate
 
 connectors: ## List available connectors and regions
 	$(COMPOSE) exec airflow-scheduler python -m core.cli list

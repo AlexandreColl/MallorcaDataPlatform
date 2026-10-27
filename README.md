@@ -181,8 +181,65 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 | `duplicate` | fila | misma (fuente, entidad, métrica, ts) repetida → se colapsa conservando el valor no nulo |
 | `gaps` | serie | pasos de tiempo ausentes según la `frequency` del conector (no se aplica a fuentes de eventos) |
 
-Resultados por ejecución en `quality.check_results`; en Grafana, la gráfica *Calidad diaria por fuente* y la fila
-plegada *Operación*.
+Resultados por ejecución en `quality.check_results`; en Grafana, el % de sospechosos, la completitud de la tabla de
+series y la fila plegada *Operación*.
+
+## Detección de anomalías
+
+Las reglas de calidad descartan lo imposible (una humedad del 140 %); los detectores de `core/anomaly/` buscan lo
+improbable: valores posibles que no encajan con su propia serie. Solo **marcan**: escriben en `silver.anomalies`
+(valor, valor esperado, puntuación, umbral, `run_id`) y nunca modifican `silver.observations`.
+
+- **Interfaz `Detector`**: puntúa todas las series de una entidad (localidad, estación o punto) en pandas, así se
+  prueba sin Spark; el runner la reparte por entidades con `groupBy().applyInPandas()`. Los detectores univariantes
+  (`UnivariateDetector`) miran cada métrica por separado; los multivariantes, cómo se mueven juntas.
+- **`robust_zscore`**: z-score modificado de Iglewicz y Hoaglin, `0,6745 · (x − mediana) / MAD` sobre una ventana
+  móvil centrada (7 días en series horarias, 31 en diarias). La mediana y la MAD apenas se mueven con el pico que
+  buscan, al contrario que la media y la desviación típica. Una ventana casi constante (MAD = 0) no se puntúa.
+- **`isolation_forest`** (scikit-learn): un bosque por entidad sobre todas sus métricas a la vez. Cada instante se
+  describe, por métrica, con su valor, su cambio, cuántos valores seguidos lleva igual y la distancia al valor
+  habitual a esa hora, más la propia hora. Aísla los instantes raros (un 5 % de cada entidad, `contamination`) y
+  culpa a la métrica cuyas variables más se alejan de su mediana. Necesita 48 instantes completos: las series
+  diarias de AEMET no llegan.
+- Tarea `detect_anomalies` del DAG tras la ingesta, también si alguna fuente falló. Cada ejecución vuelve a puntuar
+  al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
+  recuperan se juzgan con sus vecinos, y es idempotente.
+- Configuración en [config/anomaly.yaml](config/anomaly.yaml): parámetros de cada detector y lo que no se analiza
+  (sismos y horarios de EMT; precipitación, insolación y dirección del oleaje). A mano: `make detect DAYS=30`.
+
+Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
+de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.
+
+### Medir los detectores con fallos inyectados
+
+Las anomalías reales no vienen etiquetadas, así que no se puede saber cuántas se escapan. `make evaluate` crea esa
+verdad: toma las series recientes de Open-Meteo (modelo, completas y suaves), les **inyecta fallos conocidos** con
+una semilla fija y puntúa cada serie limpia y corrompida (`core/anomaly/faults.py` y `evaluation.py`):
+
+| Fallo | Qué simula | Forma |
+|---|---|---|
+| `spike` | lectura errónea, coma decimal | un valor ± 4-8 σ robustas |
+| `frozen` | sensor congelado, payload repetido | 6-24 horas con el último valor bueno |
+| `drift` | sensor que se descalibra | rampa de 2-4 σ durante 48-120 horas |
+| `shift` | reloj o zona horaria mal | 6-24 horas con los valores de 12 horas antes |
+
+Un aviso sobre un valor inyectado es un acierto; uno nuevo sobre un valor limpio, una falsa alarma. Lo que el
+detector ya marcaba en la serie limpia (episodios reales) se cuenta aparte y no penaliza. Los huecos no se inyectan:
+un valor que falta no se puede marcar, y ya los cuenta la regla `gaps`. Resultados en
+`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en 54 series de 6 localidades, 30 días:
+
+| Detector | Picos | Derivas | Congelados | Desfase | Precisión |
+|---|---|---|---|---|---|
+| `robust_zscore` | 90 % | 22 % | 0 % | 6 % | 80 % |
+| `isolation_forest` | 49 % | 11 % | 52 % | 6 % | 85 % |
+
+Son complementarios. El z-score ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal:
+un sensor congelado en 18 °C está cerca de la mediana. El bosque ve que una serie que siempre se mueve se ha
+parado (con la variable "valores seguidos iguales"; una dispersión móvil no basta, porque cerca del máximo o el
+mínimo diario casi no hay dispersión de todos modos), pero con su cupo del 5 % se deja la mitad de los picos. El
+desfase horario se escapa a los dos: en un modelo suave, los valores de 12 horas antes parecen una noche templada.
+`contamination` mueve el equilibrio: con 0,10 el bosque llega al 73 % de picos y 74 % de congelados con un 81 % de
+precisión.
 
 ## Grafana
 
@@ -194,7 +251,9 @@ que filtra todo lo demás, más los selectores de métrica y entidad:
    (gotas con la altura de ola), estaciones AEMET (sol y nube, último día publicado), estaciones SOCIB (termómetros
    con su última hora), sismos del IGN (ondas según la magnitud) y un mapa de calor del servicio de EMT Palma.
 3. **Gráficas**: la métrica elegida como media por fuente (con temperatura compara estación real y modelo) y por
-   entidad, la electricidad de Baleares (demanda y CO₂) y la calidad diaria de cada fuente.
+   entidad (la demanda y el CO₂ de Baleares se eligen ahí como métricas de REData), y dos vistas de los marts de dbt:
+   el error del modelo de Open-Meteo frente a cada estación de AEMET y SOCIB, y los episodios de lluvia fuerte,
+   viento u oleaje.
 4. **Tabla de series temporales**: una fila por fuente, entidad y métrica con días, completitud, % sospechosos y
    estadísticos; las fuentes con muchas entidades (las 875 paradas de EMT) se resumen en una fila por métrica.
 

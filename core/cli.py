@@ -4,6 +4,8 @@ Examples:
     python -m core.cli list
     python -m core.cli init
     python -m core.cli run --connectors open_meteo --days 1 --region mallorca
+    python -m core.cli detect --days 30
+    python -m core.cli evaluate
 """
 
 from __future__ import annotations
@@ -59,6 +61,33 @@ def _cmd_run(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def _cmd_detect(args: argparse.Namespace) -> int:
+    from core.anomaly.runner import detect_anomalies
+    from core.pipeline import new_run_id
+
+    summary = detect_anomalies(args.days, sources=args.sources, run_id=args.run_id or new_run_id())
+    print(json.dumps(summary.as_dict()))
+    return 0
+
+
+def _cmd_evaluate(args: argparse.Namespace) -> int:
+    from core.anomaly.evaluation import run_evaluation
+    from core.pipeline import new_run_id
+
+    rows = run_evaluation(run_id=args.run_id or new_run_id(), days=args.days, seed=args.seed)
+    print(f"{'detector':<15} {'fault':<7} {'recall':>7} {'events':>7} {'precision':>9} {'false alarms':>12}")
+    for r in rows:
+        print(
+            f"{r['detector']:<15} {r['fault']:<7} {_pct(r['recall']):>7}"
+            f" {r['events_detected']:>3}/{r['events']:<3} {_pct(r['precision']):>9} {r['false_alarms'] or '':>12}"
+        )
+    return 0
+
+
+def _pct(value: float | None) -> str:
+    return "" if value is None else f"{value:.0%}"
+
+
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run a sub-command. Returns the process exit code."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -75,6 +104,18 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--run-id")
     run.add_argument("--no-catch-up", action="store_true", help="do not recover days missed by failed runs")
     run.set_defaults(func=_cmd_run)
+
+    detect = sub.add_parser("detect", help="flag anomalies in the recent silver values")
+    detect.add_argument("--days", type=int, default=1, help="at least `rescore_days` of config/anomaly.yaml")
+    detect.add_argument("--sources", nargs="*", help="default: every connector")
+    detect.add_argument("--run-id")
+    detect.set_defaults(func=_cmd_detect)
+
+    evaluate = sub.add_parser("evaluate", help="measure the detectors against injected faults")
+    evaluate.add_argument("--days", type=int, help="default: `evaluation.days` of config/anomaly.yaml")
+    evaluate.add_argument("--seed", type=int, help="default: `evaluation.seed` of config/anomaly.yaml")
+    evaluate.add_argument("--run-id")
+    evaluate.set_defaults(func=_cmd_evaluate)
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -15,6 +15,8 @@ Trigger with a config such as:
 * With `catch_up` (default) each connector extends its window back to the day after its last
   successful run, so the days lost while a source was down are recovered by the next run.
 * Re-running the same window is idempotent (no duplicated rows).
+* After ingestion the anomaly detectors score the recent values and flag outliers in
+  `silver.anomalies` (they never change the data), also when some sources failed.
 """
 
 from __future__ import annotations
@@ -63,7 +65,7 @@ DBT_COMMAND = f"cd /opt/project/dbt && ({DBT} source freshness {DBT_ARGS} || tru
     },
 )
 def mallorca_pipeline() -> None:
-    """Resolve connectors -> one mapped ingest task per connector -> dbt build."""
+    """Resolve connectors -> one mapped ingest task per connector -> anomaly detection -> dbt build."""
 
     @task
     def resolve_connectors(params: dict[str, Any] | None = None) -> list[str]:
@@ -96,12 +98,23 @@ def mallorca_pipeline() -> None:
         )
         return summary.as_dict()
 
+    @task(trigger_rule=TriggerRule.ALL_DONE, retries=0)
+    def detect_anomalies(
+        connectors: list[str], params: dict[str, Any] | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Score the recent silver values of these sources and replace what the detectors flagged."""
+        from core.anomaly.runner import detect_anomalies as run_detection
+
+        params = params or {}
+        return run_detection(int(params["days"]), sources=connectors, run_id=run_id or "manual").as_dict()
+
     @task.bash(trigger_rule=TriggerRule.ALL_DONE, retries=0)
     def dbt_build() -> str:
         """Build and test the gold models, also when some sources failed (gold keeps their previous data)."""
         return DBT_COMMAND
 
-    ingest.expand(connector=resolve_connectors()) >> dbt_build()
+    connectors = resolve_connectors()
+    ingest.expand(connector=connectors) >> detect_anomalies(connectors) >> dbt_build()
 
 
 mallorca_pipeline()

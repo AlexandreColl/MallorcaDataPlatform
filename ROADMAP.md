@@ -51,16 +51,26 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | v0.2.2 | **IGN** sismicidad (sustituye a USGS) | El catálogo del IGN es un formulario web (ignora los filtros sin sesión) y su GeoJSON solo cubre 30 días: se leen las localizaciones del IGN desde el **FDSN de EMSC** (estándar, sin clave). Zona muy tranquila: 57 sismos del IGN en 2020-2026 incluso ampliando la caja 1° alrededor de la isla. Núcleo ampliado: `frequency: event` (sin regla de huecos, ventanas vacías válidas) y `fct_earthquakes` en gold |
 | ✅ | v0.2.3 | **EMT Palma** (GTFS estático) | Feed abierto en el GitHub de EMT (el NAP exige registro). En lugar de una dimensión estática, una serie diaria por parada (autobuses programados y líneas) a partir del calendario y de `frequencies.txt`. Junto con: **robustez** (una fuente caída no para el DAG, reintentos con espera creciente, recuperación de días perdidos, E2E que avisa de APIs caídas) y **dashboard único** con selector de fuentes |
 | ✅ | v0.2.4 | **Open-Meteo Marine** (oleaje y mar) | Sin clave. Los 8 puntos de la costa devuelven datos completos y hay histórico. Subclase del conector de Open-Meteo con sus propios puntos de mar (las localidades de la región están en el interior) |
-| ✅ | v0.2.5 | **AEMET OpenData** | Clave gratuita en `.env`. Las observaciones horarias solo cubren las últimas horas: se usan los valores climatológicos diarios (33 estaciones). API en dos pasos, máximo 6 meses y 25 estaciones por petición, publicación con 2-3 días de retraso. Núcleo ampliado: `lag_days` y selección por defecto que omite conectores sin su clave |
-| ⬜ | v0.2.6 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…) |
+| ✅ | v0.2.4 | **AEMET OpenData** | Clave gratuita en `.env`. Las observaciones horarias solo cubren las últimas horas: se usan los valores climatológicos diarios (33 estaciones). API en dos pasos, máximo 6 meses y 25 estaciones por petición, publicación con 2-3 días de retraso. Núcleo ampliado: `lag_days` y selección por defecto que omite conectores sin su clave |
+| ⬜ | — | **CTM / TIB** (GTFS de toda la isla) | Probado: ZIP de 6,7 MB en una URL estable (`tib.org/documents/20124/478141/ctm-mallorca-es.zip`), CC BY 4.0, nueva versión cada día. 78 rutas (71 de autobús TIB, 3 de tren SFM, el metro y 3 a demanda), 780 paradas en toda la isla, 5.501 viajes. Sin `frequencies.txt`, al contrario que EMT: los servicios por parada y día salen de contar `stop_times` con `calendar` y `calendar_dates`. Reutiliza casi todo el conector de EMT |
+| ⬜ | — | **Dataestur** (turismo, SEGITTUR) | Probado: API REST en `www.dataestur.es/API-SEGITTUR-v2` (OpenAPI de 124 endpoints; la especificación declara una clave, pero no se exige). Responde xlsx: hay que añadir `openpyxl` a la imagen. Mensual, con 2-3 meses de retraso. Para Baleares: ocupación hotelera `EOH_PROV_DL` (`Provincia=Illes Balears`; julio de 2026, 2,05 M viajeros), llegadas `FRONTUR_DL` (`CCAA de destino=Balears, Illes`; agosto, 2,6 M turistas), gasto `EGATUR_DL` y pasajeros del aeropuerto `AENA_DESTINOS_DL` (`Aeropuerto AENA=P. Mallorca`; agosto, 4,8 M). Ojo: un filtro mal escrito devuelve 200 con el fichero vacío, no un error, así que el conector debe exigir filas. Núcleo: frecuencia mensual |
+| ⬜ | v0.2.6 | **OpenAQ v3** | Requiere `OPENAQ_API_KEY` en `.env`. Comprobar primero si hay estaciones del Govern balear (Bellver, Foners, Sant Antoni…): sus datos abiertos acaban en 2019 (ver GOIB más abajo) |
 | ⬜ | v0.2.7 | **aqicn** | Requiere `AQICN_TOKEN`. Alternativa a OpenAQ para estaciones reales |
+| ⬜ | — | **GOIB** (histórico de calidad del aire) | Probado: la API CKAN del catálogo (`intranet.caib.es/opendatacataleg/api/3/action/package_search`) funciona y lista 11 estaciones de Mallorca (Bellver, Foners, Alcúdia, Inca, Parc Bit…), con un CSV horario por estación y banderas de validación (`V` válido, `N` no válido…). Pero los CSV van de 2002 a **noviembre de 2019**: sirven como histórico, no para ingestar cada día; los datos actuales solo están en HTML (caib.es/sites/atmosfera). Para medidas oficiales en vivo, OpenAQ o aqicn |
 | ⬜ | — | Plantilla `make new-connector NAME=x` que genere la carpeta, YAML y test vacíos |
 | ⬜ | — | Script `make record-fixtures CONNECTOR=x` para regrabar respuestas reales |
 | ⬜ | — | SOCIB: histórico por ficheros mensuales (`L1/<año>/..._<año>-<mes>.nc`) para ventanas anteriores al `latest`; añadir mareógrafo (Porto Cristo) y oleaje (boyas) |
 
 Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtures reales · tests · aparece en Grafana · sección en README · ≤ 1 día de trabajo.
 
-## Fase 2b · v0.2.5–v0.2.6 — dbt avanzado
+Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
+
+- **Smart Office Palma**: enlaza al GTFS de EMT, que ya se lee de su GitHub.
+- **IDEmallorca** (Consell de Mallorca, INSPIRE): capas geográficas WMS/WFS, no series temporales. Útil como dimensión (límites municipales para el mapa), no como conector.
+- **datos.gob.es**: catálogo nacional de metadatos; sirve para descubrir conjuntos, los datos están en cada fuente.
+- **Meteosource**: comercial y con clave; no aporta nada que no den Open-Meteo y AEMET.
+
+## Fase 2b · v0.2.5 — dbt avanzado
 
 | Estado | Tarea |
 |---|---|
@@ -78,12 +88,14 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Interfaz `Detector` reutilizable en `core/anomaly/` (entrada: serie silver; salida: score + etiqueta) |
-| ⬜ | Detector estadístico: z-score robusto (mediana/MAD) sobre ventana móvil, por serie |
-| ⬜ | Detector Isolation Forest (scikit-learn) multivariable por localidad |
-| ⬜ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
-| ⬜ | Tarea `detect_anomalies` en el DAG tras la carga silver |
-| ⬜ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, huecos) para medir precisión/recall de cada detector |
+| ✅ | Interfaz `Detector` reutilizable en `core/anomaly/` (entrada: serie silver; salida: score + etiqueta): pandas por serie, repartida con `applyInPandas` |
+| ✅ | Detector estadístico: z-score robusto (mediana/MAD) sobre ventana móvil, por serie; 7 días en series horarias y 31 en diarias |
+| ✅ | Detector Isolation Forest (scikit-learn) multivariable por localidad: valor, cambio, valores seguidos iguales y distancia al valor habitual a esa hora; 49 % de picos y 52 % de congelados (el z-score, 0 %), precisión 85 % |
+| ✅ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
+| ✅ | Tarea `detect_anomalies` en el DAG tras la carga silver (`all_done`); repuntúa los últimos 14 días y es idempotente |
+| ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, desfase horario) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 80 % |
+| ⬜ | Combinar detectores (unión o votación) y medirlo con el benchmark: el z-score y el bosque fallan en cosas distintas |
+| ⬜ | Desfase horario (reloj o zona horaria): ninguno pasa del 6 %; probar un detector estacional (residuo frente a la misma hora de días anteriores) |
 | ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
 
 ## Fase 4 · v0.4.0 — Correcciones con fuentes de apoyo
