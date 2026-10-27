@@ -69,9 +69,9 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 | ✅ | `dbt source freshness` por conector (misma tabla, `filter`), solo avisos, antes del build en el DAG |
 | ✅ | Marts nuevos: `fct_weather_daily` (observación junto a modelo), `fct_sea_conditions_hourly`, `fct_electricity_daily`, `fct_bus_network_daily`, `source_health`, `dim_date` |
 | ✅ | Tests genéricos propios (`unique_combination`, `value_between`) y `relationships` |
-| ⬜ | Snapshot SCD2 de estaciones y paradas (cambios de nombre o ubicación) |
-| ⬜ | Paquetes `dbt_utils` / `dbt_expectations`, contratos (`contract: enforced`) en los marts y `unit_tests` de dbt (EAQI, Haversine) |
-| ⬜ | Sesgo estación vs modelo por variable y estación; episodios meteorológicos (lluvia AEMET + oleaje + rachas) |
+| ✅ | Snapshot SCD2 de estaciones, puntos de modelo y paradas (cambios de ubicación) |
+| ✅ | Paquetes `dbt_utils` / `dbt_expectations` instalados en la imagen, contratos (`contract: enforced`) en 5 marts y 3 `unit_tests` de dbt (EAQI, Haversine, episodios) |
+| ✅ | Sesgo estación vs modelo por día y por estación; episodios meteorológicos con *gaps and islands* (lluvia AEMET + rachas + oleaje) |
 | ⬜ | Exposures (Grafana), `dbt docs` en GitHub Pages, slim CI (`state:modified+`) y `sqlfluff` |
 
 ## Fase 3 · v0.3.0 — Detección de anomalías
@@ -93,6 +93,7 @@ Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtu
 | ⬜ | Tabla `silver.corrections`: valor original, valor corregido, método, fuente de apoyo, confianza, run_id |
 | ⬜ | Nunca sobrescribir bronze ni silver: la vista gold elige `coalesce(corregido, original)` y lo indica |
 | ⬜ | Método 1: interpolación temporal para huecos cortos |
+| ⬜ | Ajuste por altitud del modelo (las estaciones de montaña salen ~6 °C más frías que el punto del modelo a nivel del mar: gradiente de ~6,5 °C/km) |
 | ⬜ | Método 2: sustitución por fuente de apoyo cercana (p. ej. estación SOCIB ↔ celda Open-Meteo) con sesgo calibrado |
 | ⬜ | Confianza según distancia, correlación histórica y longitud del hueco |
 | ⬜ | Modelo dbt `fct_observations_corrected` + panel "antes / después" |

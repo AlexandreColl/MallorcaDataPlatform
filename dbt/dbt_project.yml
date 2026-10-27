@@ -7,12 +7,22 @@ model-paths: ["models"]
 seed-paths: ["seeds"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+# Packages live outside the project in the image (the project is mounted read-only): see the Dockerfile.
+packages-install-path: "{{ env_var('DBT_PACKAGES_INSTALL_PATH', 'dbt_packages') }}"
 clean-targets: ["target", "dbt_packages"]
 
 vars:
   local_timezone: Europe/Madrid   # local day used by every daily model
   incremental_lookback: 1 hour     # re-read rows changed just before the last build (commit races)
   date_spine_start: "2020-01-01"  # first day of dim_date
+  palma: {lat: 39.5696, lon: 2.6502}  # reference point for distances
+  # station vs model: an observation station is compared with the nearest model point within this distance
+  model_pairing_max_km: 25
+  # weather episodes: a day is an episode day when any threshold is reached somewhere on the island
+  episode_rain_mm: 30
+  episode_gust_kmh: 70
+  episode_wave_m: 2.5
   # Connectors with `frequency: event` (see macros/event_sources.sql).
   event_sources: ["ign"]
 

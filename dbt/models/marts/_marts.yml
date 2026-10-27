@@ -7,6 +7,9 @@ models:
       Non-missing observations from every source, with quality flags. Incremental merge on silver's `updated_at`:
       each build only reads rows inserted or changed since the previous one.
     data_tests:
+      - dbt_utils.recency:
+          arguments: {datepart: day, field: ts, interval: 4}
+          config: {severity: warn}  # an empty or stale warehouse warns, it does not fail the build
       - unique_combination:
           arguments:
             columns: [source, entity, metric, ts]
@@ -68,11 +71,23 @@ models:
               arguments: {min_value: -180, max_value: 180}
 
   - name: dim_date
-    description: Calendar from `date_spine_start` to a year ahead, with ISO week, weekend flag and season.
+    description: Calendar from `date_spine_start` to a year ahead (dbt_utils.date_spine), with ISO week, weekend and season.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [date_day]
     columns:
-      - name: date_day
-        data_tests: [not_null, unique]
+      - {name: date_day, data_type: date, constraints: [{type: not_null}]}
+      - {name: year, data_type: integer}
+      - {name: quarter, data_type: integer}
+      - {name: month, data_type: integer}
+      - {name: day_of_month, data_type: integer}
+      - {name: iso_day_of_week, data_type: integer}
+      - {name: is_weekend, data_type: boolean}
+      - {name: iso_week, data_type: text}
       - name: season
+        data_type: text
         data_tests:
           - accepted_values:
               arguments:
@@ -97,6 +112,12 @@ models:
       - unique_combination:
           arguments:
             columns: [source, entity, local_date]
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments:
+            column_A: temperature_max
+            column_B: temperature_min
+            or_equal: true
+            row_condition: "temperature_max is not null and temperature_min is not null"
     columns:
       - name: source_kind
         data_tests:
@@ -128,23 +149,55 @@ models:
     description: >
       Balearic electric system per local day: demand, generation by technology, renewable share, CO2 and the
       net import through the link with the mainland (demand minus generation).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [local_date]
     columns:
-      - name: local_date
-        data_tests: [not_null, unique]
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: demand_mwh, data_type: double precision}
+      - {name: demand_hours, data_type: bigint}
+      - {name: peak_hour_demand_mwh, data_type: double precision}
+      - {name: generation_total_mwh, data_type: double precision}
+      - {name: combined_cycle_mwh, data_type: double precision}
+      - {name: gas_turbine_mwh, data_type: double precision}
+      - {name: diesel_engines_mwh, data_type: double precision}
+      - {name: cogeneration_mwh, data_type: double precision}
+      - {name: non_renewable_waste_mwh, data_type: double precision}
+      - {name: renewable_waste_mwh, data_type: double precision}
+      - {name: solar_pv_mwh, data_type: double precision}
+      - {name: other_renewables_mwh, data_type: double precision}
+      - {name: co2_emissions_t, data_type: double precision}
+      - {name: co2_intensity_t_per_mwh, data_type: double precision}
       - name: renewable_share
+        data_type: "numeric(5,4)"
         data_tests:
-          - value_between:
+          - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: 0, max_value: 1}
+      - {name: net_import_mwh, data_type: "numeric(10,1)"}
 
   - name: fct_bus_network_daily
     description: EMT Palma network per local day (stops with service, scheduled stop calls, busiest stop).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [local_date]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stops_with_service <= stops"
     columns:
-      - name: local_date
-        data_tests: [not_null, unique]
-      - name: stops_with_service
-        data_tests:
-          - value_between:
-              arguments: {min_value: 0}
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: iso_day_of_week, data_type: integer}
+      - {name: is_weekend, data_type: boolean}
+      - {name: stops, data_type: bigint}
+      - {name: stops_with_service, data_type: bigint}
+      - {name: scheduled_stop_calls, data_type: double precision}
+      - {name: avg_lines_per_served_stop, data_type: "numeric(6,2)"}
+      - {name: busiest_stop, data_type: text}
+      - {name: busiest_stop_departures, data_type: double precision}
 
   - name: fct_earthquakes
     description: One row per earthquake located by the IGN (magnitude, depth, epicentre, distance from Palma).
@@ -174,3 +227,123 @@ models:
         data_tests:
           - value_between:
               arguments: {min_value: 0, max_value: 1}
+
+  # --- station vs model and weather episodes -------------------------------------------------------------
+  - name: fct_model_bias_daily
+    description: >
+      Station vs model per station and day: AEMET or SOCIB observation, Open-Meteo at the nearest model point
+      and the difference (model minus observation; positive = the model overestimates). Complete days only.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [station_source, station, local_date]
+    columns:
+      - name: distance_km
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0, max_value: 25}
+      - name: temperature_mean_bias
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: -15, max_value: 15}
+
+  - name: agg_model_bias_by_station
+    description: Model quality per station (bias, MAE and RMSE of the daily mean temperature, rain bias and agreement).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [station_source, station]
+    columns:
+      - {name: station_source, data_type: text, constraints: [{type: not_null}]}
+      - {name: station, data_type: text, constraints: [{type: not_null}]}
+      - {name: model_point, data_type: text}
+      - {name: distance_km, data_type: double precision}
+      - {name: days_compared, data_type: bigint}
+      - {name: temperature_bias_c, data_type: "numeric(6,2)"}
+      - name: temperature_mae_c
+        data_type: "numeric(6,2)"
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0}
+      - {name: temperature_rmse_c, data_type: "numeric(6,2)"}
+      - {name: precipitation_bias_total_mm, data_type: "numeric(8,1)"}
+      - name: rain_day_agreement
+        data_type: "numeric(4,3)"
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0, max_value: 1}
+      - {name: wind_speed_bias_kmh, data_type: "numeric(6,2)"}
+      - {name: first_day, data_type: date}
+      - {name: last_day, data_type: date}
+
+  - name: fct_weather_episodes
+    description: >
+      Runs of consecutive days with heavy rain, strong wind or rough sea anywhere around the island (thresholds
+      in `vars`), built with gaps and islands; one row per episode with its peaks.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [episode_id]
+    data_tests:
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments: {column_A: end_date, column_B: start_date, or_equal: true}
+    columns:
+      - {name: episode_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: start_date, data_type: date}
+      - {name: end_date, data_type: date}
+      - {name: days, data_type: bigint}
+      - {name: episode_type, data_type: text}
+      - {name: peak_rain_mm, data_type: double precision}
+      - {name: peak_rain_station, data_type: text}
+      - {name: peak_rain_day, data_type: date}
+      - {name: max_stations_over_rain_threshold, data_type: bigint}
+      - {name: peak_gust_kmh, data_type: double precision}
+      - {name: peak_wave_m, data_type: double precision}
+
+unit_tests:
+  - name: eaqi_band_is_the_worst_pollutant
+    description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.
+    model: air_quality_hourly
+    given:
+      - input: ref('fct_observations')
+        rows:
+          - {source: open_meteo, entity: palma, ts: "2026-10-23 10:00:00+00", metric: pm2_5, value: 12, is_suspect: false}
+          - {source: open_meteo, entity: palma, ts: "2026-10-23 10:00:00+00", metric: pm10, value: 55, is_suspect: false}
+          - {source: open_meteo, entity: palma, ts: "2026-10-23 10:00:00+00", metric: nitrogen_dioxide, value: 30, is_suspect: false}
+          - {source: open_meteo, entity: palma, ts: "2026-10-23 10:00:00+00", metric: ozone, value: 60, is_suspect: false}
+          - {source: open_meteo, entity: inca, ts: "2026-10-23 10:00:00+00", metric: pm2_5, value: 5, is_suspect: false}
+    expect:
+      rows:
+        - {entity: palma, eaqi_band: 4, eaqi_label: poor}  # PM10 at 55 ug/m3 sets the band
+        - {entity: inca, eaqi_band: 1, eaqi_label: good}
+
+  - name: earthquake_distance_and_latest_revision
+    description: Haversine distance to Palma, and a revised event keeps only its latest origin time.
+    model: fct_earthquakes
+    given:
+      - input: ref('stg_ign__observations')
+        rows:
+          - {source: ign, entity: ev_palma, metric: magnitude, ts: "2026-10-01 10:00:00+00", local_date: "2026-10-01", value: 2.0, lat: 39.5696, lon: 2.6502, quality: ok, quality_reasons: null, is_missing: false, is_suspect: false, ingested_at: "2026-10-02 00:00:00+00"}
+          - {source: ign, entity: ev_north, metric: magnitude, ts: "2026-10-01 11:00:00+00", local_date: "2026-10-01", value: 1.5, lat: 40.5696, lon: 2.6502, quality: ok, quality_reasons: null, is_missing: false, is_suspect: false, ingested_at: "2026-10-02 00:00:00+00"}
+          - {source: ign, entity: ev_north, metric: magnitude, ts: "2026-10-01 11:00:05+00", local_date: "2026-10-01", value: 1.6, lat: 40.5696, lon: 2.6502, quality: ok, quality_reasons: null, is_missing: false, is_suspect: false, ingested_at: "2026-10-03 00:00:00+00"}
+    expect:
+      rows:
+        - {event_id: ev_palma, magnitude: 2.0, distance_to_palma_km: 0.0}
+        - {event_id: ev_north, magnitude: 1.6, distance_to_palma_km: 111.2}  # 1 degree of latitude; the revision wins
+
+  - name: consecutive_episode_days_form_one_episode
+    description: Gaps and islands - days 19, 20 and 22 October give two episodes; the calm day 21 splits them.
+    model: fct_weather_episodes
+    given:
+      - input: ref('int_weather_extremes__daily')
+        rows:
+          - {local_date: "2026-10-19", max_rain_mm: 79.2, max_rain_station: B158X, stations_over_rain_threshold: 9, max_gust_kmh: 87.1, max_wave_m: 2.6, is_heavy_rain: true, is_strong_wind: true, is_rough_sea: true}
+          - {local_date: "2026-10-20", max_rain_mm: 12.0, max_rain_station: B278, stations_over_rain_threshold: 0, max_gust_kmh: 75.0, max_wave_m: 1.9, is_heavy_rain: false, is_strong_wind: true, is_rough_sea: false}
+          - {local_date: "2026-10-21", max_rain_mm: 0.0, max_rain_station: B278, stations_over_rain_threshold: 0, max_gust_kmh: 30.0, max_wave_m: 0.8, is_heavy_rain: false, is_strong_wind: false, is_rough_sea: false}
+          - {local_date: "2026-10-22", max_rain_mm: 35.0, max_rain_station: B051A, stations_over_rain_threshold: 2, max_gust_kmh: 40.0, max_wave_m: 1.0, is_heavy_rain: true, is_strong_wind: false, is_rough_sea: false}
+    expect:
+      rows:
+        - {start_date: "2026-10-19", end_date: "2026-10-20", days: 2, episode_type: "rain + wind + sea", peak_rain_mm: 79.2, peak_rain_station: B158X}
+        - {start_date: "2026-10-22", end_date: "2026-10-22", days: 1, episode_type: rain, peak_rain_mm: 35.0, peak_rain_station: B051A}

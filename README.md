@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.14-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
 ![Spark](https://img.shields.io/badge/pyspark-4.2-E25A1C)
-![dbt](https://img.shields.io/badge/dbt-1.11-FF694B)
+![dbt](https://img.shields.io/badge/dbt-1.12-FF694B)
 
 Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mallorca.
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con

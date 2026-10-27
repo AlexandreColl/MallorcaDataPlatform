@@ -1,0 +1,5 @@
+packages:
+  - package: dbt-labs/dbt_utils
+    version: 1.4.1
+  - package: metaplane/dbt_expectations   # maintained fork of calogica/dbt_expectations (brings godatadriven/dbt_date)
+    version: 0.10.10

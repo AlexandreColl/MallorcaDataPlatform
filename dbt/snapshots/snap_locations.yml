@@ -1,0 +1,12 @@
+snapshots:
+  - name: snap_locations
+    description: >
+      Type 2 history of every station, model point and bus stop (SCD2): a new version each time its coordinates
+      change (a relocated station, a moved stop). Query the current rows with `dbt_valid_to is null`.
+    relation: ref('dim_locations')
+    config:
+      schema: snapshots
+      unique_key: [source, entity]
+      strategy: check
+      check_cols: [lat, lon]
+      hard_deletes: invalidate   # a location that disappears gets its dbt_valid_to closed
