@@ -17,7 +17,7 @@ flowchart LR
         SO[stg_ops__ingestion_runs]
     end
     subgraph intermediate[intermediate · vistas]
-        IW[int_weather__daily]
+        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_weather_extremes__daily]
     end
     subgraph marts[marts · gold]
         C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_date · dim_sources]
@@ -43,8 +43,10 @@ flowchart LR
 |---|---|---|
 | core | `fct_observations` (**incremental, merge**) | fuente, entidad, métrica, hora |
 | core | `agg_daily_metrics` (**incremental, delete+insert**) | serie y día local |
-| core | `dim_locations`, `dim_date`, `dim_sources` (seed) | — |
+| core | `dim_locations`, `dim_date` (contrato), `dim_sources` (seed); snapshot `snap_locations` (SCD2) | — |
 | weather | `fct_weather_daily` | estación o punto de modelo y día: observación real junto al modelo |
+| weather | `fct_model_bias_daily`, `agg_model_bias_by_station` (contrato) | estación y día / estación: error del modelo |
+| weather | `fct_weather_episodes` (contrato) | episodio de lluvia, viento o mar |
 | marine | `fct_sea_conditions_hourly` | punto de costa y hora |
 | energy | `fct_electricity_daily` | día: demanda, mix, % renovable, CO₂ e importación por el enlace con la península |
 | mobility | `fct_bus_network_daily` | día: paradas con servicio, pasos de autobús, parada con más servicio |
@@ -74,12 +76,56 @@ Las fuentes de silver se declaran una vez por conector sobre la misma tabla (`id
 para IGN (sin sismos no hay filas). El DAG lo ejecuta antes del build y solo **avisa**: una fuente atrasada aparece
 en los logs y en `gold.source_health`, pero no bloquea la construcción de gold.
 
+## Modelos de negocio
+
+**Estación frente a modelo.** `int_station_model_pairs` empareja cada estación real (AEMET, SOCIB) con el punto de
+Open-Meteo más cercano (macro `haversine_km`, máximo `model_pairing_max_km`). `fct_model_bias_daily` compara cada
+día completo (modelo menos observación) y `agg_model_bias_by_station` resume por estación: sesgo, MAE y RMSE de la
+temperatura media, sesgo de lluvia y acierto en días de lluvia. Con datos reales (30 días): frente a AEMET el modelo
+apenas tiene sesgo (+0,03 °C, MAE 1,3 °C) y acierta el 90 % de los días de lluvia, pero en las estaciones de montaña
+(Alfabia, 1.030 m; Son Torrella, 842 m) se pasa unos 6 °C: el punto del modelo está a nivel del mar, y el gradiente
+térmico es de unos 6,5 °C por km. Es la base de la fase de correcciones (ajuste por altitud).
+
+**Episodios meteorológicos.** `int_weather_extremes__daily` saca los extremos de cada día en toda la isla (la
+estación AEMET con más lluvia, la racha más fuerte, la ola más alta) y los compara con los umbrales de `vars`.
+`fct_weather_episodes` agrupa los días seguidos en episodios con *gaps and islands* (fecha menos número de fila =
+mismo grupo). Con datos reales salen 3 episodios en 30 días; el del 18-19 de octubre con lluvia, viento y mar a la
+vez: 79,2 mm en Es Capdellà, 20 estaciones por encima de 30 mm, rachas de 87 km/h y olas de 2,6 m.
+
+## Snapshot (SCD tipo 2)
+
+`snapshots/snap_locations.yml` guarda el historial de coordenadas de cada estación, punto de modelo y parada
+(`strategy: check` sobre `lat`/`lon`, `hard_deletes: invalidate`): si AEMET reubica una estación o EMT mueve una
+parada, la versión anterior se cierra (`dbt_valid_to`) y se abre una nueva. Esquema `snapshots`.
+
+## Paquetes
+
+`dbt_utils` (1.4.1) y `dbt_expectations` (0.10.10, el fork mantenido por Metaplane), fijados en
+`package-lock.yml`. Se instalan en la imagen (`/opt/dbt/packages`, variable `DBT_PACKAGES_INSTALL_PATH`) porque el
+proyecto se monta en solo lectura; en CI, con `dbt deps`. Se usan para `date_spine` (`dim_date`),
+`generate_surrogate_key` (`episode_id`), `recency` y `expression_is_true`, y los tests de rangos y de pares de
+columnas de `dbt_expectations`.
+
+## Contratos
+
+Los marts que se consumen fuera (`dim_date`, `fct_electricity_daily`, `fct_bus_network_daily`,
+`agg_model_bias_by_station`, `fct_weather_episodes`) tienen `contract: {enforced: true}`: nombres y tipos de
+columna fijos, `not_null` y clave primaria creados en PostgreSQL. Un cambio que rompa el contrato falla en el build,
+no en Grafana.
+
 ## Tests
 
 - Genéricos de dbt: `not_null`, `unique`, `accepted_values`, `relationships`.
 - Genéricos propios (`tests/generic/`): `unique_combination` (el grano de cada modelo) y `value_between` (rangos
   físicos y de porcentajes).
+- De paquetes: `dbt_utils.recency` (aviso si no hay datos de los últimos 4 días), `dbt_utils.expression_is_true`,
+  `dbt_expectations.expect_column_values_to_be_between` y `expect_column_pair_values_A_to_be_greater_than_B`.
 - Singulares: completitud entre 0 y 1 y que toda fuente de silver tenga su fila en `dim_sources`.
+- **Unit tests** de dbt (datos de entrada fijos y salida esperada, sin depender del warehouse):
+  - `eaqi_band_is_the_worst_pollutant`: la banda del índice europeo es la del peor contaminante.
+  - `earthquake_distance_and_latest_revision`: distancia Haversine (1° de latitud = 111,2 km) y que un sismo
+    revisado conserve solo su última versión.
+  - `consecutive_episode_days_form_one_episode`: un día tranquilo separa dos episodios.
 
 ```bash
 make dbt                # source freshness (avisos) + dbt build

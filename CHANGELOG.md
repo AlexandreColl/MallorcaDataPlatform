@@ -7,6 +7,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Station vs model: `int_station_model_pairs` (nearest Open-Meteo point within 25 km, `haversine_km` macro),
+  `fct_model_bias_daily` and `agg_model_bias_by_station` (bias, MAE, RMSE, rain bias and rainy-day agreement).
+- Weather episodes: `int_weather_extremes__daily` and `fct_weather_episodes` (consecutive days of heavy rain,
+  strong wind or rough sea grouped with gaps and islands; thresholds in `vars`).
+- SCD2 snapshot `snap_locations` of station, model point and stop coordinates.
+- dbt packages `dbt_utils` 1.4.1 and `dbt_expectations` 0.10.10 (lockfile), installed in the image; `dim_date`
+  on `dbt_utils.date_spine`, `episode_id` with `generate_surrogate_key`, recency and expression tests.
+- Model contracts (`contract: enforced`, primary keys) on `dim_date`, `fct_electricity_daily`,
+  `fct_bus_network_daily`, `agg_model_bias_by_station` and `fct_weather_episodes`.
+- dbt unit tests: European AQI band, Haversine distance and event revisions, episode grouping.
+
+
 - dbt marts by domain: `fct_weather_daily` (AEMET and SOCIB observations next to the Open-Meteo model on common
   columns), `fct_sea_conditions_hourly`, `fct_electricity_daily` (renewable share and net import through the link
   with the mainland), `fct_bus_network_daily`, `source_health` (last run, failure rate, data age per source) and
@@ -18,6 +30,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - `make dbt-full-refresh`.
 
 ### Changed
+
+- `dbt-core` pinned to 1.12.6 in the image and CI: `dbt-postgres` accepts `dbt-core>=1.8.0rc1`, and that
+  pre-release marker let pip install a beta.
+
 
 - dbt project in three layers: `staging` (one view per connector built by the `staging_observations` macro),
   `intermediate` (`int_weather__daily`) and `marts` grouped by domain. Mart names Grafana reads are unchanged.
