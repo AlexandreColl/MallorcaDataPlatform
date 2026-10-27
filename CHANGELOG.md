@@ -5,6 +5,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Anomaly detection (phase 3, first block): `Detector` interface in `core/anomaly/` (pandas, distributed per series
+  with `applyInPandas`) and the robust z-score detector (rolling median and MAD; 7-day window for hourly series,
+  31 days for daily ones). Flags go to `silver.anomalies` and never change silver.
+- DAG task `detect_anomalies` after ingestion (`all_done`), re-scoring at least the last `rescore_days` and replacing
+  its previous result; `config/anomaly.yaml`, `python -m core.cli detect` and `make detect`.
+- Grafana: station vs model temperature error and weather episodes panels, from the dbt marts.
+
+### Removed
+
+- Grafana: the daily quality per source and Balearic electricity panels (repeated the stats, the series table and
+  the metric selector).
+
 ## [0.2.5] - 2026-10-27
 
 dbt in depth: staging, intermediate and domain marts, incremental facts, per-source freshness, station vs model

@@ -184,6 +184,26 @@ Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada cone
 Resultados por ejecución en `quality.check_results`; en Grafana, el % de sospechosos, la completitud de la tabla de
 series y la fila plegada *Operación*.
 
+## Detección de anomalías
+
+Las reglas de calidad descartan lo imposible (una humedad del 140 %); los detectores de `core/anomaly/` buscan lo
+improbable: valores posibles que no encajan con su propia serie. Solo **marcan**: escriben en `silver.anomalies`
+(valor, valor esperado, puntuación, umbral, `run_id`) y nunca modifican `silver.observations`.
+
+- **Interfaz `Detector`**: puntúa una serie (fuente, entidad y métrica) en pandas, así se prueba sin Spark; el
+  runner la reparte por series con `groupBy().applyInPandas()`.
+- **`robust_zscore`**: z-score modificado de Iglewicz y Hoaglin, `0,6745 · (x − mediana) / MAD` sobre una ventana
+  móvil centrada (7 días en series horarias, 31 en diarias). La mediana y la MAD apenas se mueven con el pico que
+  buscan, al contrario que la media y la desviación típica. Una ventana casi constante (MAD = 0) no se puntúa.
+- Tarea `detect_anomalies` del DAG tras la ingesta, también si alguna fuente falló. Cada ejecución vuelve a puntuar
+  al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
+  recuperan se juzgan con sus vecinos, y es idempotente.
+- Configuración en [config/anomaly.yaml](config/anomaly.yaml): parámetros de cada detector y lo que no se analiza
+  (sismos y horarios de EMT; precipitación, insolación y dirección del oleaje). A mano: `make detect DAYS=30`.
+
+Con 30 días reales marca ~1 % de 103 000 valores, sobre todo episodios de verdad (el temporal del 18-19 de octubre,
+mar de fondo en Alcúdia) y los picos nocturnos de NO₂; medir su precisión con fallos inyectados es el siguiente paso.
+
 ## Grafana
 
 Un único dashboard, *Mallorca · Visión general* (http://localhost:3000), con un selector de **una o varias fuentes**

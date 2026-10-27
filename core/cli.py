@@ -4,6 +4,7 @@ Examples:
     python -m core.cli list
     python -m core.cli init
     python -m core.cli run --connectors open_meteo --days 1 --region mallorca
+    python -m core.cli detect --days 30
 """
 
 from __future__ import annotations
@@ -59,6 +60,15 @@ def _cmd_run(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def _cmd_detect(args: argparse.Namespace) -> int:
+    from core.anomaly.runner import detect_anomalies
+    from core.pipeline import new_run_id
+
+    summary = detect_anomalies(args.days, sources=args.sources, run_id=args.run_id or new_run_id())
+    print(json.dumps(summary.as_dict()))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run a sub-command. Returns the process exit code."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -75,6 +85,12 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--run-id")
     run.add_argument("--no-catch-up", action="store_true", help="do not recover days missed by failed runs")
     run.set_defaults(func=_cmd_run)
+
+    detect = sub.add_parser("detect", help="flag anomalies in the recent silver values")
+    detect.add_argument("--days", type=int, default=1, help="at least `rescore_days` of config/anomaly.yaml")
+    detect.add_argument("--sources", nargs="*", help="default: every connector")
+    detect.add_argument("--run-id")
+    detect.set_defaults(func=_cmd_detect)
 
     args = parser.parse_args(argv)
     return args.func(args)

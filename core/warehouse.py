@@ -146,6 +146,34 @@ class Warehouse:
                 ],
             )
 
+    def replace_anomalies(
+        self,
+        detector: str,
+        sources: list[str],
+        window: TimeWindow,
+        rows: list[tuple],
+        run_id: str,
+    ) -> int:
+        """Replace what ``detector`` flagged for ``sources`` in ``window`` (one transaction). Returns the row count.
+
+        Rows follow ``core.anomaly.runner.ANOMALY_COLUMNS``. A value that is no longer anomalous after
+        re-scoring (e.g. its neighbours arrived late) disappears instead of lingering.
+        """
+        with self.connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM silver.anomalies WHERE detector = %s AND source = ANY(%s) AND ts >= %s AND ts < %s",
+                (detector, sources, window.start_dt(), window.end_dt_exclusive()),
+            )
+            cur.executemany(
+                """
+                INSERT INTO silver.anomalies
+                    (source, entity, metric, ts, detector, value, expected, score, threshold, run_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                [(*row, run_id) for row in rows],
+            )
+        return len(rows)
+
     def last_loaded_day(self, source: str, region: str) -> date | None:
         """Last day covered by a successful run of ``source`` for ``region`` (None if it never succeeded)."""
         with self.connect() as conn:

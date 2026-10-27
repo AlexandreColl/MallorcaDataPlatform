@@ -1,0 +1,18 @@
+# Anomaly detection. Detectors only flag values (silver.anomalies); they never change silver.observations.
+
+# Every run re-scores at least the last N days, so values published late (AEMET) or recovered by catch-up are
+# scored once their neighbours exist. Re-scoring a day replaces its previous result.
+rescore_days: 14
+
+detectors:
+  robust_zscore:
+    window: 7D        # centred rolling window around each value of hourly series
+    daily_window: 31D # the same for daily series (AEMET, REData): a week of daily values is too few
+    threshold: 3.5    # |modified z-score| above which a value is flagged (Iglewicz & Hoaglin)
+    min_points: 5     # windows with fewer values are not scored
+
+skip:
+  # Events and timetables, not measurements of a continuous quantity.
+  sources: [ign, emt_palma]
+  # Zero most of the time (any rain or sunshine change would stand out) or circular (350° and 10° are close).
+  metrics: [precipitation, precipitation_sum, sunshine_duration, wave_direction]

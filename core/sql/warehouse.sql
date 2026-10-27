@@ -27,6 +27,23 @@ CREATE INDEX IF NOT EXISTS ix_observations_metric_ts ON silver.observations (met
 -- Watermark of the incremental dbt models (fct_observations, agg_daily_metrics).
 CREATE INDEX IF NOT EXISTS ix_observations_updated_at ON silver.observations (updated_at);
 
+-- Values flagged by the anomaly detectors (core/anomaly). Flags only: silver.observations is never changed.
+-- Each run replaces the rows of its detector, sources and window, so re-scoring is idempotent.
+CREATE TABLE IF NOT EXISTS silver.anomalies (
+    source       text             NOT NULL,
+    entity       text             NOT NULL,
+    metric       text             NOT NULL,
+    ts           timestamptz      NOT NULL,
+    detector     text             NOT NULL,
+    value        double precision NOT NULL,
+    expected     double precision,             -- what the detector considered normal at that time
+    score        double precision NOT NULL,
+    threshold    double precision NOT NULL,
+    run_id       text             NOT NULL,
+    detected_at  timestamptz      NOT NULL DEFAULT now(),
+    PRIMARY KEY (source, entity, metric, ts, detector)
+);
+
 CREATE TABLE IF NOT EXISTS quality.check_results (
     run_id        text        NOT NULL,
     source        text        NOT NULL,
