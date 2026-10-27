@@ -465,7 +465,7 @@
       "id": 11,
       "type": "table",
       "title": "Episodios meteorológicos",
-      "description": "dbt (fct_weather_episodes): días seguidos con lluvia fuerte (≥ 30 mm en alguna estación), rachas ≥ 70 km/h u oleaje ≥ 2,5 m en cualquier punto de la isla, agrupados en episodios. Los 20 más recientes, sin depender del rango de tiempo.",
+      "description": "dbt (fct_weather_episodes): días seguidos con lluvia fuerte (≥ 30 mm en alguna estación), rachas ≥ 70 km/h u oleaje ≥ 2,5 m en cualquier punto de la isla, agrupados en episodios. Máximos de cada episodio y la estación con más lluvia; los 20 más recientes, sin depender del rango de tiempo.",
       "gridPos": { "h": 11, "w": 12, "x": 12, "y": 26 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -475,29 +475,29 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT start_date::text AS \"Inicio\", end_date::text AS \"Fin\", days AS \"Días\", replace(replace(replace(episode_type, 'rain', 'lluvia'), 'wind', 'viento'), 'sea', 'mar') AS \"Tipo\", peak_rain_mm AS \"Lluvia máx. (mm)\", concat(peak_rain_station, ' · ', peak_rain_day) AS \"Dónde y cuándo\", max_stations_over_rain_threshold AS \"Estaciones ≥ 30 mm\", peak_gust_kmh AS \"Racha máx. (km/h)\", peak_wave_m AS \"Ola máx. (m)\" FROM gold.fct_weather_episodes ORDER BY start_date DESC LIMIT 20"
+          "rawSql": "SELECT concat(to_char(start_date, 'DD/MM/YY'), CASE WHEN end_date > start_date THEN to_char(end_date, ' – DD/MM') END) AS \"Fechas\", replace(replace(replace(episode_type, 'rain', 'lluvia'), 'wind', 'viento'), 'sea', 'mar') AS \"Tipo\", peak_rain_mm AS \"Lluvia (mm)\", peak_rain_station AS \"Estación\", max_stations_over_rain_threshold AS \"Est. ≥ 30 mm\", peak_gust_kmh AS \"Racha (km/h)\", peak_wave_m AS \"Ola (m)\" FROM gold.fct_weather_episodes ORDER BY start_date DESC LIMIT 20"
         }
       ],
       "fieldConfig": {
-        "defaults": { "decimals": 1, "custom": { "align": "auto" } },
+        "defaults": { "decimals": 1, "custom": { "align": "auto", "minWidth": 50 } },
         "overrides": [
-          { "matcher": { "id": "byRegexp", "options": "Días|Estaciones.*" }, "properties": [ { "id": "decimals", "value": 0 } ] },
+          { "matcher": { "id": "byName", "options": "Est. ≥ 30 mm" }, "properties": [ { "id": "decimals", "value": 0 } ] },
           {
-            "matcher": { "id": "byName", "options": "Lluvia máx. (mm)" },
+            "matcher": { "id": "byName", "options": "Lluvia (mm)" },
             "properties": [
               { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
               { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#C0D8FF", "value": null }, { "color": "#5794F2", "value": 50 }, { "color": "#1F60C4", "value": 80 } ] } }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Racha máx. (km/h)" },
+            "matcher": { "id": "byName", "options": "Racha (km/h)" },
             "properties": [
               { "id": "custom.cellOptions", "value": { "type": "color-text" } },
               { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 90 } ] } }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Ola máx. (m)" },
+            "matcher": { "id": "byName", "options": "Ola (m)" },
             "properties": [
               { "id": "custom.cellOptions", "value": { "type": "color-text" } },
               { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "orange", "value": 2.5 }, { "color": "red", "value": 4 } ] } }
@@ -505,7 +505,7 @@
           }
         ]
       },
-      "options": { "showHeader": true, "cellHeight": "sm", "sortBy": [ { "displayName": "Inicio", "desc": true } ] }
+      "options": { "showHeader": true, "cellHeight": "sm" }
     },
     {
       "id": 12,
