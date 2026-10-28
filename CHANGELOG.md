@@ -13,6 +13,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Dataestur connector (`dataestur`): monthly Balearic tourism from SEGITTUR (FRONTUR international tourists, EGATUR
   spending, EOH hotel occupancy, AENA Palma airport passengers), read from xlsx with the standard library. dbt
   `fct_tourism_monthly` (spending per tourist, year-on-year change) and a Grafana panel of the last three years.
+- Water reserves connector (`water_reserves`): Mallorca's groundwater reserves from the Govern's water portal,
+  monthly per aquifer (spreadsheet of the last 13 months) and 10 years island-wide (bar labels of the PDF chart, read
+  with `pypdf`). dbt `fct_water_reserves_monthly` (anomaly against the same calendar month) and seed `dim_aquifers`.
 - Monthly sources in the core: `frequency: 1mo` (the gaps rule counts calendar months) and `min_days`, the shortest
   window a run asks for, so the daily one-day run of a monthly source re-reads its last year.
 

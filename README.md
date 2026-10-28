@@ -30,6 +30,7 @@ flowchart LR
         EM[EMT Palma GTFS]
         CT[CTM GTFS]
         DE[Dataestur turismo]
+        WR[Reservas hídricas]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -45,7 +46,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & OMM & AE & RD & SO & IG & EM & CT & DE --> EX --> BR --> SP
+    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -107,6 +108,7 @@ Otros comandos: `make help`.
 | [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Valores diarios oficiales de 33 estaciones de AEMET en Mallorca (temperatura, lluvia, humedad, viento, sol, presión) | Sí |
 | [ctm](connectors/ctm/README.md) | ✅ | Autobuses TIB, tren SFM y metro programados por parada y día en toda la isla (763 paradas, GTFS estático) | No |
 | [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
+| [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
 | openaq | ⬜ v0.2.6 | Estaciones de calidad del aire | Sí |
 | aqicn | ⬜ v0.2.7 | Estaciones de calidad del aire | Sí |
 
@@ -180,6 +182,14 @@ como servicios que acaban el 31 de octubre. En gold, `fct_island_transit_daily`;
 calor que EMT. Prueba real: unos 41.000 pasos en un día laborable, 35.000 en domingo; la Estació Intermodal de
 Palma tiene 1.028 al día.
 
+### Reservas hídricas
+
+Las reservas de agua subterránea que publica cada mes el Govern: los últimos 13 meses de las 18 masas de agua de
+Mallorca y de la isla en una hoja ODS, y diez años de la isla en el gráfico PDF, cuyas etiquetas son texto. Los
+ficheros cambian de nombre cada mes, así que el conector los busca en la página por el texto del enlace. Como las
+reservas son estacionales, `fct_water_reserves_monthly` compara cada mes con la media del mismo mes de otros años.
+Prueba real: agosto de 2026, 38 %, el agosto más bajo de los diez años (11,5 puntos por debajo de la media).
+
 ### Dataestur (turismo)
 
 Cuatro tablas mensuales de la API de SEGITTUR (sin clave): turistas internacionales (FRONTUR) y su gasto (EGATUR)
@@ -228,7 +238,7 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
   al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
   recuperan se juzgan con sus vecinos, y es idempotente.
 - Configuración en [config/anomaly.yaml](config/anomaly.yaml): parámetros de cada detector y lo que no se analiza
-  (sismos, horarios de EMT y CTM y estadísticas mensuales de Dataestur; precipitación, insolación y dirección del
+  (sismos, horarios de EMT y CTM y estadísticas mensuales de Dataestur y de reservas hídricas; precipitación, insolación y dirección del
   oleaje). A mano: `make detect DAYS=30`.
 
 Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
