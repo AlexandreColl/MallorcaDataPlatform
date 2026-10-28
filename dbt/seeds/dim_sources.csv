@@ -8,3 +8,4 @@ open_meteo_marine,Open-Meteo Marine (modelo),model,"Oleaje, temperatura del mar,
 aemet,AEMET (estaciones oficiales),observation,"Valores diarios de 33 estaciones oficiales de AEMET en Mallorca: temperatura, lluvia, humedad, viento, sol y presión"
 ctm,CTM (bus y tren interurbanos),schedule,"Servicio programado por parada de los autobuses TIB, el tren SFM y el metro en toda la isla (GTFS)"
 dataestur,Dataestur (turismo),statistic,"Turistas internacionales, gasto, ocupación hotelera de Baleares y pasajeros del aeropuerto de Palma, mensuales"
+water_reserves,Reservas hídricas (Govern),statistic,"Reservas de agua subterránea de Mallorca por acuífero y del conjunto de la isla, mensuales"

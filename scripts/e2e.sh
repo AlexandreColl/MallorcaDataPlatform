@@ -6,7 +6,7 @@ set -euo pipefail
 
 COMPOSE=${COMPOSE:-docker compose}
 DAG_ID=mallorca_pipeline
-CONNECTORS='"open_meteo", "open_meteo_marine", "redata", "socib", "ign", "emt_palma", "ctm", "dataestur"'
+CONNECTORS='"open_meteo", "open_meteo_marine", "redata", "socib", "ign", "emt_palma", "ctm", "dataestur", "water_reserves"'
 # AEMET needs an API key: it joins the E2E only when .env has one (in CI, the AEMET_API_KEY repository secret).
 if grep -Eq '^AEMET_API_KEY=.+' .env 2>/dev/null; then CONNECTORS+=', "aemet"'; fi
 CONF=${CONF:-"{\"connectors\": [$CONNECTORS], \"days\": 1, \"region\": \"mallorca\"}"}

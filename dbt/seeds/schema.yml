@@ -11,3 +11,12 @@ seeds:
           - accepted_values:
               arguments:
                 values: ["model", "observation", "system", "event", "schedule", "statistic"]
+  - name: dim_aquifers
+    description: >-
+      Groundwater bodies (MAS) of Mallorca in the water reserves spreadsheet of the Govern, with their hydrogeological
+      unit. The connector only stores the code (entity aquifer_<code>).
+    columns:
+      - name: entity
+        data_tests: [not_null, unique]
+      - name: code
+        data_tests: [not_null, unique]
