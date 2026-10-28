@@ -199,6 +199,30 @@ models:
       - {name: busiest_stop, data_type: text}
       - {name: busiest_stop_departures, data_type: double precision}
 
+  - name: fct_island_transit_daily
+    description: >-
+      CTM island network (TIB buses, SFM trains, metro) per local day: stops with service, scheduled stop calls,
+      busiest stop. Same columns as fct_bus_network_daily (both come from the transit_network_daily macro).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [local_date]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stops_with_service <= stops"
+    columns:
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: iso_day_of_week, data_type: integer}
+      - {name: is_weekend, data_type: boolean}
+      - {name: stops, data_type: bigint}
+      - {name: stops_with_service, data_type: bigint}
+      - {name: scheduled_stop_calls, data_type: double precision}
+      - {name: avg_lines_per_served_stop, data_type: "numeric(6,2)"}
+      - {name: busiest_stop, data_type: text}
+      - {name: busiest_stop_departures, data_type: double precision}
+
   - name: fct_earthquakes
     description: One row per earthquake located by the IGN (magnitude, depth, epicentre, distance from Palma).
     columns:

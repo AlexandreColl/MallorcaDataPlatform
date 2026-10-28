@@ -25,6 +25,7 @@ sources:
       - {name: socib, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'socib'"}}
       - {name: redata, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'redata'"}}
       - {name: emt_palma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'emt_palma'"}}
+      - {name: ctm, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'ctm'"}}
       - {name: aemet, identifier: observations, freshness: {warn_after: {count: 5, period: day}, filter: "source = 'aemet'"}}
       - {name: ign, identifier: observations, freshness: null}
 
