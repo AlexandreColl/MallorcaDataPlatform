@@ -371,3 +371,34 @@ unit_tests:
       rows:
         - {start_date: "2026-10-19", end_date: "2026-10-20", days: 2, episode_type: "rain + wind + sea", peak_rain_mm: 79.2, peak_rain_station: B158X}
         - {start_date: "2026-10-22", end_date: "2026-10-22", days: 1, episode_type: rain, peak_rain_mm: 35.0, peak_rain_station: B051A}
+
+  - name: fct_tourism_monthly
+    description: >-
+      Balearic tourism per month (Dataestur): international tourists and spending (FRONTUR, EGATUR), hotel
+      occupancy (EOH), Palma airport passengers (AENA) and the change against the same month a year earlier.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "hotel_bed_occupancy_pct between 0 and 100"
+          config:
+            where: "hotel_bed_occupancy_pct is not null"
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: international_tourists, data_type: double precision}
+      - {name: international_spending_eur, data_type: double precision}
+      - {name: international_tourist_nights, data_type: double precision}
+      - {name: spending_per_tourist_eur, data_type: "numeric(10,2)"}
+      - {name: hotel_guests, data_type: double precision}
+      - {name: hotel_nights, data_type: double precision}
+      - {name: hotel_average_stay_nights, data_type: "numeric(6,2)"}
+      - {name: hotel_bed_occupancy_pct, data_type: double precision}
+      - {name: hotels_open, data_type: double precision}
+      - {name: hotel_staff, data_type: double precision}
+      - {name: airport_passengers, data_type: double precision}
+      - {name: international_tourists_yoy, data_type: "numeric(8,4)", description: Change against the same month a year earlier (0.05 = +5 %).}
+      - {name: airport_passengers_yoy, data_type: "numeric(8,4)"}

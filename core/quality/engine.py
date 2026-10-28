@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
+from core.connectors.base import MONTH
 from core.models import Quality, TimeWindow
 from core.quality.rules import (
     DatasetRule,
@@ -88,10 +89,15 @@ def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
     """Default rule set derived from a connector's YAML.
 
     One gaps rule per sampling frequency, so hourly and daily datasets of the same
-    connector are each checked against their own expected number of steps. Event
+    connector are each checked against their own expected number of steps. Monthly
+    datasets expect one value per calendar month starting in the window. Event
     datasets have no expected steps and get no gaps rule.
     """
     span = window.end_dt_exclusive() - window.start_dt()
+
+    def expected_steps(freq: timedelta) -> int:
+        return len(window.month_starts()) if freq == MONTH else int(span / freq)
+
     by_frequency: dict[timedelta, set[str]] = defaultdict(set)
     for metric in config.metrics.values():
         freq = config.frequency_for(metric.dataset)
@@ -102,7 +108,8 @@ def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
 
     rules: list[Rule] = [NotNullRule(), SourceQcRule(), DuplicateRule()]
     rules.extend(
-        GapRule(int(span / freq), freq, frozenset(metrics) or None) for freq, metrics in sorted(by_frequency.items())
+        GapRule(expected_steps(freq), freq, frozenset(metrics) or None)
+        for freq, metrics in sorted(by_frequency.items())
     )
     rules.extend(
         RangeRule(metric.name, metric.min, metric.max)

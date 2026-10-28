@@ -115,3 +115,19 @@ def test_mallorca_region_is_available():
 def test_unknown_region_lists_available():
     with pytest.raises(ValueError, match="mallorca"):
         load_region("atlantis")
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        (date(2025, 8, 27), date(2026, 8, 26), 12),  # Sep 2025 .. Aug 2026; August 2025 started before the window
+        (date(2026, 1, 1), date(2026, 1, 31), 1),
+        (date(2026, 1, 2), date(2026, 1, 31), 0),
+        (date(2025, 12, 1), date(2026, 2, 1), 3),  # crosses the year
+    ],
+)
+def test_month_starts_are_the_months_beginning_inside_the_window(start, end, expected):
+    months = TimeWindow(start, end).month_starts()
+
+    assert len(months) == expected
+    assert all(m.day == 1 and start <= m <= end for m in months)
