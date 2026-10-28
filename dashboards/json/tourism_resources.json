@@ -493,7 +493,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Anomalías frente al mismo mes",
-      "description": "Cada mes comparado con la media de ese mes en los años cargados, para quitar la estacionalidad. Turistas y demanda eléctrica en % (izquierda); reservas en puntos (derecha). Si el turismo apretara el agua, los meses con más turistas de lo normal coincidirían con reservas por debajo de lo normal.",
+      "description": "Cada mes comparado con la media de ese mes en los años cargados, para quitar la estacionalidad. Turistas y demanda eléctrica en % (izquierda); reservas en puntos (derecha). Si el turismo apretara el agua, los meses con más turistas de lo normal coincidirían con reservas por debajo de lo normal; ojo con la tendencia de la década y con 2020, sin turistas y con un invierno lluvioso.",
       "gridPos": {
         "h": 10,
         "w": 12,
@@ -751,7 +751,7 @@
       "id": 9,
       "type": "stat",
       "title": "Turistas de verano vs caída de reservas",
-      "description": "Correlación de Pearson, año a año, entre los turistas de junio a septiembre y lo que bajan las reservas de marzo a septiembre. Cerca de 0: el turismo de un verano no explica cuánto bajan los acuíferos.",
+      "description": "Correlación de Pearson, año a año, entre los turistas de junio a septiembre y lo que bajan las reservas de marzo a septiembre (−1 a 1). Positiva: los veranos con más turistas son los que más bajan los acuíferos. Son pocos años y el turismo crece a lo largo de la década: es una correlación, no una causa.",
       "gridPos": {
         "h": 5,
         "w": 6,
@@ -815,7 +815,7 @@
       "id": 10,
       "type": "stat",
       "title": "Lluvia vs caída de reservas",
-      "description": "Correlación año a año entre la lluvia del año hidrológico y lo que bajan las reservas de marzo a septiembre. Negativa: los años lluviosos llegan al verano con los acuíferos más altos y bajan menos.",
+      "description": "Correlación año a año entre la lluvia del año hidrológico y lo que bajan las reservas de marzo a septiembre (−1 a 1). Cerca de 0: la lluvia del año no decide cuánto bajan en verano (decide desde dónde bajan; ver Clima y agua).",
       "gridPos": {
         "h": 5,
         "w": 6,
