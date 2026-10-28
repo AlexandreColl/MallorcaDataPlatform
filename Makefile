@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate backfill
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -55,6 +55,9 @@ run-local: ## Run the pipeline without Airflow (CLI inside the image)
 
 detect: ## Flag anomalies in the recent silver values: make detect DAYS=30 (at least rescore_days)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli detect --days $(DAYS)
+
+backfill: ## Load a past date range, one run per year: make backfill CONNECTORS=aemet START=2016-09-01 END=2026-08-31
+	$(COMPOSE) exec airflow-scheduler python -m core.cli backfill --connectors $(subst $(comma),$(space),$(CONNECTORS)) --start $(START) --end $(END) --region $(REGION)
 
 evaluate: ## Measure the anomaly detectors against injected faults (precision and recall)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate

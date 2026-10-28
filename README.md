@@ -84,6 +84,7 @@ Guía para Windows con WSL2 + Debian: [docs/setup-windows.md](docs/setup-windows
 make up                                      # crea .env, construye la imagen y levanta todo
 make run CONNECTORS=open_meteo DAYS=30       # dispara el DAG
 make run-local CONNECTORS=open_meteo DAYS=1  # mismo pipeline sin Airflow
+make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un run por año
 ```
 
 | Servicio | URL | Acceso |
