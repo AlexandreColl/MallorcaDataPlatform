@@ -16,6 +16,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Water reserves connector (`water_reserves`): Mallorca's groundwater reserves from the Govern's water portal,
   monthly per aquifer (spreadsheet of the last 13 months) and 10 years island-wide (bar labels of the PDF chart, read
   with `pypdf`). dbt `fct_water_reserves_monthly` (anomaly against the same calendar month) and seed `dim_aquifers`.
+- Backfills: `python -m core.cli backfill` and `make backfill CONNECTORS=aemet START=... END=...` load a past date
+  range with explicit windows, one run per chunk of at most the connector's `max_days`, without catch-up.
+- dbt `fct_climate_monthly`: monthly rainfall and temperature of the AEMET stations (stations with at least 90 % of
+  the month), anomalies against the same calendar month, hot days and the rainfall of the hydrological year. With
+  ten years of AEMET loaded it is the climate side of the water dashboards.
 - Monthly sources in the core: `frequency: 1mo` (the gaps rule counts calendar months) and `min_days`, the shortest
   window a run asks for, so the daily one-day run of a monthly source re-reads its last year.
 
