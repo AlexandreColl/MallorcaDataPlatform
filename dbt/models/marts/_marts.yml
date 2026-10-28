@@ -326,6 +326,37 @@ models:
       - {name: peak_gust_kmh, data_type: double precision}
       - {name: peak_wave_m, data_type: double precision}
 
+  - name: fct_tourism_monthly
+    description: >-
+      Balearic tourism per month (Dataestur): international tourists and spending (FRONTUR, EGATUR), hotel
+      occupancy (EOH), Palma airport passengers (AENA) and the change against the same month a year earlier.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "hotel_bed_occupancy_pct between 0 and 100"
+          config:
+            where: "hotel_bed_occupancy_pct is not null"
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: international_tourists, data_type: double precision}
+      - {name: international_spending_eur, data_type: double precision}
+      - {name: international_tourist_nights, data_type: double precision}
+      - {name: spending_per_tourist_eur, data_type: "numeric(10,2)"}
+      - {name: hotel_guests, data_type: double precision}
+      - {name: hotel_nights, data_type: double precision}
+      - {name: hotel_average_stay_nights, data_type: "numeric(6,2)"}
+      - {name: hotel_bed_occupancy_pct, data_type: double precision}
+      - {name: hotels_open, data_type: double precision}
+      - {name: hotel_staff, data_type: double precision}
+      - {name: airport_passengers, data_type: double precision}
+      - {name: international_tourists_yoy, data_type: "numeric(8,4)", description: Change against the same month a year earlier (0.05 = +5 %).}
+      - {name: airport_passengers_yoy, data_type: "numeric(8,4)"}
+
 unit_tests:
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.
@@ -372,33 +403,20 @@ unit_tests:
         - {start_date: "2026-10-19", end_date: "2026-10-20", days: 2, episode_type: "rain + wind + sea", peak_rain_mm: 79.2, peak_rain_station: B158X}
         - {start_date: "2026-10-22", end_date: "2026-10-22", days: 1, episode_type: rain, peak_rain_mm: 35.0, peak_rain_station: B051A}
 
-  - name: fct_tourism_monthly
-    description: >-
-      Balearic tourism per month (Dataestur): international tourists and spending (FRONTUR, EGATUR), hotel
-      occupancy (EOH), Palma airport passengers (AENA) and the change against the same month a year earlier.
-    config:
-      contract: {enforced: true}
-    constraints:
-      - type: primary_key
-        columns: [month]
-    data_tests:
-      - dbt_utils.expression_is_true:
-          arguments:
-            expression: "hotel_bed_occupancy_pct between 0 and 100"
-          config:
-            where: "hotel_bed_occupancy_pct is not null"
-    columns:
-      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
-      - {name: international_tourists, data_type: double precision}
-      - {name: international_spending_eur, data_type: double precision}
-      - {name: international_tourist_nights, data_type: double precision}
-      - {name: spending_per_tourist_eur, data_type: "numeric(10,2)"}
-      - {name: hotel_guests, data_type: double precision}
-      - {name: hotel_nights, data_type: double precision}
-      - {name: hotel_average_stay_nights, data_type: "numeric(6,2)"}
-      - {name: hotel_bed_occupancy_pct, data_type: double precision}
-      - {name: hotels_open, data_type: double precision}
-      - {name: hotel_staff, data_type: double precision}
-      - {name: airport_passengers, data_type: double precision}
-      - {name: international_tourists_yoy, data_type: "numeric(8,4)", description: Change against the same month a year earlier (0.05 = +5 %).}
-      - {name: airport_passengers_yoy, data_type: "numeric(8,4)"}
+
+  - name: tourism_change_is_against_the_same_month_a_year_earlier
+    description: The year-on-year change compares August with August, even with months missing in between.
+    model: fct_tourism_monthly
+    given:
+      - input: ref('stg_dataestur__observations')
+        rows:
+          - {metric: international_tourists, local_date: "2025-08-01", value: 2500000, is_missing: false}
+          - {metric: international_tourist_spending, local_date: "2025-08-01", value: 3750000000, is_missing: false}
+          - {metric: international_tourists, local_date: "2026-07-01", value: 2400000, is_missing: false}
+          - {metric: international_tourists, local_date: "2026-08-01", value: 2600000, is_missing: false}
+          - {metric: international_tourist_spending, local_date: "2026-08-01", value: 4160000000, is_missing: false}
+    expect:
+      rows:
+        - {month: "2025-08-01", spending_per_tourist_eur: 1500.00, international_tourists_yoy: null}
+        - {month: "2026-07-01", spending_per_tourist_eur: null, international_tourists_yoy: null}
+        - {month: "2026-08-01", spending_per_tourist_eur: 1600.00, international_tourists_yoy: 0.0400}
