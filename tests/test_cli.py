@@ -39,8 +39,12 @@ def test_backfill_runs_one_window_per_chunk_without_catch_up(monkeypatch, capsys
 
 def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):
     windows = []
-    monkeypatch.setattr(core.pipeline, "run_connector", lambda name, days, **kw: windows.append(kw["window"]) or _Summary(kw["window"]))
+    monkeypatch.setattr(
+        core.pipeline, "run_connector", lambda name, days, **kw: windows.append(kw["window"]) or _Summary(kw["window"])
+    )
 
-    cli.main(["backfill", "--connectors", "socib", "--start", "2026-01-01", "--end", "2026-03-31", "--chunk-days", "400"])
+    cli.main(
+        ["backfill", "--connectors", "socib", "--start", "2026-01-01", "--end", "2026-03-31", "--chunk-days", "400"]
+    )
 
     assert max(w.n_days for w in windows) == 61  # SOCIB allows 61 days per run
