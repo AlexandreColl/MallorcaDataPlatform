@@ -407,7 +407,7 @@
       "id": 5,
       "type": "stat",
       "title": "Días de calor",
-      "description": "Días con 30 °C o más (media de las estaciones) en el año hidrológico en curso.",
+      "description": "Días con 30 °C o más (media de las estaciones) en el último año hidrológico completo y en el que está en curso.",
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -428,7 +428,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT sum(hot_days) AS \"Días ≥ 30 °C\" FROM gold.fct_climate_monthly WHERE hydrological_year = (SELECT max(hydrological_year) FROM gold.fct_climate_monthly WHERE temperature_mean_c IS NOT NULL)"
+          "rawSql": "WITH y AS (SELECT hydrological_year, sum(hot_days) AS hot, count(*) AS months FROM gold.fct_climate_monthly GROUP BY 1) SELECT max(hot) FILTER (WHERE hydrological_year = (SELECT max(hydrological_year) FROM y WHERE months = 12)) AS \"Último año\", max(hot) FILTER (WHERE hydrological_year = (SELECT max(hydrological_year) FROM y)) AS \"En curso\" FROM y"
         }
       ],
       "fieldConfig": {
@@ -519,10 +519,6 @@
                   "mode": "fixed",
                   "fixedColor": "#5794F2"
                 }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "left"
               }
             ]
           },
@@ -629,10 +625,6 @@
                 }
               },
               {
-                "id": "custom.axisPlacement",
-                "value": "left"
-              },
-              {
                 "id": "unit",
                 "value": "lengthmm"
               }
@@ -687,10 +679,10 @@
       "id": 8,
       "type": "table",
       "title": "Por año hidrológico",
-      "description": "Septiembre a agosto: la lluvia que recarga los acuíferos, la temperatura y el calor, y las reservas al final del invierno (marzo) y del verano (agosto).",
+      "description": "Septiembre a agosto, solo años completos: la lluvia que recarga los acuíferos, la temperatura y el calor, y las reservas al final del invierno (marzo) y del verano (agosto).",
       "gridPos": {
         "h": 11,
-        "w": 14,
+        "w": 13,
         "x": 0,
         "y": 22
       },
@@ -708,7 +700,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT r.hydrological_year::text AS \"Año hidrológico\", max(r.rain_hydrological_year_mm) FILTER (WHERE extract(month FROM r.month) = 8) AS \"Lluvia (mm)\", avg(r.temperature_mean_c) AS \"Temperatura media (°C)\", sum(r.hot_days) AS \"Días ≥ 30 °C\", max(r.reserves_pct) FILTER (WHERE extract(month FROM r.month) = 3) AS \"Reservas marzo (%)\", max(r.reserves_pct) FILTER (WHERE extract(month FROM r.month) = 8) AS \"Reservas agosto (%)\", count(r.temperature_mean_c) AS \"Meses\" FROM gold.fct_resources_monthly r WHERE r.hydrological_year >= 2017 GROUP BY r.hydrological_year ORDER BY r.hydrological_year DESC"
+          "rawSql": "SELECT r.hydrological_year::text AS \"Año hidrológico\", max(r.rain_hydrological_year_mm) FILTER (WHERE extract(month FROM r.month) = 8) AS \"Lluvia (mm)\", avg(r.temperature_mean_c) AS \"Temp. media (°C)\", sum(r.hot_days) AS \"Días ≥ 30 °C\", max(r.reserves_pct) FILTER (WHERE extract(month FROM r.month) = 3) AS \"Reservas marzo (%)\", max(r.reserves_pct) FILTER (WHERE extract(month FROM r.month) = 8) AS \"Reservas agosto (%)\" FROM gold.fct_resources_monthly r WHERE r.hydrological_year >= 2017 GROUP BY r.hydrological_year HAVING count(r.rain_mm) = 12 ORDER BY r.hydrological_year DESC"
         }
       ],
       "fieldConfig": {
@@ -722,7 +714,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Temperatura media (°C)"
+              "options": "Temp. media (°C)"
             },
             "properties": [
               {
@@ -874,8 +866,8 @@
       "description": "Correlación de Pearson entre la lluvia de septiembre a febrero y las reservas de marzo, año a año: cuánto explica la lluvia de otoño e invierno el agua con la que empieza la primavera.",
       "gridPos": {
         "h": 11,
-        "w": 4,
-        "x": 14,
+        "w": 3,
+        "x": 13,
         "y": 22
       },
       "datasource": {
@@ -939,8 +931,8 @@
       "description": "Las 18 masas de agua subterránea de Mallorca el último mes publicado y su cambio frente a 12 meses antes.",
       "gridPos": {
         "h": 11,
-        "w": 6,
-        "x": 18,
+        "w": 8,
+        "x": 16,
         "y": 22
       },
       "datasource": {
@@ -1079,6 +1071,7 @@
             "fillOpacity": 80,
             "lineWidth": 0,
             "showPoints": "never",
+            "gradientMode": "scheme",
             "thresholdsStyle": {
               "mode": "off"
             }
@@ -1180,10 +1173,6 @@
                   "mode": "fixed",
                   "fixedColor": "#5794F2"
                 }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "left"
               }
             ]
           },

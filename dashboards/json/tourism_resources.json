@@ -429,10 +429,6 @@
                   "mode": "fixed",
                   "fixedColor": "#B877D9"
                 }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "left"
               }
             ]
           },
@@ -543,10 +539,6 @@
                 }
               },
               {
-                "id": "custom.axisPlacement",
-                "value": "left"
-              },
-              {
                 "id": "custom.showPoints",
                 "value": "always"
               },
@@ -568,10 +560,6 @@
                   "mode": "fixed",
                   "fixedColor": "#FADE2A"
                 }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "left"
               },
               {
                 "id": "custom.showPoints",
@@ -683,10 +671,6 @@
                   "mode": "fixed",
                   "fixedColor": "#FADE2A"
                 }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "left"
               },
               {
                 "id": "custom.showPoints",
@@ -1081,10 +1065,6 @@
                   "mode": "fixed",
                   "fixedColor": "#73BF69"
                 }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "left"
               },
               {
                 "id": "unit",
