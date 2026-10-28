@@ -23,7 +23,7 @@ import unicodedata
 import zipfile
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Any
-from xml.etree import ElementTree as ET  # noqa: S405 - files from a known public portal, not user input
+from xml.etree import ElementTree as ET
 from zoneinfo import ZoneInfo
 
 from core.connectors import BaseConnector, ConnectorError
@@ -44,8 +44,9 @@ _MONTHS = {
 _SPANISH_MONTHS = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
                    "noviembre", "diciembre")  # fmt: skip
 _AQUIFER_CODE = re.compile(r"^\d{4}M\d$")
-_PDF_PERIOD = re.compile(r"\((\w+) de (\d{4})\s*[–-]\s*(\w+) de (\d{4})\)")
+_PDF_PERIOD = re.compile(r"\((\w+) de (\d{4})\s*[^\w\s]\s*(\w+) de (\d{4})\)")  # any dash between the months
 _PERCENT = re.compile(r"^(\d{1,3})%$")
+_FIRST_VALUE = 2  # columns: name, code, then one per month
 _EMPTY_RUN = 50  # a longer run of empty cells is the sheet's padding up to its last column
 
 
@@ -98,7 +99,7 @@ def read_pdf_text(document: bytes) -> str:
 def find_links(page: str) -> dict[str, str]:
     """``{link text: href}`` of the file links (``archivopub.do``) of a portal page."""
     links = {}
-    for href, inner in re.findall(r'<a[^>]+href="([^"]*archivopub\.do[^"]*)"[^>]*>(.*?)</a>', page, flags=re.S):
+    for href, inner in re.findall(r'<a[^>]+href="([^"]*archivopub\.do[^"]*)"[^>]*>(.*?)</a>', page, flags=re.DOTALL):
         text = html.unescape(re.sub(r"<[^>]+>", " ", inner))
         links[" ".join(text.split())] = html.unescape(href)
     return links
@@ -171,11 +172,11 @@ class WaterReservesConnector(BaseConnector):
     def _last_year(self, archive: bytes) -> dict[tuple[str, date], float | None]:
         """Aquifers of the island and the island row, from the spreadsheet (fractions -> percentages)."""
         rows = read_ods(archive)
-        header = next((r for r in rows if len(r) > 2 and r[1] == "Codi"), None)
+        header = next((r for r in rows if len(r) > _FIRST_VALUE and r[1] == "Codi"), None)
         if header is None:
             msg = "water_reserves last_year: no header row with 'Codi' in the spreadsheet"
             raise ConnectorError(msg)
-        months = [_month_from_label(str(label)) for label in header[2:] if label]
+        months = [_month_from_label(str(label)) for label in header[_FIRST_VALUE:] if label]
         island = str(self.config.options["island"]).upper()
         prefix = str(self.config.options["aquifer_code_prefix"])
         values: dict[tuple[str, date], float | None] = {}
@@ -188,7 +189,7 @@ class WaterReservesConnector(BaseConnector):
                 entity = "mallorca"
             else:
                 continue
-            cells = row[2:]
+            cells = row[_FIRST_VALUE:]
             for i, month in enumerate(months):
                 cell = cells[i] if i < len(cells) else None
                 values[entity, month] = round(cell * 100, 2) if isinstance(cell, float) else None
@@ -202,7 +203,7 @@ class WaterReservesConnector(BaseConnector):
         text = read_pdf_text(document)
         period = _PDF_PERIOD.search(text)
         if period is None:
-            msg = "water_reserves history: no '(<month> de <year> – <month> de <year>)' period in the PDF"
+            msg = "water_reserves history: no '(<month> de <year> - <month> de <year>)' period in the PDF"
             raise ConnectorError(msg)
         first = date(int(period[2]), _SPANISH_MONTHS.index(period[1].lower()) + 1, 1)
         last = date(int(period[4]), _SPANISH_MONTHS.index(period[3].lower()) + 1, 1)
