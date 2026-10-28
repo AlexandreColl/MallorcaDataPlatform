@@ -41,7 +41,7 @@
       "type": "text",
       "title": "",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 24,
         "x": 0,
         "y": 0
@@ -772,7 +772,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH y AS (SELECT extract(year FROM month)::int AS year, sum(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) AS summer_tourists, max(reserves_pct) FILTER (WHERE extract(month FROM month) = 3) - max(reserves_pct) FILTER (WHERE extract(month FROM month) = 9) AS summer_drop, max(rain_hydrological_year_mm) FILTER (WHERE extract(month FROM month) = 8) AS rain_year FROM gold.fct_resources_monthly GROUP BY 1) SELECT corr(summer_tourists, summer_drop) AS \"Correlación\", count(*) FILTER (WHERE summer_tourists IS NOT NULL AND summer_drop IS NOT NULL) AS \"Años\" FROM y"
+          "rawSql": "WITH y AS (SELECT extract(year FROM month)::int AS year, CASE WHEN count(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) = 4 THEN sum(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) END AS summer_tourists, max(reserves_pct) FILTER (WHERE extract(month FROM month) = 3) - max(reserves_pct) FILTER (WHERE extract(month FROM month) = 9) AS summer_drop, max(rain_hydrological_year_mm) FILTER (WHERE extract(month FROM month) = 8) AS rain_year FROM gold.fct_resources_monthly GROUP BY 1) SELECT corr(summer_tourists, summer_drop) AS \"Correlación\", count(*) FILTER (WHERE summer_tourists IS NOT NULL AND summer_drop IS NOT NULL) AS \"Años\" FROM y"
         }
       ],
       "fieldConfig": {
@@ -836,7 +836,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH y AS (SELECT extract(year FROM month)::int AS year, sum(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) AS summer_tourists, max(reserves_pct) FILTER (WHERE extract(month FROM month) = 3) - max(reserves_pct) FILTER (WHERE extract(month FROM month) = 9) AS summer_drop, max(rain_hydrological_year_mm) FILTER (WHERE extract(month FROM month) = 8) AS rain_year FROM gold.fct_resources_monthly GROUP BY 1) SELECT corr(rain_year, summer_drop) AS \"Correlación\", count(*) FILTER (WHERE rain_year IS NOT NULL AND summer_drop IS NOT NULL) AS \"Años\" FROM y"
+          "rawSql": "WITH y AS (SELECT extract(year FROM month)::int AS year, CASE WHEN count(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) = 4 THEN sum(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) END AS summer_tourists, max(reserves_pct) FILTER (WHERE extract(month FROM month) = 3) - max(reserves_pct) FILTER (WHERE extract(month FROM month) = 9) AS summer_drop, max(rain_hydrological_year_mm) FILTER (WHERE extract(month FROM month) = 8) AS rain_year FROM gold.fct_resources_monthly GROUP BY 1) SELECT corr(rain_year, summer_drop) AS \"Correlación\", count(*) FILTER (WHERE rain_year IS NOT NULL AND summer_drop IS NOT NULL) AS \"Años\" FROM y"
         }
       ],
       "fieldConfig": {
@@ -879,7 +879,7 @@
       "id": 11,
       "type": "table",
       "title": "Evaluación por año",
-      "description": "Por año natural: turistas de junio a septiembre, caída de las reservas de marzo a septiembre (puntos) y lluvia del año hidrológico que acaba en agosto. Los años incompletos se dejan en blanco.",
+      "description": "Por año natural: turistas del año y de junio a septiembre, demanda eléctrica, lluvia del año hidrológico que acaba en agosto, caída de las reservas de marzo a septiembre (puntos) y su mínimo. Los totales de años o veranos incompletos se dejan en blanco.",
       "gridPos": {
         "h": 10,
         "w": 18,
@@ -900,7 +900,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH y AS (SELECT extract(year FROM month)::int AS year, sum(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) AS summer_tourists, max(reserves_pct) FILTER (WHERE extract(month FROM month) = 3) - max(reserves_pct) FILTER (WHERE extract(month FROM month) = 9) AS summer_drop, max(rain_hydrological_year_mm) FILTER (WHERE extract(month FROM month) = 8) AS rain_year FROM gold.fct_resources_monthly GROUP BY 1), totals AS (SELECT extract(year FROM month)::int AS year, sum(international_tourists) AS tourists, sum(international_spending_eur) / 1e6 AS spending, sum(airport_passengers) AS passengers, CASE WHEN count(electricity_demand_gwh) = 12 THEN sum(electricity_demand_gwh) END AS demand, min(reserves_pct) AS reserves_min FROM gold.fct_resources_monthly GROUP BY 1) SELECT y.year::text AS \"Año\", t.tourists AS \"Turistas\", y.summer_tourists AS \"Turistas jun-sep\", t.spending AS \"Gasto (M€)\", t.passengers AS \"Pasajeros aeropuerto\", t.demand AS \"Demanda eléctrica (GWh)\", y.rain_year AS \"Lluvia año hidrológico (mm)\", y.summer_drop AS \"Caída de reservas mar-sep (pts)\", t.reserves_min AS \"Reservas mínimas (%)\" FROM y JOIN totals t USING (year) WHERE y.year >= 2016 ORDER BY y.year DESC"
+          "rawSql": "WITH y AS (SELECT extract(year FROM month)::int AS year, CASE WHEN count(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) = 4 THEN sum(international_tourists) FILTER (WHERE extract(month FROM month) BETWEEN 6 AND 9) END AS summer_tourists, max(reserves_pct) FILTER (WHERE extract(month FROM month) = 3) - max(reserves_pct) FILTER (WHERE extract(month FROM month) = 9) AS summer_drop, max(rain_hydrological_year_mm) FILTER (WHERE extract(month FROM month) = 8) AS rain_year FROM gold.fct_resources_monthly GROUP BY 1), totals AS (SELECT extract(year FROM month)::int AS year, CASE WHEN count(international_tourists) = 12 THEN sum(international_tourists) END AS tourists, CASE WHEN count(electricity_demand_gwh) = 12 THEN sum(electricity_demand_gwh) END AS demand, min(reserves_pct) AS reserves_min FROM gold.fct_resources_monthly GROUP BY 1) SELECT y.year::text AS \"Año\", t.tourists AS \"Turistas (año)\", y.summer_tourists AS \"Turistas jun-sep\", t.demand AS \"Demanda eléctrica (GWh)\", y.rain_year AS \"Lluvia año hidr. (mm)\", y.summer_drop AS \"Caída reservas mar-sep (pts)\", t.reserves_min AS \"Reservas mínimas (%)\" FROM y JOIN totals t USING (year) WHERE y.year >= 2017 ORDER BY y.year DESC"
         }
       ],
       "fieldConfig": {
@@ -914,7 +914,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Caída de reservas mar-sep (pts)"
+              "options": "Caída reservas mar-sep (pts)"
             },
             "properties": [
               {
@@ -983,7 +983,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Turistas"
+              "options": "Turistas (año)"
             },
             "properties": [
               {
@@ -1000,22 +1000,6 @@
             "matcher": {
               "id": "byName",
               "options": "Turistas jun-sep"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "short"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Pasajeros aeropuerto"
             },
             "properties": [
               {
