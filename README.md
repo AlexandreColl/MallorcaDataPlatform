@@ -29,6 +29,7 @@ flowchart LR
         IG[IGN sismos]
         EM[EMT Palma GTFS]
         CT[CTM GTFS]
+        DE[Dataestur turismo]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -44,7 +45,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & OMM & AE & RD & SO & IG & EM & CT --> EX --> BR --> SP
+    OM & OMM & AE & RD & SO & IG & EM & CT & DE --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -105,6 +106,7 @@ Otros comandos: `make help`.
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Oleaje, temperatura del mar, corrientes y nivel del mar (modelo) en 8 puntos de la costa | No |
 | [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Valores diarios oficiales de 33 estaciones de AEMET en Mallorca (temperatura, lluvia, humedad, viento, sol, presión) | Sí |
 | [ctm](connectors/ctm/README.md) | ✅ | Autobuses TIB, tren SFM y metro programados por parada y día en toda la isla (763 paradas, GTFS estático) | No |
+| [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
 | openaq | ⬜ v0.2.6 | Estaciones de calidad del aire | Sí |
 | aqicn | ⬜ v0.2.7 | Estaciones de calidad del aire | Sí |
 
@@ -178,6 +180,16 @@ como servicios que acaban el 31 de octubre. En gold, `fct_island_transit_daily`;
 calor que EMT. Prueba real: unos 41.000 pasos en un día laborable, 35.000 en domingo; la Estació Intermodal de
 Palma tiene 1.028 al día.
 
+### Dataestur (turismo)
+
+Cuatro tablas mensuales de la API de SEGITTUR (sin clave): turistas internacionales (FRONTUR) y su gasto (EGATUR)
+en Baleares, ocupación hotelera (EOH) y pasajeros del aeropuerto de Palma (AENA). La API responde xlsx, que el
+conector lee con la librería estándar, y un filtro mal escrito devuelve una hoja vacía con HTTP 200, que se trata
+como error. Es la primera fuente mensual: el núcleo gana `frequency: 1mo` (huecos contados en meses naturales) y
+`min_days`, para que la ejecución diaria relea siempre el último año y recoja las revisiones. En gold,
+`fct_tourism_monthly` con el gasto por turista y la variación interanual; en Grafana, un panel con los últimos tres
+años. Prueba real: diez años en un minuto; agosto de 2026, 2,6 M turistas (+2,6 %) y 4,8 M pasajeros en Palma.
+
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 
 ## Calidad de datos
@@ -216,7 +228,8 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
   al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
   recuperan se juzgan con sus vecinos, y es idempotente.
 - Configuración en [config/anomaly.yaml](config/anomaly.yaml): parámetros de cada detector y lo que no se analiza
-  (sismos y horarios de EMT y CTM; precipitación, insolación y dirección del oleaje). A mano: `make detect DAYS=30`.
+  (sismos, horarios de EMT y CTM y estadísticas mensuales de Dataestur; precipitación, insolación y dirección del
+  oleaje). A mano: `make detect DAYS=30`.
 
 Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
 de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.

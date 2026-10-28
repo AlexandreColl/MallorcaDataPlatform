@@ -24,6 +24,7 @@ exposures:
       - ref('data_quality_summary')
       - ref('fct_model_bias_daily')
       - ref('fct_weather_episodes')
+      - ref('fct_tourism_monthly')
       - source('ops', 'ingestion_runs')
 
   - name: corrections_phase

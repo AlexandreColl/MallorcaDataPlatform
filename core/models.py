@@ -86,6 +86,17 @@ class TimeWindow:
         start = max(last_loaded + timedelta(days=1), self.end - timedelta(days=limit_days - 1))
         return TimeWindow(start, self.end) if start < self.start else self
 
+    def month_starts(self) -> list[date]:
+        """First days of the calendar months that start inside the window (where monthly values are stamped)."""
+        first = date(self.start.year, self.start.month, 1)
+        if first < self.start:
+            first = date(first.year + first.month // 12, first.month % 12 + 1, 1)
+        months = []
+        while first <= self.end:
+            months.append(first)
+            first = date(first.year + first.month // 12, first.month % 12 + 1, 1)
+        return months
+
     def split(self, max_days: int) -> list[TimeWindow]:
         """Consecutive sub-windows of at most `max_days`, for APIs that limit the range per request."""
         if max_days < 1:

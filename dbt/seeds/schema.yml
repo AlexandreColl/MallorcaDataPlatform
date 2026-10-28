@@ -10,4 +10,4 @@ seeds:
         data_tests:
           - accepted_values:
               arguments:
-                values: ["model", "observation", "system", "event", "schedule"]
+                values: ["model", "observation", "system", "event", "schedule", "statistic"]

@@ -131,3 +131,25 @@ def test_events_get_range_checks_but_no_gaps_rule(spark):
     assert not any(r.rule == "gaps" for r in results)  # one event in a whole day is not 23 missing hours
     suspect = silver.where(f"quality = '{Quality.SUSPECT}'").collect()
     assert [(r.metric, r.quality_reasons) for r in suspect] == [("depth_km", "range")]
+
+
+def test_monthly_gaps_count_calendar_months(spark):
+    dataestur = registry.load("dataestur")
+    window = TimeWindow(date(2025, 8, 27), date(2026, 8, 26))  # 12 months start inside it: Sep 2025 to Aug 2026
+    months = window.month_starts()[:-1]  # the latest month is not published yet
+    observations = [
+        Observation(
+            "dataestur",
+            "palma_airport",
+            "airport_passengers",
+            datetime(m.year, m.month, 1, tzinfo=UTC),
+            1e6,
+            "passengers",
+        )
+        for m in months
+    ]
+
+    _, results = apply_quality(_frame(spark, observations), dataestur, window)
+
+    gaps = _results_by_rule(results)[("gaps", "airport_passengers")]
+    assert (gaps.checked, gaps.failed) == (12, 1)
