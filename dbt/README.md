@@ -49,7 +49,7 @@ flowchart LR
 | weather | `fct_weather_episodes` (contrato) | episodio de lluvia, viento o mar |
 | marine | `fct_sea_conditions_hourly` | punto de costa y hora |
 | energy | `fct_electricity_daily` | día: demanda, mix, % renovable, CO₂ e importación por el enlace con la península |
-| mobility | `fct_bus_network_daily` | día: paradas con servicio, pasos de autobús, parada con más servicio |
+| mobility | `fct_bus_network_daily` (EMT), `fct_island_transit_daily` (CTM) | día: paradas con servicio, pasos programados, parada con más servicio |
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
 | seismic | `fct_earthquakes` | sismo |
 | quality | `data_quality_summary`, `source_health` | regla / fuente |
@@ -108,7 +108,7 @@ columnas de `dbt_expectations`.
 
 ## Contratos
 
-Los marts que se consumen fuera (`dim_date`, `fct_electricity_daily`, `fct_bus_network_daily`,
+Los marts que se consumen fuera (`dim_date`, `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`,
 `agg_model_bias_by_station`, `fct_weather_episodes`) tienen `contract: {enforced: true}`: nombres y tipos de
 columna fijos, `not_null` y clave primaria creados en PostgreSQL. Un cambio que rompa el contrato falla en el build,
 no en Grafana.
