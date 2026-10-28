@@ -7,7 +7,7 @@
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 10,
+  "version": 11,
   "refresh": "5m",
   "time": { "from": "now-7d", "to": "now" },
   "templating": {
@@ -192,7 +192,7 @@
       "id": 7,
       "type": "geomap",
       "title": "Mapa de fuentes",
-      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: autobuses programados por parada de EMT Palma el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
+      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: vehículos programados por parada de EMT Palma y de la red de CTM (autobuses TIB, tren y metro) el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
       "gridPos": { "h": 13, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
       "targets": [
@@ -226,7 +226,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE 'emt_palma' IN ($source) AND a.source = 'emt_palma' AND a.metric = 'scheduled_departures' AND a.local_date = (SELECT max(local_date) FROM gold.agg_daily_metrics WHERE source = 'emt_palma' AND local_date <= $__timeTo()::date)"
+          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE a.source IN ($source) AND a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND a.local_date = (SELECT max(local_date) FROM gold.agg_daily_metrics m WHERE m.source = a.source AND m.local_date <= $__timeTo()::date)"
         },
         {
           "refId": "E",
@@ -292,7 +292,7 @@
         "layers": [
           {
             "type": "heatmap",
-            "name": "Autobuses programados por parada (EMT Palma)",
+            "name": "Servicio programado por parada (EMT Palma y CTM)",
             "tooltip": false,
             "filterData": { "id": "byRefId", "options": "D" },
             "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },

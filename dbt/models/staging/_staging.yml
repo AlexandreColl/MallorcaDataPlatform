@@ -20,6 +20,8 @@ models:
     description: REData Balearic electric system, hourly demand and daily generation and CO2.
   - name: stg_emt_palma__observations
     description: EMT Palma scheduled service per stop, daily.
+  - name: stg_ctm__observations
+    description: CTM island network (TIB buses, SFM trains, metro) scheduled service per stop, daily.
   - name: stg_ign__observations
     description: IGN earthquakes (events), one row per event and metric.
   - name: stg_quality__check_results

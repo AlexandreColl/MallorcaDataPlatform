@@ -5,8 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- CTM connector (`ctm`): the Consorci de Transports de Mallorca static GTFS (TIB buses, SFM trains, metro) as a
+  daily series per stop, 763 stops island-wide. dbt `stg_ctm__observations` and `fct_island_transit_daily`; CTM
+  joins EMT in the Grafana heat map.
+
 ### Changed
 
+- The GTFS logic moves from the EMT Palma connector to `core/connectors/gtfs.py` (`GtfsConnector`), shared by EMT
+  and CTM; `fct_bus_network_daily` is now built by the `transit_network_daily` macro (same columns).
 - Dependencies: PySpark 4.2.1 (still Hadoop 3.5.0, so hadoop-aws 3.5.0 and AWS SDK 2.35.4 stay), ruff 0.17.3, and
   in CI pandas 3.1.0, pyarrow 26.0.0 and boto3 1.43.120 (the image keeps the versions of the Airflow 3.3.2
   constraints). The AWS SDK bundle is not bumped to 2.57: it must match the hadoop-aws build.

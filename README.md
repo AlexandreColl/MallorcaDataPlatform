@@ -28,6 +28,7 @@ flowchart LR
         SO[SOCIB]
         IG[IGN sismos]
         EM[EMT Palma GTFS]
+        CT[CTM GTFS]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -43,7 +44,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & OMM & AE & RD & SO & IG & EM --> EX --> BR --> SP
+    OM & OMM & AE & RD & SO & IG & EM & CT --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -103,6 +104,7 @@ Otros comandos: `make help`.
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Oleaje, temperatura del mar, corrientes y nivel del mar (modelo) en 8 puntos de la costa | No |
 | [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Valores diarios oficiales de 33 estaciones de AEMET en Mallorca (temperatura, lluvia, humedad, viento, sol, presión) | Sí |
+| [ctm](connectors/ctm/README.md) | ✅ | Autobuses TIB, tren SFM y metro programados por parada y día en toda la isla (763 paradas, GTFS estático) | No |
 | openaq | ⬜ v0.2.6 | Estaciones de calidad del aire | Sí |
 | aqicn | ⬜ v0.2.7 | Estaciones de calidad del aire | Sí |
 
@@ -167,6 +169,15 @@ por frecuencias (`frequencies.txt`: «cada 20 min de 07:15 a 20:35»), que el co
 vigencia del feed no generan filas, así que la regla de huecos los señala. En Grafana es un mapa de calor del
 servicio. Prueba real: unos 78.000 pasos de autobús en un día laborable, 52.800 en domingo.
 
+### CTM (autobús, tren y metro de la isla)
+
+El GTFS del Consorci de Transports de Mallorca (sin clave, CC BY 4.0) con la misma lógica que EMT, ahora en
+`core/connectors/gtfs.py`: autobuses TIB, tren SFM y metro programados y líneas por parada y día en las 763
+paradas de la isla. Sin `frequencies.txt`, cada viaje cuenta una vez por parada; los horarios de temporada se ven
+como servicios que acaban el 31 de octubre. En gold, `fct_island_transit_daily`; en Grafana, la misma mancha de
+calor que EMT. Prueba real: unos 41.000 pasos en un día laborable, 35.000 en domingo; la Estació Intermodal de
+Palma tiene 1.028 al día.
+
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 
 ## Calidad de datos
@@ -205,7 +216,7 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
   al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
   recuperan se juzgan con sus vecinos, y es idempotente.
 - Configuración en [config/anomaly.yaml](config/anomaly.yaml): parámetros de cada detector y lo que no se analiza
-  (sismos y horarios de EMT; precipitación, insolación y dirección del oleaje). A mano: `make detect DAYS=30`.
+  (sismos y horarios de EMT y CTM; precipitación, insolación y dirección del oleaje). A mano: `make detect DAYS=30`.
 
 Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
 de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.

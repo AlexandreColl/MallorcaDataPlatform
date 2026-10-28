@@ -1,0 +1,19 @@
+name: ctm
+description: CTM island network (static GTFS) - TIB buses, SFM trains and metro, scheduled departures and lines per stop and day, no API key
+entrypoint: connectors.ctm.extractor:CtmConnector
+enabled: true
+frequency: 1d          # one value per stop and local day
+max_days: 92
+secrets: []
+
+options:
+  # Consorci de Transports de Mallorca, CC BY 4.0, regenerated every day (feed_version is the build time).
+  gtfs_url: https://www.tib.org/documents/20124/478141/ctm-mallorca-es.zip
+  timezone: Europe/Madrid     # GTFS service days are local days
+
+datasets:
+  schedule: {}
+
+metrics:
+  scheduled_departures: {dataset: schedule, unit: vehicles, min: 0, max: 2000}  # buses, trains or metros calling that day
+  lines_served:         {dataset: schedule, unit: lines, min: 0, max: 40}       # distinct lines calling at the stop

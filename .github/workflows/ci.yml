@@ -89,7 +89,8 @@ jobs:
         working-directory: dbt
         run: sqlfluff lint models --format github-annotation-native
       # Slim CI: a pull request only builds what it changed (state:modified) plus its children, compared with the
-      # manifest of develop published by dbt-docs.yml. The warehouse is empty, so the parents (+) are built too.
+      # manifest of develop published by dbt-docs.yml. The warehouse is empty, so `@` also builds every parent of
+      # those children: a test of a child (a relationship to another model) needs all of its parents to exist.
       # Without that manifest (first run, expired artifact) or outside pull requests, everything is built.
       - name: Manifest of develop (slim CI)
         if: github.event_name == 'pull_request'
@@ -99,7 +100,7 @@ jobs:
           run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow dbt-docs.yml --branch develop --status success \
             --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)  # no workflow run yet: full build
           if [ -n "$run_id" ] && gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name dbt-manifest --dir dbt/state; then
-            echo "DBT_SELECTION=--select +state:modified+ --state state" >> "$GITHUB_ENV"
+            echo "DBT_SELECTION=--select @state:modified --state state" >> "$GITHUB_ENV"
             echo "Slim CI against develop (run $run_id)"
           else
             echo "No manifest of develop: full build"
