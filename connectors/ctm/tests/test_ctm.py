@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 from datetime import UTC, date, datetime
 from pathlib import Path
 
