@@ -384,6 +384,33 @@ models:
       - {name: lowest_aquifer, data_type: text}
       - {name: lowest_aquifer_pct, data_type: double precision}
 
+  - name: fct_climate_monthly
+    description: >-
+      Climate of Mallorca per month from the official AEMET stations (mean of the stations that reported at least
+      90 % of the month): rainfall and temperature with their anomaly against the same calendar month, hot and wet
+      days, and the rainfall accumulated in the hydrological year (September to August).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: hydrological_year, data_type: integer, description: September to August, named after the year it ends in.}
+      - {name: rain_stations, data_type: bigint, description: Stations with a complete month of rainfall.}
+      - {name: rain_mm, data_type: "numeric(7,1)", description: Mean rainfall of those stations.}
+      - {name: rain_same_month_mean_mm, data_type: "numeric(7,1)"}
+      - {name: rain_anomaly, data_type: "numeric(8,3)", description: Rainfall against the mean of the same month (0.2 = 20 % more).}
+      - {name: rain_hydrological_year_mm, data_type: "numeric(7,1)", description: Rainfall since September.}
+      - {name: rain_hydrological_year_mean_mm, data_type: "numeric(7,1)", description: Mean of the same accumulated value in the other years.}
+      - {name: wet_days, data_type: "numeric(4,1)", description: Days with at least 1 mm, mean of the stations.}
+      - {name: temperature_stations, data_type: bigint}
+      - {name: temperature_mean_c, data_type: "numeric(5,2)"}
+      - {name: temperature_anomaly_c, data_type: "numeric(5,2)", description: Against the mean of the same month.}
+      - {name: temperature_max_c, data_type: double precision, description: Highest daily maximum of any complete station.}
+      - {name: hot_days, data_type: "numeric(4,1)", description: Days with a maximum of 30 °C or more, mean of the stations.}
+      - {name: same_month_years, data_type: bigint}
+
 unit_tests:
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.
@@ -467,3 +494,20 @@ unit_tests:
         - {month: "2025-09-01", hydrological_year: 2026, same_month_mean_pct: 40.0, anomaly_pts: 0.0, change_12m_pts: null}
         - {month: "2026-01-01", hydrological_year: 2026, same_month_mean_pct: 52.0, anomaly_pts: 0.0, change_12m_pts: null}
         - {month: "2026-02-01", hydrological_year: 2026, same_month_mean_pct: 55.0, anomaly_pts: 5.0, change_12m_pts: 10.0}
+
+  - name: climate_month_needs_a_complete_station
+    description: A station with fewer than 90 % of its days does not count, so a missing week is not a dry month.
+    model: fct_climate_monthly
+    given:
+      - input: ref('int_weather__daily')
+        format: sql
+        rows: |
+          select 'aemet' as source, 'B278' as entity, d::date as local_date, 20.0 as temperature_mean,
+                 25.0 as temperature_max, 2.0 as precipitation_sum
+          from generate_series('2025-09-01'::date, '2025-09-30', interval '1 day') as d
+          union all
+          select 'aemet', 'B013', d::date, 15.0, 31.0, 10.0
+          from generate_series('2025-09-01'::date, '2025-09-20', interval '1 day') as d
+    expect:
+      rows:
+        - {month: "2025-09-01", hydrological_year: 2026, rain_stations: 1, rain_mm: 60.0, wet_days: 30.0, hot_days: 0.0, rain_anomaly: 0.000}
