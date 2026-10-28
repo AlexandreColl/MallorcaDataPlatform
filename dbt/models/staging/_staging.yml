@@ -24,6 +24,8 @@ models:
     description: CTM island network (TIB buses, SFM trains, metro) scheduled service per stop, daily.
   - name: stg_dataestur__observations
     description: Dataestur (SEGITTUR) monthly Balearic tourism, stamped on the first day of each month.
+  - name: stg_water_reserves__observations
+    description: Groundwater reserves of Mallorca per aquifer and island-wide, monthly (share of a full aquifer, %).
   - name: stg_ign__observations
     description: IGN earthquakes (events), one row per event and metric.
   - name: stg_quality__check_results

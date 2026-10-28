@@ -1,0 +1,31 @@
+name: water_reserves
+description: Water reserves of Mallorca (Govern de les Illes Balears) - monthly share of the groundwater reserves per aquifer and island-wide, no API key
+entrypoint: connectors.water_reserves.extractor:WaterReservesConnector
+enabled: true
+frequency: 1mo         # one value per month, stamped on its first day (local midnight)
+# The files always hold the last 13 months (and 10 years island-wide): every run re-reads the last year.
+min_days: 365
+max_days: 3660         # backfill: the 10-year island series
+# A month is published about two months later (August on the 27th of October).
+lag_days: 62
+secrets: []
+
+options:
+  # The files are renamed and get a new id every month, so they are found on this page by their link text.
+  page_url: https://www.caib.es/sites/aigua/es/evolucion_de_las_reservas_hidricas_e_indice_de_sequia-22867/
+  timezone: Europe/Madrid
+  island: MALLORCA            # island-wide row of the spreadsheet ("MALLORCA Conjunt")
+  aquifer_code_prefix: "18"   # groundwater bodies of Mallorca (18xxMx); Menorca is 19, Eivissa 20
+  covers_regions: [mallorca]
+
+datasets:
+  last_year:        # spreadsheet: every aquifer and the island, last 13 months, two decimals
+    link_text: durante el último año
+    format: ods
+  history:          # PDF chart: the island over 10 years, whole percentages; only months the spreadsheet lacks
+    link_text: ponderadas de Mallorca
+    format: pdf
+    skip_last_months: 13   # the months of the spreadsheet
+
+metrics:
+  water_reserves: {dataset: last_year, unit: "%", min: 0, max: 100}   # share of the reserves of a full aquifer

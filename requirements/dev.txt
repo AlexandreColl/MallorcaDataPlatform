@@ -2,6 +2,7 @@
 # Inside the Docker image the same libraries are resolved against the official Airflow
 # constraints file (the combination Airflow tests and supports), so patch versions may differ.
 pyspark==4.2.1
+pypdf==6.21.4
 boto3==1.43.120
 psycopg[binary]==3.3.6
 requests==2.34.2
