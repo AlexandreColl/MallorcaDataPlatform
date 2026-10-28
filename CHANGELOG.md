@@ -10,6 +10,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - CTM connector (`ctm`): the Consorci de Transports de Mallorca static GTFS (TIB buses, SFM trains, metro) as a
   daily series per stop, 763 stops island-wide. dbt `stg_ctm__observations` and `fct_island_transit_daily`; CTM
   joins EMT in the Grafana heat map.
+- Dataestur connector (`dataestur`): monthly Balearic tourism from SEGITTUR (FRONTUR international tourists, EGATUR
+  spending, EOH hotel occupancy, AENA Palma airport passengers), read from xlsx with the standard library. dbt
+  `fct_tourism_monthly` (spending per tourist, year-on-year change) and a Grafana panel of the last three years.
+- Monthly sources in the core: `frequency: 1mo` (the gaps rule counts calendar months) and `min_days`, the shortest
+  window a run asks for, so the daily one-day run of a monthly source re-reads its last year.
 
 ### Changed
 
