@@ -1,30 +1,108 @@
 version: 2
 
 # Downstream consumers of the marts. They show up in the lineage graph of `dbt docs` and can be selected:
-# `dbt build --select +exposure:grafana_overview` rebuilds and tests everything the dashboard depends on.
+# `dbt build --select +exposure:grafana_climate_water` rebuilds and tests everything that dashboard depends on.
+# One exposure per Grafana dashboard (dashboards/json/), all in the "Mallorca Data Platform" folder.
 exposures:
-  - name: grafana_overview
-    label: Grafana · Mallorca · Visión general
+  - name: grafana_home
+    label: Grafana · Mallorca · Inicio
     type: dashboard
     maturity: high
     url: http://localhost:3000/d/mallorca-overview
     description: >
-      The single Grafana dashboard (dashboards/json/mallorca_overview.json): stats, the map of every
-      georeferenced source, charts by metric, entity and source, and the table of every time series, filtered by
-      a multi-select source selector.
+      Home: water, climate and tourism of the last published month, and the map of every georeferenced source.
     owner:
       name: AlexandreColl
     depends_on:
+      - ref('fct_resources_monthly')
+      - ref('fct_climate_monthly')
+      - ref('fct_tourism_monthly')
+      - ref('fct_earthquakes')
+      - ref('air_quality_hourly')
       - ref('fct_observations')
       - ref('agg_daily_metrics')
       - ref('dim_locations')
       - ref('dim_sources')
+      - source('ops', 'ingestion_runs')
+
+  - name: grafana_tourism_resources
+    label: Grafana · Mallorca · Turismo y recursos
+    type: dashboard
+    maturity: medium
+    url: http://localhost:3000/d/mallorca-tourism-resources
+    description: >
+      Tourists, airport passengers and hotel occupancy against groundwater reserves and electricity demand, with the
+      anomalies against the same month and a year-by-year evaluation.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_resources_monthly')
+      - ref('fct_tourism_monthly')
+
+  - name: grafana_climate_water
+    label: Grafana · Mallorca · Clima y agua
+    type: dashboard
+    maturity: medium
+    url: http://localhost:3000/d/mallorca-climate-water
+    description: >
+      Rainfall and temperature of the AEMET stations against the groundwater reserves: monthly response of the
+      aquifers, hydrological years and the state of each aquifer.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_resources_monthly')
+      - ref('fct_climate_monthly')
+      - ref('fct_water_reserves_monthly')
+      - ref('fct_observations')
+      - ref('dim_aquifers')
+
+  - name: grafana_mobility
+    label: Grafana · Mallorca · Movilidad
+    type: dashboard
+    maturity: medium
+    url: http://localhost:3000/d/mallorca-mobility
+    description: Scheduled public transport of EMT Palma and CTM per day and per stop.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_bus_network_daily')
+      - ref('fct_island_transit_daily')
+      - ref('agg_daily_metrics')
+      - ref('dim_locations')
+
+  - name: grafana_weather_environment
+    label: Grafana · Mallorca · Tiempo y entorno
+    type: dashboard
+    maturity: high
+    url: http://localhost:3000/d/mallorca-weather
+    description: >
+      Day-to-day weather (stations and model, with the model bias and weather episodes), air quality, sea and
+      earthquakes, plus a metric explorer.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_observations')
+      - ref('dim_sources')
       - ref('air_quality_hourly')
-      - ref('fct_earthquakes')
-      - ref('data_quality_summary')
+      - ref('fct_sea_conditions_hourly')
       - ref('fct_model_bias_daily')
       - ref('fct_weather_episodes')
-      - ref('fct_tourism_monthly')
+      - ref('fct_earthquakes')
+
+  - name: grafana_operations
+    label: Grafana · Mallorca · Operación
+    type: dashboard
+    maturity: high
+    url: http://localhost:3000/d/mallorca-operations
+    description: Connector runs, source health, quality rules, series completeness and detected anomalies.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('source_health')
+      - ref('data_quality_summary')
+      - ref('agg_daily_metrics')
+      - ref('fct_observations')
+      - ref('dim_sources')
       - source('ops', 'ingestion_runs')
 
   - name: corrections_phase

@@ -1,15 +1,35 @@
 {
   "uid": "mallorca-overview",
-  "title": "Mallorca · Visión general",
-  "description": "Todas las fuentes en una vista: indicadores, mapa, gráficas y la tabla de series temporales. Filtra por una o varias fuentes con el selector.",
-  "tags": ["mallorca", "gold"],
+  "title": "Mallorca · Inicio",
+  "description": "Resumen de la isla: estado del agua, el clima y el turismo del último mes publicado, y el mapa de todas las fuentes. Cada tema tiene su propio dashboard.",
+  "tags": [
+    "mallorca",
+    "inicio"
+  ],
   "timezone": "browser",
   "editable": false,
   "graphTooltip": 1,
   "schemaVersion": 41,
-  "version": 12,
+  "version": 1,
   "refresh": "5m",
-  "time": { "from": "now-7d", "to": "now" },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "mallorca"
+      ],
+      "asDropdown": false,
+      "title": "Dashboards",
+      "includeVars": false,
+      "keepTime": false,
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
   "templating": {
     "list": [
       {
@@ -17,165 +37,487 @@
         "label": "Fuentes",
         "description": "Una o varias fuentes: filtra indicadores, mapa, gráficas y tabla.",
         "type": "query",
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "warehouse"
+        },
         "query": "SELECT label AS __text, source AS __value FROM gold.dim_sources ORDER BY label",
         "definition": "SELECT label AS __text, source AS __value FROM gold.dim_sources ORDER BY label",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
-        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
         "sort": 0
-      },
-      {
-        "name": "metric",
-        "label": "Métrica",
-        "type": "query",
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-        "query": "SELECT DISTINCT metric FROM gold.agg_daily_metrics WHERE source IN ($source) ORDER BY 1",
-        "definition": "SELECT DISTINCT metric FROM gold.agg_daily_metrics WHERE source IN ($source) ORDER BY 1",
-        "refresh": 1,
-        "multi": false,
-        "includeAll": false,
-        "current": { "selected": true, "text": "temperature_2m", "value": "temperature_2m" },
-        "sort": 1
-      },
-      {
-        "name": "entity",
-        "label": "Entidad",
-        "description": "Localidad, estación o parada que tiene la métrica elegida.",
-        "type": "query",
-        "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-        "query": "SELECT DISTINCT entity FROM gold.agg_daily_metrics WHERE source IN ($source) AND metric = '$metric' ORDER BY 1",
-        "definition": "SELECT DISTINCT entity FROM gold.agg_daily_metrics WHERE source IN ($source) AND metric = '$metric' ORDER BY 1",
-        "refresh": 1,
-        "multi": true,
-        "includeAll": true,
-        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
-        "sort": 1
       }
     ]
   },
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Mallorca Data Platform**: datos abiertos de la isla, ordenados por tema. Los indicadores de abajo son el último mes publicado de cada fuente (el turismo y las reservas llegan con unos dos meses de retraso).\n\n| Dashboard | Qué responde |\n|---|---|\n| [Turismo y recursos](/d/mallorca-tourism-resources) | ¿Cómo se relacionan los turistas con el agua y la electricidad que consume la isla? |\n| [Clima y agua](/d/mallorca-climate-water) | ¿Cuánta lluvia y calor hubo, y qué les pasó a los acuíferos? |\n| [Movilidad](/d/mallorca-mobility) · [Tiempo y entorno](/d/mallorca-weather) · [Operación](/d/mallorca-operations) | Transporte público programado · meteorología, aire, mar y sismos al día · salud de las fuentes y calidad de datos |"
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
-      "title": "Fuentes OK",
-      "description": "Fuentes seleccionadas cuya última ejecución terminó bien.",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "title": "Reservas hídricas",
+      "description": "Reservas de agua subterránea de Mallorca el último mes publicado y su diferencia, en puntos, con la media de ese mismo mes en los años cargados (las reservas son estacionales).",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT reserves_pct AS \"Reservas\", reserves_anomaly_pts AS \"vs media del mes\" FROM gold.fct_resources_monthly WHERE reserves_pct IS NOT NULL ORDER BY month DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 40
+              },
+              {
+                "color": "green",
+                "value": 55
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vs media del mes"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: pts"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#1F60C4",
+                      "value": null
+                    },
+                    {
+                      "color": "#8AB8FF",
+                      "value": -1
+                    },
+                    {
+                      "color": "#FFB357",
+                      "value": 0
+                    },
+                    {
+                      "color": "#E02F44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Lluvia del año hidrológico",
+      "description": "Lluvia media de las estaciones de AEMET desde el 1 de septiembre (año hidrológico) y su porcentaje respecto a la media del mismo punto del año.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT rain_hydrological_year_mm AS \"Desde septiembre\", 100 * rain_hydrological_year_mm / nullif(rain_hydrological_year_mean_mm, 0) AS \"% de la media\" FROM gold.fct_climate_monthly WHERE rain_mm IS NOT NULL ORDER BY month DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Desde septiembre"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthmm"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% de la media"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 80
+                    },
+                    {
+                      "color": "green",
+                      "value": 100
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Temperatura del último mes",
+      "description": "Temperatura media de las estaciones de AEMET el último mes completo y su anomalía frente al mismo mes de los demás años.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT temperature_mean_c AS \"Media\", temperature_anomaly_c AS \"Anomalía\" FROM gold.fct_climate_monthly WHERE temperature_mean_c IS NOT NULL ORDER BY month DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Anomalía"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#1F60C4",
+                      "value": null
+                    },
+                    {
+                      "color": "#8AB8FF",
+                      "value": -1
+                    },
+                    {
+                      "color": "#FFB357",
+                      "value": 0
+                    },
+                    {
+                      "color": "#E02F44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Turistas internacionales",
+      "description": "Turistas internacionales llegados a Baleares el último mes publicado (FRONTUR) y su variación frente al mismo mes del año anterior.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT international_tourists AS \"Turistas\", 100 * international_tourists_yoy AS \"Interanual\" FROM gold.fct_tourism_monthly WHERE international_tourists IS NOT NULL ORDER BY month DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Interanual"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Fuentes OK",
+      "description": "Fuentes seleccionadas cuya última ejecución terminó bien.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT concat(count(*) FILTER (WHERE status = 'success'), ' / ', count(*)) AS \"Fuentes\" FROM (SELECT DISTINCT ON (source) source, status FROM ops.ingestion_runs WHERE source IN ($source) AND status <> 'running' ORDER BY source, started_at DESC) last_runs"
         }
       ],
-      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/.*/", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
-    },
-    {
-      "id": 2,
-      "type": "stat",
-      "title": "Observaciones",
-      "description": "Valores no ausentes de las fuentes seleccionadas en el rango de tiempo.",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT count(*) AS \"Observaciones\" FROM gold.fct_observations WHERE source IN ($source) AND $__timeFilter(ts)"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Sospechosos",
-      "description": "Porcentaje de valores marcados como sospechosos por las reglas de calidad o por la propia fuente.",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT coalesce(100.0 * avg(is_suspect::int), 0) AS \"% sospechosos\" FROM gold.fct_observations WHERE source IN ($source) AND $__timeFilter(ts)"
-        }
-      ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "decimals": 2,
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 } ] }
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
     },
     {
-      "id": 4,
-      "type": "stat",
-      "title": "Fallos",
-      "description": "Ejecuciones de las fuentes seleccionadas que fallaron en el rango (p. ej. una API caída). La siguiente ejecución recupera los días perdidos.",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT count(*) AS \"Fallidas\" FROM ops.ingestion_runs WHERE status = 'failed' AND source IN ($source) AND $__timeFilter(started_at)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } },
-        "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "Última ingesta",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT extract(epoch FROM max(finished_at)) * 1000 AS \"Última ingesta\" FROM ops.ingestion_runs WHERE status = 'success' AND source IN ($source)"
-        }
-      ],
-      "fieldConfig": { "defaults": { "unit": "dateTimeFromNow", "color": { "mode": "fixed", "fixedColor": "text" } }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
-    },
-    {
-      "id": 6,
+      "id": 7,
       "type": "stat",
       "title": "Sismos",
       "description": "Sismos localizados por el IGN en el rango (Mallorca y el mar que la rodea) y su magnitud máxima.",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -183,22 +525,62 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } },
-        "overrides": [ { "matcher": { "id": "byName", "options": "Magnitud máx." }, "properties": [ { "id": "decimals", "value": 1 } ] } ]
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Magnitud máx."
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "geomap",
       "title": "Mapa de fuentes",
       "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: vehículos programados por parada de EMT Palma y de la red de CTM (autobuses TIB, tren y metro) el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
-      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 4 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -206,7 +588,10 @@
         },
         {
           "refId": "B",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -214,7 +599,10 @@
         },
         {
           "refId": "C",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -222,7 +610,10 @@
         },
         {
           "refId": "D",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -230,7 +621,10 @@
         },
         {
           "refId": "E",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -238,7 +632,10 @@
         },
         {
           "refId": "F",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -249,69 +646,264 @@
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "european_aqi" },
+            "matcher": {
+              "id": "byName",
+              "options": "european_aqi"
+            },
             "properties": [
-              { "id": "displayName", "value": "Índice europeo (EAQI)" },
-              { "id": "color", "value": { "mode": "thresholds" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 20 }, { "color": "orange", "value": 40 }, { "color": "red", "value": 60 }, { "color": "purple", "value": 80 } ] } }
+              {
+                "id": "displayName",
+                "value": "Índice europeo (EAQI)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 20
+                    },
+                    {
+                      "color": "orange",
+                      "value": 40
+                    },
+                    {
+                      "color": "red",
+                      "value": 60
+                    },
+                    {
+                      "color": "purple",
+                      "value": 80
+                    }
+                  ]
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "ola (m)" },
+            "matcher": {
+              "id": "byName",
+              "options": "ola (m)"
+            },
             "properties": [
-              { "id": "decimals", "value": 1 },
-              { "id": "unit", "value": "suffix: m" },
-              { "id": "color", "value": { "mode": "thresholds" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#5794f2", "value": null }, { "color": "green", "value": 0.5 }, { "color": "yellow", "value": 1 }, { "color": "orange", "value": 2 }, { "color": "red", "value": 3 } ] } }
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "suffix: m"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#5794f2",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 0.5
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    },
+                    {
+                      "color": "orange",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 3
+                    }
+                  ]
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "temperatura media (°C)" },
+            "matcher": {
+              "id": "byName",
+              "options": "temperatura media (°C)"
+            },
             "properties": [
-              { "id": "decimals", "value": 1 },
-              { "id": "unit", "value": "celsius" },
-              { "id": "color", "value": { "mode": "thresholds" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "blue", "value": null }, { "color": "green", "value": 10 }, { "color": "yellow", "value": 18 }, { "color": "orange", "value": 24 }, { "color": "red", "value": 30 } ] } }
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "unit",
+                "value": "celsius"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 10
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 18
+                    },
+                    {
+                      "color": "orange",
+                      "value": 24
+                    },
+                    {
+                      "color": "red",
+                      "value": 30
+                    }
+                  ]
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "magnitud" },
+            "matcher": {
+              "id": "byName",
+              "options": "magnitud"
+            },
             "properties": [
-              { "id": "decimals", "value": 1 },
-              { "id": "color", "value": { "mode": "thresholds" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#fade2a", "value": null }, { "color": "orange", "value": 2 }, { "color": "red", "value": 3 } ] } }
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#fade2a",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 3
+                    }
+                  ]
+                }
+              }
             ]
           }
         ]
       },
       "options": {
-        "view": { "id": "coords", "lat": 39.6, "lon": 2.9, "zoom": 7.5 },
-        "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true },
-        "basemap": { "type": "osm-standard", "name": "OpenStreetMap", "config": {} },
-        "tooltip": { "mode": "details" },
+        "view": {
+          "id": "coords",
+          "lat": 39.6,
+          "lon": 2.9,
+          "zoom": 7.5
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "basemap": {
+          "type": "osm-standard",
+          "name": "OpenStreetMap",
+          "config": {}
+        },
+        "tooltip": {
+          "mode": "details"
+        },
         "layers": [
           {
             "type": "heatmap",
             "name": "Servicio programado por parada (EMT Palma y CTM)",
             "tooltip": false,
-            "filterData": { "id": "byRefId", "options": "D" },
-            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "filterData": {
+              "id": "byRefId",
+              "options": "D"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
             "opacity": 0.55,
-            "config": { "blur": 18, "radius": 6, "weight": { "field": "buses", "fixed": 1, "min": 0, "max": 1 } }
+            "config": {
+              "blur": 18,
+              "radius": 6,
+              "weight": {
+                "field": "buses",
+                "fixed": 1,
+                "min": 0,
+                "max": 1
+              }
+            }
           },
           {
             "type": "markers",
             "name": "Calidad del aire (modelo Open-Meteo)",
             "tooltip": true,
-            "filterData": { "id": "byRefId", "options": "A" },
-            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "filterData": {
+              "id": "byRefId",
+              "options": "A"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 14 },
-                "color": { "field": "european_aqi" },
+                "size": {
+                  "fixed": 14
+                },
+                "color": {
+                  "field": "european_aqi"
+                },
                 "opacity": 0.9,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/marker/circle.svg" }
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/marker/circle.svg"
+                }
               }
             }
           },
@@ -319,17 +911,39 @@
             "type": "markers",
             "name": "Oleaje (modelo Open-Meteo Marine)",
             "tooltip": true,
-            "filterData": { "id": "byRefId", "options": "E" },
-            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "filterData": {
+              "id": "byRefId",
+              "options": "E"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 20 },
-                "color": { "field": "ola (m)" },
+                "size": {
+                  "fixed": 20
+                },
+                "color": {
+                  "field": "ola (m)"
+                },
                 "opacity": 1,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/water.svg" },
-                "text": { "mode": "field", "field": "ola (m)" },
-                "textConfig": { "fontSize": 10, "offsetY": 16, "textAlign": "center", "textBaseline": "middle" }
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/water.svg"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "ola (m)"
+                },
+                "textConfig": {
+                  "fontSize": 10,
+                  "offsetY": 16,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
               }
             }
           },
@@ -337,15 +951,29 @@
             "type": "markers",
             "name": "Estaciones AEMET (último día publicado)",
             "tooltip": true,
-            "filterData": { "id": "byRefId", "options": "F" },
-            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "filterData": {
+              "id": "byRefId",
+              "options": "F"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 14 },
-                "color": { "field": "temperatura media (°C)" },
+                "size": {
+                  "fixed": 14
+                },
+                "color": {
+                  "field": "temperatura media (°C)"
+                },
                 "opacity": 1,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/cloud-sun.svg" }
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/cloud-sun.svg"
+                }
               }
             }
           },
@@ -353,17 +981,39 @@
             "type": "markers",
             "name": "Estaciones SOCIB (observación real)",
             "tooltip": true,
-            "filterData": { "id": "byRefId", "options": "B" },
-            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "filterData": {
+              "id": "byRefId",
+              "options": "B"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "fixed": 22 },
-                "color": { "fixed": "#1f60c4" },
+                "size": {
+                  "fixed": 22
+                },
+                "color": {
+                  "fixed": "#1f60c4"
+                },
                 "opacity": 1,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/unicons/temperature-half.svg" },
-                "text": { "mode": "field", "field": "estacion" },
-                "textConfig": { "fontSize": 11, "offsetY": 18, "textAlign": "center", "textBaseline": "middle" }
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/unicons/temperature-half.svg"
+                },
+                "text": {
+                  "mode": "field",
+                  "field": "estacion"
+                },
+                "textConfig": {
+                  "fontSize": 11,
+                  "offsetY": 18,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
               }
             }
           },
@@ -371,284 +1021,36 @@
             "type": "markers",
             "name": "Sismos (IGN)",
             "tooltip": true,
-            "filterData": { "id": "byRefId", "options": "C" },
-            "location": { "mode": "coords", "latitude": "lat", "longitude": "lon" },
+            "filterData": {
+              "id": "byRefId",
+              "options": "C"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
             "config": {
               "showLegend": true,
               "style": {
-                "size": { "field": "magnitud", "min": 6, "max": 26 },
-                "color": { "field": "magnitud" },
+                "size": {
+                  "field": "magnitud",
+                  "min": 6,
+                  "max": 26
+                },
+                "color": {
+                  "field": "magnitud"
+                },
                 "opacity": 0.85,
-                "symbol": { "mode": "fixed", "fixed": "img/icons/solid/circle-layer.svg" }
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/solid/circle-layer.svg"
+                }
               }
             }
           }
         ]
       }
-    },
-    {
-      "id": 8,
-      "type": "timeseries",
-      "title": "$metric · media por fuente",
-      "description": "Media horaria de la métrica en cada fuente seleccionada. Con temperatura o viento compara las estaciones reales de SOCIB con el modelo de Open-Meteo.",
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 17 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT date_trunc('hour', o.ts) AS time, s.label AS metric, avg(o.value) AS value FROM gold.fct_observations o JOIN gold.dim_sources s USING (source) WHERE o.metric = '$metric' AND o.source IN ($source) AND $__timeFilter(o.ts) GROUP BY 1, 2 ORDER BY 1"
-        }
-      ],
-      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 0, "showPoints": "never", "spanNulls": false } }, "overrides": [] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
-    },
-    {
-      "id": 9,
-      "type": "timeseries",
-      "title": "$metric · por entidad",
-      "description": "Cada localidad, estación o parada elegida en el selector Entidad.",
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 17 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts) ORDER BY 1"
-        }
-      ],
-      "fieldConfig": { "defaults": { "custom": { "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
-    },
-    {
-      "id": 10,
-      "type": "barchart",
-      "title": "Modelo vs estaciones: error de temperatura",
-      "description": "dbt (fct_model_bias_daily): temperatura media diaria de Open-Meteo menos la medida por cada estación de AEMET y SOCIB en el punto del modelo más cercano, en el rango elegido. Sesgo positivo = el modelo calienta de más. Las 15 estaciones con más error; las de montaña de la Serra de Tramuntana delatan que el modelo no corrige la altitud.",
-      "gridPos": { "h": 11, "w": 12, "x": 0, "y": 26 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT concat(b.station, ' → ', b.model_point, ' (', round(b.distance_km::numeric, 1), ' km)') AS \"Estación\", avg(b.temperature_mean_bias) AS \"Sesgo medio\", avg(abs(b.temperature_mean_bias)) AS \"Error absoluto medio\" FROM gold.fct_model_bias_daily b WHERE (b.station_source IN ($source) OR 'open_meteo' IN ($source)) AND b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY b.station, b.model_point, b.distance_km ORDER BY 3 DESC LIMIT 15"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "celsius", "decimals": 2, "custom": { "fillOpacity": 80, "lineWidth": 0 } },
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "Sesgo medio" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#5794F2" } } ] },
-          { "matcher": { "id": "byName", "options": "Error absoluto medio" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#FF9830" } } ] }
-        ]
-      },
-      "options": {
-        "orientation": "horizontal",
-        "xField": "Estación",
-        "barWidth": 0.8,
-        "groupWidth": 0.75,
-        "showValue": "never",
-        "stacking": "none",
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      }
-    },
-    {
-      "id": 11,
-      "type": "table",
-      "title": "Episodios meteorológicos",
-      "description": "dbt (fct_weather_episodes): días seguidos con lluvia fuerte (≥ 30 mm en alguna estación), rachas ≥ 70 km/h u oleaje ≥ 2,5 m en cualquier punto de la isla, agrupados en episodios. Máximos de cada episodio y la estación con más lluvia; los 20 más recientes, sin depender del rango de tiempo.",
-      "gridPos": { "h": 11, "w": 12, "x": 12, "y": 26 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT concat(to_char(start_date, 'DD/MM/YY'), CASE WHEN end_date > start_date THEN to_char(end_date, ' – DD/MM') END) AS \"Fechas\", replace(replace(replace(episode_type, 'rain', 'lluvia'), 'wind', 'viento'), 'sea', 'mar') AS \"Tipo\", peak_rain_mm AS \"Lluvia (mm)\", peak_rain_station AS \"Estación\", max_stations_over_rain_threshold AS \"Est. ≥ 30 mm\", peak_gust_kmh AS \"Racha (km/h)\", peak_wave_m AS \"Ola (m)\" FROM gold.fct_weather_episodes ORDER BY start_date DESC LIMIT 20"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "decimals": 1, "custom": { "align": "auto", "minWidth": 50 } },
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "Est. ≥ 30 mm" }, "properties": [ { "id": "decimals", "value": 0 } ] },
-          {
-            "matcher": { "id": "byName", "options": "Lluvia (mm)" },
-            "properties": [
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#C0D8FF", "value": null }, { "color": "#5794F2", "value": 50 }, { "color": "#1F60C4", "value": 80 } ] } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Racha (km/h)" },
-            "properties": [
-              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 90 } ] } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Ola (m)" },
-            "properties": [
-              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "text", "value": null }, { "color": "orange", "value": 2.5 }, { "color": "red", "value": 4 } ] } }
-            ]
-          }
-        ]
-      },
-      "options": { "showHeader": true, "cellHeight": "sm" }
-    },
-    {
-      "id": 16,
-      "type": "timeseries",
-      "title": "Turismo en Baleares (mensual)",
-      "description": "Dataestur (SEGITTUR), siempre los últimos 3 años: turistas internacionales (FRONTUR), huéspedes de hoteles (EOH) y pasajeros del aeropuerto de Palma (AENA), con la ocupación hotelera por plazas en el eje derecho. Se publica con unos dos meses de retraso (la ocupación hotelera, uno más). Solo aparece con Dataestur en el selector de fuentes.",
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 37 },
-      "timeFrom": "3y",
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT month::timestamptz AS time, international_tourists AS \"Turistas internacionales\", hotel_guests AS \"Huéspedes de hotel\", airport_passengers AS \"Pasajeros aeropuerto de Palma\", hotel_bed_occupancy_pct AS \"Ocupación hotelera (%)\" FROM gold.fct_tourism_monthly WHERE 'dataestur' IN ($source) AND $__timeFilter(month::timestamptz) ORDER BY 1"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": { "lineWidth": 2, "fillOpacity": 0, "showPoints": "always", "pointSize": 4, "spanNulls": false },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Ocupación hotelera (%)" },
-            "properties": [
-              { "id": "unit", "value": "percent" },
-              { "id": "min", "value": 0 },
-              { "id": "max", "value": 100 },
-              { "id": "custom.axisPlacement", "value": "right" },
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 30 }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      }
-    },
-    {
-      "id": 12,
-      "type": "table",
-      "title": "Series temporales",
-      "description": "Una fila por serie (fuente, entidad y métrica) en el rango; las fuentes con más de 50 entidades (las paradas de EMT) se resumen en una fila por métrica con la media de todas: días con datos, completitud, valores sospechosos y estadísticos diarios. Los sismos, que son eventos, están en el mapa y en el indicador.",
-      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 46 },
-      "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH daily AS (SELECT * FROM gold.agg_daily_metrics WHERE source IN ($source) AND local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date), sizes AS (SELECT source, count(DISTINCT entity) AS n FROM daily GROUP BY source), series AS (SELECT d.source, CASE WHEN z.n > 50 THEN concat('media de ', z.n, ' entidades') ELSE d.entity END AS entity, d.metric, max(d.unit) AS unit, d.local_date, avg(d.completeness) AS completeness, sum(d.n_suspect) AS n_suspect, sum(d.n_valid) AS n_valid, min(d.min_value) AS min_value, avg(d.avg_value) AS avg_value, max(d.max_value) AS max_value FROM daily d JOIN sizes z USING (source) GROUP BY 1, 2, 3, 5) SELECT s.label AS \"Fuente\", r.entity AS \"Entidad\", r.metric AS \"Métrica\", max(r.unit) AS \"Unidad\", count(*) AS \"Días\", 100 * avg(r.completeness) AS \"Completitud\", 100.0 * sum(r.n_suspect) / nullif(sum(r.n_valid), 0) AS \"Sospechosos\", min(r.min_value) AS \"Mínimo\", avg(r.avg_value) AS \"Media\", max(r.max_value) AS \"Máximo\", (array_agg(r.avg_value ORDER BY r.local_date DESC))[1] AS \"Último día (media)\", max(r.local_date)::text AS \"Último día\" FROM series r JOIN gold.dim_sources s USING (source) GROUP BY s.label, r.entity, r.metric ORDER BY 1, 3, 2"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "decimals": 2, "custom": { "filterable": true, "align": "auto" } },
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "Días" }, "properties": [ { "id": "decimals", "value": 0 } ] },
-          {
-            "matcher": { "id": "byName", "options": "Completitud" },
-            "properties": [
-              { "id": "unit", "value": "percent" },
-              { "id": "decimals", "value": 1 },
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 90 }, { "color": "green", "value": 99 } ] } }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Sospechosos" },
-            "properties": [
-              { "id": "unit", "value": "percent" },
-              { "id": "decimals", "value": 1 },
-              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 } ] } }
-            ]
-          }
-        ]
-      },
-      "options": { "showHeader": true, "cellHeight": "sm", "enablePagination": true, "sortBy": [ { "displayName": "Fuente", "desc": false } ] }
-    },
-    {
-      "id": 13,
-      "type": "row",
-      "title": "Operación: ejecuciones y reglas de calidad",
-      "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 },
-      "panels": [
-        {
-          "id": 14,
-          "type": "table",
-          "title": "Últimas ejecuciones",
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 60 },
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT r.started_at AS \"Inicio\", s.label AS \"Fuente\", r.status AS \"Estado\", r.window_start::text AS \"Desde\", r.window_end::text AS \"Hasta\", r.payloads AS \"Payloads\", r.rows_silver AS \"Filas silver\", r.rows_upserted AS \"Insertadas/actualizadas\", round(extract(epoch FROM r.finished_at - r.started_at)::numeric, 1) AS \"Duración (s)\", r.error AS \"Error\" FROM ops.ingestion_runs r LEFT JOIN gold.dim_sources s USING (source) WHERE r.source IN ($source) ORDER BY r.started_at DESC LIMIT 50"
-            }
-          ],
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": [
-              {
-                "matcher": { "id": "byName", "options": "Estado" },
-                "properties": [
-                  { "id": "custom.cellOptions", "value": { "type": "color-text" } },
-                  { "id": "mappings", "value": [ { "type": "value", "options": { "success": { "color": "green", "index": 0 }, "failed": { "color": "red", "index": 1 }, "running": { "color": "blue", "index": 2 } } } ] }
-                ]
-              }
-            ]
-          },
-          "options": { "showHeader": true, "cellHeight": "sm" }
-        },
-        {
-          "id": 15,
-          "type": "table",
-          "title": "Reglas de calidad (último chequeo)",
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 68 },
-          "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": { "type": "grafana-postgresql-datasource", "uid": "warehouse" },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT s.label AS \"Fuente\", q.rule AS \"Regla\", q.target AS \"Objetivo\", q.checked AS \"Revisados\", q.failed AS \"Fallos\", q.passed AS \"OK\", q.failed_ratio AS \"% fallos\", q.checked_at AS \"Fecha\" FROM gold.data_quality_summary q LEFT JOIN gold.dim_sources s USING (source) WHERE q.source IN ($source) ORDER BY q.passed, q.failed DESC, s.label, q.rule"
-            }
-          ],
-          "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "% fallos" }, "properties": [ { "id": "unit", "value": "percentunit" } ] } ] },
-          "options": { "showHeader": true, "cellHeight": "sm" }
-        }
-      ]
     }
   ]
 }

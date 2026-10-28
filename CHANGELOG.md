@@ -26,6 +26,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- Grafana: the single overview is split into six themed dashboards linked to each other: **Inicio** (last month of
+  water, climate and tourism, and the map), **Turismo y recursos** (tourists against groundwater reserves and
+  electricity demand, with anomalies against the same month and a year-by-year evaluation), **Clima y agua**
+  (rainfall, temperature and the response of the aquifers), **Movilidad**, **Tiempo y entorno** and **Operación**.
+  New dbt mart `fct_resources_monthly` and one dbt exposure per dashboard.
 - The GTFS logic moves from the EMT Palma connector to `core/connectors/gtfs.py` (`GtfsConnector`), shared by EMT
   and CTM; `fct_bus_network_daily` is now built by the `transit_network_daily` macro (same columns).
 - Dependencies: PySpark 4.2.1 (still Hadoop 3.5.0, so hadoop-aws 3.5.0 and AWS SDK 2.35.4 stay), ruff 0.17.3, and
