@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
+Three new open-data sources (CTM island transport, Dataestur tourism and the Govern's groundwater reserves), ten
+years of history through backfills, and Grafana reorganised into six themed dashboards that put tourism, water and
+climate side by side.
+
 ### Added
 
 - CTM connector (`ctm`): the Consorci de Transports de Mallorca static GTFS (TIB buses, SFM trains, metro) as a
@@ -36,6 +42,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Dependencies: PySpark 4.2.1 (still Hadoop 3.5.0, so hadoop-aws 3.5.0 and AWS SDK 2.35.4 stay), ruff 0.17.3, and
   in CI pandas 3.1.0, pyarrow 26.0.0 and boto3 1.43.120 (the image keeps the versions of the Airflow 3.3.2
   constraints). The AWS SDK bundle is not bumped to 2.57: it must match the hadoop-aws build.
+
+### Fixed
+
+- Backfills give each chunk its own run id: the runs and quality results of a chunk no longer overwrite the
+  previous one.
+- The bus heat map computed the last day of each network with a correlated subquery that took minutes on ten years
+  of daily aggregates; it is now computed once per network (0.3 s).
+- dbt slim CI builds the parents of the modified models' children (`@state:modified`): a changed seed no longer
+  fails on tests whose other parents were never built.
 
 ## [0.3.0] - 2026-10-27
 
@@ -270,7 +285,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...v0.2.4
