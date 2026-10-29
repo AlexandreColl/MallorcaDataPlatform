@@ -441,6 +441,31 @@ models:
       - {name: temperature_anomaly_c, data_type: "numeric(5,2)"}
       - {name: hot_days, data_type: "numeric(4,1)"}
 
+  - name: fct_air_quality_model_bias_daily
+    description: >-
+      Daily mean of each official air quality station (EEA) next to the Open-Meteo CAMS model at the nearest model
+      point, per pollutant (PM10, PM2.5, NO2, O3); bias = model minus station. Days with at least 18 valid hours.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [station, metric, local_date]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "station_hours between 18 and 25"
+    columns:
+      - {name: station, data_type: text, constraints: [{type: not_null}]}
+      - {name: model_point, data_type: text}
+      - {name: distance_km, data_type: double precision}
+      - {name: metric, data_type: text, constraints: [{type: not_null}]}
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: station_mean_ugm3, data_type: double precision}
+      - {name: model_mean_ugm3, data_type: double precision}
+      - {name: bias_ugm3, data_type: double precision, description: Model minus station (positive = the model overestimates).}
+      - {name: station_max_ugm3, data_type: double precision}
+      - {name: station_hours, data_type: bigint, description: Valid hours of the station that day.}
+
 unit_tests:
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.

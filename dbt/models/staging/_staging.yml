@@ -26,6 +26,8 @@ models:
     description: Dataestur (SEGITTUR) monthly Balearic tourism, stamped on the first day of each month.
   - name: stg_water_reserves__observations
     description: Groundwater reserves of Mallorca per aquifer and island-wide, monthly (share of a full aquifer, %).
+  - name: stg_eea_air_quality__observations
+    description: Official air quality stations of Mallorca (EEA up-to-date data), hourly, in ug/m3.
   - name: stg_ign__observations
     description: IGN earthquakes (events), one row per event and metric.
   - name: stg_quality__check_results

@@ -31,6 +31,7 @@ flowchart LR
         CT[CTM GTFS]
         DE[Dataestur turismo]
         WR[Reservas hídricas]
+        EA[EEA calidad del aire]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -46,7 +47,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR --> EX --> BR --> SP
+    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -112,8 +113,7 @@ Otros comandos: `make help`.
 | [ctm](connectors/ctm/README.md) | ✅ | Autobuses TIB, tren SFM y metro programados por parada y día en toda la isla (763 paradas, GTFS estático) | No |
 | [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
-| openaq | ⬜ v0.2.6 | Estaciones de calidad del aire | Sí |
-| aqicn | ⬜ v0.2.7 | Estaciones de calidad del aire | Sí |
+| [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 8 estaciones oficiales de Mallorca (red del Govern, vía la EEA) | No |
 
 ### Open-Meteo
 
@@ -184,6 +184,16 @@ paradas de la isla. Sin `frequencies.txt`, cada viaje cuenta una vez por parada;
 como servicios que acaban el 31 de octubre. En gold, `fct_island_transit_daily`; en Grafana, la misma mancha de
 calor que EMT. Prueba real: unos 41.000 pasos en un día laborable, 35.000 en domingo; la Estació Intermodal de
 Palma tiene 1.028 al día.
+
+### Calidad del aire (EEA)
+
+Las medidas horarias de las 8 estaciones oficiales de Mallorca, desde el servicio de descarga de la Agencia Europea
+de Medio Ambiente: una búsqueda JSON devuelve un Parquet por estación y contaminante, unas dos horas por detrás del
+tiempo real. Se probó antes OpenAQ: republica las mismas estaciones, pero solo con un 30 % de las horas. Los
+contaminantes se llaman como en Open-Meteo, y `fct_air_quality_model_bias_daily` compara cada estación con el modelo
+CAMS. En Grafana, las estaciones aparecen en el mapa de Inicio y el error del modelo en Tiempo y entorno. Prueba
+real: el modelo se queda corto de NO₂ junto al tráfico de Foners (−6 µg/m³) y se pasa de ozono en Palma (+20), que
+es justo donde el NO del tráfico lo consume.
 
 ### Reservas hídricas
 

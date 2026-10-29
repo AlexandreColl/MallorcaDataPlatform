@@ -5,6 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- EEA air quality connector (`eea_air_quality`): hourly NO2, O3, PM10, PM2.5, SO2 and CO of the 8 official stations of
+  Mallorca from the EEA Air Quality Download Service (JSON search, one Parquet per sampling point, no API key).
+  OpenAQ was probed first and carries only about 30 % of their hours. dbt `fct_air_quality_model_bias_daily`
+  compares each station with the Open-Meteo CAMS model; Grafana shows the stations on the Inicio map and the model
+  bias in Tiempo y entorno.
+- `HttpClient.post_text` for read-only JSON searches (retried like GETs).
+
 ### Changed
 
 - Releases also publish the REST API image on GHCR (`api:X.Y.Z` and `api:X.Y`), and the release workflow checks that
