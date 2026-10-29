@@ -1,3 +1,3 @@
 """Mallorca Data Platform core: connector contract, storage, quality and pipeline."""
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
