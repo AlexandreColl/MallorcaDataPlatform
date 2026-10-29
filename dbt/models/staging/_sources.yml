@@ -30,6 +30,7 @@ sources:
       - {name: aemet, identifier: observations, freshness: {warn_after: {count: 5, period: day}, filter: "source = 'aemet'"}}
       - {name: dataestur, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'dataestur'"}}
       - {name: water_reserves, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'water_reserves'"}}
+      - {name: eea_air_quality, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'eea_air_quality'"}}
       - {name: ign, identifier: observations, freshness: null}
 
   - name: quality
