@@ -23,10 +23,11 @@ CAMS (`fct_air_quality_model_bias_daily`).
 | `foners` | Foners (Palma) | ES1610A | tráfico, urbana |
 | `bellver` | Bellver (Palma) | ES1604A | fondo, suburbana |
 | `parc_bit` | UIB-Parc Bit (Palma) | ES1829A | fondo, rural cerca de la ciudad |
-| `son_llatzer` | Son Llàtzer (Palma) | ES1995A | industrial, suburbana |
+| `sant_joan_de_deu` | Sant Joan de Déu (Palma) | ES1995A | industrial, suburbana |
 | `hospital_joan_march` | Hospital Joan March (Bunyola) | ES1827A | fondo, rural |
 | `sa_pobla` | Sa Pobla | ES0296A | fondo, rural |
 | `s_albufera` | S'Albufera (Alcúdia) | ES1093A | industrial, rural |
+| `alcudia` | Alcúdia | ES1517A | fondo, rural |
 | `menut` | Menut (Escorca) | — | aún no está en los metadatos de la EEA |
 
 ## Cómo funciona
@@ -56,8 +57,12 @@ sale de un modelo, igual que la de Open-Meteo.
 ## Limitaciones
 
 - **Coordenadas**: los metadatos de la EEA no traen coordenadas de las estaciones españolas. Las del YAML son las
-  que publica OpenAQ para las mismas estaciones, contrastadas con el municipio y el tipo de estación.
-- **Estaciones fuera**: `07003004` (Alcúdia) y `07040007` (Palma) quedan fuera hasta conocer su ubicación.
+  que publica OpenAQ para las mismas estaciones, contrastadas con el municipio y el tipo de estación. Hay dos
+  excepciones, que salen del listado de estaciones del Govern:
+  - `07040006`: OpenAQ la situaba junto a Son Llàtzer, pero el Govern y aqicn la ponen en Sant Joan de Déu.
+  - `07003004` (Alcúdia): no estaba en OpenAQ.
+- **Estaciones fuera**: `07040007` (Palma) queda fuera hasta conocer su ubicación.
+- **Parc Bit**: las coordenadas del Govern están a 1,5 km de las de OpenAQ, que se mantienen.
 - **Bronze**: cada fichero trae el año entero, así que una ejecución guarda unos 4 MB en bronze aunque la ventana
   sea de un día.
 - **Datos sin validar**: los valores verificados (E1a, años anteriores) son otro dataset (`dataset: 2`).

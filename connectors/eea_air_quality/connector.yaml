@@ -17,16 +17,18 @@ options:
   province_code: "07"        # Illes Balears: unlisted stations of the province are reported in the log
   # Official stations of Mallorca by national code (the file name: SP_<code>_<pollutant>_<method>.parquet).
   # EoI code, type and area come from the EEA station metadata, which has no coordinates for Spain: these are the
-  # coordinates OpenAQ publishes for the same EEA stations. Codes not listed here are ignored with a warning, so a
-  # new station is noticed (07003004 and 07040007 are left out until their location is known).
+  # coordinates OpenAQ publishes for the same EEA stations, except 07040006 and 07003004, which come from the Govern
+  # station list (aqicn agrees; OpenAQ put 07040006 next to Son Llàtzer). Codes not listed here are ignored with a
+  # warning, so a new station is noticed (07040007 is left out until its location is known).
   stations:
     "07040002": {entity: foners, name: Foners (Palma), eoi: ES1610A, type: traffic, area: urban, lat: 39.571250, lon: 2.657028}
     "07040003": {entity: bellver, name: Bellver (Palma), eoi: ES1604A, type: background, area: suburban, lat: 39.564528, lon: 2.621694}
     "07040004": {entity: parc_bit, name: UIB-Parc Bit (Palma), eoi: ES1829A, type: background, area: rural-nearcity, lat: 39.635556, lon: 2.648056}
-    "07040006": {entity: son_llatzer, name: Son Llàtzer (Palma), eoi: ES1995A, type: industrial, area: suburban, lat: 39.572700, lon: 2.703100}
+    "07040006": {entity: sant_joan_de_deu, name: Sant Joan de Déu (Palma), eoi: ES1995A, type: industrial, area: suburban, lat: 39.546944, lon: 2.700000}
     "07010001": {entity: hospital_joan_march, name: Hospital Joan March (Bunyola), eoi: ES1827A, type: background, area: rural-regional, lat: 39.678833, lon: 2.687778}
     "07044001": {entity: sa_pobla, name: Sa Pobla, eoi: ES0296A, type: background, area: rural-regional, lat: 39.748472, lon: 3.016000}
     "07003001": {entity: s_albufera, name: S'Albufera (Alcúdia), eoi: ES1093A, type: industrial, area: rural-regional, lat: 39.791167, lon: 3.075250}
+    "07003004": {entity: alcudia, name: Alcúdia, eoi: ES1517A, type: background, area: rural-regional, lat: 39.834806, lon: 3.145472}
     "07019001": {entity: menut, name: Menut (Escorca), eoi: null, type: null, area: null, lat: 39.830250, lon: 2.900722}  # not in the EEA metadata yet
 
 datasets:
