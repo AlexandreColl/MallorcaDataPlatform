@@ -13,6 +13,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   compares each station with the Open-Meteo CAMS model; Grafana shows the stations on the Inicio map and the model
   bias in Tiempo y entorno.
 - `HttpClient.post_text` for read-only JSON searches (retried like GETs).
+- GOIB air quality history connector (`goib_air_quality`): hourly NO2, O3, PM10, PM2.5, SO2 and CO of 11 official
+  stations of Mallorca, 2002 to June 2021, from the Govern open data catalogue (CKAN, no API key). History only:
+  disabled in the daily run and loaded with `make backfill`. dbt `fct_air_quality_monthly` joins it with the EEA
+  feed per station; Grafana shows 20 years of NO2 and the yearly island means in Tiempo y entorno.
 
 ### Changed
 

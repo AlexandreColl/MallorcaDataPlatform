@@ -466,6 +466,31 @@ models:
       - {name: station_max_ugm3, data_type: double precision}
       - {name: station_hours, data_type: bigint, description: Valid hours of the station that day.}
 
+  - name: fct_air_quality_monthly
+    description: >-
+      Monthly mean of each official air quality station and pollutant, from the GOIB history (2002 to June 2021)
+      and the EEA live feed, which share the station names: one series per station over two decades. A month is
+      representative with at least 75 % of its hours valid.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [source, station, metric, month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "coverage between 0 and 1"
+    columns:
+      - {name: source, data_type: text, constraints: [{type: not_null}]}
+      - {name: station, data_type: text, constraints: [{type: not_null}]}
+      - {name: metric, data_type: text, constraints: [{type: not_null}]}
+      - {name: month, data_type: date, constraints: [{type: not_null}], description: First day of the local month.}
+      - {name: mean_ugm3, data_type: double precision}
+      - {name: max_ugm3, data_type: double precision, description: Highest hourly value of the month.}
+      - {name: valid_hours, data_type: bigint}
+      - {name: coverage, data_type: double precision, description: Valid hours over the hours of the month.}
+      - {name: is_representative, data_type: boolean, description: At least 75 % of the hours valid.}
+
 unit_tests:
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.

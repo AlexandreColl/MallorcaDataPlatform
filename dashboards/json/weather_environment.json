@@ -754,6 +754,195 @@
     },
     {
       "id": 9,
+      "type": "timeseries",
+      "title": "NO2 en 20 años: media mensual por estación",
+      "description": "dbt (fct_air_quality_monthly): media mensual de NO2 de cada estación oficial, del histórico del Govern (2002 a junio de 2021) y de la EEA (desde 2026), solo con meses de al menos un 75 % de horas válidas. El catálogo no publica nada de julio de 2021 a 2025. La línea roja es el valor límite anual de la UE (40 µg/m³). Panel fijo en los últimos 25 años, sea cual sea el rango.",
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT month::timestamp AS time, station AS metric, mean_ugm3 AS value FROM gold.fct_air_quality_monthly WHERE metric = 'nitrogen_dioxide' AND is_representative AND $__timeFilter(month::timestamp) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "insertNulls": 3456000000,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "unit": "suffix: µg/m³",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 40
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "25y"
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Media anual de la isla por contaminante",
+      "description": "dbt (fct_air_quality_monthly): media de los meses representativos de todas las estaciones, por año y contaminante. Sirve para ver la tendencia de la isla; el número de estaciones cambia con los años, así que un salto puede ser una estación que entra o sale. Panel fijo en los últimos 25 años.",
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT make_date(extract(year FROM month)::int, 7, 1)::timestamp AS time, CASE metric WHEN 'nitrogen_dioxide' THEN 'NO2' WHEN 'ozone' THEN 'O3' WHEN 'pm10' THEN 'PM10' ELSE 'SO2' END AS metric, avg(mean_ugm3) AS value FROM gold.fct_air_quality_monthly WHERE metric IN ('nitrogen_dioxide', 'ozone', 'pm10', 'sulphur_dioxide') AND is_representative AND $__timeFilter(month::timestamp) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "always",
+            "pointSize": 4,
+            "spanNulls": false,
+            "insertNulls": 34560000000
+          },
+          "unit": "suffix: µg/m³",
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NO2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "O3"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PM10"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SO2"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8AB8FF"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "25y"
+    },
+    {
+      "id": 11,
       "type": "table",
       "title": "Sismos",
       "description": "Sismos localizados por el IGN en el rango, en Mallorca y el mar que la rodea.",
@@ -761,7 +950,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 51
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",

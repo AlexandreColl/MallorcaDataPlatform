@@ -54,6 +54,7 @@ flowchart LR
 | climate | `fct_climate_monthly` (contrato) | mes: lluvia y temperatura de las estaciones de AEMET, anomalía frente al mismo mes, días calurosos y lluvia acumulada del año hidrológico |
 | water | `fct_water_reserves_monthly` (contrato), `dim_aquifers` (seed) | mes: reservas de la isla, variación y anomalía frente al mismo mes de otros años, acuíferos bajo el 30 % |
 | tourism | `fct_tourism_monthly` (contrato) | mes: turistas internacionales, gasto, ocupación hotelera, pasajeros del aeropuerto e interanual |
+| air_quality | `fct_air_quality_monthly` (contrato) | estación, contaminante y mes: media, máximo y cobertura del histórico de la GOIB (2002-2021) y de la EEA, con los meses representativos (≥ 75 % de horas) |
 | air_quality | `fct_air_quality_model_bias_daily` (contrato) | estación, contaminante y día: media de la estación oficial (EEA) junto al modelo CAMS y su diferencia |
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
 | seismic | `fct_earthquakes` | sismo |

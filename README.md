@@ -32,6 +32,7 @@ flowchart LR
         DE[Dataestur turismo]
         WR[Reservas hídricas]
         EA[EEA calidad del aire]
+        GO[GOIB histórico del aire]
     end
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
@@ -47,7 +48,7 @@ flowchart LR
         QC[(quality.check_results)]
         GD[(gold.*)]
     end
-    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA --> EX --> BR --> SP
+    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA & GO --> EX --> BR --> SP
     SP --> SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
@@ -113,6 +114,7 @@ Otros comandos: `make help`.
 | [ctm](connectors/ctm/README.md) | ✅ | Autobuses TIB, tren SFM y metro programados por parada y día en toda la isla (763 paradas, GTFS estático) | No |
 | [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
+| [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 8 estaciones oficiales de Mallorca (red del Govern, vía la EEA) | No |
 
 ### Open-Meteo
@@ -194,6 +196,14 @@ contaminantes se llaman como en Open-Meteo, y `fct_air_quality_model_bias_daily`
 CAMS. En Grafana, las estaciones aparecen en el mapa de Inicio y el error del modelo en Tiempo y entorno. Prueba
 real: el modelo se queda corto de NO₂ junto al tráfico de Foners (−6 µg/m³) y se pasa de ozono en Palma (+20), que
 es justo donde el NO del tráfico lo consume.
+
+### Histórico de calidad del aire (GOIB)
+
+El catálogo de datos abiertos del Govern (API CKAN) tiene las medidas horarias de 11 estaciones de Mallorca de 2002 a
+junio de 2021, y nada más reciente. Es un conector de histórico: desactivado en la ejecución diaria y cargado una vez
+con `make backfill`. Los ficheros llegan en tres formatos distintos (separador, orden de la fecha y cabecera), y la
+hora se comprobó hora a hora contra los ficheros verificados de la EEA. Las estaciones se llaman igual que en
+`eea_air_quality`, y `fct_air_quality_monthly` las une en una serie mensual por estación. Prueba real: casi 5 millones de valores horarios en unos 45 minutos de backfill. El NO₂ de Foners, junto al tráfico de Palma, baja de 52,7 µg/m³ de media anual en 2002 (por encima del límite de la UE, 40) a 31,6 en 2019 y 24 en 2020, el año del confinamiento; el ozono de la isla sube de 56 a 70 µg/m³.
 
 ### Reservas hídricas
 
