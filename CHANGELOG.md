@@ -28,6 +28,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   the tag matches the versions of `pyproject.toml`, `core` and `api`. It can be run by hand with an existing tag to
   publish that tag's images without touching its GitHub Release (tags from v0.5.0 on).
 
+### Fixed
+
+- `water_reserves` reads the period of the 10-year PDF when its title wraps before the last year, as in the
+  chart published on 2026-10-29 (up to September 2026).
+
 ## [0.5.0] - 2026-10-29
 
 A read-only REST API over the gold marts, so the data behind the dashboards can be used by other applications.
