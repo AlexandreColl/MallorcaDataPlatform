@@ -23,10 +23,11 @@ CAMS (`fct_air_quality_model_bias_daily`).
 | `foners` | Foners (Palma) | ES1610A | tráfico, urbana |
 | `bellver` | Bellver (Palma) | ES1604A | fondo, suburbana |
 | `parc_bit` | UIB-Parc Bit (Palma) | ES1829A | fondo, rural cerca de la ciudad |
-| `son_llatzer` | Son Llàtzer (Palma) | ES1995A | industrial, suburbana |
+| `sant_joan_de_deu` | Sant Joan de Déu (Palma) | ES1995A | industrial, suburbana |
 | `hospital_joan_march` | Hospital Joan March (Bunyola) | ES1827A | fondo, rural |
 | `sa_pobla` | Sa Pobla | ES0296A | fondo, rural |
 | `s_albufera` | S'Albufera (Alcúdia) | ES1093A | industrial, rural |
+| `alcudia` | Alcúdia | ES1517A | fondo, rural |
 | `menut` | Menut (Escorca) | — | aún no está en los metadatos de la EEA |
 
 ## Cómo funciona
@@ -56,15 +57,19 @@ sale de un modelo, igual que la de Open-Meteo.
 ## Limitaciones
 
 - **Coordenadas**: los metadatos de la EEA no traen coordenadas de las estaciones españolas. Las del YAML son las
-  que publica OpenAQ para las mismas estaciones, contrastadas con el municipio y el tipo de estación.
-- **Estaciones fuera**: `07003004` (Alcúdia) y `07040007` (Palma) quedan fuera hasta conocer su ubicación.
+  que publica OpenAQ para las mismas estaciones, contrastadas con el municipio y el tipo de estación. Hay dos
+  excepciones, que salen del listado de estaciones del Govern:
+  - `07040006`: OpenAQ la situaba junto a Son Llàtzer, pero el Govern y aqicn la ponen en Sant Joan de Déu.
+  - `07003004` (Alcúdia): no estaba en OpenAQ.
+- **Estaciones fuera**: `07040007` (Palma) queda fuera hasta conocer su ubicación.
+- **Parc Bit**: las coordenadas del Govern están a 1,5 km de las de OpenAQ, que se mantienen.
 - **Bronze**: cada fichero trae el año entero, así que una ejecución guarda unos 4 MB en bronze aunque la ventana
   sea de un día.
 - **Datos sin validar**: los valores verificados (E1a, años anteriores) son otro dataset (`dataset: 2`).
 
 Prueba real (2026-10-29, 30 días):
 
-- 8 estaciones, 32 puntos de muestreo y 20.239 valores horarios, en 46 s.
+- 9 estaciones, 36 puntos de muestreo y 22.770 valores horarios.
 - La regla de huecos marca alrededor del 20 %: la fuente no tiene datos del 15 al 18 de octubre, más las horas no
   válidas.
 - 28 valores quedan fuera de rango: ruido negativo de los analizadores.
@@ -72,9 +77,10 @@ Prueba real (2026-10-29, 30 días):
 Frente al modelo:
 
 - El modelo se queda corto de NO₂ junto al tráfico de Foners (−6,2 µg/m³).
-- Se pasa de ozono en Palma: +19,7 en Foners y +21,0 en Son Llàtzer. Es lo esperable: el NO del tráfico consume
+- Se pasa de ozono en Palma: +19,7 en Foners y +21,0 en Sant Joan de Déu. Es lo esperable: el NO del tráfico consume
   ozono y el modelo no lo resuelve.
 - PM10 queda ligeramente corto en todas las estaciones.
+- Alcúdia está a 12 km de su punto del modelo (Pollença): ahí el modelo se queda corto de PM10 (−9,6 µg/m³).
 
 Fixtures en `tests/fixtures/`: el listado real de la búsqueda (Baleares y tres ficheros de Madrid) y cinco ficheros
 reales recortados al 10-20 de octubre de 2026, con el corte de la fuente incluido.

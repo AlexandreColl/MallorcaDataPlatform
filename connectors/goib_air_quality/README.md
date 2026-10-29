@@ -79,9 +79,8 @@ entidades se llaman igual que en `eea_air_quality`, así que una estación es un
 
 - **Hueco de julio de 2021 a 2025**: no está ni en este catálogo ni en los datos *up-to-date* de la EEA. Los
   ficheros verificados de la EEA (E1a, `dataset: 2` en `eea_air_quality`) podrían cubrirlo.
-- **Estación 07040006**: el catálogo la llama Sant Joan de Déu, en Coll d'en Rabassa. OpenAQ, de donde salen las
-  coordenadas de `eea_air_quality`, la sitúa junto a Son Llàtzer, a 3 km. Las dos estaciones existen en la red:
-  hasta aclararlo, cada fuente conserva su nombre.
+- **Estación 07040006**: el catálogo la llama Sant Joan de Déu, en Coll d'en Rabassa, y aqicn coincide.
+  Las dos fuentes la llaman `sant_joan_de_deu`.
 - **Parc Bit**: las coordenadas del catálogo están a 1,5 km de las de OpenAQ.
 - Los datos de 2021 son provisionales, según el propio catálogo.
 - **Fallos de la fuente** que el conector resuelve:
