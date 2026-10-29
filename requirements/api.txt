@@ -1,0 +1,6 @@
+# REST API (api/): its own small image, no Airflow or Spark. Exact pins: nothing else constrains them.
+fastapi==0.143.2
+uvicorn==0.54.0
+pydantic==2.14.1
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3

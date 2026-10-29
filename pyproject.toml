@@ -53,14 +53,17 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "connectors"]
+known-first-party = ["core", "connectors", "api"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "connectors"]
+testpaths = ["tests", "connectors", "api"]
 pythonpath = ["."]
 addopts = "-ra --import-mode=importlib"
-markers = ["spark: needs a local SparkSession (Java required)"]
+markers = [
+    "spark: needs a local SparkSession (Java required)",
+    "integration: needs a warehouse with the dbt marts (API_DB_* or WAREHOUSE_* variables)",
+]

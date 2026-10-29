@@ -59,6 +59,8 @@ services:
       WAREHOUSE_PASSWORD: ${WAREHOUSE_PASSWORD:-warehouse}
       GRAFANA_DB_USER: ${GRAFANA_DB_USER:-grafana_reader}
       GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-grafana_reader}
+      API_DB_USER: ${API_DB_USER:-api_reader}
+      API_DB_PASSWORD: ${API_DB_PASSWORD:-api_reader}
     volumes:
       # Postgres 18 images keep data in /var/lib/postgresql/18/docker: mount the parent folder.
       # New volume name so an existing Postgres 16 volume is never opened by 18.
@@ -161,6 +163,26 @@ services:
       - grafana-data:/var/lib/grafana
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Read-only REST API over the gold layer (FastAPI): http://localhost:8000/docs
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    image: mallorca-data-platform/api:local
+    environment:
+      WAREHOUSE_HOST: postgres
+      WAREHOUSE_PORT: "5432"
+      WAREHOUSE_DB: ${WAREHOUSE_DB:-warehouse}
+      API_DB_USER: ${API_DB_USER:-api_reader}
+      API_DB_PASSWORD: ${API_DB_PASSWORD:-api_reader}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-*}
+    ports:
+      - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
