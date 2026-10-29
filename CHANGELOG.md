@@ -5,6 +5,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-29
+
+A read-only REST API over the gold marts, so the data behind the dashboards can be used by other applications.
+
+### Added
+
+- REST API (`api/`, FastAPI): read-only access to the gold marts in its own small image and compose service (port
+  8000, OpenAPI docs at `/docs`). Endpoints for health, sources, paginated observations and anomalies, water
+  reserves and aquifers, and the climate, tourism and resources monthly marts. Read-only database role
+  `api_reader` (`make api-role` on an existing volume), one error shape, unit tests with a fake database and
+  integration tests that run every query against the marts in CI; the E2E checks that the API serves the loaded data.
+- dbt exposure `rest_api`: the marts the API reads. CI builds its lineage before the API integration tests, whatever
+  slim CI selected.
+
 ## [0.4.0] - 2026-10-29
 
 Three new open-data sources (CTM island transport, Dataestur tourism and the Govern's groundwater reserves), ten
@@ -285,7 +299,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...v0.2.5
