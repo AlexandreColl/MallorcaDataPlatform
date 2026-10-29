@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-29
+
 ### Added
 
 - EEA air quality connector (`eea_air_quality`): hourly NO2, O3, PM10, PM2.5, SO2 and CO of the 9 official stations of
@@ -25,6 +27,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Releases also publish the REST API image on GHCR (`api:X.Y.Z` and `api:X.Y`), and the release workflow checks that
   the tag matches the versions of `pyproject.toml`, `core` and `api`. It can be run by hand with an existing tag to
   publish that tag's images without touching its GitHub Release (tags from v0.5.0 on).
+
+### Fixed
+
+- `water_reserves` reads the period of the 10-year PDF when its title wraps before the last year, as in the
+  chart published on 2026-10-29 (up to September 2026).
 
 ## [0.5.0] - 2026-10-29
 
@@ -320,7 +327,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...v0.3.0

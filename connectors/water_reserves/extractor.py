@@ -44,7 +44,8 @@ _MONTHS = {
 _SPANISH_MONTHS = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
                    "noviembre", "diciembre")  # fmt: skip
 _AQUIFER_CODE = re.compile(r"^\d{4}M\d$")
-_PDF_PERIOD = re.compile(r"\((\w+) de (\d{4})\s*[^\w\s]\s*(\w+) de (\d{4})\)")  # any dash between the months
+# Any dash between the months, and any whitespace: the September 2026 title wraps before the last year.
+_PDF_PERIOD = re.compile(r"\((\w+)\s+de\s+(\d{4})\s*[^\w\s]\s*(\w+)\s+de\s+(\d{4})\)")
 _PERCENT = re.compile(r"^(\d{1,3})%$")
 _FIRST_VALUE = 2  # columns: name, code, then one per month
 _EMPTY_RUN = 50  # a longer run of empty cells is the sheet's padding up to its last column

@@ -93,6 +93,19 @@ def test_the_pdf_adds_the_years_before_the_spreadsheet():
     assert min(aquifer_months) == date(2025, 8, 1)  # aquifers only come from the spreadsheet
 
 
+def test_a_title_that_wraps_before_the_year():
+    # The PDF published on 2026-10-29 (up to September 2026) breaks its title before the last year:
+    # "(septiembre de 2016 <dash> septiembre de \n2026)".
+    http = RecordedPortal({**FILES, "569419": "Reservas_Hidricas_Mallorca_2026_09_cast.pdf"})
+
+    observations = _normalize(TimeWindow(date(2016, 7, 1), date(2026, 8, 26)), http)
+
+    island = {o.ts.date(): o.value for o in observations if o.entity == "mallorca"}
+    assert island[date(2016, 9, 1)] == 39.0  # first bar of the new chart
+    assert island[date(2016, 10, 1)] == 42.0
+    assert date(2016, 8, 1) not in island
+
+
 def test_a_missing_link_or_a_page_instead_of_the_file_is_an_error():
     with pytest.raises(ConnectorError, match="not a pdf file"):
         _normalize(http=RecordedPortal({"569422": FILES["569422"]}))
