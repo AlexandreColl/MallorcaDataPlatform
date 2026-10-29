@@ -160,4 +160,3 @@ def _number(raw: object) -> float | None:
         return float(str(raw))
     except ValueError:
         return None
-
