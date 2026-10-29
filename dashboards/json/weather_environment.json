@@ -787,6 +787,7 @@
             "fillOpacity": 0,
             "showPoints": "never",
             "spanNulls": false,
+            "insertNulls": 3456000000,
             "thresholdsStyle": {
               "mode": "line"
             }
@@ -858,7 +859,8 @@
             "fillOpacity": 0,
             "showPoints": "always",
             "pointSize": 4,
-            "spanNulls": false
+            "spanNulls": false,
+            "insertNulls": 34560000000
           },
           "unit": "suffix: µg/m³",
           "decimals": 0
