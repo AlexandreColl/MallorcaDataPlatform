@@ -142,7 +142,7 @@ make dbt-full-refresh   # reconstruye también los incrementales
 
 `models/exposures.yml` declara quién consume los marts: un exposure por dashboard de Grafana (`grafana_home`,
 `grafana_tourism_resources`, `grafana_climate_water`, `grafana_mobility`, `grafana_weather_environment`,
-`grafana_operations`) y la futura fase de correcciones (`corrections_phase`). Aparecen en el grafo de linaje de la
+`grafana_operations`), la API REST (`rest_api`) y la futura fase de correcciones (`corrections_phase`). Aparecen en el grafo de linaje de la
 documentación y se pueden seleccionar: `dbt build --select +exposure:grafana_climate_water` reconstruye y prueba
 todo lo que lee ese dashboard.
 

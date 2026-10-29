@@ -41,6 +41,15 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build REST API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/api/Dockerfile
+          tags: mallorca-data-platform/api:local
+          load: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
       - name: Start platform
         run: docker compose up -d --no-build
       - name: Run pipeline twice and check idempotency

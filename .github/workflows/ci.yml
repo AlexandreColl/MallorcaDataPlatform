@@ -41,7 +41,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - run: pip install -r requirements/dev.txt
-      - run: pytest --cov=core --cov=connectors --cov-report=term-missing --cov-report=xml
+      - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -112,6 +112,17 @@ jobs:
       - name: dbt build (incremental run)
         working-directory: dbt
         run: dbt build --profiles-dir . $DBT_SELECTION
+      # The REST API runs every query against the marts just built (empty, but with their contracted columns).
+      # Slim CI may have built nothing the API reads: build the lineage of its exposure first.
+      - name: REST API against the warehouse
+        env:
+          API_INTEGRATION: "1"
+          API_DB_USER: warehouse
+          API_DB_PASSWORD: warehouse
+        run: |
+          (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api)
+          pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
+          pytest -q api/tests/test_integration.py
 
   compose:
     name: Docker compose config + image build
@@ -131,6 +142,15 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build REST API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/api/Dockerfile
+          tags: mallorca-data-platform/api:local
+          load: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
       - name: DAG integrity and tests inside the image
         run: >-
           docker run --rm -v "$PWD:/opt/project" -w /opt/project --entrypoint ""

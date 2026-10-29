@@ -44,23 +44,35 @@ ignore = [
     "INP001",  # the Airflow DAGs folder is not a Python package
     "PLC0415", # heavy imports inside tasks keep DAG parsing fast (Airflow best practice)
 ]
+"api/routes.py" = [
+    "PLR0917", # FastAPI endpoints: one keyword query parameter per filter
+]
 "core/cli.py" = [
     "T201",    # printing is the CLI's output
     "PLC0415", # lazy imports: `list` must not start the JVM
 ]
 
+[tool.ruff.lint.flake8-type-checking]
+# Pydantic models and FastAPI routes read their annotations at runtime: their imports must not move under
+# TYPE_CHECKING.
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+runtime-evaluated-decorators = ["api.routes.router.get"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "connectors"]
+known-first-party = ["core", "connectors", "api"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "connectors"]
+testpaths = ["tests", "connectors", "api"]
 pythonpath = ["."]
 addopts = "-ra --import-mode=importlib"
-markers = ["spark: needs a local SparkSession (Java required)"]
+markers = [
+    "spark: needs a local SparkSession (Java required)",
+    "integration: needs a warehouse with the dbt marts (API_DB_* or WAREHOUSE_* variables)",
+]

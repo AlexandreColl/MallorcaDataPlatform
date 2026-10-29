@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate backfill
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate backfill api-role api-test
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -34,6 +34,7 @@ up: init ## Start the whole platform
 	@echo "Airflow  http://localhost:8080"
 	@echo "Grafana  http://localhost:3000"
 	@echo "MinIO    http://localhost:9001"
+	@echo "API      http://localhost:8000/docs"
 
 down: ## Stop the platform (keeps data)
 	$(COMPOSE) down
@@ -58,6 +59,12 @@ detect: ## Flag anomalies in the recent silver values: make detect DAYS=30 (at l
 
 backfill: ## Load a past date range, one run per year: make backfill CONNECTORS=aemet START=2016-09-01 END=2026-08-31
 	$(COMPOSE) exec airflow-scheduler python -m core.cli backfill --connectors $(subst $(comma),$(space),$(CONNECTORS)) --start $(START) --end $(END) --region $(REGION)
+
+api-role: ## Create or update the read-only API role on an existing postgres volume (idempotent)
+	$(COMPOSE) exec -T postgres bash /docker-entrypoint-initdb.d/02-api-reader.sh
+
+api-test: ## Unit tests of the REST API (no database needed)
+	$(COMPOSE) run --rm toolbox pytest api
 
 evaluate: ## Measure the anomaly detectors against injected faults (precision and recall)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate

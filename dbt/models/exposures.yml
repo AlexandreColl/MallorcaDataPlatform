@@ -105,6 +105,27 @@ exposures:
       - ref('dim_sources')
       - source('ops', 'ingestion_runs')
 
+  - name: rest_api
+    label: REST API (FastAPI)
+    type: application
+    maturity: medium
+    url: http://localhost:8000/docs
+    description: >
+      Read-only REST API over the gold layer (api/). Its response models mirror these marts, and CI runs every
+      query of the API against them after building this exposure's lineage.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('source_health')
+      - ref('dim_sources')
+      - ref('fct_observations')
+      - ref('dim_locations')
+      - ref('fct_water_reserves_monthly')
+      - ref('dim_aquifers')
+      - ref('fct_climate_monthly')
+      - ref('fct_tourism_monthly')
+      - ref('fct_resources_monthly')
+
   - name: corrections_phase
     label: Model corrections (planned)
     type: analysis
