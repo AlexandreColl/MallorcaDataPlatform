@@ -51,6 +51,7 @@ flowchart LR
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
     SV & QC --> DBT --> GD --> GF[Grafana]
+    GD --> API[API REST · FastAPI]
     classDef next stroke-dasharray: 5 5
 ```
 
@@ -92,6 +93,7 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un
 | Airflow | http://localhost:8080 | sin login (modo demo local) |
 | Grafana | http://localhost:3000 | anónimo de lectura · admin/admin |
 | MinIO | http://localhost:9001 | minioadmin/minioadmin |
+| API REST | http://localhost:8000/docs | lectura pública (rol `api_reader`) |
 | PostgreSQL | localhost:5432 | `make psql` |
 
 Otros comandos: `make help`.
@@ -305,6 +307,37 @@ Pearson, pocos años, así que orientativas):
 Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
 fila.
 
+## API REST
+
+Una API de solo lectura con FastAPI sobre la capa gold, en su propio servicio (`api`, puerto 8000) y con su propia
+imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en http://localhost:8000/docs (Swagger) y
+`/redoc`.
+
+| Endpoint | Qué devuelve |
+|---|---|
+| `GET /v1/health` | Estado de la API y de su conexión al warehouse (503 si está caído) |
+| `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
+| `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
+| `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
+| `GET /v1/water/reserves`, `/v1/water/aquifers` | Reservas mensuales con su anomalía y los 18 acuíferos del último mes |
+| `GET /v1/climate/monthly`, `/v1/tourism/monthly`, `/v1/resources/monthly` | Los marts mensuales de los dashboards, filtrables con `from` y `to` |
+
+```bash
+curl "http://localhost:8000/v1/observations?source=aemet&metric=temperature_2m_max&entity=B278&limit=2"
+```
+
+Decisiones:
+
+- **Solo marts con contrato**: la API lee tablas de dbt con `contract: {enforced: true}`, así que sus columnas y tipos
+  no cambian sin que falle el build. En CI, los tests de integración ejecutan cada consulta contra los marts recién
+  construidos.
+- **Rol propio de solo lectura** (`api_reader`, `docker/postgres/init/02-api-reader.sh`): `SELECT` sobre gold y silver,
+  transacciones de solo lectura y un límite de 15 s por consulta. En un volumen ya creado: `make api-role`.
+- **Paginación** con `limit` (como mucho 1000) y `offset`: la respuesta trae `next_offset`, que se calcula pidiendo una
+  fila de más. **Errores** con una sola forma: `{"error": {"code": "not_found", "message": "..."}}`.
+- **Capa de acceso a datos sustituible** (`api/repository.py` sobre un protocolo `Database`): los tests unitarios usan una
+  base de datos falsa y no necesitan Postgres. `make api-test`.
+
 ## Estructura
 
 ```
@@ -314,7 +347,8 @@ fila.
 ├── dags/                 # DAG de Airflow
 ├── dbt/                  # staging → intermediate → marts, tests y seeds (ver dbt/README.md)
 ├── dashboards/           # provisioning y dashboards de Grafana
-├── docker/               # Dockerfile de Airflow+Spark+dbt, init de Postgres
+├── api/                  # API REST de solo lectura (FastAPI) y sus tests
+├── docker/               # Dockerfiles de Airflow+Spark+dbt y de la API, init de Postgres
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/
 ```

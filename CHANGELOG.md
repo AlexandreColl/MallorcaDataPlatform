@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- REST API (`api/`, FastAPI): read-only access to the gold marts in its own small image and compose service (port
+  8000, OpenAPI docs at `/docs`). Endpoints for health, sources, paginated observations and anomalies, water
+  reserves and aquifers, and the climate, tourism and resources monthly marts. Read-only database role
+  `api_reader` (`make api-role` on an existing volume), one error shape, unit tests with a fake database and
+  integration tests that run every query against the marts in CI; the E2E checks that the API serves the loaded data.
+
 ## [0.4.0] - 2026-10-29
 
 Three new open-data sources (CTM island transport, Dataestur tourism and the Govern's groundwater reserves), ten

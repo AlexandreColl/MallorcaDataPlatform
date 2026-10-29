@@ -100,6 +100,14 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ⬜ | Desfase horario (reloj o zona horaria): ninguno pasa del 6 %; probar un detector estacional (residuo frente a la misma hora de días anteriores) |
 | ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
 
+## API REST
+
+| Estado | Tarea |
+|---|---|
+| ✅ | API de solo lectura con FastAPI sobre los marts con contrato: salud, fuentes, observaciones y anomalías paginadas, reservas, acuíferos y marts mensuales; rol `api_reader`, imagen propia, tests unitarios e integración en CI, y comprobación en el E2E |
+| ⬜ | Caché de respuestas de los marts mensuales (cambian una vez al día) y límite de peticiones por cliente |
+| ⬜ | Exportar series en CSV o Parquet además de JSON |
+
 ## Fase 4 · v0.4.0 — Correcciones con fuentes de apoyo
 
 | Estado | Tarea |

@@ -125,4 +125,11 @@ PY
 )
 echo "bronze object versions=$versions (raw responses kept across reruns)"
 
-echo "E2E OK: data in bronze/silver/gold and reruns are idempotent"
+# The REST API serves what the pipeline loaded.
+wait_for "REST API" "curl -sf http://localhost:${API_PORT:-8000}/v1/health"
+api_source=$(for s in $first_ok; do [[ " $EVENT_SOURCES " == *" $s "* ]] || { echo "$s"; break; }; done)
+api_rows=$(curl -sf "http://localhost:${API_PORT:-8000}/v1/observations?source=$api_source&start=2000-01-01T00:00:00Z&limit=5" | grep -o "\"source\":\"$api_source\"" | wc -l)
+echo "REST API: /v1/health ok, $api_rows $api_source observations on the first page"
+(( api_rows > 0 )) || { echo "REST API returned no observations"; false; }
+
+echo "E2E OK: data in bronze/silver/gold, reruns are idempotent and the REST API serves them"
