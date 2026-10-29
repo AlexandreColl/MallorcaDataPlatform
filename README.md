@@ -278,22 +278,32 @@ precisión.
 
 ## Grafana
 
-Un único dashboard, *Mallorca · Visión general* (http://localhost:3000), con un selector de **una o varias fuentes**
-que filtra todo lo demás, más los selectores de métrica y entidad:
+Seis dashboards en la carpeta *Mallorca Data Platform* (http://localhost:3000), enlazados entre sí desde la barra
+superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure por dashboard):
 
-1. **Indicadores**: fuentes al día, observaciones, % sospechosos, ejecuciones fallidas, última ingesta y sismos.
-2. **Mapa**: calidad del aire de Open-Meteo (puntos con el color del índice europeo), oleaje de Open-Meteo Marine
-   (gotas con la altura de ola), estaciones AEMET (sol y nube, último día publicado), estaciones SOCIB (termómetros
-   con su última hora), sismos del IGN (ondas según la magnitud) y un mapa de calor del servicio de EMT Palma.
-3. **Gráficas**: la métrica elegida como media por fuente (con temperatura compara estación real y modelo) y por
-   entidad (la demanda y el CO₂ de Baleares se eligen ahí como métricas de REData), y dos vistas de los marts de dbt:
-   el error del modelo de Open-Meteo frente a cada estación de AEMET y SOCIB, y los episodios de lluvia fuerte,
-   viento u oleaje.
-4. **Tabla de series temporales**: una fila por fuente, entidad y métrica con días, completitud, % sospechosos y
-   estadísticos; las fuentes con muchas entidades (las 875 paradas de EMT) se resumen en una fila por métrica.
+| Dashboard | Qué muestra |
+|---|---|
+| **Inicio** | El último mes de reservas hídricas, lluvia del año hidrológico, temperatura y turistas, y el mapa de todas las fuentes georreferenciadas (aire, oleaje, AEMET, SOCIB, sismos y servicio de bus) |
+| **Turismo y recursos** | Turistas frente a reservas de agua y demanda eléctrica; las anomalías frente al mismo mes, que quitan la estacionalidad; y una evaluación año a año (turistas de verano frente a la caída de las reservas de marzo a septiembre, con su correlación) |
+| **Clima y agua** | Reservas frente a la media del mes, lluvia mensual y respuesta de los acuíferos, tabla por año hidrológico, anomalía de temperatura, lluvia acumulada y el estado de los 18 acuíferos |
+| **Movilidad** | Servicio programado de EMT Palma y CTM por día, mapa de calor por parada y paradas con más servicio |
+| **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
+| **Operación** | Salud de cada fuente, anomalías detectadas, ejecuciones, reglas de calidad y completitud de cada serie |
 
-Las ejecuciones y las reglas de calidad están en una fila plegada al final. Los nombres de las fuentes salen del
-seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su fila.
+La pregunta de fondo (¿aprieta el turismo al agua?) necesita cuidado: turismo, calor, demanda y reservas son
+estacionales a la vez, así que comparar meses tal cual solo enseña el calendario. Los paneles de evaluación comparan
+cada mes con la media del mismo mes y cada verano con los demás veranos. Con diez años de datos (correlaciones de
+Pearson, pocos años, así que orientativas):
+
+- La lluvia de septiembre a febrero explica bien las reservas de marzo (r = 0,78 en 10 años).
+- Los veranos con más turistas son los que más bajan los acuíferos de marzo a septiembre (r = 0,50 en 9 años); la
+  lluvia del año apenas cambia esa caída (r = 0,20).
+- Mes a mes, los meses con más turistas de lo normal tienen reservas por debajo de lo normal (r = −0,41), pero en la
+  década crece el turismo y bajan las reservas, y 2020 (sin turistas y con un invierno lluvioso) pesa mucho:
+  correlación, no causa.
+
+Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
+fila.
 
 ## Estructura
 
