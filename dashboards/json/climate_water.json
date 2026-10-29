@@ -862,7 +862,7 @@
     {
       "id": 9,
       "type": "stat",
-      "title": "Lluvia vs reservas en marzo",
+      "title": "Lluvia → marzo",
       "description": "Correlación de Pearson entre la lluvia de septiembre a febrero y las reservas de marzo, año a año: cuánto explica la lluvia de otoño e invierno el agua con la que empieza la primavera.",
       "gridPos": {
         "h": 11,

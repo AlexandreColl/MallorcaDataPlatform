@@ -317,7 +317,7 @@
             "fillOpacity": 0,
             "showPoints": "never"
           },
-          "unit": "lengthm",
+          "unit": "suffix: m",
           "decimals": 1
         },
         "overrides": []
