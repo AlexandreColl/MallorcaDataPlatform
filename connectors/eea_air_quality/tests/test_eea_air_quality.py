@@ -66,7 +66,17 @@ def test_search_and_only_the_configured_stations_are_downloaded():
     assert "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001" in search["pollutants"]
     stations = {p.request["station"] for p in payloads}
     # Menorca, Ibiza, Madrid and the station without a known location (07040007) are left out.
-    assert stations == {"07040002", "07040003", "07040004", "07040006", "07010001", "07044001", "07003001", "07003004", "07019001"}
+    assert stations == {
+        "07040002",
+        "07040003",
+        "07040004",
+        "07040006",
+        "07010001",
+        "07044001",
+        "07003001",
+        "07003004",
+        "07019001",
+    }
     assert all("/SP_07" in url for url in http.downloads)
     bellver = next(p for p in payloads if p.partition == "07040003_8_8")
     assert base64.b64decode(bellver.body) == (FIXTURES / "SP_07040003_8_8.parquet").read_bytes()

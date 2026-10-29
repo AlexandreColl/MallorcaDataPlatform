@@ -69,7 +69,7 @@ sale de un modelo, igual que la de Open-Meteo.
 
 Prueba real (2026-10-29, 30 días):
 
-- 8 estaciones, 32 puntos de muestreo y 20.239 valores horarios, en 46 s.
+- 9 estaciones, 36 puntos de muestreo y 22.770 valores horarios.
 - La regla de huecos marca alrededor del 20 %: la fuente no tiene datos del 15 al 18 de octubre, más las horas no
   válidas.
 - 28 valores quedan fuera de rango: ruido negativo de los analizadores.
@@ -77,9 +77,10 @@ Prueba real (2026-10-29, 30 días):
 Frente al modelo:
 
 - El modelo se queda corto de NO₂ junto al tráfico de Foners (−6,2 µg/m³).
-- Se pasa de ozono en Palma: +19,7 en Foners y +21,0 en Son Llàtzer. Es lo esperable: el NO del tráfico consume
+- Se pasa de ozono en Palma: +19,7 en Foners y +21,0 en Sant Joan de Déu. Es lo esperable: el NO del tráfico consume
   ozono y el modelo no lo resuelve.
 - PM10 queda ligeramente corto en todas las estaciones.
+- Alcúdia está a 12 km de su punto del modelo (Pollença): ahí el modelo se queda corto de PM10 (−9,6 µg/m³).
 
 Fixtures en `tests/fixtures/`: el listado real de la búsqueda (Baleares y tres ficheros de Madrid) y cinco ficheros
 reales recortados al 10-20 de octubre de 2026, con el corte de la fuente incluido.
