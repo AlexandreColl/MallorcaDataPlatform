@@ -58,8 +58,11 @@ class GoibAirQualityConnector(BaseConnector):
                 dataset_name = f"{options['dataset_prefix']}{station['slug']}{suffix}"
                 url = self._csv_url(dataset_name)
                 content = self._download(url)
-                text = content.decode("utf-8-sig")
-                lines = _lines_in_window(text, window)
+                # A file keeps only its own years: the Cases de Menut history runs on to October 2020, which the
+                # 2020 file also has.
+                first = max(window.start, date(int(years["first_year"]), 1, 1))
+                last = min(window.end, date(int(years["last_year"]), 12, 31))
+                lines = _lines_between(content.decode("utf-8-sig"), first, last)
                 payloads.append(
                     RawPayload(
                         source=self.name,
@@ -107,7 +110,8 @@ class GoibAirQualityConnector(BaseConnector):
             msg = f"GOIB {payload.partition}: none of the columns {sorted(spec['columns'])} in the header"
             raise ConnectorError(msg)
         for row in reader:
-            if len(row) < len(header):
+            # Hospital Joan March 2002 has placeholder rows without a period (and every flag N).
+            if len(row) < len(header) or not row[1].strip().isdigit():
                 continue
             ts = datetime.combine(_day(row[0]), datetime.min.time(), tzinfo=UTC) + timedelta(hours=int(row[1])) - offset
             if not window_start <= ts < window_end:
@@ -161,8 +165,8 @@ def _reader(text: str) -> Iterator[list[str]]:
     return csv.reader(io.StringIO(text), delimiter=";" if ";" in first_line else ",")
 
 
-def _lines_in_window(text: str, window: TimeWindow) -> list[str]:
-    """The header and the raw lines whose day falls in the window (all their hours do, see ``utc_offset_hours``)."""
+def _lines_between(text: str, first: date, last: date) -> list[str]:
+    """The header and the raw lines of the days ``first`` to ``last`` (all their hours, see ``utc_offset_hours``)."""
     lines = text.splitlines(keepends=True)
     if not lines:
         return []
@@ -173,7 +177,7 @@ def _lines_in_window(text: str, window: TimeWindow) -> list[str]:
             day = _day(line.split(delimiter, 1)[0])
         except ValueError:
             continue
-        if window.start <= day <= window.end:
+        if first <= day <= last:
             kept.append(line)
     return kept
 

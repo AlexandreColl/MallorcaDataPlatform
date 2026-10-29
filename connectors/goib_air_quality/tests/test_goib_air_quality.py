@@ -160,6 +160,31 @@ def test_2020_files_without_accent_in_the_period_column():
     assert all(o.ts.date() == date(2020, 7, 1) for o in hjm)
 
 
+def test_each_file_keeps_only_its_own_years():
+    # The Cases de Menut history runs on to October 2020, which the 2020 file also has: one value per hour.
+    # A window across both years: the history fixture has 1-3 July 2019 and 1 July 2020, the 2020 file 1 July 2020.
+    window = TimeWindow(date(2019, 7, 2), date(2020, 7, 1))
+    connector = registry.load("goib_air_quality", http=RecordedCatalogue())
+
+    payloads = connector.extract(window, MALLORCA)
+    observations = [o for p in payloads for o in connector.normalize(p, MALLORCA)]
+
+    history = next(p for p in payloads if p.partition == "menut")
+    assert history.request["lines"] == 48  # 2 and 3 July 2019: not its 2020 lines
+    menut = [o for o in observations if o.entity == "menut"]
+    assert len(menut) == len({o.ts for o in menut}) == 72
+    assert _value(observations, "menut", "ozone", datetime(2020, 7, 1, 8, tzinfo=UTC)) == 82.0
+
+
+def test_rows_without_a_period_are_skipped():
+    # Hospital Joan March 2002 has placeholder rows with an empty period and every flag N.
+    window = TimeWindow(date(2002, 5, 13), date(2002, 5, 14))
+
+    observations = _normalize(window)
+
+    assert not [o for o in observations if o.entity == "hospital_joan_march"]
+
+
 def test_downloads_once_per_process():
     http = RecordedCatalogue()
     connector = registry.load("goib_air_quality", http=http)
