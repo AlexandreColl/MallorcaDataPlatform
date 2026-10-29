@@ -1,0 +1,55 @@
+name: eea_air_quality
+description: EEA up-to-date air quality - hourly NO2, O3, PM10, PM2.5, SO2 and CO of the official stations of Mallorca (Govern network), no API key
+entrypoint: connectors.eea_air_quality.extractor:EeaAirQualityConnector
+enabled: true
+frequency: 1h
+max_days: 92
+secrets: []
+
+options:
+  # EEA Air Quality Download Service: a JSON search returns one Parquet file per sampling point (a station and
+  # pollutant) with the whole year, published about two hours after each measurement.
+  api_url: https://eeadmz1-downloads-api-appservice.azurewebsites.net
+  country: ES
+  dataset: 1                 # 1 = up-to-date, unverified data (E2a); 2 = verified (E1a, previous years)
+  utc_offset_hours: 1        # Spanish timestamps are fixed UTC+01 (EEA metadata "Timezone"), all year round
+  min_validity: 1            # EEA validity: 1-3 valid; -1 not valid and -99 maintenance carry -999: stored as missing
+  province_code: "07"        # Illes Balears: unlisted stations of the province are reported in the log
+  # Official stations of Mallorca by national code (the file name: SP_<code>_<pollutant>_<method>.parquet).
+  # EoI code, type and area come from the EEA station metadata, which has no coordinates for Spain: these are the
+  # coordinates OpenAQ publishes for the same EEA stations, except 07040006 and 07003004, which come from the Govern
+  # station list (aqicn agrees; OpenAQ put 07040006 next to Son Llàtzer). Codes not listed here are ignored with a
+  # warning, so a new station is noticed (07040007 is left out until its location is known).
+  stations:
+    "07040002": {entity: foners, name: Foners (Palma), eoi: ES1610A, type: traffic, area: urban, lat: 39.571250, lon: 2.657028}
+    "07040003": {entity: bellver, name: Bellver (Palma), eoi: ES1604A, type: background, area: suburban, lat: 39.564528, lon: 2.621694}
+    "07040004": {entity: parc_bit, name: UIB-Parc Bit (Palma), eoi: ES1829A, type: background, area: rural-nearcity, lat: 39.635556, lon: 2.648056}
+    "07040006": {entity: sant_joan_de_deu, name: Sant Joan de Déu (Palma), eoi: ES1995A, type: industrial, area: suburban, lat: 39.546944, lon: 2.700000}
+    "07010001": {entity: hospital_joan_march, name: Hospital Joan March (Bunyola), eoi: ES1827A, type: background, area: rural-regional, lat: 39.678833, lon: 2.687778}
+    "07044001": {entity: sa_pobla, name: Sa Pobla, eoi: ES0296A, type: background, area: rural-regional, lat: 39.748472, lon: 3.016000}
+    "07003001": {entity: s_albufera, name: S'Albufera (Alcúdia), eoi: ES1093A, type: industrial, area: rural-regional, lat: 39.791167, lon: 3.075250}
+    "07003004": {entity: alcudia, name: Alcúdia, eoi: ES1517A, type: background, area: rural-regional, lat: 39.834806, lon: 3.145472}
+    "07019001": {entity: menut, name: Menut (Escorca), eoi: null, type: null, area: null, lat: 39.830250, lon: 2.900722}  # not in the EEA metadata yet
+
+datasets:
+  hourly:
+    # EEA pollutant code (the Parquet "Pollutant" column) -> metric. Names and units match Open-Meteo, so the
+    # stations compare 1:1 with the CAMS model. `scale` converts the file's unit to ug/m3.
+    pollutants:
+      "8":    {metric: nitrogen_dioxide}
+      "7":    {metric: ozone}
+      "5":    {metric: pm10}
+      "6001": {metric: pm2_5}
+      "1":    {metric: sulphur_dioxide}
+      "10":   {metric: carbon_monoxide}
+    units:
+      ug.m-3: 1
+      mg.m-3: 1000
+
+metrics:
+  nitrogen_dioxide: {dataset: hourly, unit: ug/m3, min: 0, max: 1000}
+  ozone:            {dataset: hourly, unit: ug/m3, min: 0, max: 800}
+  pm10:             {dataset: hourly, unit: ug/m3, min: 0, max: 1000}
+  pm2_5:            {dataset: hourly, unit: ug/m3, min: 0, max: 800}
+  sulphur_dioxide:  {dataset: hourly, unit: ug/m3, min: 0, max: 2000}
+  carbon_monoxide:  {dataset: hourly, unit: ug/m3, min: 0, max: 50000}

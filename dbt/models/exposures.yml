@@ -88,6 +88,8 @@ exposures:
       - ref('fct_model_bias_daily')
       - ref('fct_weather_episodes')
       - ref('fct_earthquakes')
+      - ref('fct_air_quality_model_bias_daily')
+      - ref('fct_air_quality_monthly')
 
   - name: grafana_operations
     label: Grafana · Mallorca · Operación

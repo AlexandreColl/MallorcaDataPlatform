@@ -1,0 +1,59 @@
+name: goib_air_quality
+description: GOIB air quality history - hourly NO2, O3, PM10, PM2.5, SO2 and CO of the official stations of Mallorca, 2002 to June 2021 (open data catalogue, no API key)
+entrypoint: connectors.goib_air_quality.extractor:GoibAirQualityConnector
+# History only: the catalogue stops in June 2021, so the daily run leaves it out. Load it once with
+#   mdp backfill --connectors goib_air_quality --start 2002-01-01 --end 2021-06-30
+enabled: false
+frequency: 1h
+max_days: 366
+secrets: []
+
+options:
+  # CKAN API of the Govern open data catalogue: package_show returns each dataset with the URL of its CSV.
+  catalog_url: https://intranet.caib.es/opendatacataleg/api/3/action/package_show
+  dataset_prefix: mesuraments-estacio-control-qualitat-aire-illes-balears-estacio-
+  # Every station has three datasets: the history up to November 2019 and one per later year. Only the files
+  # whose years overlap the window are downloaded.
+  files:
+    "": {first_year: 2002, last_year: 2019}
+    "-2020": {first_year: 2020, last_year: 2020}
+    "-2021": {first_year: 2021, last_year: 2021}
+  # Period 1-24 of each day is the hour starting at that time in fixed UTC+01 (checked hour by hour against the
+  # EEA verified files): period 1 of 2 July is 01:00-02:00 UTC+01, 00:00 UTC.
+  utc_offset_hours: 1
+  valid_flag: V              # any other flag (N, M, C, Z, D, T) or an empty value is stored as missing
+  # Stations of Mallorca by entity (the same names as eea_air_quality, so one station is one series across both
+  # sources). Code, name, type, area and coordinates come from the catalogue's station list. `files` lists the
+  # datasets a station has when it is not all three.
+  stations:
+    foners:              {slug: foners-mallorca, code: "07040002", name: Foners (Palma), type: traffic, area: urban, lat: 39.571250, lon: 2.657028}
+    bellver:             {slug: parc-de-bellver-mallorca, code: "07040003", name: Parc de Bellver (Palma), type: background, area: suburban, lat: 39.564528, lon: 2.621694}
+    parc_bit:            {slug: parc-bit-mallorca, code: "07040004", name: Parc Bit (Palma), type: background, area: rural, lat: 39.634722, lon: 2.630556}
+    sant_joan_de_deu:    {slug: sant-joan-de-deu-mallorca, code: "07040006", name: Sant Joan de Déu (Palma), type: industrial, area: urban, lat: 39.546944, lon: 2.700000}
+    hospital_joan_march: {slug: hospital-joan-march-mallorca, code: "07010001", name: Hospital Joan March (Bunyola), type: background, area: rural, lat: 39.678833, lon: 2.687778}
+    sa_pobla:            {slug: sa-pobla-mallorca, code: "07044001", name: Sa Pobla, type: background, area: rural, lat: 39.748472, lon: 3.016000}
+    s_albufera:          {slug: s-albufera-mallorca, code: "07003001", name: S'Albufera (Alcúdia), type: industrial, area: rural, lat: 39.791167, lon: 3.075250}
+    alcudia:             {slug: alcudia-mallorca, code: "07003004", name: Alcúdia, type: background, area: urban, lat: 39.834806, lon: 3.145472}
+    can_llompart:        {slug: can-llompart-mallorca, code: "07042001", name: Can Llompart (Pollença), type: background, area: rural, lat: 39.844722, lon: 3.042222}
+    menut:               {slug: cases-de-menut-mallorca, code: "07019001", name: Cases de Menut (Escorca), type: background, area: rural, lat: 39.830250, lon: 2.900722}
+    inca:                {slug: sa-vinyeta-d-inca-mallorca, code: "07027002", name: Sa Vinyeta (Inca), type: background, area: suburban, lat: 39.715556, lon: 2.919444, files: [""]}
+
+datasets:
+  hourly:
+    # CSV column (without the _HI suffix; its flag is FL_<column>) -> metric. Names and units match Open-Meteo and
+    # eea_air_quality; `scale` converts the file's unit to ug/m3 (CO comes in mg/m3).
+    columns:
+      NO2:   {metric: nitrogen_dioxide}
+      O3:    {metric: ozone}
+      PM10:  {metric: pm10}
+      "PM2,5": {metric: pm2_5}
+      SO2:   {metric: sulphur_dioxide}
+      CO:    {metric: carbon_monoxide, scale: 1000}
+
+metrics:
+  nitrogen_dioxide: {dataset: hourly, unit: ug/m3, min: 0, max: 1000}
+  ozone:            {dataset: hourly, unit: ug/m3, min: 0, max: 800}
+  pm10:             {dataset: hourly, unit: ug/m3, min: 0, max: 1000}
+  pm2_5:            {dataset: hourly, unit: ug/m3, min: 0, max: 800}
+  sulphur_dioxide:  {dataset: hourly, unit: ug/m3, min: 0, max: 2000}
+  carbon_monoxide:  {dataset: hourly, unit: ug/m3, min: 0, max: 50000}

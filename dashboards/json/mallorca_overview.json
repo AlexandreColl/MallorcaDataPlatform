@@ -563,7 +563,7 @@
       "id": 8,
       "type": "geomap",
       "title": "Mapa de fuentes",
-      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: vehículos programados por parada de EMT Palma y de la red de CTM (autobuses TIB, tren y metro) el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto.",
+      "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: vehículos programados por parada de EMT Palma y de la red de CTM (autobuses TIB, tren y metro) el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto. Cuadrados: estaciones oficiales de calidad del aire (EEA) con su última hora, coloreadas según la banda del índice europeo calculada con lo medido.",
       "gridPos": {
         "h": 14,
         "w": 24,
@@ -640,6 +640,17 @@
           "format": "table",
           "rawQuery": true,
           "rawSql": "WITH last_day AS (SELECT max(local_date) AS d FROM gold.agg_daily_metrics WHERE source = 'aemet' AND local_date <= $__timeTo()::date) SELECT a.entity AS estacion, l.lat, l.lon, max(a.avg_value) FILTER (WHERE a.metric = 'temperature_2m_mean') AS \"temperatura media (°C)\", max(a.avg_value) FILTER (WHERE a.metric = 'temperature_2m_min') AS \"mínima (°C)\", max(a.avg_value) FILTER (WHERE a.metric = 'temperature_2m_max') AS \"máxima (°C)\", max(a.avg_value) FILTER (WHERE a.metric = 'precipitation_sum') AS \"lluvia (mm)\", max(a.avg_value) FILTER (WHERE a.metric = 'wind_gusts_10m_max') AS \"racha (km/h)\", a.local_date::text AS dia FROM gold.agg_daily_metrics a JOIN last_day ON a.local_date = last_day.d JOIN gold.dim_locations l USING (source, entity) WHERE a.source = 'aemet' AND 'aemet' IN ($source) GROUP BY a.entity, l.lat, l.lon, a.local_date ORDER BY a.entity"
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT DISTINCT ON (a.entity) a.entity AS estacion_aire, l.lat, l.lon, a.eaqi_band AS banda_eaqi, a.eaqi_label AS calidad_estacion, a.no2 AS \"NO2 (ug/m3)\", a.o3 AS \"O3 (ug/m3)\", a.pm10 AS \"PM10 (ug/m3)\", a.ts AS hora FROM gold.air_quality_hourly a JOIN gold.dim_locations l USING (source, entity) WHERE a.source = 'eea_air_quality' AND 'eea_air_quality' IN ($source) AND a.eaqi_band IS NOT NULL AND a.ts <= $__timeTo() ORDER BY a.entity, a.ts DESC"
         }
       ],
       "fieldConfig": {
@@ -823,6 +834,56 @@
                     {
                       "color": "red",
                       "value": 3
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "banda_eaqi"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Banda EAQI (estación)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#73BF69",
+                      "value": 2
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 3
+                    },
+                    {
+                      "color": "orange",
+                      "value": 4
+                    },
+                    {
+                      "color": "red",
+                      "value": 5
+                    },
+                    {
+                      "color": "purple",
+                      "value": 6
                     }
                   ]
                 }
@@ -1045,6 +1106,36 @@
                 "symbol": {
                   "mode": "fixed",
                   "fixed": "img/icons/solid/circle-layer.svg"
+                }
+              }
+            }
+          },
+          {
+            "type": "markers",
+            "name": "Estaciones de calidad del aire (EEA, última hora)",
+            "tooltip": true,
+            "filterData": {
+              "id": "byRefId",
+              "options": "G"
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": {
+                  "fixed": 16
+                },
+                "color": {
+                  "field": "banda_eaqi"
+                },
+                "opacity": 1,
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/marker/square.svg"
                 }
               }
             }

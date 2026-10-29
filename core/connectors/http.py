@@ -33,6 +33,10 @@ class JsonGetter(Protocol):
         """GET ``url`` and return the raw body (zip files...)."""
         ...
 
+    def post_text(self, url: str, json: JsonValue, headers: dict[str, str] | None = None) -> str:
+        """POST a JSON body to a read-only query endpoint and return the response as text."""
+        ...
+
 
 class HttpClient:
     """``requests`` session with retries and backoff on connection errors, 429 and 5xx.
@@ -51,7 +55,8 @@ class HttpClient:
             total=retries,
             backoff_factor=backoff,
             status_forcelist=(429, 500, 502, 503, 504),
-            allowed_methods=frozenset({"GET"}),
+            # POST only reaches read-only query endpoints (a search with a JSON body): retrying it is safe.
+            allowed_methods=frozenset({"GET", "POST"}),
             respect_retry_after_header=True,
         )
         adapter = HTTPAdapter(max_retries=retry)
@@ -87,3 +92,14 @@ class HttpClient:
             requests.HTTPError: for non-2xx responses once retries are exhausted.
         """
         return self._get(url, params, headers).content
+
+    def post_text(self, url: str, json: JsonValue, headers: dict[str, str] | None = None) -> str:
+        """POST ``json`` to ``url`` and return the body as text.
+
+        Raises:
+            requests.HTTPError: for non-2xx responses once retries are exhausted.
+        """
+        log.info("POST %s json=%s", url, json)
+        response = self.session.post(url, json=json, headers=headers, timeout=self.timeout)
+        response.raise_for_status()
+        return response.text
