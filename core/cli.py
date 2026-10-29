@@ -73,9 +73,11 @@ def _cmd_backfill(args: argparse.Namespace) -> int:
     for name in args.connectors:
         chunk_days = min(args.chunk_days, registry.discover()[name].max_days)
         for chunk in window.split(chunk_days):  # one run per chunk: a bounded window and memory per run
+            # Runs and quality results are keyed by run id and source: each chunk needs its own run id.
+            chunk_run_id = f"{run_id}_{chunk.start:%Y%m%d}"
             try:
                 summary = run_connector(
-                    name, chunk.n_days, region_name=args.region, run_id=run_id, catch_up=False, window=chunk
+                    name, chunk.n_days, region_name=args.region, run_id=chunk_run_id, catch_up=False, window=chunk
                 )
                 print(json.dumps(summary.as_dict()))
             except Exception:

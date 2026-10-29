@@ -84,6 +84,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | Paquetes `dbt_utils` / `dbt_expectations` instalados en la imagen, contratos (`contract: enforced`) en 5 marts y 3 `unit_tests` de dbt (EAQI, Haversine, episodios) |
 | ✅ | Sesgo estación vs modelo por día y por estación; episodios meteorológicos con *gaps and islands* (lluvia AEMET + rachas + oleaje) |
 | ✅ | Exposures (Grafana y fase de correcciones), `dbt docs` en GitHub Pages, slim CI (`+state:modified+` contra el manifest de `develop`) y `sqlfluff` con el templater de dbt |
+| ✅ | Seis dashboards temáticos (Inicio, Turismo y recursos, Clima y agua, Movilidad, Tiempo y entorno, Operación) enlazados entre sí, con `fct_resources_monthly` (anomalías frente al mismo mes) y un exposure por dashboard; diez años de AEMET y REData cargados con `make backfill` |
 
 ## Fase 3 · v0.3.0 — Detección de anomalías
 

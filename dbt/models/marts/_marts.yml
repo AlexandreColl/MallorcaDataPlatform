@@ -411,6 +411,36 @@ models:
       - {name: hot_days, data_type: "numeric(4,1)", description: Days with a maximum of 30 °C or more, mean of the stations.}
       - {name: same_month_years, data_type: bigint}
 
+  - name: fct_resources_monthly
+    description: >-
+      One row per month with tourism (Dataestur), groundwater reserves, rainfall and temperature (AEMET) and
+      electricity demand (REData), each with its anomaly against the same calendar month, because every series is
+      seasonal. Feeds the "Turismo y recursos" and "Clima y agua" dashboards.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: hydrological_year, data_type: integer, description: September to August, named after the year it ends in.}
+      - {name: international_tourists, data_type: double precision}
+      - {name: tourists_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month (0.1 = 10 % more).}
+      - {name: international_spending_eur, data_type: double precision}
+      - {name: airport_passengers, data_type: double precision}
+      - {name: hotel_bed_occupancy_pct, data_type: double precision}
+      - {name: electricity_demand_gwh, data_type: "numeric(8,1)", description: Balearic demand; null for months with less than 90 % of their hours.}
+      - {name: electricity_demand_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month.}
+      - {name: reserves_pct, data_type: double precision}
+      - {name: reserves_change_1m_pts, data_type: double precision}
+      - {name: reserves_anomaly_pts, data_type: "numeric(5,1)"}
+      - {name: rain_mm, data_type: "numeric(7,1)"}
+      - {name: rain_hydrological_year_mm, data_type: "numeric(7,1)"}
+      - {name: rain_anomaly, data_type: "numeric(8,3)"}
+      - {name: temperature_mean_c, data_type: "numeric(5,2)"}
+      - {name: temperature_anomaly_c, data_type: "numeric(5,2)"}
+      - {name: hot_days, data_type: "numeric(4,1)"}
+
 unit_tests:
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.

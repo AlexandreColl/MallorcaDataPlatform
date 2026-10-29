@@ -18,12 +18,14 @@ def test_backfill_runs_one_window_per_chunk_without_catch_up(monkeypatch, capsys
     calls = []
 
     def fake_run(name, days, **kwargs):
-        calls.append((name, days, kwargs["catch_up"], kwargs["window"]))
+        calls.append((name, days, kwargs["catch_up"], kwargs["window"], kwargs["run_id"]))
         return _Summary(kwargs["window"])
 
     monkeypatch.setattr(core.pipeline, "run_connector", fake_run)
 
-    code = cli.main(["backfill", "--connectors", "aemet", "--start", "2024-01-01", "--end", "2025-12-31"])
+    code = cli.main(
+        ["backfill", "--connectors", "aemet", "--start", "2024-01-01", "--end", "2025-12-31", "--run-id", "hist"]
+    )
 
     assert code == 0
     assert [c[3] for c in calls] == [
@@ -33,6 +35,8 @@ def test_backfill_runs_one_window_per_chunk_without_catch_up(monkeypatch, capsys
     ]
     assert {(c[0], c[2]) for c in calls} == {("aemet", False)}
     assert [c[1] for c in calls] == [365, 365, 1]
+    # One run id per chunk: runs and quality results of a chunk do not overwrite the previous one.
+    assert [c[4] for c in calls] == ["hist_20240101", "hist_20241231", "hist_20251231"]
     printed = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert printed[0] == {"start": "2024-01-01", "end": "2024-12-30"}
 
