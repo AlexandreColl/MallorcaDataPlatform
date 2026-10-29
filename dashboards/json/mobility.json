@@ -265,7 +265,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND a.local_date = (SELECT max(local_date) FROM gold.agg_daily_metrics m WHERE m.source = a.source AND m.local_date <= $__timeTo()::date)"
+          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND (a.source, a.local_date) IN (SELECT source, max(local_date) FROM gold.agg_daily_metrics WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_departures' AND local_date <= $__timeTo()::date GROUP BY source)"
         }
       ],
       "fieldConfig": {
@@ -346,7 +346,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE a.source WHEN 'emt_palma' THEN 'EMT' ELSE 'CTM' END AS \"Red\", a.entity AS \"Parada\", a.avg_value AS \"Pasos\" FROM gold.agg_daily_metrics a WHERE a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND a.local_date = (SELECT max(local_date) FROM gold.agg_daily_metrics m WHERE m.source = a.source AND m.local_date <= $__timeTo()::date) ORDER BY a.avg_value DESC LIMIT 20"
+          "rawSql": "SELECT CASE a.source WHEN 'emt_palma' THEN 'EMT' ELSE 'CTM' END AS \"Red\", a.entity AS \"Parada\", a.avg_value AS \"Pasos\" FROM gold.agg_daily_metrics a WHERE a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND (a.source, a.local_date) IN (SELECT source, max(local_date) FROM gold.agg_daily_metrics WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_departures' AND local_date <= $__timeTo()::date GROUP BY source) ORDER BY a.avg_value DESC LIMIT 20"
         }
       ],
       "fieldConfig": {

@@ -187,7 +187,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Lluvia del año hidrológico",
+      "title": "Lluvia (año hidrológico)",
       "description": "Lluvia media de las estaciones de AEMET desde el 1 de septiembre (año hidrológico) y su porcentaje respecto a la media del mismo punto del año.",
       "gridPos": {
         "h": 4,
@@ -289,7 +289,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Temperatura del último mes",
+      "title": "Temperatura",
       "description": "Temperatura media de las estaciones de AEMET el último mes completo y su anomalía frente al mismo mes de los demás años.",
       "gridPos": {
         "h": 4,
@@ -380,7 +380,7 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Turistas internacionales",
+      "title": "Turistas",
       "description": "Turistas internacionales llegados a Baleares el último mes publicado (FRONTUR) y su variación frente al mismo mes del año anterior.",
       "gridPos": {
         "h": 4,
@@ -617,7 +617,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE a.source IN ($source) AND a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND a.local_date = (SELECT max(local_date) FROM gold.agg_daily_metrics m WHERE m.source = a.source AND m.local_date <= $__timeTo()::date)"
+          "rawSql": "SELECT l.lat, l.lon, a.avg_value AS buses FROM gold.agg_daily_metrics a JOIN gold.dim_locations l USING (source, entity) WHERE a.source IN ($source) AND a.source IN ('emt_palma', 'ctm') AND a.metric = 'scheduled_departures' AND (a.source, a.local_date) IN (SELECT source, max(local_date) FROM gold.agg_daily_metrics WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_departures' AND local_date <= $__timeTo()::date GROUP BY source)"
         },
         {
           "refId": "E",
