@@ -1,29 +1,44 @@
 name: Release
 
-# Push a tag vX.Y.Z on main -> GitHub Release (notes from CHANGELOG.md) + image on GHCR.
+# Push a tag vX.Y.Z on main -> GitHub Release (notes from CHANGELOG.md) + Airflow and REST API images on GHCR.
+# Run it by hand with an existing tag to (re)publish that tag's images without touching its GitHub Release.
 on:
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag whose images to publish, e.g. v0.5.0
+        required: true
 
 permissions:
   contents: write
   packages: write
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   release:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
 
-      - name: Check tag matches project version
+      - name: Check tag matches every project version
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${TAG#v}"
           version=$(grep -m1 '^version' pyproject.toml | cut -d '"' -f2)
-          [[ "$tag" == "$version" ]] || { echo "tag $tag != pyproject $version"; exit 1; }
+          core=$(grep -m1 '__version__' core/__init__.py | cut -d '"' -f2)
+          api=$(grep -m1 '__version__' api/__init__.py | cut -d '"' -f2)
+          for v in "$version" "$core" "$api"; do
+            [[ "$tag" == "$v" ]] || { echo "tag $tag != pyproject $version / core $core / api $api"; exit 1; }
+          done
 
       - name: Extract release notes
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           # Literal prefix match (a regex would treat "[0.1.0]" as a character class).
           awk -v header="## [$version]" '
             index($0, header) == 1 {found=1; next}
@@ -39,14 +54,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - id: meta
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/airflow
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-      - uses: docker/build-push-action@v7
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+      - name: Airflow image
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/airflow/Dockerfile
@@ -56,6 +73,24 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
 
+      - id: meta-api
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/api
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+      - name: REST API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/api/Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha,scope=api
+
       - uses: softprops/action-gh-release@v3
+        if: github.event_name == 'push'
         with:
           body_path: release-notes.md
