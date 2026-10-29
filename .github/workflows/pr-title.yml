@@ -35,6 +35,7 @@ jobs:
             connector
             anomaly
             airflow
+            api
             dbt
             grafana
             infra

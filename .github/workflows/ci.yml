@@ -113,12 +113,14 @@ jobs:
         working-directory: dbt
         run: dbt build --profiles-dir . $DBT_SELECTION
       # The REST API runs every query against the marts just built (empty, but with their contracted columns).
+      # Slim CI may have built nothing the API reads: build the lineage of its exposure first.
       - name: REST API against the warehouse
         env:
           API_INTEGRATION: "1"
           API_DB_USER: warehouse
           API_DB_PASSWORD: warehouse
         run: |
+          (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api)
           pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
           pytest -q api/tests/test_integration.py
 
