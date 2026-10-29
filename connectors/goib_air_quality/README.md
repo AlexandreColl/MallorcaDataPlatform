@@ -22,19 +22,19 @@ Cada columna lleva su bandera `FL_<columna>`.
 Son 11 estaciones, con el código, el tipo y las coordenadas del listado de estaciones del propio catálogo. Las
 entidades se llaman igual que en `eea_air_quality`, así que una estación es una sola serie entre las dos fuentes.
 
-| Entidad | Estación | Código | Ficheros |
+| Entidad | Estación | Código | Datos |
 |---|---|---|---|
-| `foners` | Foners (Palma), tráfico | 07040002 | 2002-2019, 2020, 2021 |
-| `bellver` | Parc de Bellver (Palma) | 07040003 | 2002-2019, 2020, 2021 |
-| `parc_bit` | Parc Bit (Palma) | 07040004 | 2002-2019, 2020, 2021 |
-| `sant_joan_de_deu` | Sant Joan de Déu (Palma), industrial | 07040006 | 2002-2019, 2020, 2021 |
-| `hospital_joan_march` | Hospital Joan March (Bunyola) | 07010001 | 2002-2019, 2020, 2021 |
-| `sa_pobla` | Sa Pobla | 07044001 | 2002-2019, 2020, 2021 |
-| `s_albufera` | S'Albufera (Alcúdia), industrial | 07003001 | 2002-2019, 2020, 2021 |
-| `alcudia` | Alcúdia | 07003004 | 2002-2019, 2020, 2021 |
-| `can_llompart` | Can Llompart (Pollença) | 07042001 | 2002-2019, 2020, 2021 |
-| `menut` | Cases de Menut (Escorca), solo ozono | 07019001 | 2002-2019, 2020, 2021 |
-| `inca` | Sa Vinyeta (Inca) | 07027002 | 2002-2019 |
+| `foners` | Foners (Palma), tráfico | 07040002 | 2002 - jun. 2021 |
+| `bellver` | Parc de Bellver (Palma) | 07040003 | 2002 - jun. 2021 |
+| `parc_bit` | Parc Bit (Palma) | 07040004 | jun. 2006 - jun. 2021 |
+| `sant_joan_de_deu` | Sant Joan de Déu (Palma), industrial | 07040006 | 2011 - jun. 2021 |
+| `hospital_joan_march` | Hospital Joan March (Bunyola) | 07010001 | 2003 - jun. 2021 |
+| `sa_pobla` | Sa Pobla | 07044001 | 2002 - jun. 2021 |
+| `s_albufera` | S'Albufera (Alcúdia), industrial | 07003001 | 2002 - jun. 2021 |
+| `alcudia` | Alcúdia | 07003004 | 2002 - jun. 2021 |
+| `can_llompart` | Can Llompart (Pollença) | 07042001 | 2002 - jun. 2021 |
+| `menut` | Cases de Menut (Escorca), solo ozono | 07019001 | mar. 2015 - jun. 2021 |
+| `inca` | Sa Vinyeta (Inca) | 07027002 | 2009 - 2012 (sin ficheros de 2020 y 2021) |
 
 ## Cómo funciona
 
@@ -84,3 +84,26 @@ entidades se llaman igual que en `eea_air_quality`, así que una estación es un
   hasta aclararlo, cada fuente conserva su nombre.
 - **Parc Bit**: las coordenadas del catálogo están a 1,5 km de las de OpenAQ.
 - Los datos de 2021 son provisionales, según el propio catálogo.
+- **Fallos de la fuente** que el conector resuelve:
+  - El histórico de Cases de Menut sigue hasta octubre de 2020, igual que su fichero de 2020. Cada fichero se
+    queda solo con sus años.
+  - El de Hospital Joan March trae 5.103 filas de 2002 sin periodo y con todas las banderas a `N`. Se ignoran.
+  - El servidor responde 502 a veces. Los reintentos del cliente HTTP lo absorben.
+
+## Prueba real (2026-10-29)
+
+- 20 ejecuciones anuales de `make backfill`, en unos 45 minutos (la mayor parte es Spark escribiendo en silver).
+- 4.975.606 valores válidos en gold, de 11 estaciones.
+- La regla de huecos marca entre el 14 % (SO₂) y el 56 % (PM2.5) de las horas: muchos analizadores empezaron
+  más tarde que la estación (el PM2.5, en Foners y Hospital Joan March).
+- 169 valores fuera de rango, casi todos de SO₂.
+
+NO₂ medio anual (meses representativos):
+
+| | 2002 | 2007 | 2012 | 2017 | 2019 | 2020 |
+|---|---|---|---|---|---|---|
+| Foners (tráfico) | 52,7 | 45,7 | 37,7 | 37,6 | 31,6 | 24,0 |
+| Bellver (fondo) | 14,1 | 13,9 | 10,3 | 11,6 | 10,7 | 7,7 |
+
+Foners pasó de superar el valor límite anual de la UE (40 µg/m³) a quedar muy por debajo, y 2020 marca el
+confinamiento. El ozono va en sentido contrario: la media de la isla sube de 56 µg/m³ en 2002 a 70 en 2019.
