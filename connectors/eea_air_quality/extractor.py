@@ -20,7 +20,7 @@ import hashlib
 import io
 import logging
 import re
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from core.connectors import BaseConnector, ConnectorError
@@ -118,7 +118,7 @@ class EeaAirQualityConnector(BaseConnector):
             pollutant = spec["pollutants"].get(str(row["Pollutant"]))
             if pollutant is None:
                 continue
-            ts = row["Start"].replace(tzinfo=UTC) - offset
+            ts = _utc(row["Start"]) - offset
             if not window_start <= ts < window_end:
                 continue
             scale = spec["units"].get(row["Unit"])
@@ -145,6 +145,11 @@ class EeaAirQualityConnector(BaseConnector):
         """Configured stations (by national code) inside the region."""
         stations: Mapping[str, Mapping[str, Any]] = self.config.options["stations"]
         return {code: s for code, s in stations.items() if region.contains(float(s["lat"]), float(s["lon"]))}
+
+
+def _utc(start: datetime) -> datetime:
+    """A plain ``datetime`` in UTC: nanosecond columns come as ``pandas.Timestamp``, which Spark does not accept."""
+    return datetime(*start.timetuple()[:6], tzinfo=UTC)
 
 
 def _number(raw: object) -> float | None:

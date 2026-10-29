@@ -82,6 +82,7 @@ def test_utc_plus_one_timestamps_become_utc():
     bellver_no2 = [o for o in observations if o.entity == "bellver" and o.metric == "nitrogen_dioxide"]
     assert len(bellver_no2) == 48  # every hour of the two-day window
     assert min(o.ts for o in bellver_no2) == datetime(2026, 10, 12, tzinfo=UTC)
+    assert {type(o.ts) for o in observations} == {datetime}  # not pandas.Timestamp: Spark rejects it
 
 
 def test_carbon_monoxide_is_converted_to_micrograms():
