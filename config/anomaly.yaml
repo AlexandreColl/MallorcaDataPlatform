@@ -19,8 +19,8 @@ detectors:
     random_state: 42     # same forest on every run
 
 skip:
-  # Events and timetables, not measurements of a continuous quantity.
-  sources: [ign, emt_palma]
+  # Events and timetables, not measurements of a continuous quantity; monthly statistics (too few values).
+  sources: [ign, emt_palma, ctm, dataestur, water_reserves]
   # Zero most of the time (any rain or sunshine change would stand out) or circular (350° and 10° are close).
   metrics: [precipitation, precipitation_sum, sunshine_duration, wave_direction]
 

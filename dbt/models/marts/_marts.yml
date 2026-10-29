@@ -199,6 +199,30 @@ models:
       - {name: busiest_stop, data_type: text}
       - {name: busiest_stop_departures, data_type: double precision}
 
+  - name: fct_island_transit_daily
+    description: >-
+      CTM island network (TIB buses, SFM trains, metro) per local day: stops with service, scheduled stop calls,
+      busiest stop. Same columns as fct_bus_network_daily (both come from the transit_network_daily macro).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [local_date]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "stops_with_service <= stops"
+    columns:
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: iso_day_of_week, data_type: integer}
+      - {name: is_weekend, data_type: boolean}
+      - {name: stops, data_type: bigint}
+      - {name: stops_with_service, data_type: bigint}
+      - {name: scheduled_stop_calls, data_type: double precision}
+      - {name: avg_lines_per_served_stop, data_type: "numeric(6,2)"}
+      - {name: busiest_stop, data_type: text}
+      - {name: busiest_stop_departures, data_type: double precision}
+
   - name: fct_earthquakes
     description: One row per earthquake located by the IGN (magnitude, depth, epicentre, distance from Palma).
     columns:
@@ -302,6 +326,121 @@ models:
       - {name: peak_gust_kmh, data_type: double precision}
       - {name: peak_wave_m, data_type: double precision}
 
+  - name: fct_tourism_monthly
+    description: >-
+      Balearic tourism per month (Dataestur): international tourists and spending (FRONTUR, EGATUR), hotel
+      occupancy (EOH), Palma airport passengers (AENA) and the change against the same month a year earlier.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "hotel_bed_occupancy_pct between 0 and 100"
+          config:
+            where: "hotel_bed_occupancy_pct is not null"
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: international_tourists, data_type: double precision}
+      - {name: international_spending_eur, data_type: double precision}
+      - {name: international_tourist_nights, data_type: double precision}
+      - {name: spending_per_tourist_eur, data_type: "numeric(10,2)"}
+      - {name: hotel_guests, data_type: double precision}
+      - {name: hotel_nights, data_type: double precision}
+      - {name: hotel_average_stay_nights, data_type: "numeric(6,2)"}
+      - {name: hotel_bed_occupancy_pct, data_type: double precision}
+      - {name: hotels_open, data_type: double precision}
+      - {name: hotel_staff, data_type: double precision}
+      - {name: airport_passengers, data_type: double precision}
+      - {name: international_tourists_yoy, data_type: "numeric(8,4)", description: Change against the same month a year earlier (0.05 = +5 %).}
+      - {name: airport_passengers_yoy, data_type: "numeric(8,4)"}
+
+  - name: fct_water_reserves_monthly
+    description: >-
+      Groundwater reserves of Mallorca per month (Govern de les Illes Balears): island-wide share of a full aquifer,
+      change against the previous month and year, and anomaly against the mean of the same calendar month.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "reserves_pct between 0 and 100"
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: hydrological_year, data_type: integer, description: September to August, named after the year it ends in.}
+      - {name: reserves_pct, data_type: double precision}
+      - {name: change_1m_pts, data_type: double precision, description: Percentage points against the previous month.}
+      - {name: change_12m_pts, data_type: double precision, description: Percentage points against the same month a year earlier.}
+      - {name: same_month_mean_pct, data_type: "numeric(5,1)", description: Mean of this calendar month over every year loaded.}
+      - {name: anomaly_pts, data_type: "numeric(5,1)", description: Reserves minus the mean of the same calendar month.}
+      - {name: same_month_years, data_type: bigint}
+      - {name: aquifers, data_type: bigint}
+      - {name: aquifers_below_30_pct, data_type: bigint}
+      - {name: lowest_aquifer, data_type: text}
+      - {name: lowest_aquifer_pct, data_type: double precision}
+
+  - name: fct_climate_monthly
+    description: >-
+      Climate of Mallorca per month from the official AEMET stations (mean of the stations that reported at least
+      90 % of the month): rainfall and temperature with their anomaly against the same calendar month, hot and wet
+      days, and the rainfall accumulated in the hydrological year (September to August).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: hydrological_year, data_type: integer, description: September to August, named after the year it ends in.}
+      - {name: rain_stations, data_type: bigint, description: Stations with a complete month of rainfall.}
+      - {name: rain_mm, data_type: "numeric(7,1)", description: Mean rainfall of those stations.}
+      - {name: rain_same_month_mean_mm, data_type: "numeric(7,1)"}
+      - {name: rain_anomaly, data_type: "numeric(8,3)", description: Rainfall against the mean of the same month (0.2 = 20 % more).}
+      - {name: rain_hydrological_year_mm, data_type: "numeric(7,1)", description: Rainfall since September.}
+      - {name: rain_hydrological_year_mean_mm, data_type: "numeric(7,1)", description: Mean of the same accumulated value in the other years.}
+      - {name: wet_days, data_type: "numeric(4,1)", description: Days with at least 1 mm, mean of the stations.}
+      - {name: temperature_stations, data_type: bigint}
+      - {name: temperature_mean_c, data_type: "numeric(5,2)"}
+      - {name: temperature_anomaly_c, data_type: "numeric(5,2)", description: Against the mean of the same month.}
+      - {name: temperature_max_c, data_type: double precision, description: Highest daily maximum of any complete station.}
+      - {name: hot_days, data_type: "numeric(4,1)", description: Days with a maximum of 30 °C or more, mean of the stations.}
+      - {name: same_month_years, data_type: bigint}
+
+  - name: fct_resources_monthly
+    description: >-
+      One row per month with tourism (Dataestur), groundwater reserves, rainfall and temperature (AEMET) and
+      electricity demand (REData), each with its anomaly against the same calendar month, because every series is
+      seasonal. Feeds the "Turismo y recursos" and "Clima y agua" dashboards.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: hydrological_year, data_type: integer, description: September to August, named after the year it ends in.}
+      - {name: international_tourists, data_type: double precision}
+      - {name: tourists_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month (0.1 = 10 % more).}
+      - {name: international_spending_eur, data_type: double precision}
+      - {name: airport_passengers, data_type: double precision}
+      - {name: hotel_bed_occupancy_pct, data_type: double precision}
+      - {name: electricity_demand_gwh, data_type: "numeric(8,1)", description: Balearic demand; null for months with less than 90 % of their hours.}
+      - {name: electricity_demand_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month.}
+      - {name: reserves_pct, data_type: double precision}
+      - {name: reserves_change_1m_pts, data_type: double precision}
+      - {name: reserves_anomaly_pts, data_type: "numeric(5,1)"}
+      - {name: rain_mm, data_type: "numeric(7,1)"}
+      - {name: rain_hydrological_year_mm, data_type: "numeric(7,1)"}
+      - {name: rain_anomaly, data_type: "numeric(8,3)"}
+      - {name: temperature_mean_c, data_type: "numeric(5,2)"}
+      - {name: temperature_anomaly_c, data_type: "numeric(5,2)"}
+      - {name: hot_days, data_type: "numeric(4,1)"}
+
 unit_tests:
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.
@@ -347,3 +486,58 @@ unit_tests:
       rows:
         - {start_date: "2026-10-19", end_date: "2026-10-20", days: 2, episode_type: "rain + wind + sea", peak_rain_mm: 79.2, peak_rain_station: B158X}
         - {start_date: "2026-10-22", end_date: "2026-10-22", days: 1, episode_type: rain, peak_rain_mm: 35.0, peak_rain_station: B051A}
+
+
+  - name: tourism_change_is_against_the_same_month_a_year_earlier
+    description: The year-on-year change compares August with August, even with months missing in between.
+    model: fct_tourism_monthly
+    given:
+      - input: ref('stg_dataestur__observations')
+        rows:
+          - {metric: international_tourists, local_date: "2025-08-01", value: 2500000, is_missing: false}
+          - {metric: international_tourist_spending, local_date: "2025-08-01", value: 3750000000, is_missing: false}
+          - {metric: international_tourists, local_date: "2026-07-01", value: 2400000, is_missing: false}
+          - {metric: international_tourists, local_date: "2026-08-01", value: 2600000, is_missing: false}
+          - {metric: international_tourist_spending, local_date: "2026-08-01", value: 4160000000, is_missing: false}
+    expect:
+      rows:
+        - {month: "2025-08-01", spending_per_tourist_eur: 1500.00, international_tourists_yoy: null}
+        - {month: "2026-07-01", spending_per_tourist_eur: null, international_tourists_yoy: null}
+        - {month: "2026-08-01", spending_per_tourist_eur: 1600.00, international_tourists_yoy: 0.0400}
+
+  - name: water_reserve_anomaly_is_against_the_same_calendar_month
+    description: February is compared with other Februaries only; the hydrological year starts in September.
+    model: fct_water_reserves_monthly
+    given:
+      - input: ref('stg_water_reserves__observations')
+        rows:
+          - {entity: mallorca, local_date: "2025-02-01", value: 50, is_missing: false}
+          - {entity: mallorca, local_date: "2025-09-01", value: 40, is_missing: false}
+          - {entity: mallorca, local_date: "2026-01-01", value: 52, is_missing: false}
+          - {entity: mallorca, local_date: "2026-02-01", value: 60, is_missing: false}
+      - input: ref('dim_aquifers')
+        rows:
+          - {entity: aquifer_1805m1, aquifer: Pollença}
+    expect:
+      rows:
+        - {month: "2025-02-01", hydrological_year: 2025, same_month_mean_pct: 55.0, anomaly_pts: -5.0, change_12m_pts: null}
+        - {month: "2025-09-01", hydrological_year: 2026, same_month_mean_pct: 40.0, anomaly_pts: 0.0, change_12m_pts: null}
+        - {month: "2026-01-01", hydrological_year: 2026, same_month_mean_pct: 52.0, anomaly_pts: 0.0, change_12m_pts: null}
+        - {month: "2026-02-01", hydrological_year: 2026, same_month_mean_pct: 55.0, anomaly_pts: 5.0, change_12m_pts: 10.0}
+
+  - name: climate_month_needs_a_complete_station
+    description: A station with fewer than 90 % of its days does not count, so a missing week is not a dry month.
+    model: fct_climate_monthly
+    given:
+      - input: ref('int_weather__daily')
+        format: sql
+        rows: |
+          select 'aemet' as source, 'B278' as entity, d::date as local_date, 20.0 as temperature_mean,
+                 25.0 as temperature_max, 2.0 as precipitation_sum
+          from generate_series('2025-09-01'::date, '2025-09-30', interval '1 day') as d
+          union all
+          select 'aemet', 'B013', d::date, 15.0, 31.0, 10.0
+          from generate_series('2025-09-01'::date, '2025-09-20', interval '1 day') as d
+    expect:
+      rows:
+        - {month: "2025-09-01", hydrological_year: 2026, rain_stations: 1, rain_mm: 60.0, wet_days: 30.0, hot_days: 0.0, rain_anomaly: 0.000}

@@ -147,17 +147,20 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     run_id: str | None = None,
     settings: Settings | None = None,
     catch_up: bool = True,
+    window: TimeWindow | None = None,
 ) -> RunSummary:
     """Run one connector end to end and record the run in ``ops.ingestion_runs``.
 
     With ``catch_up`` the window grows back to the day after the last successful run (up to the
     connector's ``catch_up_days``), so a source that was down is recovered by its next run.
+    A ``window`` (backfills) replaces the last ``days``.
     """
     settings = settings or Settings.from_env()
     run_id = run_id or new_run_id()
     region = load_region(region_name, settings.regions_dir)
     connector = registry.load(name, connectors_dir=settings.connectors_dir)
-    window = connector.config.window(days)  # ends `lag_days` before yesterday for sources that publish late
+    # An explicit window (backfills) replaces the last `days`, which end `lag_days` before yesterday.
+    window = window or connector.config.window(days)
     connector.validate_window(window)
 
     warehouse = Warehouse(settings)

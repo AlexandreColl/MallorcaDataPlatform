@@ -5,6 +5,53 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
+Three new open-data sources (CTM island transport, Dataestur tourism and the Govern's groundwater reserves), ten
+years of history through backfills, and Grafana reorganised into six themed dashboards that put tourism, water and
+climate side by side.
+
+### Added
+
+- CTM connector (`ctm`): the Consorci de Transports de Mallorca static GTFS (TIB buses, SFM trains, metro) as a
+  daily series per stop, 763 stops island-wide. dbt `stg_ctm__observations` and `fct_island_transit_daily`; CTM
+  joins EMT in the Grafana heat map.
+- Dataestur connector (`dataestur`): monthly Balearic tourism from SEGITTUR (FRONTUR international tourists, EGATUR
+  spending, EOH hotel occupancy, AENA Palma airport passengers), read from xlsx with the standard library. dbt
+  `fct_tourism_monthly` (spending per tourist, year-on-year change) and a Grafana panel of the last three years.
+- Water reserves connector (`water_reserves`): Mallorca's groundwater reserves from the Govern's water portal,
+  monthly per aquifer (spreadsheet of the last 13 months) and 10 years island-wide (bar labels of the PDF chart, read
+  with `pypdf`). dbt `fct_water_reserves_monthly` (anomaly against the same calendar month) and seed `dim_aquifers`.
+- Backfills: `python -m core.cli backfill` and `make backfill CONNECTORS=aemet START=... END=...` load a past date
+  range with explicit windows, one run per chunk of at most the connector's `max_days`, without catch-up.
+- dbt `fct_climate_monthly`: monthly rainfall and temperature of the AEMET stations (stations with at least 90 % of
+  the month), anomalies against the same calendar month, hot days and the rainfall of the hydrological year. With
+  ten years of AEMET loaded it is the climate side of the water dashboards.
+- Monthly sources in the core: `frequency: 1mo` (the gaps rule counts calendar months) and `min_days`, the shortest
+  window a run asks for, so the daily one-day run of a monthly source re-reads its last year.
+
+### Changed
+
+- Grafana: the single overview is split into six themed dashboards linked to each other: **Inicio** (last month of
+  water, climate and tourism, and the map), **Turismo y recursos** (tourists against groundwater reserves and
+  electricity demand, with anomalies against the same month and a year-by-year evaluation), **Clima y agua**
+  (rainfall, temperature and the response of the aquifers), **Movilidad**, **Tiempo y entorno** and **Operación**.
+  New dbt mart `fct_resources_monthly` and one dbt exposure per dashboard.
+- The GTFS logic moves from the EMT Palma connector to `core/connectors/gtfs.py` (`GtfsConnector`), shared by EMT
+  and CTM; `fct_bus_network_daily` is now built by the `transit_network_daily` macro (same columns).
+- Dependencies: PySpark 4.2.1 (still Hadoop 3.5.0, so hadoop-aws 3.5.0 and AWS SDK 2.35.4 stay), ruff 0.17.3, and
+  in CI pandas 3.1.0, pyarrow 26.0.0 and boto3 1.43.120 (the image keeps the versions of the Airflow 3.3.2
+  constraints). The AWS SDK bundle is not bumped to 2.57: it must match the hadoop-aws build.
+
+### Fixed
+
+- Backfills give each chunk its own run id: the runs and quality results of a chunk no longer overwrite the
+  previous one.
+- The bus heat map computed the last day of each network with a correlated subquery that took minutes on ten years
+  of daily aggregates; it is now computed once per network (0.3 s).
+- dbt slim CI builds the parents of the modified models' children (`@state:modified`): a changed seed no longer
+  fails on tests whose other parents were never built.
+
 ## [0.3.0] - 2026-10-27
 
 Anomaly detection: two detectors that flag silver values without changing them, measured against injected faults.
@@ -238,7 +285,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.2.3...v0.2.4

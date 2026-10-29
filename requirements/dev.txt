@@ -1,14 +1,15 @@
 # CI test environment without Airflow: latest releases of every tool and library.
 # Inside the Docker image the same libraries are resolved against the official Airflow
 # constraints file (the combination Airflow tests and supports), so patch versions may differ.
-pyspark==4.2.0
-boto3==1.43.118
+pyspark==4.2.1
+pypdf==6.21.4
+boto3==1.43.120
 psycopg[binary]==3.3.6
 requests==2.34.2
 PyYAML==6.0.3
-pandas==3.0.5
-pyarrow==25.0.1
+pandas==3.1.0
+pyarrow==26.0.0
 scikit-learn==1.9.1
 pytest==9.1.1
 pytest-cov==7.1.0
-ruff==0.17.2
+ruff==0.17.3

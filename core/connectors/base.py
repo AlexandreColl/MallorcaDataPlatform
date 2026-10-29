@@ -58,6 +58,9 @@ class ConnectorConfig:
     catch_up_days: int = 31
     # Days the source publishes late (AEMET daily values: ~3). Windows end that many days before yesterday.
     lag_days: int = 0
+    # Shortest window a run asks for (<= max_days). Monthly sources re-read their last year on every run, so a
+    # one-day run still covers published months and picks up revised ones.
+    min_days: int = 1
     secrets: tuple[str, ...] = ()
     datasets: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     metrics: Mapping[str, MetricSpec] = field(default_factory=dict)
@@ -92,6 +95,7 @@ class ConnectorConfig:
                 max_days=int(data.get("max_days", 31)),
                 catch_up_days=int(data.get("catch_up_days", data.get("max_days", 31))),
                 lag_days=int(data.get("lag_days", 0)),
+                min_days=int(data.get("min_days", 1)),
                 secrets=tuple(data.get("secrets") or ()),
                 datasets=data.get("datasets") or {},
                 metrics=metrics,
@@ -110,14 +114,17 @@ class ConnectorConfig:
         if not 1 <= config.catch_up_days <= config.max_days:
             msg = f"{path}: catch_up_days must be between 1 and max_days ({config.max_days})"
             raise ConnectorError(msg)
+        if not 1 <= config.min_days <= config.max_days:
+            msg = f"{path}: min_days must be between 1 and max_days ({config.max_days})"
+            raise ConnectorError(msg)
         for dataset in config.datasets:
             config.frequency_for(dataset)  # fail fast on an invalid frequency
         return config
 
     def window(self, days: int, today: date | None = None) -> TimeWindow:
-        """Last ``days`` complete days the source has already published (shifted back by ``lag_days``)."""
+        """Last ``days`` (at least ``min_days``) complete days already published (shifted back by ``lag_days``)."""
         today = today or datetime.now(UTC).date()
-        return TimeWindow.last_days(days, today - timedelta(days=self.lag_days))
+        return TimeWindow.last_days(max(days, self.min_days), today - timedelta(days=self.lag_days))
 
     @property
     def frequency_delta(self) -> timedelta:
@@ -127,7 +134,8 @@ class ConnectorConfig:
     def frequency_for(self, dataset: str) -> timedelta | None:
         """Spacing between samples of one dataset: its own ``frequency`` or the connector default.
 
-        ``None`` for event datasets (``frequency: event``), which have no regular spacing.
+        ``None`` for event datasets (``frequency: event``), which have no regular spacing; :data:`MONTH` for
+        monthly ones (``frequency: 1mo``).
         """
         spec = self.datasets.get(dataset) or {}
         freq = str(spec.get("frequency", self.frequency))
@@ -145,18 +153,25 @@ class ConnectorConfig:
 
 # Dataset frequency of irregular sources (earthquakes...): no gaps rule, empty windows are allowed.
 EVENT_FREQUENCY = "event"
+# Dataset frequency of monthly statistics (tourism...): one value per calendar month, stamped on its first day.
+MONTHLY_FREQUENCY = "1mo"
+# Nominal spacing of monthly datasets. Months differ in length, so their expected steps are counted in calendar
+# months (see expected_steps), never as a span divided by this value.
+MONTH = timedelta(days=30)
 
 
 def parse_frequency(freq: str) -> timedelta:
-    """Parse ``15m``, ``1h`` or ``1d`` into a timedelta.
+    """Parse ``15m``, ``1h`` or ``1d`` into a timedelta (``1mo`` into the nominal :data:`MONTH`).
 
     Raises:
         ConnectorError: for any other format.
     """
+    if freq == MONTHLY_FREQUENCY:
+        return MONTH
     units = {"m": "minutes", "h": "hours", "d": "days"}
     value, unit = freq[:-1], freq[-1]
     if unit not in units or not value.isdigit():
-        msg = f"invalid frequency '{freq}', expected e.g. 15m, 1h, 1d"
+        msg = f"invalid frequency '{freq}', expected e.g. 15m, 1h, 1d or 1mo"
         raise ConnectorError(msg)
     return timedelta(**{units[unit]: int(value)})
 

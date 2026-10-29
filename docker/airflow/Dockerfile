@@ -63,6 +63,6 @@ COPY --chown=airflow:0 dags /opt/project/dags
 
 # Dev image: adds test/lint tooling (used by `make test` and `make lint`).
 FROM runtime AS dev
-ARG RUFF_VERSION=0.17.2
+ARG RUFF_VERSION=0.17.3
 RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" pytest pytest-cov "ruff==${RUFF_VERSION}" \
     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"

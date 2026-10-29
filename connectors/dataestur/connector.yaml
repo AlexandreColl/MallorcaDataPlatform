@@ -1,0 +1,69 @@
+name: dataestur
+description: Dataestur (SEGITTUR) - monthly Balearic tourism, international arrivals and spending, hotel occupancy and Palma airport passengers, no API key
+entrypoint: connectors.dataestur.extractor:DataesturConnector
+enabled: true
+frequency: 1mo         # one value per calendar month, stamped on its first day (local midnight)
+# Every run re-reads the last year: a one-day run would ask for a month that is not published yet, and the
+# statistics are revised after their first release.
+min_days: 365
+max_days: 3660         # backfills: the tables go back to 2015-2016
+# Months are published about two months late (FRONTUR, EGATUR and AENA; hotel occupancy one month later still).
+# Windows end 62 days before yesterday so their months are normally complete.
+lag_days: 62
+secrets: []
+
+options:
+  base_url: https://www.dataestur.es/API-SEGITTUR-v2
+  timezone: Europe/Madrid
+  covers_regions: [mallorca]
+
+# Each dataset is one API table. `filters` are its query parameters: the values must be spelled exactly as in the
+# API's OpenAPI enum, because a misspelt one returns HTTP 200 with an empty sheet (the connector then fails).
+# `where` keeps rows by column value; `columns` maps a sheet column to a metric. With `sum_rows` the kept rows of a
+# month are added up (one row per country of residence); without it each month must have exactly one row.
+datasets:
+  frontur:
+    path: FRONTUR_DL
+    filters: {CCAA de destino: "Balears, Illes"}
+    where: {TIPO_VISITANTE: [Turista]}       # excursionists (no overnight stay) are left out
+    sum_rows: true
+    entity: baleares
+    columns:
+      VISITANTES: international_tourists
+  egatur:
+    path: EGATUR_DL
+    filters: {CCAA de destino: "Balears, Illes"}
+    sum_rows: true
+    entity: baleares
+    columns:
+      GASTO_TOTAL: international_tourist_spending
+      PERNOCTACIONES: international_tourist_nights
+  hotels:
+    path: EOH_PROV_DL
+    filters: {Provincia: Islas Baleares}
+    where: {LUGAR_RESIDENCIA: [Total]}
+    entity: baleares
+    columns:
+      VIAJEROS: hotel_guests
+      PERNOCTACIONES: hotel_nights
+      GRADO_OCUPA_PLAZAS: hotel_bed_occupancy
+      ESTABLECIMIENTOS_ESTIMADOS: hotels_open
+      PERSONAL_EMPLEADO: hotel_staff
+  airport:
+    path: AENA_DESTINOS_DL
+    filters: {Aeropuerto AENA: P. Mallorca}
+    entity: palma_airport
+    columns:
+      PASAJEROS_POR_DESTINO: airport_passengers
+
+# Statistics of the Balearic Islands as a whole (Mallorca is about 75 % of them); the airport is Palma's.
+metrics:
+  international_tourists:         {dataset: frontur, unit: people, min: 0, max: 5000000}
+  international_tourist_spending: {dataset: egatur, unit: EUR, min: 0, max: 10000000000}
+  international_tourist_nights:   {dataset: egatur, unit: nights, min: 0, max: 60000000}
+  hotel_guests:                   {dataset: hotels, unit: people, min: 0, max: 5000000}
+  hotel_nights:                   {dataset: hotels, unit: nights, min: 0, max: 30000000}
+  hotel_bed_occupancy:            {dataset: hotels, unit: "%", min: 0, max: 100}
+  hotels_open:                    {dataset: hotels, unit: establishments, min: 0, max: 3000}
+  hotel_staff:                    {dataset: hotels, unit: people, min: 0, max: 100000}
+  airport_passengers:             {dataset: airport, unit: passengers, min: 0, max: 10000000}

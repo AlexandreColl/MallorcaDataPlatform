@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import pytest
 
 from core.connectors import BaseConnector, ConnectorError, registry
-from core.connectors.base import parse_frequency
+from core.connectors.base import MONTH, parse_frequency
 from core.models import TimeWindow
 
 
@@ -70,7 +70,7 @@ def test_missing_secret_is_reported(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize(
     ("freq", "delta"),
-    [("15m", timedelta(minutes=15)), ("1h", timedelta(hours=1)), ("1d", timedelta(days=1))],
+    [("15m", timedelta(minutes=15)), ("1h", timedelta(hours=1)), ("1d", timedelta(days=1)), ("1mo", MONTH)],
 )
 def test_parse_frequency(freq, delta):
     assert parse_frequency(freq) == delta
@@ -125,3 +125,18 @@ def test_default_selection_skips_connectors_without_their_key():
     assert "aemet" not in without_key
     assert "open_meteo" in without_key
     assert set(with_key) - set(without_key) == {"aemet"}
+
+
+def test_monthly_frequency_and_minimum_window():
+    cfg = registry.discover()["dataestur"]
+    assert cfg.frequency_for("airport") == MONTH
+    # A one-day run still re-reads the last year, ending lag_days before yesterday.
+    window = cfg.window(1, today=date(2026, 10, 28))
+    assert (window.start, window.end, window.n_days) == (date(2025, 8, 27), date(2026, 8, 26), 365)
+    assert cfg.window(400, today=date(2026, 10, 28)).n_days == 400
+
+
+def test_min_days_cannot_exceed_max_days(tmp_path):
+    root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nmax_days: 30\nmin_days: 60\n")
+    with pytest.raises(ConnectorError, match="min_days"):
+        registry.discover(root)

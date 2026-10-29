@@ -21,10 +21,12 @@ connectors/<nombre>/
    (`datasets.<x>.frequency`, ver `connectors/redata`). `catch_up_days` (por defecto `max_days`) limita cuánto se
    alarga una ventana para recuperar días de ejecuciones fallidas; bájalo si la fuente no guarda tanto histórico
    (SOCIB: 28). `lag_days` retrasa el final de la ventana para fuentes que publican tarde (AEMET: 3).
+   Para estadísticas mensuales usa `frequency: 1mo` (un valor por mes, fechado el día 1) y `min_days` para que
+   cada ejecución cubra meses ya publicados (ver `connectors/dataestur`).
    Para fuentes de eventos sin muestreo regular (sismos…)
    usa `frequency: event`: no se aplica la regla de huecos y una ventana sin eventos no es un error (ver
    `connectors/ign`); añádela también a `vars.event_sources` en `dbt/dbt_project.yml` y a `EVENT_SOURCES` en
-   `scripts/e2e.sh`. `secrets` lista las variables que deben estar en `.env` (pásalas también en `x-platform-env` de
+   `scripts/e2e.sh`. Añade el conector a `CONNECTORS` en `scripts/e2e.sh`. `secrets` lista las variables que deben estar en `.env` (pásalas también en `x-platform-env` de
    `docker-compose.yml`); sin ellas el conector queda fuera de la selección por defecto del DAG.
    Si la API limita el rango por petición, trocea con `window.split(max_days)` y genera un payload por trozo.
 5. `extractor.py` implementa dos métodos:

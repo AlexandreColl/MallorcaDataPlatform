@@ -33,6 +33,13 @@ AEMET publica los valores diarios con 2-3 días de retraso. El conector declara 
 días antes de ayer, así que `days: 1` pide el último día ya publicado y la recuperación de días perdidos nunca da
 por cargado un día que aún no existía.
 
+## Histórico
+
+Los valores diarios llegan hasta décadas atrás. Diez años se cargan con
+`make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25`: un run por año (`max_days: 366`), cada uno
+partido en peticiones de 6 meses y 25 estaciones. Prueba real: unas 780.000 filas de 28-33 estaciones en 15 min;
+la regla de huecos señala entre el 1 y el 5 % por métrica (días que alguna estación no publicó).
+
 ## Limitaciones
 
 - Las observaciones horarias (`/observacion/convencional`) solo cubren las últimas horas, nunca un día completo

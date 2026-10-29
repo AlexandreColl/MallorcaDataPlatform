@@ -4,6 +4,7 @@ Examples:
     python -m core.cli list
     python -m core.cli init
     python -m core.cli run --connectors open_meteo --days 1 --region mallorca
+    python -m core.cli backfill --connectors aemet --start 2016-09-01 --end 2026-08-31
     python -m core.cli detect --days 30
     python -m core.cli evaluate
 """
@@ -14,6 +15,7 @@ import argparse
 import json
 import logging
 import sys
+from datetime import date
 
 from core.config import Settings, available_regions
 from core.connectors import registry
@@ -61,6 +63,29 @@ def _cmd_run(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def _cmd_backfill(args: argparse.Namespace) -> int:
+    from core.models import TimeWindow
+    from core.pipeline import new_run_id, run_connector
+
+    window = TimeWindow(date.fromisoformat(args.start), date.fromisoformat(args.end))
+    run_id = args.run_id or new_run_id()
+    failures = 0
+    for name in args.connectors:
+        chunk_days = min(args.chunk_days, registry.discover()[name].max_days)
+        for chunk in window.split(chunk_days):  # one run per chunk: a bounded window and memory per run
+            # Runs and quality results are keyed by run id and source: each chunk needs its own run id.
+            chunk_run_id = f"{run_id}_{chunk.start:%Y%m%d}"
+            try:
+                summary = run_connector(
+                    name, chunk.n_days, region_name=args.region, run_id=chunk_run_id, catch_up=False, window=chunk
+                )
+                print(json.dumps(summary.as_dict()))
+            except Exception:
+                log.exception("connector %s failed for %s..%s", name, chunk.start, chunk.end)
+                failures += 1
+    return 1 if failures else 0
+
+
 def _cmd_detect(args: argparse.Namespace) -> int:
     from core.anomaly.runner import detect_anomalies
     from core.pipeline import new_run_id
@@ -104,6 +129,15 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--run-id")
     run.add_argument("--no-catch-up", action="store_true", help="do not recover days missed by failed runs")
     run.set_defaults(func=_cmd_run)
+
+    backfill = sub.add_parser("backfill", help="load a past date range, one run per chunk")
+    backfill.add_argument("--connectors", nargs="+", required=True)
+    backfill.add_argument("--start", required=True, help="first day, YYYY-MM-DD")
+    backfill.add_argument("--end", required=True, help="last day, YYYY-MM-DD")
+    backfill.add_argument("--chunk-days", type=int, default=365, help="days per run (at most the connector's max_days)")
+    backfill.add_argument("--region", default="mallorca")
+    backfill.add_argument("--run-id")
+    backfill.set_defaults(func=_cmd_backfill)
 
     detect = sub.add_parser("detect", help="flag anomalies in the recent silver values")
     detect.add_argument("--days", type=int, default=1, help="at least `rescore_days` of config/anomaly.yaml")
