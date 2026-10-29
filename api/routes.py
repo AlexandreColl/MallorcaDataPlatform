@@ -131,9 +131,7 @@ def anomalies(  # noqa: PLR0913 - one query parameter per filter
     """Values flagged by the anomaly detectors in a time range, newest first, paginated."""
     _check_limit(limit, get_max_page_size(request))
     start, end = _window(start, end)
-    rows = warehouse.anomalies(
-        source=source, detector=detector, start=start, end=end, limit=limit + 1, offset=offset
-    )
+    rows = warehouse.anomalies(source=source, detector=detector, start=start, end=end, limit=limit + 1, offset=offset)
     return _page([Anomaly(**row) for row in rows], limit, offset)
 
 

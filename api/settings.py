@@ -42,7 +42,7 @@ class Settings:
 
     @property
     def conninfo(self) -> str:
-        """libpq connection string (read-only transactions, short statement timeout)."""
+        """Libpq connection string (read-only transactions, short statement timeout)."""
         return (
             f"host={self.host} port={self.port} dbname={self.database} user={self.user} password={self.password} "
             "application_name=mallorca-api options='-c default_transaction_read_only=on -c statement_timeout=15000'"

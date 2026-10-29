@@ -54,7 +54,7 @@ def db():
         "gold.dim_sources": [{"?column?": 1}],
         "gold.source_health": lambda p: [SOURCE] if p["source"] in {None, "aemet"} else [],
         "gold.fct_water_reserves_monthly": [WATER],
-        "gold.fct_observations": lambda p: [observation(i) for i in range(p["offset"], min(p["offset"] + p["limit"], 250))],
+        "gold.fct_observations": lambda p: [observation(i) for i in range(p["offset"], min(p["offset"] + p["limit"], 250))],  # noqa: E501
     })  # fmt: skip
 
 
@@ -136,7 +136,9 @@ def test_unknown_source_is_404_before_querying_observations():
 
 
 def test_page_size_limit_comes_from_settings(db):
-    assert client(db, max_page_size=50).get("/v1/observations", params={"source": "aemet", "limit": 60}).status_code == 422
+    assert (
+        client(db, max_page_size=50).get("/v1/observations", params={"source": "aemet", "limit": 60}).status_code == 422
+    )
 
 
 def test_monthly_marts_filter_by_month(db):

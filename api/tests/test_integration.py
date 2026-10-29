@@ -55,5 +55,5 @@ def test_observations_of_every_source(api):
 
 def test_the_role_cannot_write(api):
     db = api.app.state.warehouse.db
-    with pytest.raises(Exception, match="read-only|permission denied"):
+    with pytest.raises(Exception, match=r"read-only|permission denied"):
         db.fetch_all("DELETE FROM gold.dim_sources")
