@@ -12,7 +12,11 @@ with pivoted as (
         max(value) filter (where metric = 'european_aqi') as european_aqi_model,
         bool_or(is_suspect) as has_suspect
     from {{ ref('fct_observations') }}
-    where metric in ('pm2_5', 'pm10', 'nitrogen_dioxide', 'ozone', 'european_aqi')
+    where
+        metric in ('pm2_5', 'pm10', 'nitrogen_dioxide', 'ozone', 'european_aqi')
+        -- The GOIB history (two million station hours up to 2021) would make this table rebuild slowly every run;
+        -- it is read monthly in fct_air_quality_monthly.
+        and source <> 'goib_air_quality'
     group by source, entity, ts
 ),
 

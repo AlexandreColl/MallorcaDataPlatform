@@ -5,7 +5,7 @@ version: 2
 # silver.observations holds every connector. It is declared once per connector (same identifier, a `filter`)
 # so `dbt source freshness` checks each source against its own cadence: hourly APIs are expected every day,
 # AEMET publishes 2-3 days late, Dataestur adds a month about every 30 days and IGN only has rows when there are
-# earthquakes (no freshness check).
+# earthquakes (no freshness check). The GOIB air quality history ends in June 2021 (no freshness check either).
 sources:
   - name: silver
     description: Clean observations in the common schema, written by the PySpark pipeline (one row per series and ts).
@@ -32,6 +32,7 @@ sources:
       - {name: water_reserves, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'water_reserves'"}}
       - {name: eea_air_quality, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'eea_air_quality'"}}
       - {name: ign, identifier: observations, freshness: null}
+      - {name: goib_air_quality, identifier: observations, freshness: null}  # history only (2002 to June 2021)
 
   - name: quality
     tables:
