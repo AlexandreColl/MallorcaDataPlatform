@@ -20,6 +20,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- Roadmap: aqicn probed and not integrated. Its 7 Mallorca stations are the Govern ones the EEA connector already
+  reads, with only the latest hour and as US AQI sub-indices instead of concentrations.
 - Releases also publish the REST API image on GHCR (`api:X.Y.Z` and `api:X.Y`), and the release workflow checks that
   the tag matches the versions of `pyproject.toml`, `core` and `api`. It can be run by hand with an existing tag to
   publish that tag's images without touching its GitHub Release (tags from v0.5.0 on).

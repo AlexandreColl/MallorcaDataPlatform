@@ -191,7 +191,8 @@ Palma tiene 1.028 al día.
 
 Las medidas horarias de las 8 estaciones oficiales de Mallorca, desde el servicio de descarga de la Agencia Europea
 de Medio Ambiente: una búsqueda JSON devuelve un Parquet por estación y contaminante, unas dos horas por detrás del
-tiempo real. Se probó antes OpenAQ: republica las mismas estaciones, pero solo con un 30 % de las horas. Los
+tiempo real. Se probaron antes OpenAQ y aqicn: republican las mismas estaciones, OpenAQ con solo un 30 % de las
+horas y aqicn sin histórico y en subíndices AQI en lugar de concentraciones. Los
 contaminantes se llaman como en Open-Meteo, y `fct_air_quality_model_bias_daily` compara cada estación con el modelo
 CAMS. En Grafana, las estaciones aparecen en el mapa de Inicio y el error del modelo en Tiempo y entorno. Prueba
 real: el modelo se queda corto de NO₂ junto al tráfico de Foners (−6 µg/m³) y se pasa de ozono en Palma (+20), que

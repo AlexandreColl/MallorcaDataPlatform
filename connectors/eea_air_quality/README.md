@@ -43,11 +43,15 @@ CAMS (`fct_air_quality_model_bias_daily`).
 3. Las estaciones de Baleares que no están en el YAML se ignoran con un aviso en el log, así que una estación nueva
    no pasa desapercibida.
 
-## Por qué la EEA y no OpenAQ
+## Por qué la EEA y no OpenAQ ni aqicn
 
 OpenAQ republica estas mismas estaciones, pero para Mallorca solo trae alrededor del 30 % de las horas: entre 8 y 12
 al día, repartidas. Además duplica Foners y Bellver con identificadores distintos y exige clave. La EEA es la fuente
 original: tiene todas las horas, salvo los cortes de la propia fuente.
+
+aqicn (World Air Quality Index) también trae solo estaciones del Govern atribuidas a la EEA: 7 en Mallorca.
+Pero da solo la última hora, sin histórico, y en subíndices AQI de EE. UU. en lugar de µg/m³. Su previsión diaria
+sale de un modelo, igual que la de Open-Meteo.
 
 ## Limitaciones
 
