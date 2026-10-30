@@ -27,6 +27,7 @@ groups:
             El último run de la fuente terminó en `failed` (ops.ingestion_runs). El error y su tipo están en el
             dashboard Operación; el DAG ya reintentó la tarea.
           __dashboardUid__: mallorca-operations
+          __panelId__: "10"
         data:
           - refId: A
             relativeTimeRange: {from: 86400, to: 0}
@@ -66,6 +67,7 @@ groups:
             Solo cuenta las fuentes que han corrido en los últimos 7 días con datos del último año: un backfill de un
             conector de histórico (goib_air_quality, que acaba en 2021) no avisa.
           __dashboardUid__: mallorca-operations
+          __panelId__: "6"
         data:
           - refId: A
             relativeTimeRange: {from: 604800, to: 0}
@@ -108,6 +110,7 @@ groups:
             fallan siempre, como los huecos de una fuente con cortes conocidos, no avisan: están en el dashboard
             Operación.
           __dashboardUid__: mallorca-operations
+          __panelId__: "11"
         data:
           - refId: A
             relativeTimeRange: {from: 604800, to: 0}
