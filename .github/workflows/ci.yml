@@ -26,6 +26,31 @@ jobs:
       - run: ruff check --no-fix --output-format=github .
       - run: ruff format --check .
 
+  terraform:
+    name: Terraform (mocked AWS)
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: v0.64.0
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}  # plugin download without the anonymous rate limit
+      - run: tflint --recursive --format compact
+      # The tests run against mock_provider "aws": no AWS account, credentials or cost, and nothing is applied.
+      - run: terraform test
+
   test:
     name: Unit tests (PySpark)
     runs-on: ubuntu-26.04
