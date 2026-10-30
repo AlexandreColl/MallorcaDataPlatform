@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate backfill api-role api-test screenshots
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate backfill api-role api-test screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -92,6 +92,24 @@ dbt-full-refresh: ## Rebuild every dbt model from scratch (incremental ones incl
 
 psql: ## Open psql on the warehouse
 	$(COMPOSE) exec postgres psql -U postgres -d warehouse
+
+# Terraform and tflint run in their official images: nothing to install, and no AWS account or credentials needed.
+TF_DIR = $(CURDIR)/infra/terraform
+TERRAFORM = docker run --rm -v "$(TF_DIR)":/tf -w /tf -v mdp-tf-plugins:/plugins -e TF_PLUGIN_CACHE_DIR=/plugins \
+	hashicorp/terraform:1.16.6
+TFLINT = docker run --rm -v "$(TF_DIR)":/data -w /data -v mdp-tflint-plugins:/plugins -e TFLINT_PLUGIN_DIR=/plugins \
+	ghcr.io/terraform-linters/tflint:v0.64.0
+
+tf-check: ## Terraform fmt, validate, tflint and tests against a mocked AWS (no account, no cost; same as CI)
+	$(TERRAFORM) fmt -check -recursive
+	$(TERRAFORM) init -backend=false -input=false
+	$(TERRAFORM) validate
+	$(TFLINT) --init
+	$(TFLINT) --recursive
+	$(TERRAFORM) test
+
+tf-fmt: ## Format the Terraform files
+	$(TERRAFORM) fmt -recursive
 
 screenshots: ## Screenshot every Grafana dashboard into docs/img (Playwright in Docker, stack running)
 	docker run --rm --network host -v "$(CURDIR)":/work -w /work mcr.microsoft.com/playwright/python:v1.55.0-noble \

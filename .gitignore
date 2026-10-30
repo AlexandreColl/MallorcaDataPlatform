@@ -32,3 +32,11 @@ Thumbs.db
 # Local Claude settings
 .claude/settings.local.json
 dbt/.user.yml
+
+# Terraform
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.tfstate.lock.info
