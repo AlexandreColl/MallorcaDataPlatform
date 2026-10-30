@@ -127,7 +127,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | Estado | Tarea |
 |---|---|
 | ⬜ | Linaje con OpenLineage (proveedor de Airflow) 🔬 |
-| ⬜ | Alertas de Grafana cuando falla una regla de calidad |
+| ✅ | Alertas de Grafana provisionadas (`dashboards/provisioning/alerting`): ingesta fallida, fuente activa sin ejecución correcta en 36 h y regla de calidad que pasa de verde a rojo, con un panel de alertas en Operación. Sin punto de contacto: falta elegir canal (Slack, correo) |
 | ⬜ | Cobertura de tests ≥ 80 % en `core/` con badge en el README |
 
 ## Fase 6 · v1.0.0 — Puente a la nube (los huecos del CV)

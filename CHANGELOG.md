@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Grafana alert rules, provisioned from `dashboards/provisioning/alerting/alerting.yml` and evaluated every 5 minutes on
+  `ops.ingestion_runs` and `quality.check_results`: failed ingestion, an active source without a successful run in 36 h
+  (history backfills excluded), and a quality rule that passed in the previous check and fails in the last one. The
+  Operación dashboard lists the active alerts. No contact point is provisioned.
+
 ## [0.6.0] - 2026-10-29
 
 ### Added
