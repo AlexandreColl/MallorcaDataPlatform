@@ -5,6 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Screenshots of the six Grafana dashboards in the README, regenerated with `make screenshots`
+  (`scripts/grafana_screenshots.py`, Playwright in Docker against the local stack).
+
+### Changed
+
+- Grafana Inicio: the map zooms on the island, clear of the layer legends, and is taller.
+
 ## [0.6.0] - 2026-10-29
 
 ### Added
