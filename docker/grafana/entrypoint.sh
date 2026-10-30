@@ -20,6 +20,8 @@ if [ -n "$token" ] && [ -n "$chat" ]; then
     /etc/mdp/notifications/telegram.yml > "$dst/alerting/telegram.yml"
   echo "mdp: alert notifications go to Telegram"
 else
+  # Removes a Telegram contact point left in Grafana's database by an earlier start with the variables set.
+  cp /etc/mdp/notifications/telegram-off.yml "$dst/alerting/telegram-off.yml"
   echo "mdp: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set, alerts are only shown in Grafana"
 fi
 export GF_PATHS_PROVISIONING="$dst"

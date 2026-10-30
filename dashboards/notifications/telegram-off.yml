@@ -1,0 +1,10 @@
+# Provisioned instead of telegram.yml when TELEGRAM_* are not set (docker/grafana/entrypoint.sh). Grafana keeps
+# provisioned contact points and policies in its database, so turning Telegram off has to remove them explicitly.
+apiVersion: 1
+
+deleteContactPoints:
+  - orgId: 1
+    uid: mdp-telegram
+
+resetPolicies:
+  - 1
