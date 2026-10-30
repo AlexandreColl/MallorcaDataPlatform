@@ -21,7 +21,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Grafana alert rules, provisioned from `dashboards/provisioning/alerting/alerting.yml` and evaluated every 5 minutes on
   `ops.ingestion_runs` and `quality.check_results`: failed ingestion, an active source without a successful run in 36 h
   (history backfills excluded), and a quality rule that passed in the previous check and fails in the last one. The
-  Operación dashboard lists the active alerts. No contact point is provisioned.
+  Operación dashboard lists the active alerts.
+- Optional Telegram notifications for those alerts: with `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`,
+  the Grafana entrypoint provisions a Telegram contact point and routes every alert to it (grouped per rule and
+  source, repeated every 12 h while firing); without them, or when they are removed, there is no contact point.
 
 ### Changed
 
