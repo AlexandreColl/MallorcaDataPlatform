@@ -338,6 +338,21 @@ Pearson, pocos años, así que orientativas):
   década crece el turismo y bajan las reservas, y 2020 (sin turistas y con un invierno lluvioso) pesa mucho:
   correlación, no causa.
 
+### Alertas
+
+Tres reglas de alerta provisionadas desde `dashboards/provisioning/alerting/alerting.yml`. Se evalúan cada 5 minutos
+sobre las tablas operativas (`ops.ingestion_runs`, `quality.check_results`), así que avisan aunque dbt no corra,
+y cada fuente (o regla) es una alerta aparte:
+
+| Alerta | Cuándo salta |
+|---|---|
+| **Ingesta fallida** | La última ejecución de una fuente terminó en `failed` |
+| **Fuente sin ejecución correcta** | Una fuente activa (con datos del último año) lleva más de 36 h sin una ejecución correcta. Un backfill de histórico no cuenta |
+| **Regla de calidad en rojo** | Una regla pasó en el chequeo anterior y falla en el último. Las que fallan siempre (los huecos de una fuente con cortes conocidos) no avisan |
+
+Las alertas activas aparecen en el panel *Alertas* de Operación. No hay punto de contacto configurado: para recibir
+avisos basta con añadir uno (Slack, correo con SMTP) en Grafana o en el mismo fichero.
+
 Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
 fila.
 

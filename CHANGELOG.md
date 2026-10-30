@@ -12,6 +12,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   on GitHub Pages next to the dbt docs.
 - Screenshots of the six Grafana dashboards in the README, regenerated with `make screenshots`
   (`scripts/grafana_screenshots.py`, Playwright in Docker against the local stack).
+- Grafana alert rules, provisioned from `dashboards/provisioning/alerting/alerting.yml` and evaluated every 5 minutes on
+  `ops.ingestion_runs` and `quality.check_results`: failed ingestion, an active source without a successful run in 36 h
+  (history backfills excluded), and a quality rule that passed in the previous check and fails in the last one. The
+  Operación dashboard lists the active alerts. No contact point is provisioned.
 
 ### Changed
 
