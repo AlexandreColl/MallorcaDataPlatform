@@ -12,6 +12,8 @@ Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mal
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
 parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo listo para analizar.
 
+![Dashboard de inicio en Grafana: indicadores del último mes y mapa con todas las fuentes de Mallorca](docs/img/inicio.png)
+
 ```json
 {"connectors": ["open_meteo"], "days": 30, "region": "mallorca"}
 ```
@@ -312,6 +314,16 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Movilidad** | Servicio programado de EMT Palma y CTM por día, mapa de calor por parada y paradas con más servicio |
 | **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
 | **Operación** | Salud de cada fuente, anomalías detectadas, ejecuciones, reglas de calidad y completitud de cada serie |
+
+| Turismo y recursos | Clima y agua |
+|---|---|
+| [![Turismo y recursos](docs/img/turismo-y-recursos.png)](docs/img/turismo-y-recursos.png) | [![Clima y agua](docs/img/clima-y-agua.png)](docs/img/clima-y-agua.png) |
+| **Tiempo y entorno** | **Operación** |
+| [![Tiempo y entorno](docs/img/tiempo-y-entorno.png)](docs/img/tiempo-y-entorno.png) | [![Operación](docs/img/operacion.png)](docs/img/operacion.png) |
+
+[![Movilidad](docs/img/movilidad.png)](docs/img/movilidad.png)
+
+Las capturas se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
 
 La pregunta de fondo (¿aprieta el turismo al agua?) necesita cuidado: turismo, calor, demanda y reservas son
 estacionales a la vez, así que comparar meses tal cual solo enseña el calendario. Los paneles de evaluación comparan
