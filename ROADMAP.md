@@ -128,7 +128,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 |---|---|
 | ⬜ | Linaje con OpenLineage (proveedor de Airflow) 🔬 |
 | ⬜ | Alertas de Grafana cuando falla una regla de calidad |
-| ⬜ | Cobertura de tests ≥ 80 % en `core/` con badge en el README |
+| ✅ | Cobertura de tests ≥ 80 % en `core/` (84 %, ramas incluidas): el CI falla por debajo, y el informe HTML y el badge del README se publican en GitHub Pages |
 
 ## Fase 6 · v1.0.0 — Puente a la nube (los huecos del CV)
 

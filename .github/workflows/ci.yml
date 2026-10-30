@@ -42,11 +42,21 @@ jobs:
           java-version: "17"
       - run: pip install -r requirements/dev.txt
       - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
+      # The core (the platform without the source-specific connectors) keeps at least 80 % coverage, branches
+      # included. dbt-docs.yml publishes the report and the README badge from this artifact.
+      - name: Coverage of core
+        run: |
+          coverage report --include="core/*" --fail-under=80
+          coverage json --include="core/*" -o coverage-core.json
+          coverage html -d htmlcov --title "Mallorca Data Platform - coverage"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage
-          path: coverage.xml
+          path: |
+            coverage.xml
+            coverage-core.json
+            htmlcov/
 
   dbt:
     name: dbt build (empty warehouse)
