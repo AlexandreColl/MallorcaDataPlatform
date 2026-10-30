@@ -1,0 +1,27 @@
+# Telegram notifications for the alert rules of dashboards/provisioning/alerting. Provisioned only when
+# TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set (docker/grafana/entrypoint.sh); without them the alerts stay in
+# Grafana. The token and the chat id come from the environment (.env, outside the repository), never from this file.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: Telegram
+    receivers:
+      - uid: mdp-telegram
+        type: telegram
+        disableResolveMessage: false
+        settings:
+          bottoken: ${TELEGRAM_BOT_TOKEN}
+          chatid: ${TELEGRAM_CHAT_ID}
+          parse_mode: HTML
+          disable_web_page_preview: true
+
+# Every alert of the platform goes to Telegram, grouped per rule and source: one message when a source fails, not
+# one per evaluation. A firing alert is repeated twice a day until it resolves.
+policies:
+  - orgId: 1
+    receiver: Telegram
+    group_by: [alertname, source]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 12h
