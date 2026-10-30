@@ -1,7 +1,8 @@
 name: dbt docs
 
-# Publishes the dbt documentation (models, columns, tests, lineage graph with the Grafana exposure) to GitHub Pages
-# and keeps the manifest of `develop` as an artifact: slim CI compares pull requests against it.
+# Publishes the dbt documentation (models, columns, tests, lineage graph with the Grafana exposure) to GitHub Pages,
+# with the coverage report of the same commit's CI run under /coverage/ and the README badge, and keeps the manifest
+# of `develop` as an artifact: slim CI compares pull requests against it.
 on:
   push:
     branches: [develop]
@@ -9,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read  # wait for the CI run of the commit and download its coverage artifact
 
 concurrency:
   group: dbt-docs
@@ -56,6 +58,29 @@ jobs:
         run: dbt docs generate --profiles-dir . --static
       - name: Site
         run: mkdir -p site && cp dbt/target/static_index.html site/index.html
+      # The coverage of this commit's CI run (it runs in parallel, so wait for it): the HTML report under
+      # /coverage/ and a shields.io endpoint for the README badge (core only).
+      - name: Coverage report and badge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 1 30); do
+            run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --limit 1 \
+              --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$run_id" ] && break
+            sleep 10
+          done
+          gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30 > /dev/null
+          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name coverage --dir coverage
+          mkdir -p site/coverage && cp -r coverage/htmlcov/. site/coverage/
+          python - <<'EOF'
+          import json
+          percent = json.load(open("coverage/coverage-core.json"))["totals"]["percent_covered"]
+          color = "brightgreen" if percent >= 90 else "green" if percent >= 80 else "yellow" if percent >= 70 else "red"
+          badge = {"schemaVersion": 1, "label": "coverage (core)", "message": f"{percent:.0f}%", "color": color}
+          json.dump(badge, open("site/coverage/badge.json", "w"))
+          print(badge)
+          EOF
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site

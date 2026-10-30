@@ -79,3 +79,10 @@ markers = [
     "spark: needs a local SparkSession (Java required)",
     "integration: needs a warehouse with the dbt marts (API_DB_* or WAREHOUSE_* variables)",
 ]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+skip_empty = true

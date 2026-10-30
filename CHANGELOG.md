@@ -7,6 +7,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Coverage gate and badge: CI fails when `core/` drops below 80 % (branches included; now 84 %, with new tests
+  for the CLI and the HTTP client), and `dbt-docs.yml` publishes the HTML report and a shields.io badge endpoint
+  on GitHub Pages next to the dbt docs.
 - Screenshots of the six Grafana dashboards in the README, regenerated with `make screenshots`
   (`scripts/grafana_screenshots.py`, Playwright in Docker against the local stack).
 
