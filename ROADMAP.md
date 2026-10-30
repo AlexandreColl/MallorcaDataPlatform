@@ -134,12 +134,12 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | **Terraform** para AWS: S3 (bronze/silver con versionado), IAM con mínimo privilegio, Glue Catalog, RDS o Athena |
-| ⬜ | Mismo código, otro perfil: `S3_ENDPOINT_URL` vacío → AWS S3 real (ya preparado en `core/spark.py`) |
-| ⬜ | Terraform con LocalStack en CI (`terraform plan` sin coste) |
+| ✅ | **Terraform** para AWS (`infra/terraform`): S3 (bronze, silver y resultados, privados, cifrados, solo TLS, con versionado y ciclo de vida), IAM de mínimo privilegio (roles pipeline y analyst), Glue Catalog con *partition projection* sobre el layout de Spark, Athena con límite por consulta y presupuesto de 2 USD. Sin desplegar: sin coste |
+| 🟡 | Mismo código, otro perfil: `terraform output pipeline_env` da las variables para S3 real. Falta que Spark use las credenciales del rol en lugar de claves estáticas, y llevar el warehouse a Athena (`dbt-athena`) |
+| ✅ | Terraform en CI sin coste: `fmt`, `validate`, tflint (ruleset de AWS) y `terraform test` con `mock_provider` (13 tests). LocalStack no hace falta: su edición gratuita no tiene Glue ni Athena |
 | ⬜ | Variante **Databricks**: notebook/job que lee el mismo bronze; Delta Lake en lugar de Parquet 🔬 |
 | ⬜ | Tabla Delta / Iceberg en local para demostrar MERGE y time travel |
-| ⬜ | Diagrama de arquitectura local vs. AWS en el README |
+| ✅ | Diagrama de arquitectura local frente a AWS ([infra/terraform/README.md](infra/terraform/README.md)) |
 
 ## Extras opcionales
 

@@ -387,6 +387,18 @@ Decisiones:
 - **Capa de acceso a datos sustituible** (`api/repository.py` sobre un protocolo `Database`): los tests unitarios usan una
   base de datos falsa y no necesitan Postgres. `make api-test`.
 
+## AWS con Terraform
+
+`infra/terraform` describe la misma plataforma en AWS:
+- S3 para bronze y silver;
+- Glue Data Catalog y Athena para consultar silver con SQL sin servidor;
+- dos roles de IAM de mínimo privilegio;
+- un presupuesto de 2 USD al mes.
+
+No se despliega. El CI lo valida y lo prueba con `terraform test` contra un proveedor de AWS simulado, sin cuenta
+ni coste (`make tf-check` en local). El diagrama local frente a AWS, los costes y lo que faltaría para correr en
+AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/README.md).
+
 ## Estructura
 
 ```
@@ -398,6 +410,7 @@ Decisiones:
 ├── dashboards/           # provisioning y dashboards de Grafana
 ├── api/                  # API REST de solo lectura (FastAPI) y sus tests
 ├── docker/               # Dockerfiles de Airflow+Spark+dbt y de la API, init de Postgres
+├── infra/terraform/      # AWS: S3, IAM, Glue Catalog, Athena y presupuesto, con tests sobre un AWS simulado
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/
 ```
@@ -406,7 +419,7 @@ Decisiones:
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
 | `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/), el [informe de cobertura](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/) del CI de ese commit con el badge del README, y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |
