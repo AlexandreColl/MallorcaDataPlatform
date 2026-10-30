@@ -1,2 +1,138 @@
-# Alert rules, contact points and policies (see ROADMAP: alerts on failed quality checks).
+# Grafana alert rules on the health of the platform, evaluated every 5 minutes against the warehouse. They read the
+# operational tables the pipeline writes (ops.ingestion_runs, quality.check_results), not the dbt marts, so they
+# still fire when dbt does not run. Each rule returns one row per source (or per source, rule and target), and
+# Grafana turns each row into its own alert instance labelled with those columns. `$$` keeps the `$` of the alert
+# templates away from the environment variable expansion of provisioning files.
+#
+# No contact point is provisioned: firing alerts show in Alerting and in the "Alertas" panel of the Operación
+# dashboard. To be notified, add a contact point (Slack, e-mail with SMTP...) in Grafana or in this file.
 apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Plataforma
+    folder: Mallorca Data Platform
+    interval: 5m
+    rules:
+      - uid: mdp-ingestion-failed
+        title: Ingesta fallida
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels: {team: data}
+        annotations:
+          summary: "La última ejecución de {{ $$labels.source }} ha fallado"
+          description: >-
+            El último run de la fuente terminó en `failed` (ops.ingestion_runs). El error y su tipo están en el
+            dashboard Operación; el DAG ya reintentó la tarea.
+          __dashboardUid__: mallorca-operations
+        data:
+          - refId: A
+            relativeTimeRange: {from: 86400, to: 0}
+            datasourceUid: warehouse
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              editorMode: code
+              rawSql: >-
+                SELECT source, failed FROM (
+                  SELECT DISTINCT ON (source) source, (status = 'failed')::int AS failed
+                  FROM ops.ingestion_runs WHERE status <> 'running' ORDER BY source, started_at DESC
+                ) AS last_run
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{evaluator: {type: gt, params: [0]}}]
+
+      - uid: mdp-source-stale
+        title: Fuente sin ejecución correcta
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels: {team: data}
+        annotations:
+          summary: "{{ $$labels.source }} lleva más de 36 h sin una ejecución correcta"
+          description: >-
+            El DAG corre cada día, así que una fuente activa debería tener una ejecución correcta en las últimas 36 h.
+            Solo cuenta las fuentes que han corrido en los últimos 7 días con datos del último año: un backfill de un
+            conector de histórico (goib_air_quality, que acaba en 2021) no avisa.
+          __dashboardUid__: mallorca-operations
+        data:
+          - refId: A
+            relativeTimeRange: {from: 604800, to: 0}
+            datasourceUid: warehouse
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              editorMode: code
+              rawSql: >-
+                SELECT source, round((extract(epoch FROM now() - last_success) / 3600)::numeric, 1) AS hours_since_success
+                FROM (
+                  SELECT source, max(finished_at) FILTER (WHERE status = 'success') AS last_success,
+                    max(window_end) AS last_window_end
+                  FROM ops.ingestion_runs WHERE started_at > now() - interval '7 days' GROUP BY source
+                ) AS recent
+                WHERE last_window_end > now() - interval '1 year'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: replaceNN, replaceWithValue: 9999}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{evaluator: {type: gt, params: [36]}}]
+
+      - uid: mdp-quality-rule-regressed
+        title: Regla de calidad en rojo
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels: {team: data}
+        annotations:
+          summary: "{{ $$labels.source }}: la regla {{ $$labels.rule }} ({{ $$labels.target }}) ha empezado a fallar"
+          description: >-
+            La regla pasó en el chequeo anterior de la fuente y falla en el último (quality.check_results). Las que
+            fallan siempre, como los huecos de una fuente con cortes conocidos, no avisan: están en el dashboard
+            Operación.
+          __dashboardUid__: mallorca-operations
+        data:
+          - refId: A
+            relativeTimeRange: {from: 604800, to: 0}
+            datasourceUid: warehouse
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              editorMode: code
+              rawSql: >-
+                SELECT source, rule, target, regressed FROM (
+                  SELECT source, rule, target, created_at,
+                    (NOT passed AND lag(passed) OVER w)::int AS regressed,
+                    row_number() OVER (PARTITION BY source, rule, target ORDER BY created_at DESC) AS latest
+                  FROM quality.check_results
+                  WINDOW w AS (PARTITION BY source, rule, target ORDER BY created_at)
+                ) AS checks
+                WHERE latest = 1 AND regressed IS NOT NULL
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{evaluator: {type: gt, params: [0]}}]
