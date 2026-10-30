@@ -1,6 +1,7 @@
 # Telegram notifications for the alert rules of dashboards/provisioning/alerting. Provisioned only when
 # TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set (docker/grafana/entrypoint.sh); without them the alerts stay in
-# Grafana. The token and the chat id come from the environment (.env, outside the repository), never from this file.
+# Grafana. The entrypoint fills the placeholders from the environment (.env, outside the repository) in a copy inside
+# the container: Grafana's own ${VAR} expansion would turn the chat id into a number, which it then rejects.
 apiVersion: 1
 
 contactPoints:
@@ -11,8 +12,8 @@ contactPoints:
         type: telegram
         disableResolveMessage: false
         settings:
-          bottoken: "${TELEGRAM_BOT_TOKEN}"
-          chatid: "${TELEGRAM_CHAT_ID}" # quoted: Grafana wants a string, and group ids are negative numbers
+          bottoken: "__TELEGRAM_BOT_TOKEN__"
+          chatid: "__TELEGRAM_CHAT_ID__" # a string for Grafana, though chat ids are numbers (negative for groups)
           parse_mode: HTML
           disable_web_page_preview: true
 
