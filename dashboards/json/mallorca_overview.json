@@ -565,7 +565,7 @@
       "title": "Mapa de fuentes",
       "description": "Puntos: calidad del aire del modelo Open-Meteo (color según el índice europeo). Gotas: oleaje del modelo Open-Meteo Marine en 8 puntos de la costa (color y etiqueta según la altura de ola). Sol y nube: estaciones oficiales de AEMET con los valores del último día publicado (color según la temperatura media). Termómetros: estaciones reales de SOCIB con su última hora. Ondas: sismos del IGN en el rango (tamaño y color según la magnitud). Mancha de calor: vehículos programados por parada de EMT Palma y de la red de CTM (autobuses TIB, tren y metro) el último día del rango. REData no aparece: es el sistema eléctrico balear entero, no un punto. Cuadrados: estaciones oficiales de calidad del aire (EEA) con su última hora, coloreadas según la banda del índice europeo calculada con lo medido.",
       "gridPos": {
-        "h": 14,
+        "h": 18,
         "w": 24,
         "x": 0,
         "y": 9
@@ -895,9 +895,9 @@
       "options": {
         "view": {
           "id": "coords",
-          "lat": 39.6,
-          "lon": 2.9,
-          "zoom": 7.5
+          "lat": 39.62,
+          "lon": 2.6,
+          "zoom": 9.3
         },
         "controls": {
           "showZoom": true,

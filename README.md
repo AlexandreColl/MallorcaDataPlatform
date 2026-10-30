@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml)
 [![E2E](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml/badge.svg)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Falexandrecoll.github.io%2FMallorcaDataPlatform%2Fcoverage%2Fbadge.json)](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/)
 [![dbt docs](https://img.shields.io/badge/dbt_docs-lineage-FF694B)](https://alexandrecoll.github.io/MallorcaDataPlatform/)
 ![Python](https://img.shields.io/badge/python-3.14-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
@@ -11,6 +12,8 @@
 Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mallorca.
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
 parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo listo para analizar.
+
+![Dashboard de inicio en Grafana: indicadores del último mes y mapa con todas las fuentes de Mallorca](docs/img/inicio.png)
 
 ```json
 {"connectors": ["open_meteo"], "days": 30, "region": "mallorca"}
@@ -313,6 +316,16 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
 | **Operación** | Salud de cada fuente, anomalías detectadas, ejecuciones, reglas de calidad y completitud de cada serie |
 
+| Turismo y recursos | Clima y agua |
+|---|---|
+| [![Turismo y recursos](docs/img/turismo-y-recursos.png)](docs/img/turismo-y-recursos.png) | [![Clima y agua](docs/img/clima-y-agua.png)](docs/img/clima-y-agua.png) |
+| **Tiempo y entorno** | **Operación** |
+| [![Tiempo y entorno](docs/img/tiempo-y-entorno.png)](docs/img/tiempo-y-entorno.png) | [![Operación](docs/img/operacion.png)](docs/img/operacion.png) |
+
+[![Movilidad](docs/img/movilidad.png)](docs/img/movilidad.png)
+
+Las capturas se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
+
 La pregunta de fondo (¿aprieta el turismo al agua?) necesita cuidado: turismo, calor, demanda y reservas son
 estacionales a la vez, así que comparar meses tal cual solo enseña el calendario. Los paneles de evaluación comparan
 cada mes con la media del mismo mes y cada verano con los demás veranos. Con diez años de datos (correlaciones de
@@ -393,8 +406,8 @@ Decisiones:
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
-| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/) y manifest de `develop` para el slim CI |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/), el [informe de cobertura](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/) del CI de ese commit con el badge del README, y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |

@@ -44,6 +44,9 @@ ignore = [
     "INP001",  # the Airflow DAGs folder is not a Python package
     "PLC0415", # heavy imports inside tasks keep DAG parsing fast (Airflow best practice)
 ]
+"scripts/**" = [
+    "INP001",  # stand-alone scripts, not a package
+]
 "api/routes.py" = [
     "PLR0917", # FastAPI endpoints: one keyword query parameter per filter
 ]
@@ -76,3 +79,10 @@ markers = [
     "spark: needs a local SparkSession (Java required)",
     "integration: needs a warehouse with the dbt marts (API_DB_* or WAREHOUSE_* variables)",
 ]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+skip_empty = true
