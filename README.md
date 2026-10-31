@@ -350,8 +350,17 @@ y cada fuente (o regla) es una alerta aparte:
 | **Fuente sin ejecución correcta** | Una fuente activa (con datos del último año) lleva más de 36 h sin una ejecución correcta. Un backfill de histórico no cuenta |
 | **Regla de calidad en rojo** | Una regla pasó en el chequeo anterior y falla en el último. Las que fallan siempre (los huecos de una fuente con cortes conocidos) no avisan |
 
-Las alertas activas aparecen en el panel *Alertas* de Operación. No hay punto de contacto configurado: para recibir
-avisos basta con añadir uno (Slack, correo con SMTP) en Grafana o en el mismo fichero.
+Las alertas activas aparecen en el panel *Alertas* de Operación. Para recibirlas en **Telegram**, opcional:
+
+1. Crea un bot con [@BotFather](https://t.me/BotFather) y guarda su token.
+2. Escríbele cualquier mensaje y lee tu chat id en `https://api.telegram.org/bot<token>/getUpdates`
+   (`message.chat.id`).
+3. Pon `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` en el `.env` y reinicia Grafana (`docker compose up -d grafana`).
+
+El entrypoint de Grafana (`docker/grafana/entrypoint.sh`) provisiona el punto de contacto y la política solo cuando
+las dos variables existen, y los borra si se quitan. Sin ellas todo funciona igual, por ejemplo en el E2E. Llega
+un mensaje por regla y fuente cuando salta una alerta, otro cuando se resuelve, y se repite cada 12 h mientras siga
+activa.
 
 Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
 fila.
