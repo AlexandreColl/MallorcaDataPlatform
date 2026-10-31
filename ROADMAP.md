@@ -127,19 +127,20 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | Estado | Tarea |
 |---|---|
 | ⬜ | Linaje con OpenLineage (proveedor de Airflow) 🔬 |
-| ⬜ | Alertas de Grafana cuando falla una regla de calidad |
-| ⬜ | Cobertura de tests ≥ 80 % en `core/` con badge en el README |
+| ✅ | Alertas de Grafana provisionadas (`dashboards/provisioning/alerting`): ingesta fallida, fuente activa sin ejecución correcta en 36 h y regla de calidad que pasa de verde a rojo, con un panel de alertas en Operación y avisos opcionales a **Telegram** (punto de contacto provisionado solo si `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` están en el `.env`) |
+| ⬜ | Probar el envío real de las alertas a Telegram con un bot propio (probado sin token, con un token falso y al quitarlo; falta un mensaje real) |
+| ✅ | Cobertura de tests ≥ 80 % en `core/` (84 %, ramas incluidas): el CI falla por debajo, y el informe HTML y el badge del README se publican en GitHub Pages |
 
 ## Fase 6 · v1.0.0 — Puente a la nube (los huecos del CV)
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | **Terraform** para AWS: S3 (bronze/silver con versionado), IAM con mínimo privilegio, Glue Catalog, RDS o Athena |
-| ⬜ | Mismo código, otro perfil: `S3_ENDPOINT_URL` vacío → AWS S3 real (ya preparado en `core/spark.py`) |
-| ⬜ | Terraform con LocalStack en CI (`terraform plan` sin coste) |
+| ✅ | **Terraform** para AWS (`infra/terraform`): S3 (bronze, silver y resultados, privados, cifrados, solo TLS, con versionado y ciclo de vida), IAM de mínimo privilegio (roles pipeline y analyst), Glue Catalog con *partition projection* sobre el layout de Spark, Athena con límite por consulta y presupuesto de 2 USD. Sin desplegar: sin coste |
+| 🟡 | Mismo código, otro perfil: `terraform output pipeline_env` da las variables para S3 real. Falta que Spark use las credenciales del rol en lugar de claves estáticas, y llevar el warehouse a Athena (`dbt-athena`) |
+| ✅ | Terraform en CI sin coste: `fmt`, `validate`, tflint (ruleset de AWS) y `terraform test` con `mock_provider` (13 tests). LocalStack no hace falta: su edición gratuita no tiene Glue ni Athena |
 | ⬜ | Variante **Databricks**: notebook/job que lee el mismo bronze; Delta Lake en lugar de Parquet 🔬 |
 | ⬜ | Tabla Delta / Iceberg en local para demostrar MERGE y time travel |
-| ⬜ | Diagrama de arquitectura local vs. AWS en el README |
+| ✅ | Diagrama de arquitectura local frente a AWS ([infra/terraform/README.md](infra/terraform/README.md)) |
 
 ## Extras opcionales
 

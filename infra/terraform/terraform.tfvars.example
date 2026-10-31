@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (ignored by git) for a real deployment. Nothing in CI applies this configuration.
+region              = "eu-south-2"
+environment         = "dev"
+name_prefix         = "mallorca-data-platform-<your-alias>" # bucket names are global
+monthly_budget_usd  = 2
+budget_alert_emails = ["you@example.com"]
+force_destroy       = true # a throwaway demo: `make tf-destroy` also empties the buckets

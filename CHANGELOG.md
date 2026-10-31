@@ -5,6 +5,33 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-31
+
+### Added
+
+- Terraform for AWS in `infra/terraform`, not deployed: S3 buckets for bronze, silver and Athena results (private,
+  SSE-S3, TLS only, versioning and lifecycle rules, through a reusable module), least-privilege IAM roles for the
+  pipeline and for analysts, a Glue Data Catalog table over the silver Parquet with partition projection, an Athena
+  workgroup with a per-query scan limit and a 2 USD monthly budget. CI runs `fmt`, `validate`, tflint with the AWS
+  ruleset and 13 `terraform test` runs against a mocked AWS provider, with no account or cost (`make tf-check`).
+
+- Coverage gate and badge: CI fails when `core/` drops below 80 % (branches included; now 84 %, with new tests
+  for the CLI and the HTTP client), and `dbt-docs.yml` publishes the HTML report and a shields.io badge endpoint
+  on GitHub Pages next to the dbt docs.
+- Screenshots of the six Grafana dashboards in the README, regenerated with `make screenshots`
+  (`scripts/grafana_screenshots.py`, Playwright in Docker against the local stack).
+- Grafana alert rules, provisioned from `dashboards/provisioning/alerting/alerting.yml` and evaluated every 5 minutes on
+  `ops.ingestion_runs` and `quality.check_results`: failed ingestion, an active source without a successful run in 36 h
+  (history backfills excluded), and a quality rule that passed in the previous check and fails in the last one. The
+  Operación dashboard lists the active alerts.
+- Optional Telegram notifications for those alerts: with `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`,
+  the Grafana entrypoint provisions a Telegram contact point and routes every alert to it (grouped per rule and
+  source, repeated every 12 h while firing); without them, or when they are removed, there is no contact point.
+
+### Changed
+
+- Grafana Inicio: the map zooms on the island, clear of the layer legends, and is taller.
+
 ## [0.6.0] - 2026-10-29
 
 ### Added
@@ -327,7 +354,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...v0.4.0

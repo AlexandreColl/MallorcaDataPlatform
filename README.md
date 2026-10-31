@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/ci.yml)
 [![E2E](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml/badge.svg)](https://github.com/AlexandreColl/MallorcaDataPlatform/actions/workflows/e2e.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Falexandrecoll.github.io%2FMallorcaDataPlatform%2Fcoverage%2Fbadge.json)](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/)
 [![dbt docs](https://img.shields.io/badge/dbt_docs-lineage-FF694B)](https://alexandrecoll.github.io/MallorcaDataPlatform/)
 ![Python](https://img.shields.io/badge/python-3.14-blue)
 ![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
@@ -11,6 +12,8 @@
 Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mallorca.
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
 parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo listo para analizar.
+
+![Dashboard de inicio en Grafana: indicadores del último mes y mapa con todas las fuentes de Mallorca](docs/img/inicio.png)
 
 ```json
 {"connectors": ["open_meteo"], "days": 30, "region": "mallorca"}
@@ -313,6 +316,16 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
 | **Operación** | Salud de cada fuente, anomalías detectadas, ejecuciones, reglas de calidad y completitud de cada serie |
 
+| Turismo y recursos | Clima y agua |
+|---|---|
+| [![Turismo y recursos](docs/img/turismo-y-recursos.png)](docs/img/turismo-y-recursos.png) | [![Clima y agua](docs/img/clima-y-agua.png)](docs/img/clima-y-agua.png) |
+| **Tiempo y entorno** | **Operación** |
+| [![Tiempo y entorno](docs/img/tiempo-y-entorno.png)](docs/img/tiempo-y-entorno.png) | [![Operación](docs/img/operacion.png)](docs/img/operacion.png) |
+
+[![Movilidad](docs/img/movilidad.png)](docs/img/movilidad.png)
+
+Las capturas se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
+
 La pregunta de fondo (¿aprieta el turismo al agua?) necesita cuidado: turismo, calor, demanda y reservas son
 estacionales a la vez, así que comparar meses tal cual solo enseña el calendario. Los paneles de evaluación comparan
 cada mes con la media del mismo mes y cada verano con los demás veranos. Con diez años de datos (correlaciones de
@@ -324,6 +337,30 @@ Pearson, pocos años, así que orientativas):
 - Mes a mes, los meses con más turistas de lo normal tienen reservas por debajo de lo normal (r = −0,41), pero en la
   década crece el turismo y bajan las reservas, y 2020 (sin turistas y con un invierno lluvioso) pesa mucho:
   correlación, no causa.
+
+### Alertas
+
+Tres reglas de alerta provisionadas desde `dashboards/provisioning/alerting/alerting.yml`. Se evalúan cada 5 minutos
+sobre las tablas operativas (`ops.ingestion_runs`, `quality.check_results`), así que avisan aunque dbt no corra,
+y cada fuente (o regla) es una alerta aparte:
+
+| Alerta | Cuándo salta |
+|---|---|
+| **Ingesta fallida** | La última ejecución de una fuente terminó en `failed` |
+| **Fuente sin ejecución correcta** | Una fuente activa (con datos del último año) lleva más de 36 h sin una ejecución correcta. Un backfill de histórico no cuenta |
+| **Regla de calidad en rojo** | Una regla pasó en el chequeo anterior y falla en el último. Las que fallan siempre (los huecos de una fuente con cortes conocidos) no avisan |
+
+Las alertas activas aparecen en el panel *Alertas* de Operación. Para recibirlas en **Telegram**, opcional:
+
+1. Crea un bot con [@BotFather](https://t.me/BotFather) y guarda su token.
+2. Escríbele cualquier mensaje y lee tu chat id en `https://api.telegram.org/bot<token>/getUpdates`
+   (`message.chat.id`).
+3. Pon `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` en el `.env` y reinicia Grafana (`docker compose up -d grafana`).
+
+El entrypoint de Grafana (`docker/grafana/entrypoint.sh`) provisiona el punto de contacto y la política solo cuando
+las dos variables existen, y los borra si se quitan. Sin ellas todo funciona igual, por ejemplo en el E2E. Llega
+un mensaje por regla y fuente cuando salta una alerta, otro cuando se resuelve, y se repite cada 12 h mientras siga
+activa.
 
 Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
 fila.
@@ -359,6 +396,18 @@ Decisiones:
 - **Capa de acceso a datos sustituible** (`api/repository.py` sobre un protocolo `Database`): los tests unitarios usan una
   base de datos falsa y no necesitan Postgres. `make api-test`.
 
+## AWS con Terraform
+
+`infra/terraform` describe la misma plataforma en AWS:
+- S3 para bronze y silver;
+- Glue Data Catalog y Athena para consultar silver con SQL sin servidor;
+- dos roles de IAM de mínimo privilegio;
+- un presupuesto de 2 USD al mes.
+
+No se despliega. El CI lo valida y lo prueba con `terraform test` contra un proveedor de AWS simulado, sin cuenta
+ni coste (`make tf-check` en local). El diagrama local frente a AWS, los costes y lo que faltaría para correr en
+AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/README.md).
+
 ## Estructura
 
 ```
@@ -370,6 +419,7 @@ Decisiones:
 ├── dashboards/           # provisioning y dashboards de Grafana
 ├── api/                  # API REST de solo lectura (FastAPI) y sus tests
 ├── docker/               # Dockerfiles de Airflow+Spark+dbt y de la API, init de Postgres
+├── infra/terraform/      # AWS: S3, IAM, Glue Catalog, Athena y presupuesto, con tests sobre un AWS simulado
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/
 ```
@@ -378,8 +428,8 @@ Decisiones:
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
-| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/) y manifest de `develop` para el slim CI |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/), el [informe de cobertura](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/) del CI de ese commit con el badge del README, y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |

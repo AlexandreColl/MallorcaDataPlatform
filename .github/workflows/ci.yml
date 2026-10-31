@@ -26,6 +26,31 @@ jobs:
       - run: ruff check --no-fix --output-format=github .
       - run: ruff format --check .
 
+  terraform:
+    name: Terraform (mocked AWS)
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: v0.64.0
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}  # plugin download without the anonymous rate limit
+      - run: tflint --recursive --format compact
+      # The tests run against mock_provider "aws": no AWS account, credentials or cost, and nothing is applied.
+      - run: terraform test
+
   test:
     name: Unit tests (PySpark)
     runs-on: ubuntu-26.04
@@ -42,11 +67,21 @@ jobs:
           java-version: "17"
       - run: pip install -r requirements/dev.txt
       - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
+      # The core (the platform without the source-specific connectors) keeps at least 80 % coverage, branches
+      # included. dbt-docs.yml publishes the report and the README badge from this artifact.
+      - name: Coverage of core
+        run: |
+          coverage report --include="core/*" --fail-under=80
+          coverage json --include="core/*" -o coverage-core.json
+          coverage html -d htmlcov --title "Mallorca Data Platform - coverage"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage
-          path: coverage.xml
+          path: |
+            coverage.xml
+            coverage-core.json
+            htmlcov/
 
   dbt:
     name: dbt build (empty warehouse)
