@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-31
+
 ### Added
 
 - Terraform for AWS in `infra/terraform`, not deployed: S3 buckets for bronze, silver and Athena results (private,
@@ -352,7 +354,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.3.0...v0.4.0
