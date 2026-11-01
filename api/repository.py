@@ -1,4 +1,4 @@
-"""Every SQL query of the API, in one place, over the contracted gold marts (plus silver.anomalies).
+"""Every SQL query of the API, in one place, over the gold marts (plus silver.anomalies).
 
 Queries are parametrised (``%(name)s``); identifiers are never built from user input.
 """
@@ -48,6 +48,19 @@ WHERE (%(source)s::text IS NULL OR source = %(source)s)
   AND (%(detector)s::text IS NULL OR detector = %(detector)s)
   AND ts >= %(start)s AND ts < %(end)s
 ORDER BY ts DESC, source, entity, metric, detector
+LIMIT %(limit)s OFFSET %(offset)s
+"""
+
+_CORRECTIONS = """
+SELECT source, entity, metric, ts, unit, original_quality, original_value, corrected_value,
+       correction_method AS method, support_source, support_entity, support_bias AS bias, confidence
+FROM gold.fct_observations_corrected
+WHERE is_corrected
+  AND (%(source)s::text IS NULL OR source = %(source)s)
+  AND (%(entity)s::text IS NULL OR entity = %(entity)s)
+  AND (%(method)s::text IS NULL OR correction_method = %(method)s)
+  AND ts >= %(start)s AND ts < %(end)s
+ORDER BY ts DESC, source, entity, metric
 LIMIT %(limit)s OFFSET %(offset)s
 """
 
@@ -110,6 +123,21 @@ class Warehouse:
         """A page of flagged values, newest first."""
         params = {"source": source, "detector": detector, "start": start, "end": end}
         return self.db.fetch_all(_ANOMALIES, {**params, "limit": limit, "offset": offset})
+
+    def corrections(  # noqa: PLR0913 - one argument per filter, all keyword-only
+        self,
+        *,
+        source: str | None,
+        entity: str | None,
+        method: str | None,
+        start: datetime,
+        end: datetime,
+        limit: int,
+        offset: int,
+    ) -> list[Row]:
+        """A page of corrected station values, newest first."""
+        params = {"source": source, "entity": entity, "method": method, "start": start, "end": end}
+        return self.db.fetch_all(_CORRECTIONS, {**params, "limit": limit, "offset": offset})
 
     def monthly(self, mart: str, start: date | None, end: date | None) -> list[Row]:
         """Rows of one monthly mart between two months (both included), oldest first.

@@ -75,6 +75,36 @@
       }
     ]
   },
+  "annotations": {
+    "list": [
+      {
+        "name": "Anomalías de la serie corregida",
+        "enable": true,
+        "iconColor": "#F2495C",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "warehouse"
+        },
+        "filter": {
+          "exclude": false,
+          "ids": [
+            14
+          ]
+        },
+        "target": {
+          "refId": "Anno",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(entity, ' · ', metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE concat(source, '/', entity, '/', metric) = '$serie' AND $__timeFilter(ts)) AS a GROUP BY source, entity, metric, run ORDER BY 1"
+        }
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
