@@ -15,8 +15,9 @@ def test_dags_import_without_errors():
     assert "mallorca_pipeline" in bag.dags  # get_dag() would query the metadata DB
     dag = bag.dags["mallorca_pipeline"]
     assert set(dag.params.keys()) == {"connectors", "days", "region", "catch_up"}
-    assert {"resolve_connectors", "ingest", "detect_anomalies", "dbt_build"} <= set(dag.task_ids)
-    # anomalies are scored and gold is rebuilt even when a source failed
-    assert dag.get_task("detect_anomalies").trigger_rule == "all_done"
-    assert dag.get_task("dbt_build").trigger_rule == "all_done"
-    assert dag.get_task("detect_anomalies").downstream_task_ids == {"dbt_build"}
+    assert {"resolve_connectors", "ingest", "detect_anomalies", "correct_values", "dbt_build"} <= set(dag.task_ids)
+    # anomalies are scored, values corrected and gold rebuilt even when a source failed
+    for task_id in ("detect_anomalies", "correct_values", "dbt_build"):
+        assert dag.get_task(task_id).trigger_rule == "all_done"
+    assert dag.get_task("detect_anomalies").downstream_task_ids == {"correct_values"}
+    assert dag.get_task("correct_values").downstream_task_ids == {"dbt_build"}

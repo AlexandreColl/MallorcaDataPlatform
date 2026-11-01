@@ -7,6 +7,8 @@ Examples:
     python -m core.cli backfill --connectors aemet --start 2016-09-01 --end 2026-08-31
     python -m core.cli detect --days 30
     python -m core.cli evaluate
+    python -m core.cli correct --days 14
+    python -m core.cli evaluate-corrections
 """
 
 from __future__ import annotations
@@ -109,6 +111,32 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_correct(args: argparse.Namespace) -> int:
+    from core.corrections.runner import correct_values
+    from core.pipeline import new_run_id
+
+    summary = correct_values(args.days, sources=args.sources, run_id=args.run_id or new_run_id())
+    print(json.dumps(summary.as_dict()))
+    return 0
+
+
+def _cmd_evaluate_corrections(args: argparse.Namespace) -> int:
+    from core.corrections.evaluation import run_evaluation
+
+    rows = run_evaluation(days=args.days, seed=args.seed)
+    print(f"{'source':<16} {'metric':<21} {'gap':>4} {'hidden':>6} {'fixed':>6} {'support':>7} {'MAE':>8} {'no bias':>8}")
+    for r in rows:
+        print(
+            f"{r['source']:<16} {r['metric']:<21} {r['gap_hours']:>3}h {r['hidden']:>6} {r['corrected']:>6}"
+            f" {r['by_support']:>7} {_num(r['mae']):>8} {_num(r['mae_without_bias']):>8}"
+        )
+    return 0
+
+
+def _num(value: float | None) -> str:
+    return "" if value is None or value != value else f"{value:.2f}"  # NaN != NaN
+
+
 def _pct(value: float | None) -> str:
     return "" if value is None else f"{value:.0%}"
 
@@ -150,6 +178,17 @@ def main(argv: list[str] | None = None) -> int:
     evaluate.add_argument("--seed", type=int, help="default: `evaluation.seed` of config/anomaly.yaml")
     evaluate.add_argument("--run-id")
     evaluate.set_defaults(func=_cmd_evaluate)
+
+    correct = sub.add_parser("correct", help="correct gaps and suspect values of the station series")
+    correct.add_argument("--days", type=int, default=1, help="at least `window_days` of config/corrections.yaml")
+    correct.add_argument("--sources", nargs="*", help="default: every target of config/corrections.yaml")
+    correct.add_argument("--run-id")
+    correct.set_defaults(func=_cmd_correct)
+
+    evaluate_corrections = sub.add_parser("evaluate-corrections", help="measure the corrections on hidden values")
+    evaluate_corrections.add_argument("--days", type=int, help="default: `evaluation.days` of config/corrections.yaml")
+    evaluate_corrections.add_argument("--seed", type=int, help="default: `evaluation.seed` of config/corrections.yaml")
+    evaluate_corrections.set_defaults(func=_cmd_evaluate_corrections)
 
     args = parser.parse_args(argv)
     return args.func(args)

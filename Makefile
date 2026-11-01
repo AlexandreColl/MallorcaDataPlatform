@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate backfill api-role api-test screenshots tf-check tf-fmt
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections backfill api-role api-test screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -68,6 +68,12 @@ api-test: ## Unit tests of the REST API (no database needed)
 
 evaluate: ## Measure the anomaly detectors against injected faults (precision and recall)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate
+
+correct: ## Correct gaps and suspect values of the station series: make correct DAYS=30 (at least window_days)
+	$(COMPOSE) exec airflow-scheduler python -m core.cli correct --days $(DAYS)
+
+evaluate-corrections: ## Measure the corrections on hidden station values (error per method and gap length)
+	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate-corrections
 
 connectors: ## List available connectors and regions
 	$(COMPOSE) exec airflow-scheduler python -m core.cli list
