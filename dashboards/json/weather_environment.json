@@ -131,12 +131,12 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, concat(entity, ' · ', metric, ': ', round(value::numeric, 2), ' (esperado ', round(expected::numeric, 2), ', ', CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'Isolation Forest' END, ')') AS text, detector AS tags FROM silver.anomalies WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts) ORDER BY ts"
+          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(entity, ' · ', metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts)) AS a GROUP BY source, entity, metric, run ORDER BY 1"
         }
       },
       {
         "name": "Anomalías de NO2",
-        "enable": true,
+        "enable": false,
         "iconColor": "#F2495C",
         "datasource": {
           "type": "grafana-postgresql-datasource",
@@ -157,7 +157,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, concat(entity, ' · ', metric, ': ', round(value::numeric, 2), ' (esperado ', round(expected::numeric, 2), ', ', CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'Isolation Forest' END, ')') AS text, detector AS tags FROM silver.anomalies WHERE source = 'eea_air_quality' AND metric = 'nitrogen_dioxide' AND $__timeFilter(ts) ORDER BY ts"
+          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(entity, ' · ', metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE source = 'eea_air_quality' AND metric = 'nitrogen_dioxide' AND $__timeFilter(ts)) AS a GROUP BY source, entity, metric, run ORDER BY 1"
         }
       }
     ]
