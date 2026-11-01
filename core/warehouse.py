@@ -188,9 +188,9 @@ class Warehouse:
             cur.executemany(
                 """
                 INSERT INTO silver.corrections
-                    (source, entity, metric, ts, original_value, original_quality, corrected_value, method,
+                    (source, entity, metric, unit, ts, original_value, original_quality, corrected_value, method,
                      support_source, support_entity, bias, confidence, run_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 [(*row, run_id) for row in rows],
             )

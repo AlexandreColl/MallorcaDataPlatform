@@ -1,7 +1,7 @@
 {
   "uid": "mallorca-operations",
   "title": "Mallorca · Operación",
-  "description": "Salud de la plataforma: ejecuciones de cada conector, reglas de calidad, completitud de las series y anomalías detectadas.",
+  "description": "Salud de la plataforma: ejecuciones de cada conector, reglas de calidad, completitud de las series, anomalías detectadas y correcciones propuestas.",
   "tags": [
     "mallorca",
     "operacion"
@@ -56,6 +56,22 @@
           ]
         },
         "sort": 0
+      },
+      {
+        "name": "serie",
+        "label": "Serie corregida",
+        "description": "Serie de estación (fuente/entidad/métrica) con correcciones, para el panel antes y después.",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "warehouse"
+        },
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "sort": 1,
+        "query": "SELECT DISTINCT concat(source, '/', entity, '/', metric) FROM silver.corrections WHERE $__timeFilter(ts)",
+        "definition": "SELECT DISTINCT concat(source, '/', entity, '/', metric) FROM silver.corrections WHERE $__timeFilter(ts)"
       }
     ]
   },
@@ -841,6 +857,228 @@
             "desc": false
           }
         ]
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Correcciones por día",
+      "description": "Horas de las estaciones sin valor válido (faltan, sospechosas o sin fila) que core/corrections estimó, por fuente y método: interpolación de huecos cortos o una serie de apoyo cercana con su sesgo calibrado. silver.observations no cambia.",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 59
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', ts) AS time, concat(source, ' · ', CASE method WHEN 'interpolation' THEN 'interpolación' ELSE 'fuente de apoyo' END) AS metric, count(*) AS value FROM silver.corrections WHERE source IN ($source) AND $__timeFilter(ts) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineWidth": 0,
+            "stacking": {
+              "mode": "normal"
+            },
+            "showPoints": "never"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Antes y después: $serie",
+      "description": "La serie elegida arriba (Serie corregida): el valor original de la estación y el corregido en las horas sin valor válido. Los huecos del original son las horas que faltaban.",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 59
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, CASE WHEN original_quality = 'ok' THEN original_value END AS \"Original\", corrected_value AS \"Corregido\" FROM gold.fct_observations_corrected WHERE concat(source, '/', entity, '/', metric) = '$serie' AND $__timeFilter(ts) ORDER BY ts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Corregido"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FF9830"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "points"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 5
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Original"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Últimas correcciones",
+      "description": "Las 50 correcciones más recientes en el rango: valor original (vacío si faltaba), valor corregido, método, serie de apoyo con su sesgo (estación menos apoyo a esa hora del día) y confianza (0-1).",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 68
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS \"Hora\", source AS \"Fuente\", entity AS \"Entidad\", metric AS \"Métrica\", original_quality AS \"Original\", original_value AS \"Valor original\", corrected_value AS \"Corregido\", method AS \"Método\", concat_ws('/', support_source, support_entity) AS \"Apoyo\", bias AS \"Sesgo\", confidence AS \"Confianza\" FROM silver.corrections WHERE source IN ($source) AND $__timeFilter(ts) ORDER BY ts DESC LIMIT 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          },
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Confianza"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.3
+                    },
+                    {
+                      "color": "green",
+                      "value": 0.6
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
       }
     }
   ]

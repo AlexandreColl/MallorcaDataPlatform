@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 SERIES_KEYS = ("source", "entity", "metric")
-OBSERVATION_COLUMNS = (*SERIES_KEYS, "ts", "value", "quality", "lat", "lon")
-STORED_COLUMNS = (*SERIES_KEYS, *CORRECTION_COLUMNS)
+OBSERVATION_COLUMNS = (*SERIES_KEYS, "ts", "value", "unit", "quality", "lat", "lon")
+STORED_COLUMNS = (*SERIES_KEYS, "unit", *CORRECTION_COLUMNS)
 _EARTH_RADIUS_KM = 6371.0
 
 
@@ -158,7 +158,8 @@ def correct_all(
             c = calibration.candidate
             supports[f"{source}/{entity}/{metric}"] = f"{c.source}/{c.entity} r={calibration.correlation:.2f}"
         if not corrected.empty:
-            parts.append(corrected.assign(source=source, entity=entity, metric=metric))
+            unit = series["unit"].iloc[-1]
+            parts.append(corrected.assign(source=source, entity=entity, metric=metric, unit=unit))
     if not parts:
         return pd.DataFrame(columns=list(STORED_COLUMNS)), supports
     return pd.concat(parts, ignore_index=True)[list(STORED_COLUMNS)], supports

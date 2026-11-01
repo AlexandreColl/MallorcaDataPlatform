@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS silver.corrections (
     entity            text             NOT NULL,
     metric            text             NOT NULL,
     ts                timestamptz      NOT NULL,
+    unit              text             NOT NULL,
     original_value    double precision,
     original_quality  text             NOT NULL CHECK (original_quality IN ('missing', 'suspect', 'absent')),
     corrected_value   double precision NOT NULL,

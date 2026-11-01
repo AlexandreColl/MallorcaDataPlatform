@@ -160,7 +160,7 @@ def _silver(series: dict[tuple[str, str, str], pd.Series], coords: dict[tuple[st
     frames = []
     for (source, entity, metric), values in series.items():
         lat, lon = coords[(source, entity)]
-        frames.append(_observations(values).assign(source=source, entity=entity, metric=metric, lat=lat, lon=lon))
+        frames.append(_observations(values).assign(source=source, entity=entity, metric=metric, unit="degC", lat=lat, lon=lon))
     return pd.concat(frames, ignore_index=True)[list(runner.OBSERVATION_COLUMNS)]
 
 
@@ -293,10 +293,10 @@ support: {max_distance_km: 30, min_correlation: 0.6, min_pairs: 168, min_hour_pa
     assert stored["sources"] == ["socib"]
     assert stored["run_id"] == "r1"
     row = stored["rows"][0]
-    assert row[:4] == ("socib", "parcbit", "temperature_2m", datetime(2026, 10, 4, tzinfo=UTC))
-    assert row[4] is None  # absent: no original value
-    assert row[8:11] == (None, None, None)  # interpolation: no support, no bias
-    assert type(row[3]) is datetime
+    assert row[:5] == ("socib", "parcbit", "temperature_2m", "degC", datetime(2026, 10, 4, tzinfo=UTC))
+    assert row[5] is None  # absent: no original value
+    assert row[9:12] == (None, None, None)  # interpolation: no support, no bias
+    assert type(row[4]) is datetime
 
 
 def test_correct_values_without_configured_targets_does_nothing(monkeypatch, tmp_path):
