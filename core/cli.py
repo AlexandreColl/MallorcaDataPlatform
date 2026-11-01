@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import sys
 from datetime import date
 
@@ -124,7 +125,9 @@ def _cmd_evaluate_corrections(args: argparse.Namespace) -> int:
     from core.corrections.evaluation import run_evaluation
 
     rows = run_evaluation(days=args.days, seed=args.seed)
-    print(f"{'source':<16} {'metric':<21} {'gap':>4} {'hidden':>6} {'fixed':>6} {'support':>7} {'MAE':>8} {'no bias':>8}")
+    print(
+        f"{'source':<16} {'metric':<21} {'gap':>4} {'hidden':>6} {'fixed':>6} {'support':>7} {'MAE':>8} {'no bias':>8}"
+    )
     for r in rows:
         print(
             f"{r['source']:<16} {r['metric']:<21} {r['gap_hours']:>3}h {r['hidden']:>6} {r['corrected']:>6}"
@@ -134,7 +137,7 @@ def _cmd_evaluate_corrections(args: argparse.Namespace) -> int:
 
 
 def _num(value: float | None) -> str:
-    return "" if value is None or value != value else f"{value:.2f}"  # NaN != NaN
+    return "" if value is None or math.isnan(value) else f"{value:.2f}"
 
 
 def _pct(value: float | None) -> str:

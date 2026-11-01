@@ -114,13 +114,14 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Tabla `silver.corrections`: valor original, valor corregido, método, fuente de apoyo, confianza, run_id |
-| ⬜ | Nunca sobrescribir bronze ni silver: la vista gold elige `coalesce(corregido, original)` y lo indica |
-| ⬜ | Método 1: interpolación temporal para huecos cortos |
-| ⬜ | Ajuste por altitud del modelo (las estaciones de montaña salen ~6 °C más frías que el punto del modelo a nivel del mar: gradiente de ~6,5 °C/km) |
-| ⬜ | Método 2: sustitución por fuente de apoyo cercana (p. ej. estación SOCIB ↔ celda Open-Meteo) con sesgo calibrado |
-| ⬜ | Confianza según distancia, correlación histórica y longitud del hueco |
-| ⬜ | Modelo dbt `fct_observations_corrected` + panel "antes / después" |
+| ✅ | Tabla `silver.corrections`: valor y calidad originales, valor corregido, método, fuente de apoyo y su sesgo, confianza, run_id (`core/corrections/`, tarea `correct_values` del DAG tras la detección, recalcula los últimos 14 días) |
+| ✅ | Nunca sobrescribir bronze ni silver: `gold.fct_observations_corrected` pone el original y el corregido lado a lado, y `value` es `coalesce(corregido, original)` con `is_corrected` |
+| ✅ | Método 1: interpolación temporal para huecos de hasta 3 horas |
+| 🟡 | Ajuste por altitud: el sesgo de la fuente de apoyo, calibrado por hora del día, ya recoge la diferencia de altura entre estaciones (la presión de Parc Bit está 14 hPa por debajo de la de la boya). Falta corregir el modelo en sí con el gradiente de ~6,5 °C/km en las estaciones de montaña de AEMET (diarias) |
+| ✅ | Método 2: la serie de la misma métrica mejor correlacionada a menos de 30 km (otra estación de la red o el punto de Open-Meteo, r ≥ 0,6) con su sesgo calibrado por hora del día en los 30 días anteriores |
+| ✅ | Confianza según correlación (r²), distancia y longitud del hueco; `make evaluate-corrections` esconde valores limpios en huecos de 1-24 h y mide el error de cada método: 0,26 °C en una hora, 1,35 °C en 24 h con apoyo frente a 2,19 sin su sesgo |
+| ✅ | Modelo dbt `fct_observations_corrected` y paneles en Operación: correcciones por día y método, antes y después de la serie elegida y últimas correcciones |
+| ⬜ | NO₂, PM10, PM2.5 y CO casi nunca tienen un apoyo con r ≥ 0,6 (contaminación muy local): probar un apoyo con el ciclo semanal del tráfico o el modelo CAMS con un sesgo por día de la semana |
 
 ## Fase 5 · v0.5.0 — Calidad de ingeniería
 

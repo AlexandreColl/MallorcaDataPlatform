@@ -1,8 +1,8 @@
 # dbt: de silver a gold
 
 El pipeline de Python deja en PostgreSQL las observaciones limpias (`silver.observations`), los resultados de las
-reglas de calidad (`quality.check_results`) y la auditoría de ejecuciones (`ops.ingestion_runs`). dbt construye
-encima, en tres capas, todo lo que lee Grafana.
+reglas de calidad (`quality.check_results`), la auditoría de ejecuciones (`ops.ingestion_runs`) y las correcciones
+propuestas para las estaciones (`silver.corrections`). dbt construye encima, en tres capas, todo lo que lee Grafana.
 
 ```mermaid
 flowchart LR
@@ -10,11 +10,13 @@ flowchart LR
         S1[(silver.observations<br/>una tabla por conector)]
         S2[(quality.check_results)]
         S3[(ops.ingestion_runs)]
+        S4[(silver.corrections)]
     end
     subgraph staging[staging · vistas]
         ST[stg_&lt;conector&gt;__observations]
         SQ[stg_quality__check_results]
         SO[stg_ops__ingestion_runs]
+        SC[stg_silver__corrections]
     end
     subgraph intermediate[intermediate · vistas]
         IW[int_weather__daily<br/>int_station_model_pairs<br/>int_weather_extremes__daily]
@@ -22,12 +24,14 @@ flowchart LR
     subgraph marts[marts · gold]
         C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_date · dim_sources]
         D[dominios: weather · marine · energy<br/>mobility · air_quality · seismic]
-        Q[quality: data_quality_summary · source_health]
+        Q[quality: data_quality_summary · source_health<br/>fct_observations_corrected]
     end
     S1 --> ST --> IW --> D
     ST --> C --> D
     S2 --> SQ --> Q
     S3 --> SO --> Q
+    S4 --> SC --> Q
+    C --> Q
     C --> Q
 ```
 
@@ -59,6 +63,7 @@ flowchart LR
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
 | seismic | `fct_earthquakes` | sismo |
 | quality | `data_quality_summary`, `source_health` | regla / fuente |
+| quality | `fct_observations_corrected` | serie y hora de las estaciones desde la primera corrección: valor original, corregido y `value` (el corregido donde lo hay), con método, apoyo, sesgo y confianza |
 
 ## Incrementales
 

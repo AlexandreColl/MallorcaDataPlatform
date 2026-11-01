@@ -84,7 +84,7 @@ class Candidate:
     source: str
     entity: str
     distance_km: float
-    values: pd.Series  # valid values indexed by ts (UTC)
+    history: pd.Series  # valid values indexed by ts (UTC)
 
 
 @dataclass(frozen=True)
@@ -99,7 +99,7 @@ class Calibration:
     def corrected(self, ts: pd.DatetimeIndex) -> pd.Series:
         """The candidate's values at ``ts`` shifted by the bias of their hour (NaN where it has none)."""
         bias = self.bias_by_hour.reindex(ts.hour).to_numpy()
-        return pd.Series(self.candidate.values.reindex(ts).to_numpy() + bias, index=ts)
+        return pd.Series(self.candidate.history.reindex(ts).to_numpy() + bias, index=ts)
 
     def confidence(self, gap_hours: pd.Series, params: SupportParams) -> pd.Series:
         """Correlation squared, discounted by distance and by the length of the gap."""
@@ -109,7 +109,7 @@ class Calibration:
 
 def calibrate(station: pd.Series, candidate: Candidate, params: SupportParams) -> Calibration | None:
     """Correlation and bias per hour of the day over the shared hours, or None if there are too few of them."""
-    pairs = pd.concat({"station": station, "support": candidate.values}, axis=1, sort=True).dropna()
+    pairs = pd.concat({"station": station, "support": candidate.history}, axis=1, sort=True).dropna()
     if len(pairs) < params.min_pairs or pairs["station"].std() == 0 or pairs["support"].std() == 0:
         return None
     diff = pairs["station"] - pairs["support"]
@@ -119,9 +119,7 @@ def calibrate(station: pd.Series, candidate: Candidate, params: SupportParams) -
     return Calibration(candidate, len(pairs), float(pairs["station"].corr(pairs["support"])), bias)
 
 
-def best_support(
-    station: pd.Series, candidates: Sequence[Candidate], params: SupportParams
-) -> Calibration | None:
+def best_support(station: pd.Series, candidates: Sequence[Candidate], params: SupportParams) -> Calibration | None:
     """The calibrated candidate with the highest correlation, if it reaches ``min_correlation``."""
     calibrations = [
         c
@@ -131,7 +129,7 @@ def best_support(
     return max(calibrations, key=lambda c: c.correlation, default=None)
 
 
-def correct_series(
+def correct_series(  # noqa: PLR0913 - keyword-only: the window and the parameters of each method
     observations: pd.DataFrame,
     candidates: Sequence[Candidate],
     *,

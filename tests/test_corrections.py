@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import core.corrections.runner as runner
+from core.config import Settings
+from core.corrections import runner
 from core.corrections.evaluation import evaluate, hide_gaps
 from core.corrections.methods import (
     ABSENT,
@@ -160,7 +161,9 @@ def _silver(series: dict[tuple[str, str, str], pd.Series], coords: dict[tuple[st
     frames = []
     for (source, entity, metric), values in series.items():
         lat, lon = coords[(source, entity)]
-        frames.append(_observations(values).assign(source=source, entity=entity, metric=metric, unit="degC", lat=lat, lon=lon))
+        frames.append(
+            _observations(values).assign(source=source, entity=entity, metric=metric, unit="degC", lat=lat, lon=lon)
+        )
     return pd.concat(frames, ignore_index=True)[list(runner.OBSERVATION_COLUMNS)]
 
 
@@ -215,7 +218,11 @@ def test_correct_all_without_targets_returns_no_rows():
 
 def test_hidden_gaps_have_the_requested_length_and_clean_neighbours():
     masked, truth = hide_gaps(
-        _observations(STATION), [1, 3, 24], 3, WINDOW_START, WINDOW_END, np.random.default_rng(0)
+        _observations(STATION),
+        lengths=[1, 3, 24],
+        per_length=3,
+        window=(WINDOW_START, WINDOW_END),
+        rng=np.random.default_rng(0),
     )
 
     assert truth["gap_hours"].value_counts().to_dict() == {24: 72, 3: 9, 1: 3}
@@ -280,8 +287,9 @@ support: {max_distance_km: 30, min_correlation: 0.6, min_pairs: 168, min_hour_pa
 
     monkeypatch.setattr(runner, "Warehouse", FakeWarehouse)
     monkeypatch.setattr(runner, "load_observations", fake_load)
-    monkeypatch.setattr(runner.TimeWindow, "last_days", classmethod(lambda cls, days: TimeWindow(
-        date(2026, 10, 1), date(2026, 10, 10))))
+    monkeypatch.setattr(
+        runner.TimeWindow, "last_days", classmethod(lambda cls, days: TimeWindow(date(2026, 10, 1), date(2026, 10, 10)))
+    )
 
     summary = runner.correct_values(1, sources=["socib", "aemet"], run_id="r1", settings=FakeSettings())
 
@@ -319,8 +327,6 @@ def test_correct_values_without_configured_targets_does_nothing(monkeypatch, tmp
 
 
 def test_the_repository_config_loads():
-    from core.config import Settings
-
     config = CorrectionConfig.load(Settings.from_env().corrections_config)
     assert set(config.targets) == {"socib", "eea_air_quality"}
     assert config.read_sources() == ["eea_air_quality", "open_meteo", "socib"]

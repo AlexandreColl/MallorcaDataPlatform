@@ -11,6 +11,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   current year from the up-to-date files and earlier years from the verified ones (2013 onwards). A backfill of July
   2021 to 2025 closes the gap between the GOIB history and the live feed, so `fct_air_quality_monthly` is continuous
   from 2002. Verified files hold every year, so they are downloaded once per process.
+- Corrections with support sources (phase 4, `core/corrections`): the hourly stations (SOCIB, EEA) get a proposed
+  value for every hour without a valid one (missing, suspect or without a row), stored in `silver.corrections` with
+  the original value, the method, the support series, its bias and a confidence; `silver.observations` never
+  changes. Gaps of up to 3 hours are interpolated; longer ones take the best correlated series of the same metric
+  within 30 km (another station or the Open-Meteo point, r >= 0.6), shifted by its bias calibrated per hour of the
+  day on the previous 30 days. New DAG task `correct_values`, `make correct` and `make evaluate-corrections`, which
+  hides clean values in gaps of 1-24 h and measures the error of each method (temperature: 0.26 °C in one hour,
+  1.35 °C in 24 h with a support against 2.19 without its bias). `gold.fct_observations_corrected` shows both
+  values side by side, and the Operación dashboard has corrections per day, a before/after chart of the chosen
+  series and the latest corrections.
 
 ### Changed
 

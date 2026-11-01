@@ -30,17 +30,18 @@ _ATTEMPTS = 50  # random positions tried per gap before giving up (short or very
 
 def hide_gaps(
     series: pd.DataFrame,
+    *,
     lengths: Sequence[int],
     per_length: int,
-    start: pd.Timestamp,
-    end: pd.Timestamp,
+    window: tuple[pd.Timestamp, pd.Timestamp],
     rng: np.random.Generator,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Mark random runs of clean hours as missing.
+    """Mark random runs of clean hours of ``window`` (start, exclusive end) as missing.
 
     Returns:
         The series with the hidden values as ``missing`` and the hidden hours (``ts``, ``truth``, ``gap_hours``).
     """
+    start, end = window
     clean = series.loc[series["quality"].eq(Quality.OK) & series["value"].notna()].set_index("ts")["value"]
     usable = clean.index[(clean.index >= start) & (clean.index < end)]
     hidden: dict[pd.Timestamp, int] = {}
@@ -50,7 +51,9 @@ def hide_gaps(
                 first = usable[rng.integers(len(usable))] if len(usable) else None
                 if first is None:
                     break
-                hours = pd.date_range(first - _HOUR, periods=length + 2, freq=_HOUR)  # the gap and a clean hour on each side
+                hours = pd.date_range(
+                    first - _HOUR, periods=length + 2, freq=_HOUR
+                )  # the gap and a clean hour on each side
                 if all(h in clean.index and h not in hidden for h in hours) and hours[-1] < end:
                     hidden.update(dict.fromkeys(hours[1:-1], length))
                     break
@@ -77,7 +80,9 @@ def evaluate(
         if source not in config.targets:
             continue
         rng = np.random.default_rng([seed, position])
-        masked, truth = hide_gaps(series[["ts", "value", "quality"]], lengths, per_length, start, end, rng)
+        masked, truth = hide_gaps(
+            series[["ts", "value", "quality"]], lengths=lengths, per_length=per_length, window=(start, end), rng=rng
+        )
         if truth.empty:
             continue
         corrected, _ = correct_series(
@@ -95,8 +100,8 @@ def evaluate(
     compared = pd.concat(results, ignore_index=True)
     compared["error"] = (compared["corrected_value"] - compared["truth"]).abs()
     by_support = compared["method"].eq(SUPPORT)
-    compared["error_without_bias"] = (compared["corrected_value"] - compared["bias"] - compared["truth"]).abs().where(
-        by_support
+    compared["error_without_bias"] = (
+        (compared["corrected_value"] - compared["bias"] - compared["truth"]).abs().where(by_support)
     )
     return (
         compared.groupby(["source", "metric", "gap_hours"])
