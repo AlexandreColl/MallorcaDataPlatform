@@ -77,6 +77,11 @@ class Settings:
         return self.project_root / "config" / "anomaly.yaml"
 
     @property
+    def corrections_config(self) -> Path:
+        """What is corrected, with which methods and supports."""
+        return self.project_root / "config" / "corrections.yaml"
+
+    @property
     def jdbc_url(self) -> str:
         """JDBC URL of the warehouse, used by Spark."""
         return f"jdbc:postgresql://{self.warehouse_host}:{self.warehouse_port}/{self.warehouse_db}"

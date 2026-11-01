@@ -76,7 +76,8 @@ flowchart LR
 - **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
   si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
   error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
-  su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída (aviso) de un fallo real (error).
+  su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída o una fuente que ha dejado de
+  publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
   (`quality_reasons`), pero nunca modifican el valor. Las correcciones irán en una capa propia (ver roadmap).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.
@@ -118,7 +119,7 @@ Otros comandos: `make help`.
 | [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
-| [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA) | No |
+| [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
 
 ### Open-Meteo
 
@@ -201,6 +202,12 @@ CAMS. En Grafana, las estaciones aparecen en el mapa de Inicio y el error del mo
 real: el modelo se queda corto de NO₂ junto al tráfico de Foners (−6 µg/m³) y se pasa de ozono en Palma (+20), que
 es justo donde el NO del tráfico lo consume.
 
+Los años anteriores salen de los ficheros verificados de la EEA (E1a, desde 2013), porque los *up-to-date* solo
+traen el año en curso: el conector parte la ventana por años y busca cada parte en su conjunto. Un backfill de julio
+de 2021 a 2025 (1,38 millones de valores horarios en 19 tramos, unos 10 minutos) une el histórico de la GOIB con los
+datos actuales, y `fct_air_quality_monthly` queda continuo desde 2002. El NO₂ de Foners se queda en torno a 22 µg/m³
+tras el confinamiento (21,6 en 2025), sin volver a los 31,6 de 2019.
+
 ### Histórico de calidad del aire (GOIB)
 
 El catálogo de datos abiertos del Govern (API CKAN) tiene las medidas horarias de 11 estaciones de Mallorca de 2002 a
@@ -271,6 +278,11 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
 Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
 de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.
 
+En Grafana, las anomalías se dibujan como anotaciones sobre las series: en el explorador de Tiempo y entorno (la
+métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto, porque son nueve) y en el
+antes y después de Operación. Las horas anómalas seguidas de una serie son una sola banda, con el rango de valores y
+el valor esperado, así que un temporal es una marca y no treinta. Las tablas de Operación las listan una a una.
+
 ### Medir los detectores con fallos inyectados
 
 Las anomalías reales no vienen etiquetadas, así que no se puede saber cuántas se escapan. `make evaluate` crea esa
@@ -302,6 +314,54 @@ desfase horario se escapa a los dos: en un modelo suave, los valores de 12 horas
 `contamination` mueve el equilibrio: con 0,10 el bosque llega al 73 % de picos y 74 % de congelados con un 81 % de
 precisión.
 
+## Correcciones con fuentes de apoyo
+
+Las estaciones horarias (SOCIB y la EEA) tienen huecos: cortes de la fuente, horas que la red marca como no
+válidas y valores sospechosos que fallan una regla de calidad. `core/corrections/` **propone** un valor para esas
+horas y lo guarda aparte, en `silver.corrections`, con el valor original, el método, la serie de apoyo, su sesgo y
+una confianza de 0 a 1. `silver.observations` nunca cambia: `gold.fct_observations_corrected` pone los dos valores
+lado a lado, y `value` es el corregido donde lo hay y el original en el resto.
+
+- **Qué se corrige**: cada hora sin valor válido entre dos valores de la estación: falta, es sospechosa o no tiene
+  fila. Los valores que marcan los detectores de anomalías no se tocan, porque uno de cada cinco es un episodio real
+  y corregirlo lo borraría.
+- **Método 1, interpolación**: los huecos de hasta 3 horas se rellenan interpolando en el tiempo entre los valores de
+  la propia estación. Confianza `exp(−horas / 6)`: 0,85 con una hora, 0,61 con tres.
+- **Método 2, fuente de apoyo**: en los huecos más largos, la serie de la misma métrica mejor correlacionada a menos
+  de 30 km, que puede ser otra estación de la misma red o el punto del modelo de Open-Meteo. Hacen falta una semana
+  de horas en común y una r ≥ 0,6. El valor de apoyo se desplaza con su sesgo, la mediana de "estación menos apoyo",
+  calibrado **por hora del día** con los 30 días anteriores. Así recoge la brisa, la altitud y el ciclo diario del
+  modelo. Confianza `r² · exp(−distancia / 100 km) · exp(−horas / 7 días)`.
+- Tarea `correct_values` del DAG tras la detección. Cada ejecución recalcula los últimos 14 días: una corrección
+  desaparece cuando llega el valor real, y es idempotente. Configuración en
+  [config/corrections.yaml](config/corrections.yaml); a mano, `make correct DAYS=30`.
+
+`make evaluate-corrections` mide las correcciones con una verdad conocida. Esconde valores limpios de las
+estaciones en huecos de 1, 3, 6 y 24 horas, los corrige y compara. Resultado de 14 días reales, con el error medio
+absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
+
+| Serie | 1 h | 3 h | 24 h (apoyo) | 24 h sin sesgo |
+|---|---|---|---|---|
+| Temperatura (SOCIB) | 0,26 °C | 0,41 °C | 1,35 °C | 2,19 °C |
+| Presión (SOCIB) | 0,11 hPa | 0,23 hPa | 0,20 hPa | 14,0 hPa |
+| Humedad (SOCIB) | 1,8 % | 2,7 % | 7,6 % | 9,6 % |
+| Ozono (EEA) | 3,6 µg/m³ | 6,0 µg/m³ | 7,4 µg/m³ | 13,2 µg/m³ |
+| NO₂ (EEA) | 1,6 µg/m³ | 2,0 µg/m³ | 1,1 µg/m³ (solo 140 de 456 h) | 2,3 µg/m³ |
+
+- **La presión** muestra para qué sirve el sesgo. La de Parc Bit es unos 14 hPa más baja que la de la boya de la
+  bahía, que es la que más se le parece (r = 1,00). Parece presión a la altura de la estación, sin reducir al nivel
+  del mar: unos 115 m. Sin el sesgo, el apoyo se equivocaría en 14 hPa; con él, en 0,2.
+- **El NO₂** es muy local: viene del tráfico de cada calle y casi ninguna estación tiene un apoyo con r ≥ 0,6. Solo
+  S'Albufera y Sa Pobla se apoyan la una en la otra. Lo mismo pasa con PM10, PM2.5 y CO. En esas series, los huecos
+  largos se quedan sin corregir en lugar de rellenarse con un valor poco fiable.
+- **Las rachas de viento** son el único caso en el que el sesgo no ayuda: 7,5 frente a 6,8 km/h en huecos de 6
+  horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
+
+En Grafana, el tablero Operación muestra las correcciones por día y método, una gráfica de antes y después de la
+serie elegida (variable *Serie corregida*) y la tabla de las últimas correcciones. Las anomalías de esa serie aparecen
+como bandas sobre la gráfica, igual que en el explorador de Tiempo y entorno: así se ve qué corrige cada parte. La
+API las sirve en `GET /v1/corrections`.
+
 ## Grafana
 
 Seis dashboards en la carpeta *Mallorca Data Platform* (http://localhost:3000), enlazados entre sí desde la barra
@@ -313,8 +373,8 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Turismo y recursos** | Turistas frente a reservas de agua y demanda eléctrica; las anomalías frente al mismo mes, que quitan la estacionalidad; y una evaluación año a año (turistas de verano frente a la caída de las reservas de marzo a septiembre, con su correlación) |
 | **Clima y agua** | Reservas frente a la media del mes, lluvia mensual y respuesta de los acuíferos, tabla por año hidrológico, anomalía de temperatura, lluvia acumulada y el estado de los 18 acuíferos |
 | **Movilidad** | Servicio programado de EMT Palma y CTM por día, mapa de calor por parada y paradas con más servicio |
-| **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
-| **Operación** | Salud de cada fuente, anomalías detectadas, ejecuciones, reglas de calidad y completitud de cada serie |
+| **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, con sus anomalías como anotaciones, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
+| **Operación** | Salud de cada fuente, anomalías detectadas, correcciones (antes y después), ejecuciones, reglas de calidad y completitud de cada serie |
 
 | Turismo y recursos | Clima y agua |
 |---|---|
@@ -377,6 +437,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
+| `GET /v1/corrections` | Valores propuestos para las horas sin valor válido de las estaciones, con el original, el método, el apoyo, el sesgo y la confianza; filtrados por fuente, estación, método y rango, paginados |
 | `GET /v1/water/reserves`, `/v1/water/aquifers` | Reservas mensuales con su anomalía y los 18 acuíferos del último mes |
 | `GET /v1/climate/monthly`, `/v1/tourism/monthly`, `/v1/resources/monthly` | Los marts mensuales de los dashboards, filtrables con `from` y `to` |
 
@@ -411,9 +472,10 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 ## Estructura
 
 ```
-├── core/                 # núcleo: contrato, registro, bronze, Spark, calidad, warehouse, pipeline, CLI
+├── core/                 # núcleo: contrato, registro, bronze, Spark, calidad, warehouse, pipeline, CLI,
+│                         # anomalías (core/anomaly) y correcciones (core/corrections)
 ├── connectors/<fuente>/  # connector.yaml + extractor.py + tests/fixtures
-├── config/regions/       # bbox y puntos de cada región
+├── config/               # regiones (bbox y puntos), anomaly.yaml y corrections.yaml
 ├── dags/                 # DAG de Airflow
 ├── dbt/                  # staging → intermediate → marts, tests y seeds (ver dbt/README.md)
 ├── dashboards/           # provisioning y dashboards de Grafana

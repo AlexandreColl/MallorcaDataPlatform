@@ -17,6 +17,8 @@ Trigger with a config such as:
 * Re-running the same window is idempotent (no duplicated rows).
 * After ingestion the anomaly detectors score the recent values and flag outliers in
   `silver.anomalies` (they never change the data), also when some sources failed.
+* Then the station series get corrections for their gaps and suspect values in `silver.corrections`
+  (interpolation, or a nearby support source with a calibrated bias); gold shows both values.
 """
 
 from __future__ import annotations
@@ -65,7 +67,7 @@ DBT_COMMAND = f"cd /opt/project/dbt && ({DBT} source freshness {DBT_ARGS} || tru
     },
 )
 def mallorca_pipeline() -> None:
-    """Resolve connectors -> one mapped ingest task per connector -> anomaly detection -> dbt build."""
+    """Resolve connectors -> one mapped ingest task per connector -> anomaly detection -> corrections -> dbt build."""
 
     @task
     def resolve_connectors(params: dict[str, Any] | None = None) -> list[str]:
@@ -108,13 +110,23 @@ def mallorca_pipeline() -> None:
         params = params or {}
         return run_detection(int(params["days"]), sources=connectors, run_id=run_id or "manual").as_dict()
 
+    @task(trigger_rule=TriggerRule.ALL_DONE, retries=0)
+    def correct_values(
+        connectors: list[str], params: dict[str, Any] | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Recompute the corrections of the recent station values of these sources (silver.corrections)."""
+        from core.corrections.runner import correct_values as run_corrections
+
+        params = params or {}
+        return run_corrections(int(params["days"]), sources=connectors, run_id=run_id or "manual").as_dict()
+
     @task.bash(trigger_rule=TriggerRule.ALL_DONE, retries=0)
     def dbt_build() -> str:
         """Build and test the gold models, also when some sources failed (gold keeps their previous data)."""
         return DBT_COMMAND
 
     connectors = resolve_connectors()
-    ingest.expand(connector=connectors) >> detect_anomalies(connectors) >> dbt_build()
+    ingest.expand(connector=connectors) >> detect_anomalies(connectors) >> correct_values(connectors) >> dbt_build()
 
 
 mallorca_pipeline()

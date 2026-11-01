@@ -58,7 +58,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | — | **Calidad del aire de la EEA** (sustituye a OpenAQ) | Servicio de descarga de la EEA, sin clave: búsqueda JSON y un Parquet por estación y contaminante, horario y unas dos horas por detrás del tiempo real. 9 estaciones oficiales de Mallorca; coordenadas de OpenAQ, porque los metadatos de la EEA no las traen para España. OpenAQ se probó con clave: mismas estaciones con un 30 % de las horas y duplicados. Mart `fct_air_quality_model_bias_daily` (modelo CAMS frente a estación) |
 | ✅ | — | **OpenAQ v3** (probado, no se integra) | Con clave: 8 estaciones activas en Mallorca, todas de la EEA, pero solo con un 30 % de las horas, y Foners y Bellver duplicados. Sustituido por la descarga directa de la EEA (fila anterior) |
 | ✅ | — | **aqicn** (probado, no se integra) | Con token: en Mallorca hay 7 estaciones, todas de la red del Govern y atribuidas a la EEA (Foners, Bellver, Hospital Joan March, Sant Joan de Déu, Alcúdia, S'Albufera y Sa Pobla). Solo da la última hora, sin histórico, y como subíndices AQI de EE. UU., no como concentraciones. La previsión diaria (O₃, PM10, PM2.5, UV) es de modelo, como la de Open-Meteo. Sirvió para algo: sus coordenadas confirman las del Govern para Sant Joan de Déu (07040006) y Alcúdia (07003004) |
-| ⬜ | — | **EEA verificados** (`eea_air_quality` con `dataset: 2`) para cubrir el hueco de julio de 2021 a 2025 entre el histórico de la GOIB y los datos actuales |
+| ✅ | — | **EEA verificados** (E1a, en `eea_air_quality`) | Cada año está en un solo conjunto: los ficheros *up-to-date* solo traen el año en curso y los verificados todos los anteriores desde 2013, en un fichero por punto de muestreo. El conector parte la ventana por años, guarda en bronze solo las filas de la ventana y descarga cada fichero verificado una vez por proceso. Backfill de julio de 2021 a 2025: `fct_air_quality_monthly` es continuo desde 2002 |
 | ✅ | — | **GOIB** (histórico de calidad del aire) | API CKAN del catálogo (`package_show`), sin clave, CC BY. 11 estaciones de Mallorca, de 2002 a junio de 2021 en tres ficheros por estación (hasta 2019, 2020 y 2021) con tres formatos distintos. El periodo 1-24 es la hora que empieza en UTC+01, comprobado contra la EEA. Conector de histórico (`enabled: false`, `make backfill`); bronze guarda las líneas de la ventana y el SHA-256 del fichero. Mart `fct_air_quality_monthly` (GOIB + EEA). Prueba real: 4,98 M valores en ~45 min; NO₂ de Foners de 52,7 µg/m³ (2002) a 31,6 (2019) y 24 (2020). Fallos de la fuente resueltos: el histórico de Menut se solapa con su fichero de 2020 y Hospital Joan March trae filas de 2002 sin periodo |
 | ⬜ | — | Plantilla `make new-connector NAME=x` que genere la carpeta, YAML y test vacíos |
 | ⬜ | — | Script `make record-fixtures CONNECTOR=x` para regrabar respuestas reales |
@@ -100,13 +100,14 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, desfase horario) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 80 % |
 | ⬜ | Combinar detectores (unión o votación) y medirlo con el benchmark: el z-score y el bosque fallan en cosas distintas |
 | ⬜ | Desfase horario (reloj o zona horaria): ninguno pasa del 6 %; probar un detector estacional (residuo frente a la misma hora de días anteriores) |
-| ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
+| ✅ | Anomalías como anotaciones de Grafana sobre las series: en el explorador de Tiempo y entorno (la métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto: nueve estaciones) y en el antes y después de Operación. Las horas anómalas seguidas de una serie forman una sola banda, con el rango de valores y el valor esperado |
 
 ## API REST
 
 | Estado | Tarea |
 |---|---|
 | ✅ | API de solo lectura con FastAPI sobre los marts con contrato: salud, fuentes, observaciones y anomalías paginadas, reservas, acuíferos y marts mensuales; rol `api_reader`, imagen propia, tests unitarios e integración en CI, y comprobación en el E2E |
+| ✅ | `GET /v1/corrections`: las correcciones propuestas de las estaciones (`gold.fct_observations_corrected`), filtrables por fuente, estación, método y rango |
 | ⬜ | Caché de respuestas de los marts mensuales (cambian una vez al día) y límite de peticiones por cliente |
 | ⬜ | Exportar series en CSV o Parquet además de JSON |
 
@@ -114,13 +115,14 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Tabla `silver.corrections`: valor original, valor corregido, método, fuente de apoyo, confianza, run_id |
-| ⬜ | Nunca sobrescribir bronze ni silver: la vista gold elige `coalesce(corregido, original)` y lo indica |
-| ⬜ | Método 1: interpolación temporal para huecos cortos |
-| ⬜ | Ajuste por altitud del modelo (las estaciones de montaña salen ~6 °C más frías que el punto del modelo a nivel del mar: gradiente de ~6,5 °C/km) |
-| ⬜ | Método 2: sustitución por fuente de apoyo cercana (p. ej. estación SOCIB ↔ celda Open-Meteo) con sesgo calibrado |
-| ⬜ | Confianza según distancia, correlación histórica y longitud del hueco |
-| ⬜ | Modelo dbt `fct_observations_corrected` + panel "antes / después" |
+| ✅ | Tabla `silver.corrections`: valor y calidad originales, valor corregido, método, fuente de apoyo y su sesgo, confianza, run_id (`core/corrections/`, tarea `correct_values` del DAG tras la detección, recalcula los últimos 14 días) |
+| ✅ | Nunca sobrescribir bronze ni silver: `gold.fct_observations_corrected` pone el original y el corregido lado a lado, y `value` es `coalesce(corregido, original)` con `is_corrected` |
+| ✅ | Método 1: interpolación temporal para huecos de hasta 3 horas |
+| 🟡 | Ajuste por altitud: el sesgo de la fuente de apoyo, calibrado por hora del día, ya recoge la diferencia de altura entre estaciones (la presión de Parc Bit está 14 hPa por debajo de la de la boya). Falta corregir el modelo en sí con el gradiente de ~6,5 °C/km en las estaciones de montaña de AEMET (diarias) |
+| ✅ | Método 2: la serie de la misma métrica mejor correlacionada a menos de 30 km (otra estación de la red o el punto de Open-Meteo, r ≥ 0,6) con su sesgo calibrado por hora del día en los 30 días anteriores |
+| ✅ | Confianza según correlación (r²), distancia y longitud del hueco; `make evaluate-corrections` esconde valores limpios en huecos de 1-24 h y mide el error de cada método: 0,26 °C en una hora, 1,35 °C en 24 h con apoyo frente a 2,19 sin su sesgo |
+| ✅ | Modelo dbt `fct_observations_corrected` y paneles en Operación: correcciones por día y método, antes y después de la serie elegida y últimas correcciones |
+| ⬜ | NO₂, PM10, PM2.5 y CO casi nunca tienen un apoyo con r ≥ 0,6 (contaminación muy local): probar un apoyo con el ciclo semanal del tráfico o el modelo CAMS con un sesgo por día de la semana |
 
 ## Fase 5 · v0.5.0 — Calidad de ingeniería
 

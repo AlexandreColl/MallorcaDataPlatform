@@ -77,8 +77,9 @@ entidades se llaman igual que en `eea_air_quality`, así que una estación es un
 
 ## Limitaciones
 
-- **Hueco de julio de 2021 a 2025**: no está ni en este catálogo ni en los datos *up-to-date* de la EEA. Los
-  ficheros verificados de la EEA (E1a, `dataset: 2` en `eea_air_quality`) podrían cubrirlo.
+- **De julio de 2021 en adelante**: no está en este catálogo. Lo cubren los ficheros verificados de la EEA, que
+  `eea_air_quality` lee para los años anteriores al actual (`make backfill CONNECTORS=eea_air_quality
+  START=2021-07-01 END=2025-12-31`).
 - **Estación 07040006**: el catálogo la llama Sant Joan de Déu, en Coll d'en Rabassa, y aqicn coincide.
   Las dos fuentes la llaman `sant_joan_de_deu`.
 - **Parc Bit**: las coordenadas del catálogo están a 1,5 km de las de OpenAQ.

@@ -24,8 +24,8 @@ DESCRIPTION = """
 Read-only access to the gold layer of the Mallorca Data Platform: the data behind the Grafana dashboards.
 
 * **Platform**: health of the API and of every data source.
-* **Series**: any observation in the common schema (source, entity, metric, time, value, quality) and the values
-  flagged by the anomaly detectors, paginated.
+* **Series**: any observation in the common schema (source, entity, metric, time, value, quality), the values
+  flagged by the anomaly detectors and the proposed corrections of the station gaps, paginated.
 * **Monthly**: groundwater reserves, climate, tourism and the combined resources mart, each month with its anomaly
   against the same calendar month.
 
@@ -60,7 +60,7 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         lifespan=lifespan,
         openapi_tags=[
             {"name": "platform", "description": "API and data source health."},
-            {"name": "series", "description": "Observations and anomalies, paginated."},
+            {"name": "series", "description": "Observations, anomalies and corrections, paginated."},
             {"name": "monthly", "description": "Monthly marts: water, climate, tourism and resources."},
         ],
     )

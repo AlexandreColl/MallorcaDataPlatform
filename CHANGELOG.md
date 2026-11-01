@@ -5,6 +5,43 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-01
+
+### Added
+
+- Verified EEA air quality data (E1a) for previous years: `eea_air_quality` splits the window by year and reads the
+  current year from the up-to-date files and earlier years from the verified ones (2013 onwards). A backfill of July
+  2021 to 2025 closes the gap between the GOIB history and the live feed, so `fct_air_quality_monthly` is continuous
+  from 2002. Verified files hold every year, so they are downloaded once per process.
+- Corrections with support sources (phase 4, `core/corrections`): the hourly stations (SOCIB, EEA) get a proposed
+  value for every hour without a valid one (missing, suspect or without a row), stored in `silver.corrections` with
+  the original value, the method, the support series, its bias and a confidence; `silver.observations` never
+  changes. Gaps of up to 3 hours are interpolated; longer ones take the best correlated series of the same metric
+  within 30 km (another station or the Open-Meteo point, r >= 0.6), shifted by its bias calibrated per hour of the
+  day on the previous 30 days. New DAG task `correct_values`, `make correct` and `make evaluate-corrections`, which
+  hides clean values in gaps of 1-24 h and measures the error of each method (temperature: 0.26 °C in one hour,
+  1.35 °C in 24 h with a support against 2.19 without its bias). `gold.fct_observations_corrected` shows both
+  values side by side, and the Operación dashboard has corrections per day, a before/after chart of the chosen
+  series and the latest corrections.
+- `GET /v1/corrections` in the REST API: the proposed values of the station gaps with the original value and
+  quality, the method, the support, its bias and the confidence, filtered by source, station, method and time range,
+  paginated.
+- Anomalies as Grafana annotations on the series: the metric explorer of Tiempo y entorno, the stations' NO2 (off by
+  default) and the before/after chart of Operación. Consecutive anomalous hours of a series are one band with the
+  range of values and the expected value.
+
+### Changed
+
+- `eea_air_quality` keeps in bronze only each file's rows of the window (unchanged, as Parquet), with the SHA-256 and
+  size of the whole file, instead of the whole file: a verified file holds thirteen years. The `dataset` option is
+  gone: the extractor picks the dataset by year.
+
+### Fixed
+
+- A source that has stopped publishing for a while is an upstream outage, not a bug: `eea_air_quality` raises the
+  new `SourceNotUpdatedError` when the window has no rows and every file ends before it (the EEA published nothing
+  from 30 October to 1 November 2026), and the E2E treats it as a warning like a connection error.
+
 ## [0.7.0] - 2026-10-31
 
 ### Added
@@ -354,7 +391,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.4.0...v0.5.0

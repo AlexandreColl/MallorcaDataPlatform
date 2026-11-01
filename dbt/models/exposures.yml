@@ -96,7 +96,9 @@ exposures:
     type: dashboard
     maturity: high
     url: http://localhost:3000/d/mallorca-operations
-    description: Connector runs, source health, quality rules, series completeness and detected anomalies.
+    description: >-
+      Connector runs, source health, quality rules, series completeness, detected anomalies and the proposed
+      corrections (before and after).
     owner:
       name: AlexandreColl
     depends_on:
@@ -104,6 +106,8 @@ exposures:
       - ref('data_quality_summary')
       - ref('agg_daily_metrics')
       - ref('fct_observations')
+      - ref('fct_observations_corrected')
+      - source('silver', 'corrections')
       - ref('dim_sources')
       - source('ops', 'ingestion_runs')
 
@@ -127,16 +131,20 @@ exposures:
       - ref('fct_climate_monthly')
       - ref('fct_tourism_monthly')
       - ref('fct_resources_monthly')
+      - ref('fct_observations_corrected')
 
   - name: corrections_phase
-    label: Model corrections (planned)
+    label: Corrections with support sources (phase 4)
     type: analysis
-    maturity: low
+    maturity: medium
     description: >
-      Planned phase 4 (ROADMAP): correct model values with nearby real stations. It needs the bias of the model
-      per station and day, including the altitude effect seen at the mountain stations.
+      Phase 4 (ROADMAP): core/corrections fills the gaps and suspect values of the hourly stations (SOCIB, EEA)
+      by interpolation or with a nearby support series and its calibrated bias, measured by
+      `make evaluate-corrections`. The daily model bias per station (with the altitude effect of the mountain
+      stations) is the input for correcting the model itself, still planned.
     owner:
       name: AlexandreColl
     depends_on:
       - ref('fct_model_bias_daily')
       - ref('agg_model_bias_by_station')
+      - ref('fct_observations_corrected')

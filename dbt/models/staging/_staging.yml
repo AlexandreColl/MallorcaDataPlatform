@@ -8,6 +8,14 @@ models:
     columns:
       - name: local_date
         data_tests: [not_null]
+  - name: stg_silver__corrections
+    description: Proposed corrections of station values, with the local day.
+    columns:
+      - name: method
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["interpolation", "support"]
   - name: stg_open_meteo__observations
     description: Open-Meteo air quality and weather (model), hourly.
   - name: stg_open_meteo_marine__observations

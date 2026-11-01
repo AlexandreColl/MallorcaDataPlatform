@@ -3,6 +3,8 @@ from datetime import date
 
 import core.anomaly.evaluation
 import core.anomaly.runner
+import core.corrections.evaluation
+import core.corrections.runner
 import core.pipeline
 from core import cli
 from core.models import TimeWindow
@@ -152,3 +154,32 @@ def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):
     )
 
     assert max(w.n_days for w in windows) == 61  # SOCIB allows 61 days per run
+
+
+def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsys):
+    seen = {}
+
+    def fake_correct(days, sources, run_id):
+        seen["correct"] = (days, sources, run_id)
+        return _Summary(TimeWindow(date(2026, 10, 1), date(2026, 10, 14)))
+
+    def fake_evaluate(days, seed):
+        seen["evaluate"] = (days, seed)
+        row = {"source": "socib", "metric": "temperature_2m", "hidden": 16, "corrected": 16}
+        return [
+            {**row, "gap_hours": 3, "by_support": 0, "mae": 0.41, "mae_without_bias": float("nan")},
+            {**row, "gap_hours": 24, "by_support": 16, "mae": 0.95, "mae_without_bias": 1.62},
+        ]
+
+    monkeypatch.setattr(core.corrections.runner, "correct_values", fake_correct)
+    monkeypatch.setattr(core.corrections.evaluation, "run_evaluation", fake_evaluate)
+
+    assert cli.main(["correct", "--days", "30", "--sources", "socib", "--run-id", "c1"]) == 0
+    assert cli.main(["evaluate-corrections", "--days", "7", "--seed", "3"]) == 0
+
+    assert seen == {"correct": (30, ["socib"], "c1"), "evaluate": (7, 3)}
+    lines = capsys.readouterr().out.splitlines()
+    assert json.loads(lines[0]) == {"start": "2026-10-01", "end": "2026-10-14"}
+    assert lines[1].split() == ["source", "metric", "gap", "hidden", "fixed", "support", "MAE", "no", "bias"]
+    assert lines[2].split() == ["socib", "temperature_2m", "3h", "16", "16", "0", "0.41"]
+    assert lines[3].split() == ["socib", "temperature_2m", "24h", "16", "16", "16", "0.95", "1.62"]

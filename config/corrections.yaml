@@ -1,0 +1,40 @@
+# Corrections of station series (core/corrections). They are proposals stored apart in silver.corrections:
+# silver.observations is never changed, and gold.fct_observations_corrected shows both values side by side.
+
+# Every run recomputes the corrections of the last N days, so a gap filled with the support source is filled again
+# by interpolation (or dropped) once the station's own values arrive late.
+window_days: 14
+# History read before the window to calibrate each support source against the station.
+calibration_days: 30
+
+# What is corrected: hourly station series. A value is corrected when it is missing, suspect (failed a hard quality
+# rule) or absent (an hour without a row between two of the station's values). Values flagged by the anomaly
+# detectors are not: about one in five is a real event, and a correction would erase it.
+targets:
+  socib:
+    supports: [socib, open_meteo]                 # another SOCIB station or the nearest model point
+  eea_air_quality:
+    supports: [eea_air_quality, open_meteo]       # another station of the network or the CAMS model
+
+# Method 1: time interpolation between the station's own values, for short gaps only.
+interpolation:
+  max_gap_hours: 3
+  confidence_scale_hours: 6     # confidence exp(-gap / scale): 0.85 for one hour, 0.61 for three
+
+# Method 2: the best correlated nearby series of the same metric, shifted by its calibrated bias.
+support:
+  max_distance_km: 30
+  min_correlation: 0.6          # Pearson r of the hourly pairs in the calibration history and the window
+  min_pairs: 168                # at least a week of shared hours
+  min_hour_pairs: 7             # bias per hour of the day (sea breeze, altitude, the model's daily cycle) when
+                                # that hour has this many pairs; otherwise the median of all pairs
+  distance_scale_km: 100        # confidence r^2 * exp(-distance / 100 km) * exp(-gap / 7 days)
+  gap_scale_hours: 168
+
+# Benchmark (`make evaluate-corrections`): hides clean values of the stations in blocks of these lengths, corrects
+# them as gaps and compares the result with the hidden values.
+evaluation:
+  days: 14
+  gap_hours: [1, 3, 6, 24]
+  gaps_per_series: 4
+  seed: 42

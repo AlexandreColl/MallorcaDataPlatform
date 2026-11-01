@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import io
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -6,15 +7,26 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import pytest
 
-from core.connectors import ConnectorError, registry
+from connectors.eea_air_quality import extractor
+from core.connectors import ConnectorError, SourceNotUpdatedError, registry
 from core.models import Quality, Region, TimeWindow
 
 # The EEA search listing for 10-20 October 2026 (the Balearic lines and three from Madrid) and five real files,
 # reduced to those days: Bellver NO2, Foners PM10, PM2.5 and CO (mg/m3) and Menut O3. The source has no data
 # from 15 October 09:00 to 18 October and marks a few hours as not valid (value -999).
+# The verified (E1a) listing of the Balearic files (and one from Madrid) and the real verified Foners NO2 file, cut to
+# 29 December 2025 - 1 January 2026 00:00 (local time).
 FIXTURES = Path(__file__).parent / "fixtures"
 MALLORCA = Region("mallorca", 39.25, 2.30, 39.97, 3.50)
 WINDOW = TimeWindow(date(2026, 10, 12), date(2026, 10, 13))
+VERIFIED_WINDOW = TimeWindow(date(2025, 12, 30), date(2025, 12, 31))
+
+
+@pytest.fixture(autouse=True)
+def _in_2026(monkeypatch):
+    # The dataset depends on the year of the window: pin "now" to the fixtures' year, with an empty download cache.
+    monkeypatch.setattr(extractor, "_current_year", lambda: 2026)
+    monkeypatch.setattr(extractor, "_VERIFIED_FILES", {})
 
 
 def _empty_parquet() -> bytes:
@@ -35,12 +47,13 @@ class RecordedEea:
 
     def post_text(self, url, json, headers=None):
         self.searches.append(json)
-        return (FIXTURES / "urls.txt").read_text(encoding="utf-8")
+        listing = "urls_verified.txt" if json["dataset"] == 2 else "urls.txt"
+        return (FIXTURES / listing).read_text(encoding="utf-8")
 
     def get_bytes(self, url, params=None, headers=None):
         self.downloads.append(url)
         name = url.rsplit("/", 1)[-1]
-        path = FIXTURES / name
+        path = FIXTURES / (f"E1a_{name}" if "/airquality-p-e1a/" in url else name)
         return path.read_bytes() if path.exists() else EMPTY
 
 
@@ -79,8 +92,72 @@ def test_search_and_only_the_configured_stations_are_downloaded():
     }
     assert all("/SP_07" in url for url in http.downloads)
     bellver = next(p for p in payloads if p.partition == "07040003_8_8")
-    assert base64.b64decode(bellver.body) == (FIXTURES / "SP_07040003_8_8.parquet").read_bytes()
+    original = (FIXTURES / "SP_07040003_8_8.parquet").read_bytes()
+    assert bellver.request["sha256"] == hashlib.sha256(original).hexdigest()
+    assert bellver.request["bytes"] == len(original)
     assert bellver.key == "eea_air_quality/hourly/partition=07040003_8_8/window=20261012_20261013/payload.json"
+
+
+def test_bronze_keeps_only_the_rows_of_the_window():
+    connector = registry.load("eea_air_quality", http=RecordedEea())
+
+    bellver = next(p for p in connector.extract(WINDOW, MALLORCA) if p.partition == "07040003_8_8")
+
+    rows = pq.read_table(io.BytesIO(base64.b64decode(bellver.body)))
+    assert rows.num_rows == 48  # the fixture has 11 days
+    assert rows.schema == pq.read_table(FIXTURES / "SP_07040003_8_8.parquet").schema
+    # 12 October 00:00 UTC is the file's 01:00.
+    assert min(rows["Start"].to_pylist()) == datetime(2026, 10, 12, 1)  # noqa: DTZ001 - the file has local times
+
+
+def test_previous_years_come_from_the_verified_files():
+    http = RecordedEea()
+    connector = registry.load("eea_air_quality", http=http)
+
+    payloads = connector.extract(VERIFIED_WINDOW, MALLORCA)
+    observations = [o for p in payloads for o in connector.normalize(p, MALLORCA)]
+
+    assert [s["dataset"] for s in http.searches] == [2]
+    assert all("/airquality-p-e1a/" in url for url in http.downloads)
+    assert len(payloads) == 9  # one NO2 file per configured station
+    foners = next(p for p in payloads if p.request["station"] == "07040002")
+    assert foners.partition == "07040002_8_8_verified"
+    assert foners.request["dataset"] == 2
+    no2 = {o.ts: o.value for o in observations if o.entity == "foners"}
+    assert len(no2) == 48
+    assert no2[datetime(2025, 12, 31, 9, tzinfo=UTC)] == 27.0  # file row 31 Dec 10:00 (UTC+01)
+    assert no2[datetime(2025, 12, 31, 23, tzinfo=UTC)] == 25.0  # file row 1 Jan 2026 00:00, still in the 2025 file
+
+
+def test_a_window_across_new_year_searches_both_datasets():
+    http = RecordedEea()
+    connector = registry.load("eea_air_quality", http=http)
+
+    payloads = connector.extract(TimeWindow(date(2025, 12, 31), date(2026, 1, 1)), MALLORCA)
+
+    searches = [(s["dataset"], s["dateTimeStart"], s["dateTimeEnd"]) for s in http.searches]
+    assert searches == [
+        (2, "2025-12-31T00:00:00Z", "2025-12-31T23:59:59Z"),
+        (1, "2026-01-01T00:00:00Z", "2026-01-01T23:59:59Z"),
+    ]
+    partitions = {p.partition for p in payloads}
+    assert {"07040002_8_8_verified", "07040002_8_8"} <= partitions
+    assert len({p.key for p in payloads}) == len(payloads)  # no bronze key is written twice
+
+
+def test_verified_files_are_downloaded_once_per_process():
+    http = RecordedEea()
+    connector = registry.load("eea_air_quality", http=http)
+
+    connector.extract(TimeWindow(date(2025, 1, 1), date(2025, 3, 31)), MALLORCA)
+    connector.extract(TimeWindow(date(2025, 4, 1), date(2025, 6, 30)), MALLORCA)
+    connector.extract(WINDOW, MALLORCA)
+    connector.extract(WINDOW, MALLORCA)
+
+    verified = [url for url in http.downloads if "/airquality-p-e1a/" in url]
+    assert len(verified) == len(set(verified)) == 9
+    up_to_date = [url for url in http.downloads if "/airquality-p-e1a/" not in url]
+    assert len(up_to_date) == 2 * 36  # current-year files change every hour: never cached
 
 
 def test_utc_plus_one_timestamps_become_utc():
@@ -124,3 +201,21 @@ def test_no_station_in_the_region_is_an_error():
     connector = registry.load("eea_air_quality", http=RecordedEea())
     with pytest.raises(ConnectorError, match="no EEA air quality station"):
         connector.extract(WINDOW, Region("ibiza", 38.8, 1.2, 39.2, 1.7))
+
+
+def test_files_that_end_before_the_window_mean_the_source_is_not_updated():
+    connector = registry.load("eea_air_quality", http=RecordedEea())
+
+    # The fixtures end on 20 October: the EEA has not published the 25th yet.
+    with pytest.raises(SourceNotUpdatedError, match="end at 2026-10-20 22:00 UTC, before 2026-10-25"):
+        connector.extract(TimeWindow(date(2026, 10, 25), date(2026, 10, 25)), MALLORCA)
+
+
+def test_an_outage_inside_the_files_is_not_a_stale_source():
+    connector = registry.load("eea_air_quality", http=RecordedEea())
+
+    # The source has no data from 15 October 09:00 to the 18th, but its files go on: an empty window, not a delay.
+    payloads = connector.extract(TimeWindow(date(2026, 10, 16), date(2026, 10, 16)), MALLORCA)
+
+    assert payloads
+    assert not any(p.request["rows"] for p in payloads)

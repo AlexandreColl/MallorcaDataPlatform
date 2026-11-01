@@ -17,8 +17,8 @@ tab_space_size = 4
 template_blocks_indent = false
 
 [sqlfluff:rules:references.keywords]
-# Column names that are part of model contracts and of the Grafana queries.
-ignore_words = year, quarter, month, days, point, stop, model, lines
+# Column names that are part of model contracts and of the Grafana queries (source and value: the common schema).
+ignore_words = year, quarter, month, days, point, stop, model, lines, source, value
 
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = lower
