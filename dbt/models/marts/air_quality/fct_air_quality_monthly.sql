@@ -1,5 +1,6 @@
 -- Monthly air quality of each official station over two decades: the GOIB history (2002 to June 2021) and the EEA
--- live feed use the same station names, so a station reads as one series. Only measured, valid hours count, and a
+-- (verified files from July 2021, the live feed for the current year) use the same station names, so a station reads
+-- as one series. Only measured, valid hours count, and a
 -- month is representative with at least 75 % of them (an outage never reads as a clean month).
 with hourly as (
     select

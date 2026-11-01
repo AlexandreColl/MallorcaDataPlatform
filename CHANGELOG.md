@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Verified EEA air quality data (E1a) for previous years: `eea_air_quality` splits the window by year and reads the
+  current year from the up-to-date files and earlier years from the verified ones (2013 onwards). A backfill of July
+  2021 to 2025 closes the gap between the GOIB history and the live feed, so `fct_air_quality_monthly` is continuous
+  from 2002. Verified files hold every year, so they are downloaded once per process.
+
+### Changed
+
+- `eea_air_quality` keeps in bronze only each file's rows of the window (unchanged, as Parquet), with the SHA-256 and
+  size of the whole file, instead of the whole file: a verified file holds thirteen years. The `dataset` option is
+  gone: the extractor picks the dataset by year.
+
 ## [0.7.0] - 2026-10-31
 
 ### Added

@@ -118,7 +118,7 @@ Otros comandos: `make help`.
 | [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
-| [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA) | No |
+| [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
 
 ### Open-Meteo
 
@@ -200,6 +200,12 @@ contaminantes se llaman como en Open-Meteo, y `fct_air_quality_model_bias_daily`
 CAMS. En Grafana, las estaciones aparecen en el mapa de Inicio y el error del modelo en Tiempo y entorno. Prueba
 real: el modelo se queda corto de NO₂ junto al tráfico de Foners (−6 µg/m³) y se pasa de ozono en Palma (+20), que
 es justo donde el NO del tráfico lo consume.
+
+Los años anteriores salen de los ficheros verificados de la EEA (E1a, desde 2013), porque los *up-to-date* solo
+traen el año en curso: el conector parte la ventana por años y busca cada parte en su conjunto. Un backfill de julio
+de 2021 a 2025 (1,38 millones de valores horarios en 19 tramos, unos 10 minutos) une el histórico de la GOIB con los
+datos actuales, y `fct_air_quality_monthly` queda continuo desde 2002. El NO₂ de Foners se queda en torno a 22 µg/m³
+tras el confinamiento (21,6 en 2025), sin volver a los 31,6 de 2019.
 
 ### Histórico de calidad del aire (GOIB)
 
