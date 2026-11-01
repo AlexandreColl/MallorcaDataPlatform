@@ -60,6 +60,27 @@ class Anomaly(BaseModel):
     threshold: float | None
 
 
+class Correction(BaseModel):
+    """A proposed value for a station hour without a valid one (gold.fct_observations_corrected).
+
+    Corrections never change the observation: the original value and quality come with the corrected one.
+    """
+
+    source: str = Field(examples=["socib"])
+    entity: str = Field(examples=["parcbit"])
+    metric: str = Field(examples=["temperature_2m"])
+    ts: datetime
+    unit: str | None = Field(examples=["degC"])
+    original_quality: str = Field(examples=["missing"], description="`missing`, `suspect` or `absent` (no row)")
+    original_value: float | None = Field(description="The suspect value; empty when it was missing or absent.")
+    corrected_value: float
+    method: str = Field(examples=["support"], description="`interpolation` (gaps up to 3 h) or `support`")
+    support_source: str | None = Field(examples=["open_meteo"], description="Method `support`: the series used.")
+    support_entity: str | None = Field(examples=["llucmajor"])
+    bias: float | None = Field(description="Station minus support at that hour of the day, added to the support.")
+    confidence: float = Field(ge=0, le=1, description="From the correlation, the distance and the gap length.")
+
+
 class Page[T](BaseModel):
     """A page of results. Ask for the next one with ``offset=next_offset`` while it is not null."""
 

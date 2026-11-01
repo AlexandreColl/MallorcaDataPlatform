@@ -19,6 +19,12 @@ WATER = {
     "aquifers_below_30_pct": 7, "lowest_aquifer": "Son Real", "lowest_aquifer_pct": 9.0,
 }  # fmt: skip
 
+CORRECTION = {
+    "source": "socib", "entity": "parcbit", "metric": "temperature_2m", "ts": TS, "unit": "degC",
+    "original_quality": "missing", "original_value": None, "corrected_value": 17.4, "method": "support",
+    "support_source": "open_meteo", "support_entity": "llucmajor", "bias": -1.2, "confidence": 0.71,
+}  # fmt: skip
+
 
 def observation(i):
     return {"source": "aemet", "entity": "B278", "metric": "temperature_2m_mean", "ts": TS, "value": 20.0 + i,
@@ -166,11 +172,32 @@ def test_anomalies_filters(db):
     assert (params["source"], params["detector"], params["limit"]) == ("open_meteo", "robust_zscore", 101)
 
 
+def test_corrections_filters_and_page(db):
+    db.rows = {"gold.fct_observations_corrected": [CORRECTION], **db.rows}  # before gold.fct_observations
+    response = client(db).get("/v1/corrections", params={"source": "socib", "method": "support", "limit": 10})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"][0]["method"] == "support"
+    assert body["items"][0]["original_value"] is None
+    sql, params = db.calls[-1]
+    assert "gold.fct_observations_corrected" in sql
+    assert "is_corrected" in sql
+    assert (params["source"], params["entity"], params["method"], params["limit"]) == ("socib", None, "support", 11)
+
+
+def test_corrections_reject_an_unknown_method(db):
+    response = client(db).get("/v1/corrections", params={"method": "magic"})
+
+    assert response.status_code == 422
+    assert db.calls == []
+
+
 def test_openapi_documents_every_endpoint(db):
     paths = client(db).get("/openapi.json").json()["paths"]
 
     assert set(paths) == {
-        "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies",
+        "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/resources/monthly",
     }  # fmt: skip

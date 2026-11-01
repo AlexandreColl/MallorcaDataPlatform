@@ -105,6 +105,63 @@
       }
     ]
   },
+  "annotations": {
+    "list": [
+      {
+        "name": "Anomalías",
+        "enable": true,
+        "iconColor": "#F2495C",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "warehouse"
+        },
+        "filter": {
+          "exclude": false,
+          "ids": [
+            1,
+            2
+          ]
+        },
+        "target": {
+          "refId": "Anno",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, concat(entity, ' · ', metric, ': ', round(value::numeric, 2), ' (esperado ', round(expected::numeric, 2), ', ', CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'Isolation Forest' END, ')') AS text, detector AS tags FROM silver.anomalies WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts) ORDER BY ts"
+        }
+      },
+      {
+        "name": "Anomalías de NO2",
+        "enable": true,
+        "iconColor": "#F2495C",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "warehouse"
+        },
+        "filter": {
+          "exclude": false,
+          "ids": [
+            8
+          ]
+        },
+        "target": {
+          "refId": "Anno",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, concat(entity, ' · ', metric, ': ', round(value::numeric, 2), ' (esperado ', round(expected::numeric, 2), ', ', CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'Isolation Forest' END, ')') AS text, detector AS tags FROM silver.anomalies WHERE source = 'eea_air_quality' AND metric = 'nitrogen_dioxide' AND $__timeFilter(ts) ORDER BY ts"
+        }
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,

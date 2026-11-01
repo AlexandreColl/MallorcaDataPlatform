@@ -75,6 +75,36 @@
       }
     ]
   },
+  "annotations": {
+    "list": [
+      {
+        "name": "Anomalías de la serie corregida",
+        "enable": true,
+        "iconColor": "#F2495C",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "warehouse"
+        },
+        "filter": {
+          "exclude": false,
+          "ids": [
+            14
+          ]
+        },
+        "target": {
+          "refId": "Anno",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ts AS time, concat(entity, ' · ', metric, ': ', round(value::numeric, 2), ' (esperado ', round(expected::numeric, 2), ', ', CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'Isolation Forest' END, ')') AS text, detector AS tags FROM silver.anomalies WHERE concat(source, '/', entity, '/', metric) = '$serie' AND $__timeFilter(ts) ORDER BY ts"
+        }
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
@@ -13,6 +13,7 @@ from api.schemas import (
     Anomaly,
     Aquifer,
     ClimateMonth,
+    Correction,
     ErrorResponse,
     Health,
     Observation,
@@ -133,6 +134,27 @@ def anomalies(  # noqa: PLR0913 - one query parameter per filter
     start, end = _window(start, end)
     rows = warehouse.anomalies(source=source, detector=detector, start=start, end=end, limit=limit + 1, offset=offset)
     return _page([Anomaly(**row) for row in rows], limit, offset)
+
+
+@router.get("/corrections", tags=["series"])
+def corrections(  # noqa: PLR0913 - one query parameter per filter
+    request: Request,
+    warehouse: WarehouseDep,
+    source: Annotated[str | None, Query(description="Only this source: `socib` or `eea_air_quality`.")] = None,
+    entity: Annotated[str | None, Query(description="Only this station.")] = None,
+    method: Annotated[Literal["interpolation", "support"] | None, Query(description="Only this method.")] = None,
+    start: Start = None,
+    end: End = None,
+    limit: Limit = DEFAULT_PAGE_SIZE,
+    offset: Offset = 0,
+) -> Page[Correction]:
+    """Proposed values for station hours without a valid one, newest first, paginated."""
+    _check_limit(limit, get_max_page_size(request))
+    start, end = _window(start, end)
+    rows = warehouse.corrections(
+        source=source, entity=entity, method=method, start=start, end=end, limit=limit + 1, offset=offset
+    )
+    return _page([Correction(**row) for row in rows], limit, offset)
 
 
 @router.get("/water/reserves", tags=["monthly"])

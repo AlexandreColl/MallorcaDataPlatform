@@ -38,6 +38,7 @@ def test_health(api):
         "/v1/tourism/monthly",
         "/v1/resources/monthly",
         "/v1/anomalies?start=2016-01-01T00:00:00Z&limit=5",
+        "/v1/corrections?start=2016-01-01T00:00:00Z&limit=5",
     ],
 )
 def test_every_endpoint_runs_its_sql(api, path):
