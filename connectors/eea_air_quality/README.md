@@ -48,8 +48,10 @@ CAMS (`fct_air_quality_model_bias_daily`).
      10:00-11:00 son las 09:00 UTC.
    - Las filas que la fuente marca como no válidas (validez -1 o -99) llevan el valor centinela -999 y se guardan
      como `missing`, no como un valor.
-3. Las estaciones de Baleares que no están en el YAML se ignoran con un aviso en el log, así que una estación nueva
-   no pasa desapercibida.
+. Si la ventana no tiene filas y todos los ficheros terminan antes de ella, la EEA ha dejado de publicar por un
+   tiempo (pasó del 30 de octubre al 1 de noviembre de 2026): el conector lanza `SourceNotUpdatedError`, con la hora
+   del último dato. El E2E lo trata como una API caída (aviso) y la siguiente ejecución recupera los días. Una
+   ventana vacía en medio de los ficheros (un corte de la fuente ya superado) no es este caso.
 
 ## Por qué la EEA y no OpenAQ ni aqicn
 

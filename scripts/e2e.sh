@@ -60,10 +60,11 @@ suffix=$(date +%s)
 run_dag "e2e_first_$suffix"
 sources=$(grep -o '"connectors": *\[[^]]*\]' <<<"$CONF" | grep -o '"[a-z_]*"' | tr -d '"' | grep -v connectors)
 
-# A connector may fail only because its upstream API is down (connection errors, timeouts, 5xx): that is
-# a warning, because the DAG keeps going without it and its next run catches up the missed days. Any other
-# error (a bug, an API that changed its format) fails the E2E.
-UPSTREAM_ERRORS='^(ConnectTimeout|ConnectionError|ReadTimeout|Timeout|SSLError|ChunkedEncodingError|RetryError|HTTPError: 5[0-9][0-9])'
+# A connector may fail only because its upstream API is down (connection errors, timeouts, 5xx) or has stopped
+# publishing (SourceNotUpdatedError: its data ends before the window): that is a warning, because the DAG keeps
+# going without it and its next run catches up the missed days. Any other error (a bug, an API that changed its
+# format) fails the E2E.
+UPSTREAM_ERRORS='^(ConnectTimeout|ConnectionError|ReadTimeout|Timeout|SSLError|ChunkedEncodingError|RetryError|HTTPError: 5[0-9][0-9]|SourceNotUpdatedError)'
 succeeded=""
 check_runs() {
   local run_id=$1 source status error

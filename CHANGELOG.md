@@ -34,6 +34,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   size of the whole file, instead of the whole file: a verified file holds thirteen years. The `dataset` option is
   gone: the extractor picks the dataset by year.
 
+### Fixed
+
+- A source that has stopped publishing for a while is an upstream outage, not a bug: `eea_air_quality` raises the
+  new `SourceNotUpdatedError` when the window has no rows and every file ends before it (the EEA published nothing
+  from 30 October to 1 November 2026), and the E2E treats it as a warning like a connection error.
+
 ## [0.7.0] - 2026-10-31
 
 ### Added
