@@ -33,6 +33,14 @@ sources:
       - {name: eea_air_quality, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'eea_air_quality'"}}
       - {name: ign, identifier: observations, freshness: null}
       - {name: goib_air_quality, identifier: observations, freshness: null}  # history only (2002 to June 2021)
+      - name: corrections
+        description: >-
+          Proposed corrections of station values (core/corrections): interpolation of short gaps or a nearby support
+          series with a calibrated bias. silver.observations is never changed.
+        freshness: null  # rows only exist when a station has gaps
+        columns:
+          - name: confidence
+            data_tests: [not_null]
 
   - name: quality
     tables:

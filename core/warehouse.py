@@ -174,6 +174,28 @@ class Warehouse:
             )
         return len(rows)
 
+    def replace_corrections(self, sources: list[str], window: TimeWindow, rows: list[tuple], run_id: str) -> int:
+        """Replace the corrections of ``sources`` in ``window`` (one transaction). Returns the row count.
+
+        Rows follow ``core.corrections.runner.STORED_COLUMNS``. A gap filled by an earlier run whose real values
+        have arrived since is no longer corrected, so its rows disappear.
+        """
+        with self.connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM silver.corrections WHERE source = ANY(%s) AND ts >= %s AND ts < %s",
+                (sources, window.start_dt(), window.end_dt_exclusive()),
+            )
+            cur.executemany(
+                """
+                INSERT INTO silver.corrections
+                    (source, entity, metric, unit, ts, original_value, original_quality, corrected_value, method,
+                     support_source, support_entity, bias, confidence, run_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                [(*row, run_id) for row in rows],
+            )
+        return len(rows)
+
     def record_evaluation(self, run_id: str, seed: int, rows: list[dict]) -> None:
         """Store a detector benchmark (rows of ``core.anomaly.evaluation.Evaluation.rows``); re-runs overwrite."""
         with self.connect() as conn, conn.cursor() as cur:

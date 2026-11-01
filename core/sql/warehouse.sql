@@ -44,6 +44,28 @@ CREATE TABLE IF NOT EXISTS silver.anomalies (
     PRIMARY KEY (source, entity, metric, ts, detector)
 );
 
+-- Proposed corrections of station values (core/corrections). silver.observations is never changed: gold shows the
+-- corrected value next to the original. An hour without a row in silver.observations has original_quality 'absent'.
+-- Each run replaces the rows of its sources and window, so a correction disappears once the real value arrives.
+CREATE TABLE IF NOT EXISTS silver.corrections (
+    source            text             NOT NULL,
+    entity            text             NOT NULL,
+    metric            text             NOT NULL,
+    ts                timestamptz      NOT NULL,
+    unit              text             NOT NULL,
+    original_value    double precision,
+    original_quality  text             NOT NULL CHECK (original_quality IN ('missing', 'suspect', 'absent')),
+    corrected_value   double precision NOT NULL,
+    method            text             NOT NULL CHECK (method IN ('interpolation', 'support')),
+    support_source    text,                      -- method 'support': the series that stood in for the station
+    support_entity    text,
+    bias              double precision,          -- station minus support at that hour of the day
+    confidence        double precision NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    run_id            text             NOT NULL,
+    corrected_at      timestamptz      NOT NULL DEFAULT now(),
+    PRIMARY KEY (source, entity, metric, ts)
+);
+
 -- Fault-injection benchmark of the detectors (core/anomaly/evaluation.py): one row per detector and fault kind,
 -- plus fault = 'all' with the totals and the precision.
 CREATE TABLE IF NOT EXISTS quality.anomaly_evaluations (
