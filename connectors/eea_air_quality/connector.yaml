@@ -1,5 +1,5 @@
 name: eea_air_quality
-description: EEA up-to-date air quality - hourly NO2, O3, PM10, PM2.5, SO2 and CO of the official stations of Mallorca (Govern network), no API key
+description: EEA air quality (verified from 2013, up-to-date for the current year) - hourly NO2, O3, PM10, PM2.5, SO2 and CO of the official stations of Mallorca (Govern network), no API key
 entrypoint: connectors.eea_air_quality.extractor:EeaAirQualityConnector
 enabled: true
 frequency: 1h
@@ -8,11 +8,11 @@ secrets: []
 
 options:
   # EEA Air Quality Download Service: a JSON search returns one Parquet file per sampling point (a station and
-  # pollutant) with the whole year, published about two hours after each measurement.
+  # pollutant). The current year comes from the up-to-date files (E2a, unverified, about two hours after each
+  # measurement) and earlier years from the verified ones (E1a, 2013 onwards): the extractor picks the dataset by year.
   api_url: https://eeadmz1-downloads-api-appservice.azurewebsites.net
   country: ES
-  dataset: 1                 # 1 = up-to-date, unverified data (E2a); 2 = verified (E1a, previous years)
-  utc_offset_hours: 1        # Spanish timestamps are fixed UTC+01 (EEA metadata "Timezone"), all year round
+  utc_offset_hours: 1       # Spanish timestamps are fixed UTC+01 (EEA metadata "Timezone"), all year round
   min_validity: 1            # EEA validity: 1-3 valid; -1 not valid and -99 maintenance carry -999: stored as missing
   province_code: "07"        # Illes Balears: unlisted stations of the province are reported in the log
   # Official stations of Mallorca by national code (the file name: SP_<code>_<pollutant>_<method>.parquet).
