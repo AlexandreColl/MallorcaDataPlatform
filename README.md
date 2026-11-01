@@ -277,6 +277,11 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
 Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
 de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.
 
+En Grafana, las anomalías se dibujan como anotaciones sobre las series: en el explorador de Tiempo y entorno (la
+métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto, porque son nueve) y en el
+antes y después de Operación. Las horas anómalas seguidas de una serie son una sola banda, con el rango de valores y
+el valor esperado, así que un temporal es una marca y no treinta. Las tablas de Operación las listan una a una.
+
 ### Medir los detectores con fallos inyectados
 
 Las anomalías reales no vienen etiquetadas, así que no se puede saber cuántas se escapan. `make evaluate` crea esa
@@ -352,7 +357,9 @@ absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
   horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
 
 En Grafana, el tablero Operación muestra las correcciones por día y método, una gráfica de antes y después de la
-serie elegida (variable *Serie corregida*) y la tabla de las últimas correcciones.
+serie elegida (variable *Serie corregida*) y la tabla de las últimas correcciones. Las anomalías de esa serie aparecen
+como bandas sobre la gráfica, igual que en el explorador de Tiempo y entorno: así se ve qué corrige cada parte. La
+API las sirve en `GET /v1/corrections`.
 
 ## Grafana
 
@@ -365,7 +372,7 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Turismo y recursos** | Turistas frente a reservas de agua y demanda eléctrica; las anomalías frente al mismo mes, que quitan la estacionalidad; y una evaluación año a año (turistas de verano frente a la caída de las reservas de marzo a septiembre, con su correlación) |
 | **Clima y agua** | Reservas frente a la media del mes, lluvia mensual y respuesta de los acuíferos, tabla por año hidrológico, anomalía de temperatura, lluvia acumulada y el estado de los 18 acuíferos |
 | **Movilidad** | Servicio programado de EMT Palma y CTM por día, mapa de calor por parada y paradas con más servicio |
-| **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
+| **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, con sus anomalías como anotaciones, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
 | **Operación** | Salud de cada fuente, anomalías detectadas, correcciones (antes y después), ejecuciones, reglas de calidad y completitud de cada serie |
 
 | Turismo y recursos | Clima y agua |
@@ -429,6 +436,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
+| `GET /v1/corrections` | Valores propuestos para las horas sin valor válido de las estaciones, con el original, el método, el apoyo, el sesgo y la confianza; filtrados por fuente, estación, método y rango, paginados |
 | `GET /v1/water/reserves`, `/v1/water/aquifers` | Reservas mensuales con su anomalía y los 18 acuíferos del último mes |
 | `GET /v1/climate/monthly`, `/v1/tourism/monthly`, `/v1/resources/monthly` | Los marts mensuales de los dashboards, filtrables con `from` y `to` |
 

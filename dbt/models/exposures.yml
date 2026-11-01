@@ -131,6 +131,7 @@ exposures:
       - ref('fct_climate_monthly')
       - ref('fct_tourism_monthly')
       - ref('fct_resources_monthly')
+      - ref('fct_observations_corrected')
 
   - name: corrections_phase
     label: Corrections with support sources (phase 4)

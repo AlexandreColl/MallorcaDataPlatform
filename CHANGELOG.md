@@ -21,6 +21,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   1.35 °C in 24 h with a support against 2.19 without its bias). `gold.fct_observations_corrected` shows both
   values side by side, and the Operación dashboard has corrections per day, a before/after chart of the chosen
   series and the latest corrections.
+- `GET /v1/corrections` in the REST API: the proposed values of the station gaps with the original value and
+  quality, the method, the support, its bias and the confidence, filtered by source, station, method and time range,
+  paginated.
+- Anomalies as Grafana annotations on the series: the metric explorer of Tiempo y entorno, the stations' NO2 (off by
+  default) and the before/after chart of Operación. Consecutive anomalous hours of a series are one band with the
+  range of values and the expected value.
 
 ### Changed
 

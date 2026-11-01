@@ -100,13 +100,14 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, desfase horario) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 80 % |
 | ⬜ | Combinar detectores (unión o votación) y medirlo con el benchmark: el z-score y el bosque fallan en cosas distintas |
 | ⬜ | Desfase horario (reloj o zona horaria): ninguno pasa del 6 %; probar un detector estacional (residuo frente a la misma hora de días anteriores) |
-| ⬜ | Panel de anomalías en Grafana (anotaciones sobre las series) |
+| ✅ | Anomalías como anotaciones de Grafana sobre las series: en el explorador de Tiempo y entorno (la métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto: nueve estaciones) y en el antes y después de Operación. Las horas anómalas seguidas de una serie forman una sola banda, con el rango de valores y el valor esperado |
 
 ## API REST
 
 | Estado | Tarea |
 |---|---|
 | ✅ | API de solo lectura con FastAPI sobre los marts con contrato: salud, fuentes, observaciones y anomalías paginadas, reservas, acuíferos y marts mensuales; rol `api_reader`, imagen propia, tests unitarios e integración en CI, y comprobación en el E2E |
+| ✅ | `GET /v1/corrections`: las correcciones propuestas de las estaciones (`gold.fct_observations_corrected`), filtrables por fuente, estación, método y rango |
 | ⬜ | Caché de respuestas de los marts mensuales (cambian una vez al día) y límite de peticiones por cliente |
 | ⬜ | Exportar series en CSV o Parquet además de JSON |
 
