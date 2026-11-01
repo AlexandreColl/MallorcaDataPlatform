@@ -8,7 +8,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from connectors.eea_air_quality import extractor
-from core.connectors import ConnectorError, registry
+from core.connectors import ConnectorError, SourceNotUpdatedError, registry
 from core.models import Quality, Region, TimeWindow
 
 # The EEA search listing for 10-20 October 2026 (the Balearic lines and three from Madrid) and five real files,
@@ -201,3 +201,21 @@ def test_no_station_in_the_region_is_an_error():
     connector = registry.load("eea_air_quality", http=RecordedEea())
     with pytest.raises(ConnectorError, match="no EEA air quality station"):
         connector.extract(WINDOW, Region("ibiza", 38.8, 1.2, 39.2, 1.7))
+
+
+def test_files_that_end_before_the_window_mean_the_source_is_not_updated():
+    connector = registry.load("eea_air_quality", http=RecordedEea())
+
+    # The fixtures end on 20 October: the EEA has not published the 25th yet.
+    with pytest.raises(SourceNotUpdatedError, match="end at 2026-10-20 22:00 UTC, before 2026-10-25"):
+        connector.extract(TimeWindow(date(2026, 10, 25), date(2026, 10, 25)), MALLORCA)
+
+
+def test_an_outage_inside_the_files_is_not_a_stale_source():
+    connector = registry.load("eea_air_quality", http=RecordedEea())
+
+    # The source has no data from 15 October 09:00 to the 18th, but its files go on: an empty window, not a delay.
+    payloads = connector.extract(TimeWindow(date(2026, 10, 16), date(2026, 10, 16)), MALLORCA)
+
+    assert payloads
+    assert not any(p.request["rows"] for p in payloads)

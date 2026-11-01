@@ -76,7 +76,8 @@ flowchart LR
 - **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
   si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
   error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
-  su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída (aviso) de un fallo real (error).
+  su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída o una fuente que ha dejado de
+  publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
   (`quality_reasons`), pero nunca modifican el valor. Las correcciones irán en una capa propia (ver roadmap).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.

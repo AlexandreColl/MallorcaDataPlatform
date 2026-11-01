@@ -29,7 +29,7 @@ import re
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from core.connectors import BaseConnector, ConnectorError
+from core.connectors import BaseConnector, ConnectorError, SourceNotUpdatedError
 from core.models import Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
@@ -59,6 +59,7 @@ class EeaAirQualityConnector(BaseConnector):
 
         Raises:
             ConnectorError: if no configured station lies in the region or the search returns none of their files.
+            SourceNotUpdatedError: if the window has no rows and every file ends before it (the EEA is late).
         """
         options = self.config.options
         stations = self._stations(region)
@@ -67,6 +68,7 @@ class EeaAirQualityConnector(BaseConnector):
             raise ConnectorError(msg)
         payloads = []
         unknown: set[str] = set()
+        latest: list[datetime] = []  # last hour of each file, to tell a stale source from an empty window
         for dataset, part in _parts(window, _current_year()):
             search = {
                 "countries": [options["country"]],
@@ -90,6 +92,9 @@ class EeaAirQualityConnector(BaseConnector):
                         unknown.add(code)
                     continue
                 archive = self._download(url, verified=dataset == _VERIFIED)
+                rows, in_window, last = self._rows_of(archive, part)
+                if last is not None:
+                    latest.append(last)
                 sampling_point = f"{code}_{match['rest']}"
                 payloads.append(
                     RawPayload(
@@ -102,17 +107,16 @@ class EeaAirQualityConnector(BaseConnector):
                             "dataset": dataset,
                             "sha256": hashlib.sha256(archive).hexdigest(),
                             "bytes": len(archive),
+                            "rows": in_window,
                         },
-                        body=base64.b64encode(self._rows_of(archive, part)).decode("ascii"),
+                        body=base64.b64encode(rows).decode("ascii"),
                         # A window across New Year has the same sampling point in both datasets.
                         partition=sampling_point if dataset == _UP_TO_DATE else f"{sampling_point}_verified",
                     )
                 )
         if unknown:
             log.warning("EEA Balearic stations not in connector.yaml (ignored): %s", sorted(unknown))
-        if not payloads:
-            msg = f"EEA search returned no file of the configured stations for {window.start}..{window.end}"
-            raise ConnectorError(msg)
+        _check_found(payloads, latest, window)
         return payloads
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:  # noqa: ARG002 - coords from config
@@ -173,8 +177,12 @@ class EeaAirQualityConnector(BaseConnector):
             log.info("downloaded %s (%d bytes)", url, len(_VERIFIED_FILES[url]))
         return _VERIFIED_FILES[url]
 
-    def _rows_of(self, archive: bytes, part: TimeWindow) -> bytes:
-        """The file's rows whose hour starts inside the window part, as Parquet with the file's own columns."""
+    def _rows_of(self, archive: bytes, part: TimeWindow) -> tuple[bytes, int, datetime | None]:
+        """The file's rows whose hour starts inside the window part, as Parquet with the file's own columns.
+
+        Returns:
+            The Parquet, its number of rows and the start of the file's last hour in UTC (None for an empty file).
+        """
         import pyarrow as pa  # noqa: PLC0415 - only this connector reads Parquet
         import pyarrow.compute as pc  # noqa: PLC0415
         import pyarrow.parquet as pq  # noqa: PLC0415
@@ -187,9 +195,26 @@ class EeaAirQualityConnector(BaseConnector):
         inside = pc.and_(
             pc.greater_equal(table["Start"], pa.scalar(start, unit)), pc.less(table["Start"], pa.scalar(end, unit))
         )
+        kept = table.filter(inside)
         buffer = io.BytesIO()
-        pq.write_table(table.filter(inside), buffer)
-        return buffer.getvalue()
+        pq.write_table(kept, buffer)
+        last = pc.max(table["Start"]).as_py()
+        return buffer.getvalue(), kept.num_rows, _utc(last) - offset if last is not None else None
+
+
+def _check_found(payloads: list[RawPayload], latest: list[datetime], window: TimeWindow) -> None:
+    """Fail when the search found nothing, or when every file ends before the window (a stale source).
+
+    Raises:
+        ConnectorError: no file of the configured stations.
+        SourceNotUpdatedError: no row in the window and every file ends before it.
+    """
+    if not payloads:
+        msg = f"EEA search returned no file of the configured stations for {window.start}..{window.end}"
+        raise ConnectorError(msg)
+    if latest and not any(p.request["rows"] for p in payloads) and max(latest) < window.start_dt():
+        msg = f"EEA files end at {max(latest):%Y-%m-%d %H:%M} UTC, before {window.start}: not updated yet"
+        raise SourceNotUpdatedError(msg)
 
 
 def _parts(window: TimeWindow, current_year: int) -> list[tuple[int, TimeWindow]]:

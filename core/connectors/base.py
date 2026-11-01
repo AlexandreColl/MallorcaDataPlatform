@@ -33,6 +33,13 @@ class ConnectorError(Exception):
     """Raised for invalid connector configuration or usage."""
 
 
+class SourceNotUpdatedError(ConnectorError):
+    """The source answered, but its data ends before the requested window: it has stopped publishing for now.
+
+    Like a connection error, this is an upstream outage and not a bug: the next run catches up the missed days.
+    """
+
+
 @dataclass(frozen=True)
 class MetricSpec:
     """A metric declared in ``connector.yaml``: dataset, canonical unit and valid range."""
