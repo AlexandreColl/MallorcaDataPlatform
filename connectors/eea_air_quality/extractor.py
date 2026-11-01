@@ -1,10 +1,16 @@
 """EEA air quality connector: hourly pollutants of the official stations of Mallorca.
 
 The EEA Air Quality Download Service answers a JSON search (country, pollutants, dates) with the URLs of one
-Parquet file per sampling point (a station and a pollutant), each holding the year so far, about two hours behind
-real time. ``extract`` keeps the files of the stations listed in ``connector.yaml`` and stores each one untouched in
-bronze (base64, with its SHA-256). ``normalize`` reads the Parquet with pyarrow, keeps the hours of the window and
-converts them to the common schema:
+Parquet file per sampling point (a station and a pollutant). There are two datasets, and each year is in only one:
+
+* up-to-date (E2a, dataset 1): the current year so far, unverified, about two hours behind real time;
+* verified (E1a, dataset 2): every previous year the network has validated, 2013 onwards for Mallorca, in one file
+  per sampling point. The EEA publishes a year in the autumn of the next one: until then it is in neither.
+
+``extract`` searches the dataset of each year of the window and downloads the files of the stations listed in
+``connector.yaml``. Bronze keeps each file's rows of the window, unchanged, as Parquet (base64), with the SHA-256 and
+size of the whole file: a verified file holds thirteen years. ``normalize`` reads the Parquet with pyarrow and
+converts it to the common schema:
 
 * timestamps are fixed UTC+01 in the Spanish files (the EEA "Timezone"), so 10:00-11:00 is 09:00 UTC;
 * values are stored in ug/m3 like Open-Meteo (CO comes in mg/m3);
@@ -20,7 +26,7 @@ import hashlib
 import io
 import logging
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from core.connectors import BaseConnector, ConnectorError
@@ -33,6 +39,16 @@ log = logging.getLogger(__name__)
 
 _POLLUTANT_URI = "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/{code}"
 _SAMPLING_POINT = re.compile(r"/SP_(?P<station>\d+)_(?P<rest>[^/]+)\.parquet$")
+_UP_TO_DATE = 1
+_VERIFIED = 2
+
+# Verified files only change once a year: a backfill reads the same ones for every chunk, so they are downloaded
+# once per process. Up-to-date files change every hour and are never cached.
+_VERIFIED_FILES: dict[str, bytes] = {}
+
+
+def _current_year() -> int:
+    return datetime.now(UTC).year
 
 
 class EeaAirQualityConnector(BaseConnector):
@@ -49,46 +65,49 @@ class EeaAirQualityConnector(BaseConnector):
         if not stations:
             msg = f"no EEA air quality station configured inside region '{region.name}'"
             raise ConnectorError(msg)
-        search = {
-            "countries": [options["country"]],
-            "cities": [],
-            "pollutants": [_POLLUTANT_URI.format(code=c) for c in self.config.datasets["hourly"]["pollutants"]],
-            "dataset": int(options["dataset"]),
-            "source": "API",
-            "dateTimeStart": f"{window.start.isoformat()}T00:00:00Z",
-            "dateTimeEnd": f"{window.end.isoformat()}T23:59:59Z",
-            "aggregationType": "hour",
-        }
-        listing = self.http.post_text(f"{options['api_url']}/ParquetFile/urls", json=search)
-        urls = [line.strip() for line in listing.splitlines() if line.strip().startswith("http")]
         payloads = []
         unknown: set[str] = set()
-        for url in urls:
-            match = _SAMPLING_POINT.search(url)
-            if match is None:
-                continue
-            code = match["station"]
-            if code not in stations:
-                if code.startswith(str(options["province_code"])):
-                    unknown.add(code)
-                continue
-            archive = self.http.get_bytes(url)
-            sampling_point = f"{code}_{match['rest']}"
-            payloads.append(
-                RawPayload(
-                    source=self.name,
-                    dataset="hourly",
-                    window=window,
-                    request={
-                        "url": url,
-                        "station": code,
-                        "sha256": hashlib.sha256(archive).hexdigest(),
-                        "bytes": len(archive),
-                    },
-                    body=base64.b64encode(archive).decode("ascii"),
-                    partition=sampling_point,
+        for dataset, part in _parts(window, _current_year()):
+            search = {
+                "countries": [options["country"]],
+                "cities": [],
+                "pollutants": [_POLLUTANT_URI.format(code=c) for c in self.config.datasets["hourly"]["pollutants"]],
+                "dataset": dataset,
+                "source": "API",
+                "dateTimeStart": f"{part.start.isoformat()}T00:00:00Z",
+                "dateTimeEnd": f"{part.end.isoformat()}T23:59:59Z",
+                "aggregationType": "hour",
+            }
+            listing = self.http.post_text(f"{options['api_url']}/ParquetFile/urls", json=search)
+            urls = [line.strip() for line in listing.splitlines() if line.strip().startswith("http")]
+            for url in urls:
+                match = _SAMPLING_POINT.search(url)
+                if match is None:
+                    continue
+                code = match["station"]
+                if code not in stations:
+                    if code.startswith(str(options["province_code"])):
+                        unknown.add(code)
+                    continue
+                archive = self._download(url, verified=dataset == _VERIFIED)
+                sampling_point = f"{code}_{match['rest']}"
+                payloads.append(
+                    RawPayload(
+                        source=self.name,
+                        dataset="hourly",
+                        window=window,
+                        request={
+                            "url": url,
+                            "station": code,
+                            "dataset": dataset,
+                            "sha256": hashlib.sha256(archive).hexdigest(),
+                            "bytes": len(archive),
+                        },
+                        body=base64.b64encode(self._rows_of(archive, part)).decode("ascii"),
+                        # A window across New Year has the same sampling point in both datasets.
+                        partition=sampling_point if dataset == _UP_TO_DATE else f"{sampling_point}_verified",
+                    )
                 )
-            )
         if unknown:
             log.warning("EEA Balearic stations not in connector.yaml (ignored): %s", sorted(unknown))
         if not payloads:
@@ -145,6 +164,43 @@ class EeaAirQualityConnector(BaseConnector):
         """Configured stations (by national code) inside the region."""
         stations: Mapping[str, Mapping[str, Any]] = self.config.options["stations"]
         return {code: s for code, s in stations.items() if region.contains(float(s["lat"]), float(s["lon"]))}
+
+    def _download(self, url: str, *, verified: bool) -> bytes:
+        if not verified:
+            return self.http.get_bytes(url)
+        if url not in _VERIFIED_FILES:
+            _VERIFIED_FILES[url] = self.http.get_bytes(url)
+            log.info("downloaded %s (%d bytes)", url, len(_VERIFIED_FILES[url]))
+        return _VERIFIED_FILES[url]
+
+    def _rows_of(self, archive: bytes, part: TimeWindow) -> bytes:
+        """The file's rows whose hour starts inside the window part, as Parquet with the file's own columns."""
+        import pyarrow as pa  # noqa: PLC0415 - only this connector reads Parquet
+        import pyarrow.compute as pc  # noqa: PLC0415
+        import pyarrow.parquet as pq  # noqa: PLC0415
+
+        offset = timedelta(hours=int(self.config.options["utc_offset_hours"]))
+        table = pq.read_table(io.BytesIO(archive))
+        # File times are local (UTC+01) without a zone: compare them with the window's bounds in local time.
+        start, end = ((t + offset).replace(tzinfo=None) for t in (part.start_dt(), part.end_dt_exclusive()))
+        unit = table.schema.field("Start").type
+        inside = pc.and_(
+            pc.greater_equal(table["Start"], pa.scalar(start, unit)), pc.less(table["Start"], pa.scalar(end, unit))
+        )
+        buffer = io.BytesIO()
+        pq.write_table(table.filter(inside), buffer)
+        return buffer.getvalue()
+
+
+def _parts(window: TimeWindow, current_year: int) -> list[tuple[int, TimeWindow]]:
+    """The window split by dataset: days before the current year are only in the verified files."""
+    new_year = date(current_year, 1, 1)
+    parts = []
+    if window.start < new_year:
+        parts.append((_VERIFIED, TimeWindow(window.start, min(window.end, new_year - timedelta(days=1)))))
+    if window.end >= new_year:
+        parts.append((_UP_TO_DATE, TimeWindow(max(window.start, new_year), window.end)))
+    return parts
 
 
 def _utc(start: datetime) -> datetime:
