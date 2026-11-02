@@ -4,7 +4,7 @@ Spark used to overwrite the ``source=…/date=…`` Parquet partitions of each r
 table (the Parquet files plus a ``_delta_log`` of JSON commits):
 
 * each run MERGEs its rows on the key (source, entity, metric, ts), and rows whose content did not change are left
-  alone, like the Postgres upsert, so a rerun commits a version with nothing updated;
+  alone, like the Postgres upsert: a rerun that changes nothing rewrites no file and commits no version;
 * every commit is a version: ``history`` lists them with their row counts and ``snapshot`` reads the table as it was
   at a version or a time (time travel);
 * the existing Parquet partitions are converted in place the first time (``CONVERT TO DELTA``), without rewriting
@@ -96,7 +96,8 @@ class SilverTable:
     def merge(self, df: DataFrame) -> MergeResult:
         """Upsert the rows of one connector run on the key; unchanged rows are not rewritten.
 
-        The ON clause names the run's source and days, so the MERGE only reads (and rewrites) those partitions.
+        Rows already in the table with the same content are dropped first: Delta rewrites every file holding a matched
+        row, so a rerun would rewrite the window's files for nothing. A run that changes nothing commits no version.
         """
         rows = df.withColumn("date", F.to_date("ts"))
         with self._lock():
@@ -106,7 +107,15 @@ class SilverTable:
                 inserted = rows.count()
                 log.info("silver: created Delta table %s with %d rows", self.path, inserted)
                 return MergeResult(version=0, inserted=inserted, updated=0)
-            self._merge(rows)
+            pruning = self._pruning(rows)
+            pending = self._changed_rows(rows, pruning).cache()
+            if pending.isEmpty():
+                pending.unpersist()
+                version = self.history(limit=1)[0]["version"]
+                log.info("silver: no row changed, the table stays at version %d", version)
+                return MergeResult(version=version, inserted=0, updated=0)
+            self._merge(pending, pruning)
+            pending.unpersist()
             commit = self.history(limit=1)[0]
         log.info(
             "silver: version %d, %d rows inserted and %d updated",
@@ -116,22 +125,31 @@ class SilverTable:
         )
         return MergeResult(version=commit["version"], inserted=commit["inserted"], updated=commit["updated"])
 
-    def _merge(self, rows: DataFrame) -> None:
+    @staticmethod
+    def _pruning(rows: DataFrame) -> str:
+        """Literal partition values of the run: Delta prunes the target files and other sources' writers stay apart."""
         bounds = rows.agg(F.min("date").alias("first"), F.max("date").alias("last")).first()
-        sources = [r["source"] for r in rows.select("source").distinct().collect()]
+        sources = ", ".join(f"'{r['source']}'" for r in rows.select("source").distinct().collect())  # [a-z0-9_]
+        return f"t.source IN ({sources}) AND t.date BETWEEN '{bounds['first']}' AND '{bounds['last']}'"
+
+    def _changed_rows(self, rows: DataFrame, pruning: str) -> DataFrame:
+        """The rows that are new or differ from the table in a compared column."""
+        current = self.snapshot().alias("t").where(pruning)
+        same = [F.col(f"s.{c}") == F.col(f"t.{c}") for c in KEY] + [
+            F.col(f"s.{c}").eqNullSafe(F.col(f"t.{c}")) for c in COMPARED
+        ]
+        return rows.alias("s").join(current, on=same, how="left_anti")
+
+    def _merge(self, rows: DataFrame, pruning: str) -> None:
         view = "silver_updates"
         rows.createOrReplaceTempView(view)
         on = " AND ".join(f"t.{c} = s.{c}" for c in (*KEY, "date"))
-        # Literal partition values let Delta prune the target files and keep concurrent writers of other sources apart.
-        source_list = ", ".join(f"'{s}'" for s in sources)  # connector names: [a-z0-9_]
-        pruning = f"t.source IN ({source_list}) AND t.date BETWEEN '{bounds['first']}' AND '{bounds['last']}'"
-        changed = " OR ".join(f"NOT (t.{c} <=> s.{c})" for c in COMPARED)
         self.spark.sql(
             f"""
             MERGE INTO {self._table} AS t
             USING {view} AS s
             ON {on} AND {pruning}
-            WHEN MATCHED AND ({changed}) THEN UPDATE SET *
+            WHEN MATCHED THEN UPDATE SET *
             WHEN NOT MATCHED THEN INSERT *
             """
         )

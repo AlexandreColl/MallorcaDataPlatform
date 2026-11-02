@@ -54,13 +54,14 @@ def test_the_first_run_creates_the_table_partitioned_by_source_and_day(table, sp
     assert table.locks == ["held"]
 
 
-def test_a_rerun_with_the_same_values_updates_nothing(table, spark):
+def test_a_rerun_with_the_same_values_commits_nothing(table, spark):
     rows = _rows(spark, ("aemet", "temperature", T0, 20.0, "ok"))
     table.merge(rows)
 
     result = table.merge(_rows(spark, ("aemet", "temperature", T0, 20.0, "ok"), run_id="run2"))
 
-    assert (result.version, result.inserted, result.updated) == (1, 0, 0)
+    assert (result.version, result.inserted, result.updated) == (0, 0, 0)
+    assert len(table.history()) == 1  # no commit, no rewritten file
     assert table.snapshot().count() == 1
     assert table.snapshot().first()["run_id"] == "run1"  # an unchanged row keeps the run that wrote it
 

@@ -236,6 +236,33 @@ años. Prueba real: diez años en un minuto; agosto de 2026, 2,6 M turistas (+2,
 
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 
+## Silver en Delta Lake
+
+El lake de silver (`s3://silver/observations`) es una tabla [Delta Lake](https://delta.io/): los mismos Parquet
+particionados por `source=…/date=…`, más un `_delta_log` con un commit JSON por escritura que dice qué ficheros
+forman cada versión ([core/lake.py](core/lake.py)).
+
+- **`MERGE` en lugar de sobrescribir particiones.** Cada ejecución de un conector hace un `MERGE` por la clave
+  (fuente, entidad, métrica, hora). Las filas nuevas se insertan, las que cambian se actualizan y las que no cambian
+  no se reescriben, igual que el upsert de Postgres. Esas se descartan antes del `MERGE`, porque Delta reescribe
+  todo fichero con una fila coincidente: relanzar una ventana sin cambios no escribe nada ni crea versión. La
+  condición nombra la fuente y los días de la ventana, así que solo se leen esas particiones.
+- **Historial y *time travel*.** Cada commit es una versión con sus filas insertadas y actualizadas.
+  `make silver-history` las lista, y `make silver-changes VERSION=n` compara la tabla de hoy con la versión `n`:
+  qué filas aparecieron, cuáles desaparecieron y cuáles cambiaron de valor o de calidad.
+- **Mantenimiento.** `make silver-maintain` compacta los ficheros pequeños (`OPTIMIZE`) y borra los que ya no forman
+  parte de ninguna versión de los últimos 7 días (`VACUUM`). El *time travel* llega hasta donde llegan esos ficheros.
+- **Conversión sin reescribir.** El lake Parquet anterior se convierte en su sitio la primera vez
+  (`CONVERT TO DELTA`): solo se escribe el log, y los ficheros siguen donde estaban.
+- **Un escritor a la vez.** Delta en S3 no tiene un "escribir si no existe" atómico desde Spark, y el DAG ejecuta dos
+  conectores a la vez, es decir, dos *drivers* de Spark. Un *advisory lock* de Postgres serializa los commits, en el
+  papel que en AWS haría DynamoDB.
+- **Sin paquete de Python.** `delta-spark` fija una versión de PySpark anterior a la del proyecto. La imagen trae
+  solo los jars de Delta 4.4 para Spark 4.2, y el código usa SQL (`MERGE INTO`, `DESCRIBE HISTORY`,
+  `versionAsOf`).
+
+En AWS, Athena lee la tabla con su log ([infra/terraform](infra/terraform/README.md)).
+
 ## Calidad de datos
 
 Reglas reutilizables en `core/quality/`, configuradas desde el YAML de cada conector:

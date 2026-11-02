@@ -24,7 +24,7 @@ flowchart LR
     subgraph AWS["AWS (infra/terraform)"]
         direction TB
         AA[Airflow + PySpark<br/>rol pipeline] --> AB[(S3<br/>bronze · silver)]
-        AB --> AC[Glue Data Catalog<br/>partition projection]
+        AB --> AC[Glue Data Catalog<br/>tabla Delta]
         AC --> AT[Athena<br/>workgroup con límite]
         AT --> AN[rol analyst]
         AT --> AR[(S3<br/>resultados, 7 días)]
@@ -35,7 +35,7 @@ flowchart LR
 | Pieza | Local | AWS |
 |---|---|---|
 | Lake | MinIO (`bronze`, `silver`) | S3, un bucket por capa, cifrado SSE-S3, solo TLS, sin acceso público y con versionado en bronze y silver |
-| Tabla de silver | Postgres (`silver.observations`) | Glue Data Catalog sobre los Parquet. *Partition projection* sigue el `source=…/date=…` que escribe Spark, sin crawlers |
+| Tabla de silver | Postgres (`silver.observations`) y la tabla Delta de MinIO | Glue Data Catalog sobre la tabla Delta (`table_type = DELTA`): Athena lee el `_delta_log`, que dice qué ficheros están vigentes y sus particiones, sin crawlers ni `MSCK REPAIR` |
 | Consultas | Postgres, dbt y Grafana | Athena (motor 3), con un workgroup que limita cada consulta a 1 GB escaneado |
 | Permisos | Usuarios de Postgres | Dos roles de IAM de mínimo privilegio, `pipeline` y `analyst` (ver abajo) |
 | Coste | 0 | Céntimos al mes, con un presupuesto de 2 USD y alertas al 80 % gastado y al 100 % previsto |
@@ -45,8 +45,8 @@ flowchart LR
 | Fichero | Recursos |
 |---|---|
 | `main.tf` y `modules/bucket` | Tres buckets con los mismos valores por defecto: ACL desactivadas, acceso público bloqueado, SSE-S3, una política que deniega peticiones sin TLS y reglas de ciclo de vida. **Bronze** guarda 90 días las versiones sustituidas (relanzar una ventana nunca pierde la respuesta original), **silver** las guarda 30 días y **athena-results** borra lo que tiene a los 7 días |
-| `glue_athena.tf` | Base de datos y tabla `observations` (las columnas de `SILVER_SCHEMA`, con `source` y `date` como particiones), workgroup de Athena y una consulta guardada |
-| `iam.tf` | Rol **pipeline**: lee y escribe bronze sin poder borrar, y lee, escribe y borra en silver (la sobrescritura dinámica de particiones de Spark borra los ficheros que reescribe). Rol **analyst**: consulta con Athena, lee silver y el catálogo, y no ve bronze. Sin `*` en acciones ni recursos |
+| `glue_athena.tf` | Base de datos y tabla Delta `observations` (las columnas de `SILVER_SCHEMA` y `date`, como documentación: Athena toma el esquema y las particiones del log), workgroup de Athena y una consulta guardada |
+| `iam.tf` | Rol **pipeline**: lee y escribe bronze sin poder borrar, y lee, escribe y borra en silver (el `VACUUM` de Delta borra los ficheros que `MERGE` y `OPTIMIZE` sustituyeron). Rol **analyst**: consulta con Athena, lee silver y el catálogo, y no ve bronze. Sin `*` en acciones ni recursos |
 | `budget.tf` | Presupuesto mensual filtrado por la etiqueta `Project`, con avisos por correo si se configuran |
 
 ## Tests
@@ -57,7 +57,7 @@ flowchart LR
 |---|---|
 | `storage` | Nombres por entorno; buckets privados, cifrados y solo TLS; versionado y caducidad según el uso; validación del nombre |
 | `access` | Bronze sin borrado; silver con borrado para Spark; sin comodines; el analista no lee bronze ni cambia el catálogo; confianza de los roles |
-| `catalog` | Las particiones y columnas coinciden con lo que escribe Spark; Athena limitado y con su bucket de resultados; avisos del presupuesto solo con destinatarios; variables inválidas rechazadas |
+| `catalog` | La tabla es Delta, apunta al directorio de Spark y no declara particiones en Glue; Athena limitado y con su bucket de resultados; avisos del presupuesto solo con destinatarios; variables inválidas rechazadas |
 
 ## Desplegarlo de verdad (no hecho)
 
@@ -73,3 +73,5 @@ flowchart LR
   haría falta el proveedor de credenciales de AWS (`fs.s3a.aws.credentials.provider`).
 - **Warehouse**: Postgres y dbt siguen siendo locales. Athena sustituiría a Postgres para consultar silver, y dbt
   podría apuntar a Athena (`dbt-athena`).
+- **Time travel en Athena**: Athena lee la versión actual de la tabla Delta, pero no `VERSION AS OF`. Las versiones
+  anteriores se consultan con Spark (`make silver-changes`) mientras `VACUUM` no borre sus ficheros (7 días).

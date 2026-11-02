@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Silver is a Delta Lake table (`core/lake.py`): each connector run MERGEs its rows on the key instead of
+  overwriting its Parquet partitions, and rows that did not change are dropped before it, so a rerun without changes writes no file and no version. The existing Parquet lake is
+  converted in place the first time (`CONVERT TO DELTA`). New `make silver-history` (commits with rows inserted and
+  updated), `make silver-changes VERSION=n` (time travel: rows added, removed or changed since a version) and
+  `make silver-maintain` (`OPTIMIZE` and a 7-day `VACUUM`). A Postgres advisory lock serialises the commits of the
+  two Spark drivers the DAG runs at once, since Delta on S3 has no atomic put-if-absent from Spark. The image adds
+  the Delta 4.4.1 jars for Spark 4.2 (no Python package: `delta-spark` pins an older PySpark).
+- Terraform: the Glue table `observations` is a Delta table (`table_type = DELTA`) that Athena reads through the
+  log, so replaced files are never in the results. Partition projection and the `sources` and `history_start`
+  variables are gone.
+
 ## [0.8.0] - 2026-11-01
 
 ### Added

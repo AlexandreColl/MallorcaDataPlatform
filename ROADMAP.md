@@ -141,7 +141,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | 🟡 | Mismo código, otro perfil: `terraform output pipeline_env` da las variables para S3 real. Falta que Spark use las credenciales del rol en lugar de claves estáticas, y llevar el warehouse a Athena (`dbt-athena`) |
 | ✅ | Terraform en CI sin coste: `fmt`, `validate`, tflint (ruleset de AWS) y `terraform test` con `mock_provider` (13 tests). LocalStack no hace falta: su edición gratuita no tiene Glue ni Athena |
 | ⬜ | Variante **Databricks**: notebook/job que lee el mismo bronze; Delta Lake en lugar de Parquet 🔬 |
-| ⬜ | Tabla Delta / Iceberg en local para demostrar MERGE y time travel |
+| ✅ | Silver como tabla **Delta Lake** en MinIO: `MERGE` por la clave, historial de versiones, *time travel* (`make silver-changes`), `OPTIMIZE` y `VACUUM`, conversión en su sitio del lake Parquet y Glue/Athena leyendo el log. Iceberg aún no tiene runtime para Spark 4.2 |
 | ✅ | Diagrama de arquitectura local frente a AWS ([infra/terraform/README.md](infra/terraform/README.md)) |
 
 ## Extras opcionales

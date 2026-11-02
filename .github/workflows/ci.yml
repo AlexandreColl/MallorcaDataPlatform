@@ -65,6 +65,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      # The Delta Lake jars the test SparkSession downloads (DELTA_PACKAGE in tests/conftest.py).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.ivy2.5.2
+          key: ivy-${{ hashFiles('tests/conftest.py') }}
       - run: pip install -r requirements/dev.txt
       - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
       # The core (the platform without the source-specific connectors) keeps at least 80 % coverage, branches
