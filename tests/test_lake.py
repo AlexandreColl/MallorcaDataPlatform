@@ -42,7 +42,7 @@ def _values(df):
     return {(r["source"], r["metric"], r["ts"]): r["value"] for r in df.collect()}
 
 
-def test_the_first_run_creates_the_table_partitioned_by_source_and_day(table, spark):
+def test_the_first_run_creates_the_table_partitioned_by_source_with_its_change_feed(table, spark):
     result = table.merge(
         _rows(spark, ("aemet", "temperature", T0, 20.0, "ok"), ("aemet", "temperature", T1, 21.0, "ok"))
     )
@@ -50,7 +50,8 @@ def test_the_first_run_creates_the_table_partitioned_by_source_and_day(table, sp
     assert (result.version, result.inserted, result.updated) == (0, 2, 0)
     assert table.is_delta()
     detail = spark.sql(f"DESCRIBE DETAIL delta.`{table.path}`").first()
-    assert detail["partitionColumns"] == ["source", "date"]
+    assert detail["partitionColumns"] == ["source"]
+    assert detail["properties"]["delta.enableChangeDataFeed"] == "true"
     assert table.locks == ["held"]
 
 
@@ -90,6 +91,16 @@ def test_time_travel_reads_a_past_version_and_lists_the_changes(table, spark):
     assert changes == {(T0, "changed"): (20.0, None), (T1, "added"): (None, 21.0)}
 
 
+def test_changes_compare_the_value_before_the_first_commit_with_the_last(table, spark):
+    for value in (20.0, 20.5, 21.0):
+        table.merge(_rows(spark, ("aemet", "temperature", T0, value, "ok")))
+
+    changes = [(r["change"], r["value_before"], r["value_now"]) for r in table.changes(0).collect()]
+
+    assert changes == [("changed", 20.0, 21.0)]
+    assert table.changes(2).count() == 0  # the latest version: nothing after it
+
+
 def test_history_lists_the_commits_newest_first(table, spark):
     table.merge(_rows(spark, ("aemet", "temperature", T0, 20.0, "ok")))
     table.merge(_rows(spark, ("aemet", "temperature", T0, 19.0, "ok")))
@@ -101,7 +112,7 @@ def test_history_lists_the_commits_newest_first(table, spark):
     assert history[1]["inserted"] == 1
 
 
-def test_parquet_partitions_written_before_delta_are_converted_in_place(table, spark):
+def test_the_old_parquet_lake_is_converted_and_rewritten_by_source(table, spark):
     old = _rows(spark, ("aemet", "temperature", T0, 20.0, "ok")).withColumn("date", F.to_date("ts"))
     old.write.partitionBy("source", "date").parquet(table.path)
     assert not table.is_delta()
@@ -111,7 +122,13 @@ def test_parquet_partitions_written_before_delta_are_converted_in_place(table, s
     )
 
     assert table.is_delta()
-    assert [h["operation"] for h in table.history()] == ["MERGE", "CONVERT"]
+    operations = [h["operation"] for h in table.history()]
+    assert (operations[0], operations[-1]) == ("MERGE", "CONVERT")
+    assert "WRITE" in operations  # the rewrite by source
+    detail = spark.sql(f"DESCRIBE DETAIL delta.`{table.path}`").first()
+    assert detail["partitionColumns"] == ["source"]
+    assert detail["properties"]["delta.enableChangeDataFeed"] == "true"
+    assert [r["change"] for r in table.changes(len(operations) - 2).collect()] == ["added"]  # only the MERGE
     assert (result.inserted, result.updated) == (1, 0)  # the converted row is matched, not duplicated
     assert table.snapshot().count() == 2
 

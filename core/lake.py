@@ -1,14 +1,17 @@
 """The silver lake as a Delta Lake table: ACID upserts with MERGE, a commit history and time travel.
 
 Spark used to overwrite the ``source=…/date=…`` Parquet partitions of each run. The same directory is now a Delta
-table (the Parquet files plus a ``_delta_log`` of JSON commits):
+table (Parquet files plus a ``_delta_log`` of JSON commits), partitioned by source only:
 
 * each run MERGEs its rows on the key (source, entity, metric, ts), and rows whose content did not change are left
   alone, like the Postgres upsert: a rerun that changes nothing rewrites no file and commits no version;
-* every commit is a version: ``history`` lists them with their row counts and ``snapshot`` reads the table as it was
-  at a version or a time (time travel);
-* the existing Parquet partitions are converted in place the first time (``CONVERT TO DELTA``), without rewriting
-  them.
+* every commit is a version: ``history`` lists them with their row counts, ``snapshot`` reads the table as it was
+  at a version or a time (time travel) and ``changes`` reads the Change Data Feed (the rows each commit inserted,
+  updated or deleted) instead of comparing two snapshots of the whole table;
+* the old Parquet lake is converted in place the first time (``CONVERT TO DELTA``) and then rewritten once by source:
+  a partition per source and day held ~17 KB each (17,000 partitions, 67,000 files), far below the files of tens of
+  megabytes Delta and Athena work best with. ``maintain`` compacts the files of each source, ordered by time
+  (Z-order), so a query or a MERGE on a few days skips the rest through the per-file min/max statistics.
 
 Delta on S3 has no atomic "put if absent" from Spark, so two drivers committing at once could overwrite each other's
 commit. The pipeline runs two connectors at a time (two Spark drivers), so commits are serialised with a Postgres
@@ -38,11 +41,15 @@ log = logging.getLogger(__name__)
 DELTA_SPARK_CONFIG = {
     "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
     "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+    # Every new table records its row changes (`changes`, `make silver-changes`).
+    "spark.databricks.delta.properties.defaults.enableChangeDataFeed": "true",
+    # OPTIMIZE writes files of up to 32 MB (default 1 GB): a MERGE that updates a row rewrites only its file.
+    "spark.databricks.delta.optimize.maxFileSize": str(32 * 1024 * 1024),
 }
 # Advisory lock key of the silver writers (7302 is the DDL).
 SILVER_LOCK = 7303
 KEY = ("source", "entity", "metric", "ts")
-PARTITIONS = ("source", "date")
+PARTITIONS = ("source",)
 # Columns whose change counts as a real update (run_id / ingested_at always differ), as in core/warehouse.py.
 COMPARED = ("value", "unit", "quality", "quality_reasons", "lat", "lon")
 # The commit metrics shown by `history` (Delta names them per operation).
@@ -64,7 +71,7 @@ class MergeResult:
 
 
 class SilverTable:
-    """The Delta table of clean observations, partitioned by source and day."""
+    """The Delta table of clean observations, partitioned by source."""
 
     def __init__(self, spark: SparkSession, path: str, lock: Callable[[], AbstractContextManager[Any]]) -> None:
         self.spark = spark
@@ -87,11 +94,35 @@ class SilverTable:
         return bool(fs.exists(path))
 
     def ensure(self) -> None:
-        """Convert the Parquet partitions written before Delta into a Delta table (once, in place)."""
-        if self.is_delta() or not self._has_files():
-            return
-        log.warning("silver %s is plain Parquet: converting it to Delta", self.path)
-        self.spark.sql(f"CONVERT TO DELTA parquet.`{self.path}` PARTITIONED BY (source STRING, date DATE)")
+        """Bring a table written before this layout up to date (each step runs once).
+
+        Plain Parquet is converted in place, a table partitioned by source and day is rewritten by source, and the
+        Change Data Feed is turned on.
+        """
+        if not self.is_delta():
+            if not self._has_files():
+                return
+            log.warning("silver %s is plain Parquet: converting it to Delta", self.path)
+            self.spark.sql(f"CONVERT TO DELTA parquet.`{self.path}` PARTITIONED BY (source STRING, date DATE)")
+        detail = self.spark.sql(f"DESCRIBE DETAIL {self._table}").first()
+        if tuple(detail["partitionColumns"]) != PARTITIONS:
+            self._relayout(detail["partitionColumns"])
+        if detail["properties"].get("delta.enableChangeDataFeed") != "true":
+            # After the rewrite: the feed would otherwise hold every row of the table as deleted and inserted.
+            self.spark.sql(f"ALTER TABLE {self._table} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")
+
+    def _relayout(self, old: list[str]) -> None:
+        log.warning("silver %s is partitioned by %s: rewriting it by %s", self.path, old, list(PARTITIONS))
+        (
+            self.snapshot()
+            .repartition("source", F.year("ts"))  # one file per source and year, ordered for the min/max statistics
+            .sortWithinPartitions("ts")
+            .write.format("delta")
+            .mode("overwrite")
+            .option("overwriteSchema", "true")
+            .partitionBy(*PARTITIONS)
+            .save(self.path)
+        )
 
     def merge(self, df: DataFrame) -> MergeResult:
         """Upsert the rows of one connector run on the key; unchanged rows are not rewritten.
@@ -178,35 +209,52 @@ class SilverTable:
         return reader.load(self.path)
 
     def changes(self, version: int) -> DataFrame:
-        """Rows that differ between a past version and now, by key: added, removed or changed."""
-        before, now = self.snapshot(version=version).alias("b"), self.snapshot().alias("n")
-        keys = [F.col(f"b.{c}") == F.col(f"n.{c}") for c in KEY]
-        joined = before.join(now, on=keys, how="full_outer")
+        """Rows that differ between a past version and now, by key: added, removed or changed.
+
+        Read from the Change Data Feed of the later commits, so only the rows they touched are read. A row updated
+        several times compares its value before the first commit with its value after the last one.
+        """
+        latest = self.history(limit=1)[0]["version"]
+        feed = (
+            self.spark.read.format("delta")
+            .option("readChangeFeed", "true")
+            .option("startingVersion", min(version + 1, latest))
+            .load(self.path)
+            .where(F.lit(version < latest))
+        )
+        kind = F.col("_change_type")
+        # Within a commit the pre-image of an update comes before its post-image.
+        order = F.struct("_commit_version", F.when(kind == "update_preimage", 0).otherwise(1))
+        state = F.struct(*COMPARED, kind.alias("kind"))
+        rows = feed.groupBy(*KEY).agg(F.min_by(state, order).alias("first"), F.max_by(state, order).alias("last"))
+        first, last = F.col("first.kind"), F.col("last.kind")
+        differs = ~F.expr(" AND ".join(f"first.{c} <=> last.{c}" for c in COMPARED))
         change = (
-            F.when(F.col("b.source").isNull(), "added")
-            .when(F.col("n.source").isNull(), "removed")
-            .when(~F.expr(" AND ".join(f"b.{c} <=> n.{c}" for c in COMPARED)), "changed")
+            F.when((first == "insert") & (last == "delete"), None)
+            .when(first == "insert", "added")
+            .when(last == "delete", "removed")
+            .when(differs, "changed")
         )
         return (
-            joined.withColumn("change", change)
+            rows.withColumn("change", change)
             .where(F.col("change").isNotNull())
             .select(
-                *(F.coalesce(F.col(f"n.{c}"), F.col(f"b.{c}")).alias(c) for c in KEY),
-                F.col("b.value").alias("value_before"),
-                F.col("n.value").alias("value_now"),
-                F.col("b.quality").alias("quality_before"),
-                F.col("n.quality").alias("quality_now"),
+                *KEY,
+                F.when(first != "insert", F.col("first.value")).alias("value_before"),
+                F.when(last != "delete", F.col("last.value")).alias("value_now"),
+                F.when(first != "insert", F.col("first.quality")).alias("quality_before"),
+                F.when(last != "delete", F.col("last.quality")).alias("quality_now"),
                 "change",
             )
         )
 
     def maintain(self, retain_hours: int = 168) -> None:
-        """Compact the small files of each partition, then delete files unreferenced for ``retain_hours``.
+        """Compact the files of each source ordered by time, then delete files unreferenced for ``retain_hours``.
 
         Time travel only reaches back as far as the files VACUUM keeps.
         """
         with self._lock():
-            self.spark.sql(f"OPTIMIZE {self._table}")
+            self.spark.sql(f"OPTIMIZE {self._table} ZORDER BY (ts)")
             self.spark.sql(f"VACUUM {self._table} RETAIN {int(retain_hours)} HOURS")
 
 
