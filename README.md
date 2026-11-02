@@ -44,7 +44,7 @@ flowchart LR
     end
     subgraph MinIO["MinIO (S3)"]
         BR[(bronze<br/>JSON crudo, versionado)]
-        SL[(silver<br/>Parquet particionado)]
+        SL[(silver<br/>tabla Delta Lake)]
     end
     subgraph PG[PostgreSQL warehouse]
         SV[(silver.observations)]
@@ -63,7 +63,7 @@ flowchart LR
 | Capa | Dónde | Contenido |
 |---|---|---|
 | **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json` | Respuesta de la API sin tocar. Clave determinista + versionado del bucket: relanzar no duplica y el crudo anterior se conserva |
-| **silver** | `s3://silver/observations/source=…/date=…` y `silver.observations` | Esquema común: `source, entity, metric, ts, value, unit, quality, lat, lon` (+ `quality_reasons`, `run_id`, `ingested_at`) |
+| **silver** | tabla Delta `s3://silver/observations` (particiones `source=…/date=…`) y `silver.observations` | Esquema común: `source, entity, metric, ts, value, unit, quality, lat, lon` (+ `quality_reasons`, `run_id`, `ingested_at`). Cada carga es una versión de la tabla Delta: historial y *time travel* ([abajo](#silver-en-delta-lake)) |
 | **gold** | esquema `gold` (dbt: staging → intermediate → marts, [detalle](dbt/README.md)) | hechos incrementales (`fct_observations`, `agg_daily_metrics`), marts por dominio (tiempo diario, mar, electricidad, bus, calidad del aire, sismos) y salud de las fuentes |
 
 ### Decisiones de diseño
@@ -71,8 +71,8 @@ flowchart LR
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.
 - **Idempotencia en todas las capas**: ventanas de días completos (siempre la misma petición), claves
-  deterministas en bronze, `overwrite` dinámico de particiones en Parquet y `INSERT … ON CONFLICT … WHERE
-  IS DISTINCT FROM` en Postgres. El E2E de CI lanza el DAG dos veces y comprueba que no cambia el número de filas.
+  deterministas en bronze, `MERGE` en la tabla Delta de silver y `INSERT … ON CONFLICT … WHERE IS DISTINCT FROM`
+  en Postgres: las filas que no cambian no se reescriben. El E2E de CI lanza el DAG dos veces y comprueba que no cambia el número de filas.
 - **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
   si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
   error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de

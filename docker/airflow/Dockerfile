@@ -11,6 +11,8 @@ ARG AWS_SDK_V2_VERSION=2.35.4
 # Compile dependency of hadoop-aws >= 3.5.0 (S3 Analytics Accelerator input stream).
 ARG S3_ANALYTICS_ACCELERATOR_VERSION=1.3.1
 ARG POSTGRES_JDBC_VERSION=42.7.14
+# Delta Lake for the silver table: the build for Spark 4.2 (no Python package: it pins an older PySpark).
+ARG DELTA_VERSION=4.4.1
 ARG DBT_POSTGRES_VERSION=1.11.0
 # Pinned: dbt-postgres accepts dbt-core>=1.8.0rc1, and that pre-release marker lets pip pick dbt-core betas.
 ARG DBT_CORE_VERSION=1.12.6
@@ -21,7 +23,7 @@ RUN apt-get update \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 
-# Spark jars for S3A (MinIO/S3) and JDBC (PostgreSQL).
+# Spark jars for S3A (MinIO/S3), JDBC (PostgreSQL) and Delta Lake.
 RUN mkdir -p /opt/spark-jars \
  && curl -fsSL -o /opt/spark-jars/hadoop-aws.jar \
     "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/${HADOOP_AWS_VERSION}/hadoop-aws-${HADOOP_AWS_VERSION}.jar" \
@@ -30,8 +32,12 @@ RUN mkdir -p /opt/spark-jars \
  && curl -fsSL -o /opt/spark-jars/s3-analytics-accelerator.jar \
     "https://repo1.maven.org/maven2/software/amazon/s3/analyticsaccelerator/analyticsaccelerator-s3/${S3_ANALYTICS_ACCELERATOR_VERSION}/analyticsaccelerator-s3-${S3_ANALYTICS_ACCELERATOR_VERSION}.jar" \
  && curl -fsSL -o /opt/spark-jars/postgresql.jar \
-    "https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}/postgresql-${POSTGRES_JDBC_VERSION}.jar"
-ENV SPARK_EXTRA_JARS=/opt/spark-jars/hadoop-aws.jar,/opt/spark-jars/aws-sdk-bundle.jar,/opt/spark-jars/s3-analytics-accelerator.jar,/opt/spark-jars/postgresql.jar
+    "https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRES_JDBC_VERSION}/postgresql-${POSTGRES_JDBC_VERSION}.jar" \
+ && curl -fsSL -o /opt/spark-jars/delta-spark.jar \
+    "https://repo1.maven.org/maven2/io/delta/delta-spark_4.2_2.13/${DELTA_VERSION}/delta-spark_4.2_2.13-${DELTA_VERSION}.jar" \
+ && curl -fsSL -o /opt/spark-jars/delta-storage.jar \
+    "https://repo1.maven.org/maven2/io/delta/delta-storage/${DELTA_VERSION}/delta-storage-${DELTA_VERSION}.jar"
+ENV SPARK_EXTRA_JARS=/opt/spark-jars/hadoop-aws.jar,/opt/spark-jars/aws-sdk-bundle.jar,/opt/spark-jars/s3-analytics-accelerator.jar,/opt/spark-jars/postgresql.jar,/opt/spark-jars/delta-spark.jar,/opt/spark-jars/delta-storage.jar
 
 # dbt lives in its own venv so its dependencies never clash with Airflow's.
 RUN python -m venv /opt/dbt-venv \

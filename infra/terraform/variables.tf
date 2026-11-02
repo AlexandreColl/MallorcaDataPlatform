@@ -26,31 +26,6 @@ variable "name_prefix" {
   }
 }
 
-variable "sources" {
-  description = "Connectors whose silver partitions Athena can read (partition projection needs the list)."
-  type        = list(string)
-  default = [
-    "aemet", "ctm", "dataestur", "eea_air_quality", "emt_palma", "goib_air_quality", "ign", "open_meteo",
-    "open_meteo_marine", "redata", "socib", "water_reserves",
-  ]
-
-  validation {
-    condition     = length(var.sources) > 0 && alltrue([for s in var.sources : can(regex("^[a-z0-9_]+$", s))])
-    error_message = "sources are connector names: lowercase letters, digits and underscores."
-  }
-}
-
-variable "history_start" {
-  description = "First day of the silver partitions (the GOIB air quality history starts in 2002)."
-  type        = string
-  default     = "2002-01-01"
-
-  validation {
-    condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.history_start))
-    error_message = "history_start is a date, YYYY-MM-DD."
-  }
-}
-
 variable "pipeline_trusted_arns" {
   description = "Principals allowed to assume the pipeline and analyst roles. Empty: the account itself (its IAM decides)."
   type        = list(string)
