@@ -19,6 +19,9 @@ Trigger with a config such as:
   `silver.anomalies` (they never change the data), also when some sources failed.
 * Then the station series get corrections for their gaps and suspect values in `silver.corrections`
   (interpolation, or a nearby support source with a calibrated bias); gold shows both values.
+* Every task declares the datasets it reads and writes (Airflow assets). With `OPENLINEAGE_URL` set, the
+  OpenLineage provider sends them with each run, and dbt runs as `dbt-ol`, which adds one job per model with its
+  inputs and columns, under this task.
 """
 
 from __future__ import annotations
@@ -28,15 +31,40 @@ from datetime import timedelta
 from typing import Any
 
 import pendulum
-from airflow.sdk import Param, TriggerRule, dag, get_current_context, task
+from airflow.sdk import Asset, Param, TriggerRule, dag, get_current_context, task
 
-from core.config import available_regions
+from core.config import Settings, available_regions
 from core.connectors import registry
 
 DBT = "/opt/dbt-venv/bin/dbt"
+# dbt with OpenLineage events, used when they have somewhere to go.
+DBT_OL = "/opt/dbt-venv/bin/dbt-ol"
 DBT_ARGS = "--profiles-dir . --target-path /tmp/dbt/target --log-path /tmp/dbt/logs"
 # Freshness only warns (a late source is visible in the logs and in gold.source_health) and never blocks the build.
-DBT_COMMAND = f"cd /opt/project/dbt && ({DBT} source freshness {DBT_ARGS} || true) && {DBT} build {DBT_ARGS}"
+DBT_COMMAND = (
+    f"cd /opt/project/dbt && ({DBT} source freshness {DBT_ARGS} || true)"
+    # dbt-ol runs the `dbt` on the PATH: the venv's.
+    f' && PATH=/opt/dbt-venv/bin:$PATH $( [ -n "$OPENLINEAGE_URL" ] && echo {DBT_OL} || echo {DBT} ) build {DBT_ARGS}'
+)
+# dbt-ol attaches its model jobs to the Airflow task run that started it. Without OPENLINEAGE_URL the provider turns
+# its plugin off, and with it the macro: then there is no parent (and dbt-ol is not used).
+DBT_LINEAGE_PARENT = (
+    "{{ macros.OpenLineageProviderPlugin.lineage_parent_id(task_instance)"
+    " if macros.OpenLineageProviderPlugin is defined else '' }}"
+)
+
+
+def _assets(settings: Settings) -> dict[str, Asset]:
+    """The datasets the tasks read and write, named like their OpenLineage datasets (and dbt-ol's sources)."""
+    warehouse = f"postgres://{settings.warehouse_host}:{settings.warehouse_port}/{settings.warehouse_db}"
+    return {
+        "bronze": Asset(f"s3://{settings.bronze_bucket}/"),  # every raw response, keyed by connector
+        "silver_lake": Asset(f"s3://{settings.silver_bucket}/observations"),
+        **{table: Asset(f"{warehouse}/silver/{table}") for table in ("observations", "anomalies", "corrections")},
+    }
+
+
+ASSETS = _assets(Settings.from_env())
 
 
 @dag(
@@ -84,7 +112,11 @@ def mallorca_pipeline() -> None:
             registry.load(name)
         return requested
 
-    @task(map_index_template="{{ connector_name }}", max_active_tis_per_dagrun=2)
+    @task(
+        map_index_template="{{ connector_name }}",
+        max_active_tis_per_dagrun=2,
+        outlets=[ASSETS["bronze"], ASSETS["silver_lake"], ASSETS["observations"]],
+    )
     def ingest(connector: str, params: dict[str, Any] | None = None, run_id: str | None = None) -> dict[str, Any]:
         """Run one connector end to end (bronze -> silver -> warehouse)."""
         from core.pipeline import run_connector
@@ -100,7 +132,7 @@ def mallorca_pipeline() -> None:
         )
         return summary.as_dict()
 
-    @task(trigger_rule=TriggerRule.ALL_DONE, retries=0)
+    @task(trigger_rule=TriggerRule.ALL_DONE, retries=0, inlets=[ASSETS["observations"]], outlets=[ASSETS["anomalies"]])
     def detect_anomalies(
         connectors: list[str], params: dict[str, Any] | None = None, run_id: str | None = None
     ) -> dict[str, Any]:
@@ -110,7 +142,12 @@ def mallorca_pipeline() -> None:
         params = params or {}
         return run_detection(int(params["days"]), sources=connectors, run_id=run_id or "manual").as_dict()
 
-    @task(trigger_rule=TriggerRule.ALL_DONE, retries=0)
+    @task(
+        trigger_rule=TriggerRule.ALL_DONE,
+        retries=0,
+        inlets=[ASSETS["observations"], ASSETS["anomalies"]],
+        outlets=[ASSETS["corrections"]],
+    )
     def correct_values(
         connectors: list[str], params: dict[str, Any] | None = None, run_id: str | None = None
     ) -> dict[str, Any]:
@@ -120,7 +157,12 @@ def mallorca_pipeline() -> None:
         params = params or {}
         return run_corrections(int(params["days"]), sources=connectors, run_id=run_id or "manual").as_dict()
 
-    @task.bash(trigger_rule=TriggerRule.ALL_DONE, retries=0)
+    @task.bash(
+        trigger_rule=TriggerRule.ALL_DONE,
+        retries=0,
+        env={"OPENLINEAGE_PARENT_ID": DBT_LINEAGE_PARENT},
+        append_env=True,
+    )
     def dbt_build() -> str:
         """Build and test the gold models, also when some sources failed (gold keeps their previous data)."""
         return DBT_COMMAND

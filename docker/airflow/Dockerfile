@@ -16,6 +16,8 @@ ARG DELTA_VERSION=4.4.1
 ARG DBT_POSTGRES_VERSION=1.11.0
 # Pinned: dbt-postgres accepts dbt-core>=1.8.0rc1, and that pre-release marker lets pip pick dbt-core betas.
 ARG DBT_CORE_VERSION=1.12.6
+# dbt-ol: dbt with OpenLineage events per model (used by the DAG only when OPENLINEAGE_URL is set).
+ARG OPENLINEAGE_DBT_VERSION=1.55.0
 
 USER root
 RUN apt-get update \
@@ -42,6 +44,7 @@ ENV SPARK_EXTRA_JARS=/opt/spark-jars/hadoop-aws.jar,/opt/spark-jars/aws-sdk-bund
 # dbt lives in its own venv so its dependencies never clash with Airflow's.
 RUN python -m venv /opt/dbt-venv \
  && /opt/dbt-venv/bin/pip install --no-cache-dir "dbt-core==${DBT_CORE_VERSION}" "dbt-postgres==${DBT_POSTGRES_VERSION}" \
+    "openlineage-dbt==${OPENLINEAGE_DBT_VERSION}" \
  && chown -R airflow:0 /opt/dbt-venv \
  && mkdir -p /opt/dbt \
  && chown airflow:0 /opt/dbt
