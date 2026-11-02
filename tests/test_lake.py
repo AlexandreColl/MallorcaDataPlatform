@@ -160,3 +160,15 @@ def test_changes_before_the_change_feed_was_turned_on_are_refused(table, spark):
     with pytest.raises(ValueError, match=f"from version {enabled}: ask for version {enabled - 1} or later"):
         table.changes(0)
     assert table.changes(enabled - 1).count() == 1
+
+
+def test_small_files_are_compacted_after_a_write(table, spark):
+    spark.conf.set("spark.databricks.delta.autoCompact.minNumFiles", "3")  # 50 in production
+    try:
+        for hour, value in enumerate((20.0, 20.5, 21.0, 21.5)):
+            table.merge(_rows(spark, ("aemet", "temperature", T0.replace(hour=hour), value, "ok")))
+    finally:
+        spark.conf.unset("spark.databricks.delta.autoCompact.minNumFiles")
+
+    assert "OPTIMIZE" in [h["operation"] for h in table.history()]
+    assert table.snapshot().count() == 4

@@ -44,7 +44,13 @@ DELTA_SPARK_CONFIG = {
     # Every new table records its row changes (`changes`, `make silver-changes`).
     "spark.databricks.delta.properties.defaults.enableChangeDataFeed": "true",
     # OPTIMIZE writes files of up to 32 MB (default 1 GB): a MERGE that updates a row rewrites only its file.
+    # The table state is rebuilt from its log with 50 tasks by default: 2 are enough for a local table (15 s -> 10 s).
+    "spark.databricks.delta.snapshotPartitions": "2",
     "spark.databricks.delta.optimize.maxFileSize": str(32 * 1024 * 1024),
+    # Auto compaction: after a write, a source with 50 small files or more is compacted into files of up to 32 MB,
+    # so the files each run adds (one or two per source) never pile up between `make silver-maintain` runs.
+    "spark.databricks.delta.autoCompact.enabled": "true",
+    "spark.databricks.delta.autoCompact.maxFileSize": str(32 * 1024 * 1024),
 }
 # Advisory lock key of the silver writers (7302 is the DDL).
 SILVER_LOCK = 7303
@@ -159,8 +165,10 @@ class SilverTable:
     @staticmethod
     def _pruning(rows: DataFrame) -> str:
         """Literal partition values of the run: Delta prunes the target files and other sources' writers stay apart."""
-        bounds = rows.agg(F.min("date").alias("first"), F.max("date").alias("last")).first()
-        sources = ", ".join(f"'{r['source']}'" for r in rows.select("source").distinct().collect())  # [a-z0-9_]
+        bounds = rows.agg(
+            F.min("date").alias("first"), F.max("date").alias("last"), F.collect_set("source").alias("sources")
+        ).first()  # one Spark job
+        sources = ", ".join(f"'{s}'" for s in sorted(bounds["sources"]))  # connector names: [a-z0-9_]
         return f"t.source IN ({sources}) AND t.date BETWEEN '{bounds['first']}' AND '{bounds['last']}'"
 
     def _changed_rows(self, rows: DataFrame, pruning: str) -> DataFrame:
