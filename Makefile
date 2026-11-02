@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections backfill api-role api-test screenshots tf-check tf-fmt
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -74,6 +74,15 @@ correct: ## Correct gaps and suspect values of the station series: make correct 
 
 evaluate-corrections: ## Measure the corrections on hidden station values (error per method and gap length)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate-corrections
+
+silver-history: ## Commits of the silver Delta table (version, operation, rows inserted and updated)
+	$(COMPOSE) exec airflow-scheduler python -m core.cli silver-history
+
+silver-changes: ## Silver rows changed since a past version (time travel): make silver-changes VERSION=12
+	$(COMPOSE) exec airflow-scheduler python -m core.cli silver-changes --version $(VERSION)
+
+silver-maintain: ## Compact the silver Delta table and delete files older than a week of time travel
+	$(COMPOSE) exec airflow-scheduler python -m core.cli silver-maintain
 
 connectors: ## List available connectors and regions
 	$(COMPOSE) exec airflow-scheduler python -m core.cli list

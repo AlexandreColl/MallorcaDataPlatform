@@ -1,4 +1,4 @@
-"""SparkSession factory (local mode) and the silver DataFrame schema."""
+"""SparkSession factory (local mode, with Delta Lake) and the silver DataFrame schema."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
 from pyspark.sql import types as T
+
+from core.lake import DELTA_SPARK_CONFIG
 
 if TYPE_CHECKING:
     from core.config import Settings
@@ -26,7 +28,7 @@ SILVER_SCHEMA = T.StructType(
 
 
 def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") -> SparkSession:
-    """Local SparkSession configured for S3A (MinIO or AWS S3), UTC and idempotent overwrites."""
+    """Local SparkSession configured for S3A (MinIO or AWS S3), UTC and Delta Lake (the silver table)."""
     builder = (
         SparkSession.builder.appName(app_name)
         .master(settings.spark_master)
@@ -34,7 +36,6 @@ def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") ->
         .config("spark.sql.session.timeZone", "UTC")
         .config("spark.driver.extraJavaOptions", "-Duser.timezone=UTC")
         .config("spark.sql.shuffle.partitions", "4")
-        .config("spark.sql.sources.partitionOverwriteMode", "dynamic")
         .config("spark.ui.enabled", "false")
         # S3A -> MinIO. On AWS only the endpoint and credentials provider change.
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
@@ -53,6 +54,8 @@ def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") ->
             "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
         )
     )
+    for key, value in DELTA_SPARK_CONFIG.items():
+        builder = builder.config(key, value)
     if settings.spark_extra_jars:
         builder = builder.config("spark.jars", settings.spark_extra_jars)
     return builder.getOrCreate()

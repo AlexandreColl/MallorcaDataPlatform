@@ -1,8 +1,11 @@
-# The silver lake as a SQL table, with no database server: the Glue Data Catalog describes the Parquet files and
-# Athena queries them, paying only for the bytes it scans.
+# The silver lake as a SQL table, with no database server: the Glue Data Catalog points at the Delta table and
+# Athena queries it, paying only for the bytes it scans.
 #
-# Spark writes `silver/observations/source=<connector>/date=<yyyy-MM-dd>/part-*.parquet`. Partition projection tells
-# Athena those values, so no crawler (billed per run) and no `MSCK REPAIR TABLE` is needed when a day lands.
+# Spark keeps `silver/observations` as a Delta Lake table: Parquet files under `source=<connector>`, ordered by time,
+# plus the `_delta_log` that says which files are current. Athena (engine 3) reads that log natively: only the location
+# and `table_type = DELTA` are needed. Partitions and the min/max statistics of each file (to skip files on `date` and
+# `ts`) come from the log, so there is no crawler (billed per run), no `MSCK REPAIR TABLE`, and files that a MERGE
+# replaced (still on S3 until VACUUM) never reach the results.
 
 resource "aws_glue_catalog_database" "silver" {
   name        = replace("${local.name}_silver", "-", "_")
@@ -12,43 +15,19 @@ resource "aws_glue_catalog_database" "silver" {
 resource "aws_glue_catalog_table" "observations" {
   name          = "observations"
   database_name = aws_glue_catalog_database.silver.name
-  description   = "One row per source, entity, metric and hour (or day), with its quality label."
+  description   = "One row per source, entity, metric and hour (or day), with its quality label (Delta Lake)."
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    EXTERNAL                        = "TRUE"
-    "parquet.compression"           = "SNAPPY"
-    "projection.enabled"            = "true"
-    "projection.source.type"        = "enum"
-    "projection.source.values"      = join(",", var.sources)
-    "projection.date.type"          = "date"
-    "projection.date.format"        = "yyyy-MM-dd"
-    "projection.date.range"         = "${var.history_start},NOW"
-    "projection.date.interval"      = "1"
-    "projection.date.interval.unit" = "DAYS"
-    "storage.location.template"     = "s3://${module.silver.id}/observations/source=$${source}/date=$${date}"
-  }
-
-  partition_keys {
-    name = "source"
-    type = "string"
-  }
-
-  partition_keys {
-    name = "date"
-    type = "date"
+    EXTERNAL                     = "TRUE"
+    table_type                   = "DELTA"
+    "spark.sql.sources.provider" = "delta"
   }
 
   storage_descriptor {
-    location      = "s3://${module.silver.id}/observations/"
-    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    location = "s3://${module.silver.id}/observations/"
 
-    ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
-    }
-
-    # Same columns as SILVER_SCHEMA in core/spark.py (source is the partition, not a column of the files).
+    # Documentation for the catalog: Athena takes the schema from the Delta log (SILVER_SCHEMA in core/spark.py).
     dynamic "columns" {
       for_each = local.silver_columns
       content {
@@ -62,6 +41,7 @@ resource "aws_glue_catalog_table" "observations" {
 
 locals {
   silver_columns = [
+    { name = "source", type = "string", comment = "Connector (partition)" },
     { name = "entity", type = "string", comment = "Station, point or area" },
     { name = "metric", type = "string", comment = "Canonical metric name" },
     { name = "ts", type = "timestamp", comment = "UTC" },
@@ -70,6 +50,7 @@ locals {
     { name = "quality", type = "string", comment = "ok, suspect or missing" },
     { name = "lat", type = "double", comment = "" },
     { name = "lon", type = "double", comment = "" },
+    { name = "date", type = "date", comment = "Day of ts (file skipping through the Delta statistics)" },
   ]
 }
 
@@ -100,7 +81,7 @@ resource "aws_athena_workgroup" "analytics" {
 # A first query to try, visible in the Athena console under "Saved queries".
 resource "aws_athena_named_query" "daily_means" {
   name        = "Daily mean per source and metric (last 7 days)"
-  description = "Partition pruning on date keeps the scan to a week of files."
+  description = "The date statistics of the Delta log keep the scan to the files of the last week."
   workgroup   = aws_athena_workgroup.analytics.id
   database    = aws_glue_catalog_database.silver.name
   query       = <<-SQL

@@ -65,6 +65,17 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      # The two Delta Lake jars of the image (DELTA_VERSION in docker/airflow/Dockerfile), for the test SparkSession.
+      # Spark's own download (Ivy) is refused by Maven Central from the runners.
+      - name: Delta Lake jars
+        run: |
+          version=$(sed -n 's/^ARG DELTA_VERSION=//p' docker/airflow/Dockerfile)
+          mkdir -p ~/spark-jars
+          curl -fsSL -o ~/spark-jars/delta-spark.jar \
+            "https://repo1.maven.org/maven2/io/delta/delta-spark_4.2_2.13/${version}/delta-spark_4.2_2.13-${version}.jar"
+          curl -fsSL -o ~/spark-jars/delta-storage.jar \
+            "https://repo1.maven.org/maven2/io/delta/delta-storage/${version}/delta-storage-${version}.jar"
+          echo "SPARK_EXTRA_JARS=$HOME/spark-jars/delta-spark.jar,$HOME/spark-jars/delta-storage.jar" >> "$GITHUB_ENV"
       - run: pip install -r requirements/dev.txt
       - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
       # The core (the platform without the source-specific connectors) keeps at least 80 % coverage, branches

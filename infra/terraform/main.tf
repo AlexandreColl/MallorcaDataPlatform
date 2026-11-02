@@ -12,7 +12,7 @@ module "bronze" {
   force_destroy           = var.force_destroy
 }
 
-# Clean observations as Parquet, partitioned by source and day (the MinIO `silver` bucket): what Athena reads.
+# Clean observations as a Delta Lake table, partitioned by source and day (the MinIO `silver` bucket): what Athena reads.
 module "silver" {
   source                  = "./modules/bucket"
   name                    = "${local.name}-silver"

@@ -75,6 +75,13 @@ class Warehouse:
             conn.execute("SELECT pg_advisory_xact_lock(7302)")
             conn.execute(DDL_PATH.read_text(encoding="utf-8"))
 
+    @contextmanager
+    def lock(self, key: int) -> Iterator[None]:
+        """Hold a Postgres advisory lock for the block: one holder at a time across processes and machines."""
+        with self.connect() as conn:
+            conn.execute("SELECT pg_advisory_xact_lock(%s)", (key,))
+            yield
+
     def merge_observations(self, landing_table: str) -> int:
         """Upsert a Spark-written landing table into silver.observations.
 
