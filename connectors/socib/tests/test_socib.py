@@ -68,6 +68,8 @@ def test_the_newest_deployment_file_is_used():
 
     buoy_url = payloads[1].request["url"]
     assert buoy_url.endswith("/dep0002_buoy-bahiadepalma_scb-met029_L1_latest.nc")  # catalog lists dep0001 too
+    # The point service: the plain /ncss/ path answers 404 since November 2026.
+    assert buoy_url.startswith("https://thredds.socib.es/thredds/ncss/point/mooring/")
 
 
 def test_minute_samples_are_aggregated_to_hourly_values():

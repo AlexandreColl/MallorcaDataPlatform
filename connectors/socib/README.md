@@ -1,6 +1,6 @@
 # SOCIB (estaciones meteorológicas y boyas)
 
-- **Fuente**: servidor THREDDS de SOCIB, NetCDF Subset Service (NCSS) en CSV: <https://thredds.socib.es/thredds>
+- **Fuente**: servidor THREDDS de SOCIB, NetCDF Subset Service para series de puntos (`/ncss/point/`, antes `/ncss/`, que da 404 desde noviembre de 2026) en CSV: <https://thredds.socib.es/thredds>
 - **Autenticación**: ninguna. La API REST de SOCIB (`api.socib.es/entries`) exige clave; THREDDS es abierto.
 - **Datos**: **observaciones reales** (no modelo), cada 1 min en estaciones y cada 10 min en la boya, con el
   indicador de calidad de SOCIB por variable (`QC_<VAR>`: 1 bueno, 2 probablemente bueno, 3-4 malo, 9 ausente).
