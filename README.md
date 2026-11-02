@@ -101,6 +101,7 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un
 | MinIO | http://localhost:9001 | minioadmin/minioadmin |
 | API REST | http://localhost:8000/docs | lectura pública (rol `api_reader`) |
 | PostgreSQL | localhost:5432 | `make psql` |
+| Marquez (opcional) | http://localhost:3001 | linaje OpenLineage, con `COMPOSE_PROFILES=lineage` ([abajo](#linaje-con-openlineage)) |
 
 Otros comandos: `make help`.
 
@@ -277,6 +278,40 @@ Prueba real (2 de noviembre de 2026, 9,1 millones de filas):
 | Relanzar la misma ventana | 0 filas, sin versión, 44 s |
 
 En AWS, Athena lee la tabla con su log ([infra/terraform](infra/terraform/README.md)).
+
+## Linaje con OpenLineage
+
+Cada ejecución del DAG puede contar qué leyó y qué escribió cada paso, en el formato abierto
+[OpenLineage](https://openlineage.io/). Los eventos los guarda y dibuja [Marquez](https://marquezproject.ai/), su
+implementación de referencia. Es opcional: se activa con dos líneas del `.env` y, sin ellas, no se envía nada.
+
+```bash
+COMPOSE_PROFILES=lineage           # arranca Marquez: interfaz en http://localhost:3001, API en :5000
+OPENLINEAGE_URL=http://marquez:5000
+```
+
+- **Airflow.** Las tareas declaran como *assets* los datos que leen y escriben, y el proveedor de OpenLineage los
+  envía con cada ejecución:
+  - `ingest` escribe bronze, la tabla Delta de silver y `silver.observations`;
+  - `detect_anomalies` lee `silver.observations` y escribe `silver.anomalies`;
+  - `correct_values` lee las dos y escribe `silver.corrections`.
+
+  Los mismos *assets* aparecen en la vista *Assets* de Airflow.
+- **dbt.** Con `OPENLINEAGE_URL`, `dbt_build` ejecuta `dbt-ol` en lugar de `dbt`. Cada modelo y cada test es un job
+  con sus entradas, su salida y el **linaje por columna** (`gold.fct_observations.value` ← `stg_silver__observations.value`).
+  Todos cuelgan de la ejecución de `dbt_build`.
+- **Un solo grafo.** Las tablas tienen el mismo nombre en los dos lados (`postgres://postgres:5432`,
+  `warehouse.silver.observations`). Así, el grafo une las tareas de Airflow con los modelos de dbt: de la ingesta a
+  gold, pasando por anomalías y correcciones.
+
+![Linaje de gold.fct_observations_corrected en Marquez](docs/img/linaje.png)
+
+Prueba real (DAG con Open-Meteo y la EEA): 6 tareas de Airflow y 75 jobs de dbt en Marquez, y 12 columnas con linaje
+en `gold.fct_observations`.
+
+Spark no envía eventos propios. Sus filas salen de Python, no de una lectura de Spark, así que su integración solo
+repetiría lo que ya declara `ingest`. Marquez no publica versión desde marzo de 2025 (0.51.1), pero los eventos son
+OpenLineage estándar y cualquier otro *backend* los acepta cambiando `OPENLINEAGE_URL`.
 
 ## Calidad de datos
 

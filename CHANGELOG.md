@@ -5,6 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Lineage with OpenLineage. The DAG tasks declare the datasets they read and write as Airflow assets (bronze, the
+  silver Delta table, `silver.observations`, `silver.anomalies` and `silver.corrections`), and the OpenLineage
+  provider sends them with each run. `dbt_build` runs `dbt-ol`, which adds one job per model and test, with its
+  inputs, output and column lineage, under the task run. Both sides name the tables alike, so the graph goes from
+  ingestion to gold. Optional Marquez backend (`COMPOSE_PROFILES=lineage` and `OPENLINEAGE_URL` in `.env`, UI at
+  http://localhost:3001); without `OPENLINEAGE_URL` nothing is sent and dbt runs as before.
+
 ### Changed
 
 - Silver is a Delta Lake table (`core/lake.py`). Each connector run MERGEs its rows on the key instead of overwriting

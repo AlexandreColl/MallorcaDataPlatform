@@ -128,7 +128,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Linaje con OpenLineage (proveedor de Airflow) 🔬 |
+| ✅ | Linaje con **OpenLineage**: las tareas del DAG declaran sus datos (assets) y el proveedor de Airflow los envía; dbt corre como `dbt-ol` (linaje por modelo y por columna, colgado de la tarea). Marquez opcional (`COMPOSE_PROFILES=lineage`) con un solo grafo de la ingesta a gold |
 | ✅ | Alertas de Grafana provisionadas (`dashboards/provisioning/alerting`): ingesta fallida, fuente activa sin ejecución correcta en 36 h y regla de calidad que pasa de verde a rojo, con un panel de alertas en Operación y avisos opcionales a **Telegram** (punto de contacto provisionado solo si `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` están en el `.env`) |
 | ⬜ | Probar el envío real de las alertas a Telegram con un bot propio (probado sin token, con un token falso y al quitarlo; falta un mensaje real) |
 | ✅ | Cobertura de tests ≥ 80 % en `core/` (84 %, ramas incluidas): el CI falla por debajo, y el informe HTML y el badge del README se publican en GitHub Pages |
