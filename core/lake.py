@@ -51,6 +51,7 @@ DELTA_SPARK_CONFIG = {
     # so the files each run adds (one or two per source) never pile up between `make silver-maintain` runs.
     "spark.databricks.delta.autoCompact.enabled": "true",
     "spark.databricks.delta.autoCompact.maxFileSize": str(32 * 1024 * 1024),
+    "spark.databricks.delta.autoCompact.minNumFiles": "50",
 }
 # Advisory lock key of the silver writers (7302 is the DDL).
 SILVER_LOCK = 7303
@@ -153,7 +154,8 @@ class SilverTable:
                 return MergeResult(version=version, inserted=0, updated=0)
             self._merge(pending, pruning)
             pending.unpersist()
-            commit = self.history(limit=1)[0]
+            # Auto compaction may commit an OPTIMIZE right after: the run's commit is the latest MERGE (under the lock).
+            commit = next(c for c in self.history(limit=5) if c["operation"] == "MERGE")
         log.info(
             "silver: version %d, %d rows inserted and %d updated",
             commit["version"],
