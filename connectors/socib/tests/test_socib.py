@@ -26,8 +26,8 @@ class RecordedThredds:
         station = next(s for folder, s in FOLDER_TO_STATION.items() if folder in url)
         if url.endswith("catalog.xml"):
             name = f"{station}_catalog.xml"
-        elif url.endswith("dataset.xml"):
-            name = f"{station}_dataset.xml"
+        elif "/ncml/" in url:
+            name = f"{station}_ncml.xml"
         else:
             if station in self.csv_overrides:
                 return self.csv_overrides[station]

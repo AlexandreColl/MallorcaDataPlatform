@@ -27,8 +27,10 @@ Los nombres y unidades coinciden con Open-Meteo, así que estación y modelo se 
 
 1. Por estación, lee el catálogo THREDDS y elige el `*_latest.nc` del despliegue más reciente (`depNNNN` más
    alto): los números de despliegue cambian cuando SOCIB sustituye un instrumento.
-2. Lee el `dataset.xml` del fichero y comprueba que cubre la ventana pedida. El fichero `latest` empieza el día 1
-   del mes anterior; si la ventana empieza antes, falla indicando cuántos días se pueden pedir.
+2. Lee el atributo `time_coverage_start` del NcML del fichero y comprueba que cubre la ventana pedida. El
+   `dataset.xml` de NCSS también lo trae, pero desde noviembre de 2026 el servidor a veces lo omite. El fichero
+   `latest` empieza el día 1 del mes anterior; si la ventana empieza antes, falla indicando cuántos días se pueden
+   pedir.
 3. Descarga el CSV con cada variable y su QC. El CSV crudo, minuto a minuto, se guarda en bronze (una partición
    por estación).
 4. `normalize` agrega por hora usando solo muestras con QC 1-2. Si menos del 50 % de las muestras de la hora son
