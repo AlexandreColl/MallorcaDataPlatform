@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
-import jinja2
 import pytest
 
 from core.config import Settings
@@ -57,6 +56,8 @@ def test_dbt_sends_lineage_only_with_somewhere_to_send_it():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert task.env == {"OPENLINEAGE_PARENT_ID": module.DBT_LINEAGE_PARENT}
+
+    import jinja2  # noqa: PLC0415 - an Airflow dependency: this module is skipped without Airflow
 
     # The parent run comes from the provider's macro, which only exists while the provider is on.
     template = jinja2.Environment(undefined=jinja2.StrictUndefined, autoescape=True).from_string(
