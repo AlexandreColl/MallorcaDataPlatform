@@ -3,7 +3,8 @@ import os
 
 import pytest
 
-# The Delta Lake build of docker/airflow/Dockerfile. Outside the image (CI) Spark downloads it from Maven Central.
+# The Delta Lake build of docker/airflow/Dockerfile. The image and CI pass its jars in SPARK_EXTRA_JARS; elsewhere
+# Spark downloads it from Maven Central.
 DELTA_PACKAGE = "io.delta:delta-spark_4.2_2.13:4.4.1"
 
 

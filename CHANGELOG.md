@@ -19,7 +19,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   (`OPTIMIZE … ZORDER BY (ts)` into files of up to 32 MB, then a 7-day `VACUUM`). On the real lake, OPTIMIZE takes
   2.7 min and leaves 12 files.
 - The Airflow image adds the Delta 4.4.1 jars for Spark 4.2 (no Python package: `delta-spark` pins an older
-  PySpark). CI caches the jars the test SparkSession downloads.
+  PySpark), and CI passes the same jars to the test SparkSession.
 - Terraform: the Glue table `observations` is a Delta table (`table_type = DELTA`) that Athena reads through the log,
   so files a MERGE replaced never reach the results. Partition projection and the `sources` and `history_start`
   variables are gone.
