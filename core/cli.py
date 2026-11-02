@@ -165,7 +165,11 @@ def _cmd_silver_history(args: argparse.Namespace) -> int:
 def _cmd_silver_changes(args: argparse.Namespace) -> int:
     from pyspark.sql import functions as F
 
-    changes = _open_silver().changes(args.version)
+    try:
+        changes = _open_silver().changes(args.version)
+    except ValueError as exc:
+        print(exc)
+        return 1
     if args.sources:
         changes = changes.where(F.col("source").isin(args.sources))
     summary = changes.groupBy("source", "metric", "change").count().orderBy("source", "metric", "change").collect()

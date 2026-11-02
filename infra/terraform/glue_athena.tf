@@ -1,10 +1,11 @@
 # The silver lake as a SQL table, with no database server: the Glue Data Catalog points at the Delta table and
 # Athena queries it, paying only for the bytes it scans.
 #
-# Spark keeps `silver/observations` as a Delta Lake table: the Parquet files of `source=<connector>/date=<yyyy-MM-dd>`
-# plus the `_delta_log` that says which files are current. Athena (engine 3) reads that log natively: only the
-# location and `table_type = DELTA` are needed, partitions and file skipping come from the log, so no crawler (billed
-# per run), no `MSCK REPAIR TABLE` and no files that a MERGE replaced (still on S3 until VACUUM) in the results.
+# Spark keeps `silver/observations` as a Delta Lake table: Parquet files under `source=<connector>`, ordered by time,
+# plus the `_delta_log` that says which files are current. Athena (engine 3) reads that log natively: only the location
+# and `table_type = DELTA` are needed. Partitions and the min/max statistics of each file (to skip files on `date` and
+# `ts`) come from the log, so there is no crawler (billed per run), no `MSCK REPAIR TABLE`, and files that a MERGE
+# replaced (still on S3 until VACUUM) never reach the results.
 
 resource "aws_glue_catalog_database" "silver" {
   name        = replace("${local.name}_silver", "-", "_")
@@ -49,7 +50,7 @@ locals {
     { name = "quality", type = "string", comment = "ok, suspect or missing" },
     { name = "lat", type = "double", comment = "" },
     { name = "lon", type = "double", comment = "" },
-    { name = "date", type = "date", comment = "Day of ts (partition)" },
+    { name = "date", type = "date", comment = "Day of ts (file skipping through the Delta statistics)" },
   ]
 }
 
@@ -80,7 +81,7 @@ resource "aws_athena_workgroup" "analytics" {
 # A first query to try, visible in the Athena console under "Saved queries".
 resource "aws_athena_named_query" "daily_means" {
   name        = "Daily mean per source and metric (last 7 days)"
-  description = "The date partition in the Delta log keeps the scan to a week of files."
+  description = "The date statistics of the Delta log keep the scan to the files of the last week."
   workgroup   = aws_athena_workgroup.analytics.id
   database    = aws_glue_catalog_database.silver.name
   query       = <<-SQL

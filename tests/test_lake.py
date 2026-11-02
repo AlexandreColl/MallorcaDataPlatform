@@ -142,3 +142,21 @@ def test_maintenance_compacts_and_keeps_the_current_rows(table, spark):
     assert "VACUUM END" in [h["operation"] for h in table.history()]
     assert _values(table.snapshot()) == {("aemet", "temperature", T0): 21.0}
     assert len(table.locks) == 4
+
+
+def test_changes_before_the_change_feed_was_turned_on_are_refused(table, spark):
+    old = _rows(spark, ("aemet", "temperature", T0, 20.0, "ok")).withColumn("date", F.to_date("ts"))
+    old.write.partitionBy("source", "date").parquet(table.path)
+    # A lake converted before the Change Data Feed was on by default (as the real one was).
+    default = "spark.databricks.delta.properties.defaults.enableChangeDataFeed"
+    spark.conf.set(default, "false")
+    try:
+        spark.sql(f"CONVERT TO DELTA parquet.`{table.path}` PARTITIONED BY (source STRING, date DATE)")
+    finally:
+        spark.conf.set(default, "true")
+    table.merge(_rows(spark, ("aemet", "temperature", T1, 21.0, "ok")))
+    enabled = next(h["version"] for h in table.history() if h["operation"] == "SET TBLPROPERTIES")
+
+    with pytest.raises(ValueError, match=f"from version {enabled}: ask for version {enabled - 1} or later"):
+        table.changes(0)
+    assert table.changes(enabled - 1).count() == 1

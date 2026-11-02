@@ -213,8 +213,15 @@ class SilverTable:
 
         Read from the Change Data Feed of the later commits, so only the rows they touched are read. A row updated
         several times compares its value before the first commit with its value after the last one.
+
+        Raises:
+            ValueError: for a version before the table recorded its changes (the old lake, until it was rewritten).
         """
         latest = self.history(limit=1)[0]["version"]
+        first = self._first_change_feed_version()
+        if version < first - 1:
+            msg = f"silver records its changes from version {first}: ask for version {first - 1} or later"
+            raise ValueError(msg)
         feed = (
             self.spark.read.format("delta")
             .option("readChangeFeed", "true")
@@ -247,6 +254,16 @@ class SilverTable:
                 "change",
             )
         )
+
+    def _first_change_feed_version(self) -> int:
+        """The commit that turned the Change Data Feed on (0 for a table created with it)."""
+        rows = self.spark.sql(f"DESCRIBE HISTORY {self._table}").select("version", "operationParameters").collect()
+        enabling = [
+            r["version"]
+            for r in rows
+            if "delta.enableChangeDataFeed" in (r["operationParameters"] or {}).get("properties", "")
+        ]
+        return max(enabling, default=0)
 
     def maintain(self, retain_hours: int = 168) -> None:
         """Compact the files of each source ordered by time, then delete files unreferenced for ``retain_hours``.

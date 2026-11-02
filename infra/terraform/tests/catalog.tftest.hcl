@@ -37,7 +37,7 @@ run "table_is_the_spark_delta_table" {
     condition = [for c in one(aws_glue_catalog_table.observations.storage_descriptor).columns : c.name] == [
       "source", "entity", "metric", "ts", "value", "unit", "quality", "lat", "lon", "date",
     ]
-    error_message = "columns follow SILVER_SCHEMA plus the date partition"
+    error_message = "columns follow SILVER_SCHEMA plus the date column"
   }
 }
 

@@ -7,15 +7,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
-- Silver is a Delta Lake table (`core/lake.py`): each connector run MERGEs its rows on the key instead of
-  overwriting its Parquet partitions, and rows that did not change are dropped before it, so a rerun without changes writes no file and no version. The existing Parquet lake is
-  converted in place the first time (`CONVERT TO DELTA`). New `make silver-history` (commits with rows inserted and
-  updated), `make silver-changes VERSION=n` (time travel: rows added, removed or changed since a version) and
-  `make silver-maintain` (`OPTIMIZE` and a 7-day `VACUUM`). A Postgres advisory lock serialises the commits of the
-  two Spark drivers the DAG runs at once, since Delta on S3 has no atomic put-if-absent from Spark. The image adds
-  the Delta 4.4.1 jars for Spark 4.2 (no Python package: `delta-spark` pins an older PySpark).
-- Terraform: the Glue table `observations` is a Delta table (`table_type = DELTA`) that Athena reads through the
-  log, so replaced files are never in the results. Partition projection and the `sources` and `history_start`
+- Silver is a Delta Lake table (`core/lake.py`). Each connector run MERGEs its rows on the key instead of overwriting
+  its Parquet partitions; rows that did not change are dropped first, so a rerun without changes writes no file and
+  no version. A Postgres advisory lock serialises the commits of the two Spark drivers the DAG runs at once, since
+  Delta on S3 has no atomic put-if-absent from Spark.
+- One partition per source instead of per source and day: the old lake had 16,973 partitions of ~17 KB (67,000
+  files). The first run converts it in place (`CONVERT TO DELTA`) and rewrites it once by source (29 files); MERGEs
+  and queries on a few days skip the other files through the Delta min/max statistics.
+- New `make silver-history` (commits with the rows inserted and updated), `make silver-changes VERSION=n` (rows
+  added, removed or changed since a version, read from the Change Data Feed) and `make silver-maintain`
+  (`OPTIMIZE … ZORDER BY (ts)` into files of up to 32 MB, then a 7-day `VACUUM`). On the real lake, OPTIMIZE takes
+  2.7 min and leaves 12 files.
+- The Airflow image adds the Delta 4.4.1 jars for Spark 4.2 (no Python package: `delta-spark` pins an older
+  PySpark). CI caches the jars the test SparkSession downloads.
+- Terraform: the Glue table `observations` is a Delta table (`table_type = DELTA`) that Athena reads through the log,
+  so files a MERGE replaced never reach the results. Partition projection and the `sources` and `history_start`
   variables are gone.
 
 ## [0.8.0] - 2026-11-01

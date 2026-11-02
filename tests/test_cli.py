@@ -237,3 +237,15 @@ def test_silver_changes_counts_and_lists_the_changed_rows(monkeypatch, capsys, s
     assert out[1].split() == ["aemet", "temperature", "changed", "1"]
     assert out[2].strip() == "aemet palma temperature 2026-10-30 09:00 20.0 (ok) -> 20.5 (ok)"
     assert len(out) == 3
+
+
+def test_silver_changes_explains_a_version_without_change_data(monkeypatch, capsys):
+    class _Old(_FakeSilver):
+        def changes(self, version):
+            msg = "silver records its changes from version 5: ask for version 4 or later"
+            raise ValueError(msg)
+
+    monkeypatch.setattr(cli, "_open_silver", _Old)
+
+    assert cli.main(["silver-changes", "--version", "0"]) == 1
+    assert "ask for version 4 or later" in capsys.readouterr().out
