@@ -40,6 +40,23 @@ class SourceNotUpdatedError(ConnectorError):
     """
 
 
+# HTTP client errors that a retry minutes later may still clear: request timeout and rate limit.
+_TRANSIENT_CLIENT_ERRORS = {408, 429}
+
+
+def is_permanent(exc: BaseException) -> bool:
+    """True for a failure that retrying in a few minutes will not fix, so a task should not wait for it.
+
+    A source that has not published the window yet, or an HTTP 4xx other than 408 and 429 (a wrong or moved URL, a
+    rejected key). Connection errors and 5xx answers are outages that often clear between retries.
+    """
+    if isinstance(exc, SourceNotUpdatedError):
+        return True
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None)
+    return isinstance(status, int) and 400 <= status < 500 and status not in _TRANSIENT_CLIENT_ERRORS  # noqa: PLR2004
+
+
 @dataclass(frozen=True)
 class MetricSpec:
     """A metric declared in ``connector.yaml``: dataset, canonical unit and valid range."""
