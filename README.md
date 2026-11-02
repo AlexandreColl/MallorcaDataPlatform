@@ -40,6 +40,8 @@ flowchart LR
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
         SP[PySpark<br/>normaliza + reglas de calidad]
+        AN[anomalías<br/>z-score + Isolation Forest]
+        CO[correcciones<br/>interpolación + fuentes de apoyo]
         DBT[dbt build]
     end
     subgraph MinIO["MinIO (S3)"]
@@ -49,14 +51,18 @@ flowchart LR
     subgraph PG[PostgreSQL warehouse]
         SV[(silver.observations)]
         QC[(quality.check_results)]
+        AC[(silver.anomalies<br/>silver.corrections)]
         GD[(gold.*)]
     end
     OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA & GO --> EX --> BR --> SP
-    SP --> SL
+    SP -->|MERGE| SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
-    SV & QC --> DBT --> GD --> GF[Grafana]
+    SV --> AN --> AC
+    SV --> CO --> AC
+    SV & QC & AC --> DBT --> GD --> GF[Grafana]
     GD --> API[API REST · FastAPI]
+    Airflow -.->|OpenLineage, opcional| MQ[Marquez<br/>linaje]:::next
     classDef next stroke-dasharray: 5 5
 ```
 
@@ -79,7 +85,8 @@ flowchart LR
   su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída o una fuente que ha dejado de
   publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
-  (`quality_reasons`), pero nunca modifican el valor. Las correcciones irán en una capa propia (ver roadmap).
+  (`quality_reasons`), pero nunca modifican el valor. Las correcciones van aparte, en `silver.corrections`, y gold
+  muestra los dos valores ([abajo](#correcciones-con-fuentes-de-apoyo)).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.
 
 ## Puesta en marcha
