@@ -44,7 +44,16 @@ DELTA_SPARK_CONFIG = {
     # Every new table records its row changes (`changes`, `make silver-changes`).
     "spark.databricks.delta.properties.defaults.enableChangeDataFeed": "true",
     # OPTIMIZE writes files of up to 32 MB (default 1 GB): a MERGE that updates a row rewrites only its file.
+    # The table state is rebuilt from its log with 50 tasks by default: 2 are enough for a local table (15 s -> 10 s).
+    "spark.databricks.delta.snapshotPartitions": "2",
     "spark.databricks.delta.optimize.maxFileSize": str(32 * 1024 * 1024),
+    # Auto compaction: after a write, the small files of the source it touched are compacted into files of up to
+    # 32 MB, so the files each run adds never pile up between `make silver-maintain` runs. Observed: the threshold
+    # holds within one Spark session (tests), but the pipeline, one session per ingest task, compacts after every
+    # run (8-25 s), leaving one file per source.
+    "spark.databricks.delta.autoCompact.enabled": "true",
+    "spark.databricks.delta.autoCompact.maxFileSize": str(32 * 1024 * 1024),
+    "spark.databricks.delta.autoCompact.minNumFiles": "50",
 }
 # Advisory lock key of the silver writers (7302 is the DDL).
 SILVER_LOCK = 7303
@@ -147,7 +156,8 @@ class SilverTable:
                 return MergeResult(version=version, inserted=0, updated=0)
             self._merge(pending, pruning)
             pending.unpersist()
-            commit = self.history(limit=1)[0]
+            # Auto compaction may commit an OPTIMIZE right after: the run's commit is the latest MERGE (under the lock).
+            commit = next(c for c in self.history(limit=5) if c["operation"] == "MERGE")
         log.info(
             "silver: version %d, %d rows inserted and %d updated",
             commit["version"],
@@ -159,8 +169,10 @@ class SilverTable:
     @staticmethod
     def _pruning(rows: DataFrame) -> str:
         """Literal partition values of the run: Delta prunes the target files and other sources' writers stay apart."""
-        bounds = rows.agg(F.min("date").alias("first"), F.max("date").alias("last")).first()
-        sources = ", ".join(f"'{r['source']}'" for r in rows.select("source").distinct().collect())  # [a-z0-9_]
+        bounds = rows.agg(
+            F.min("date").alias("first"), F.max("date").alias("last"), F.collect_set("source").alias("sources")
+        ).first()  # one Spark job
+        sources = ", ".join(f"'{s}'" for s in sorted(bounds["sources"]))  # connector names: [a-z0-9_]
         return f"t.source IN ({sources}) AND t.date BETWEEN '{bounds['first']}' AND '{bounds['last']}'"
 
     def _changed_rows(self, rows: DataFrame, pruning: str) -> DataFrame:

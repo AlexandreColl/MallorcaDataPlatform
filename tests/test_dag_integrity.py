@@ -79,3 +79,40 @@ def test_dbt_sends_lineage_only_with_somewhere_to_send_it():
             check=True,
         )
         assert out.stdout.strip() == expected
+
+
+def test_failures_that_waiting_will_not_fix_skip_the_retries(monkeypatch):
+    import requests  # noqa: PLC0415
+    from airflow.sdk.exceptions import AirflowFailException  # noqa: PLC0415
+
+    import core.pipeline  # noqa: PLC0415
+    from core.connectors import SourceNotUpdatedError  # noqa: PLC0415
+
+    ingest = dagbag.DagBag(dag_folder=DAGS_DIR).dags["mallorca_pipeline"].get_task("ingest").python_callable
+    monkeypatch.setitem(ingest.__globals__, "get_current_context", dict)
+
+    def stale(*args, **kwargs):
+        msg = "EEA files end at 2026-10-30 11:00 UTC, before 2026-11-01: not updated yet"
+        raise SourceNotUpdatedError(msg)
+
+    monkeypatch.setattr(core.pipeline, "run_connector", stale)
+    with pytest.raises(AirflowFailException, match=r"^SourceNotUpdatedError: EEA files end"):
+        ingest("eea_air_quality", params={"days": 1, "region": "mallorca"}, run_id="r1")
+
+    def moved(*args, **kwargs):
+        response = requests.Response()
+        response.status_code = 404
+        msg = "404 Client Error"
+        raise requests.HTTPError(msg, response=response)
+
+    monkeypatch.setattr(core.pipeline, "run_connector", moved)
+    with pytest.raises(AirflowFailException, match=r"^HTTPError: 404"):
+        ingest("socib", params={"days": 1, "region": "mallorca"}, run_id="r1")
+
+    def outage(*args, **kwargs):
+        msg = "connection refused"
+        raise requests.ConnectionError(msg)
+
+    monkeypatch.setattr(core.pipeline, "run_connector", outage)
+    with pytest.raises(requests.ConnectionError):  # an outage keeps its retries
+        ingest("eea_air_quality", params={"days": 1, "region": "mallorca"}, run_id="r1")

@@ -118,18 +118,31 @@ def mallorca_pipeline() -> None:
         outlets=[ASSETS["bronze"], ASSETS["silver_lake"], ASSETS["observations"]],
     )
     def ingest(connector: str, params: dict[str, Any] | None = None, run_id: str | None = None) -> dict[str, Any]:
-        """Run one connector end to end (bronze -> silver -> warehouse)."""
+        """Run one connector end to end (bronze -> silver -> warehouse).
+
+        A failure that waiting will not fix (a source that has not published the window yet, an HTTP 4xx such as a
+        moved URL) fails without retries; the next run recovers the days (catch-up). Outages keep their retries.
+        """
+        from airflow.sdk.exceptions import AirflowFailException
+
+        from core.connectors import is_permanent
         from core.pipeline import run_connector
 
         params = params or {}
         get_current_context()["connector_name"] = connector
-        summary = run_connector(
-            connector,
-            days=int(params["days"]),
-            region_name=params["region"],
-            run_id=run_id,
-            catch_up=bool(params.get("catch_up", True)),
-        )
+        try:
+            summary = run_connector(
+                connector,
+                days=int(params["days"]),
+                region_name=params["region"],
+                run_id=run_id,
+                catch_up=bool(params.get("catch_up", True)),
+            )
+        except Exception as exc:
+            if not is_permanent(exc):
+                raise
+            msg = f"{type(exc).__name__}: {exc}"
+            raise AirflowFailException(msg) from exc
         return summary.as_dict()
 
     @task(trigger_rule=TriggerRule.ALL_DONE, retries=0, inlets=[ASSETS["observations"]], outlets=[ASSETS["anomalies"]])

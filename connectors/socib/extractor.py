@@ -28,7 +28,12 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 _LATEST_FILE = re.compile(r'urlPath="([^"]*?dep(\d+)_[^"]*_latest\.nc)"')
-_COVERAGE_BEGIN = re.compile(r"<begin>([^<]+)</begin>")
+# The file's first time, a global attribute of its NcML. NCSS's dataset.xml also has it as <TimeSpan><begin>, but
+# SOCIB's server leaves that block out at times (November 2026).
+_COVERAGE_START = re.compile(r'<attribute name="time_coverage_start" value="([^"]+)"')
+# NetCDF Subset Service for point data (station time series). SOCIB moved it from `/ncss/` to `/ncss/point/` in
+# November 2026; the old path answers 404.
+_NCSS = "ncss/point"
 
 
 @dataclass
@@ -67,7 +72,7 @@ class SocibConnector(BaseConnector):
         for station in self._stations(region):
             path = self._latest_file(station["folder"])
             self._check_coverage(path, window)
-            url = f"{options['thredds_url']}/ncss/{path}"
+            url = f"{options['thredds_url']}/{_NCSS}/{path}"
             params: dict[str, Any] = {
                 "var": requested,
                 "time_start": f"{window.start.isoformat()}T00:00:00Z",
@@ -152,8 +157,8 @@ class SocibConnector(BaseConnector):
         return max(files, key=lambda match: int(match[1]))[0]
 
     def _check_coverage(self, path: str, window: TimeWindow) -> None:
-        metadata = self.http.get_text(f"{self.config.options['thredds_url']}/ncss/{path}/dataset.xml")
-        match = _COVERAGE_BEGIN.search(metadata)
+        metadata = self.http.get_text(f"{self.config.options['thredds_url']}/ncml/{path}")
+        match = _COVERAGE_START.search(metadata)
         if match is None:
             msg = f"cannot read the time coverage of {path}"
             raise ConnectorError(msg)

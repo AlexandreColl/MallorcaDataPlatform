@@ -32,6 +32,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Terraform: the Glue table `observations` is a Delta table (`table_type = DELTA`) that Athena reads through the log,
   so files a MERGE replaced never reach the results. Partition projection and the `sources` and `history_start`
   variables are gone.
+- Failures that waiting will not fix skip the task retries (2, 4 and 8 min): a source that has not published the
+  window yet (`SourceNotUpdatedError`) or an HTTP 4xx other than 408 and 429. The stale EEA feed now fails in 7 s
+  instead of about 14 minutes; outages (connection errors, 5xx) keep their retries.
+- Delta auto compaction: after a write, the new file of the source is compacted with its old ones (files of up to
+  32 MB), so silver keeps one file per source between `make silver-maintain` runs.
+  The table state is rebuilt with 2 tasks instead of 50, which saves about 5 s per connector run. Ingest tasks take
+  37-60 s instead of 58-105 s.
+
+### Fixed
+
+- SOCIB: the THREDDS server moved its subset service from `/ncss/` to `/ncss/point/` (the old path answers 404),
+  and its `dataset.xml` sometimes leaves out the time coverage. The connector uses the new path and reads the
+  coverage from the file's NcML (`time_coverage_start`).
 
 ## [0.8.0] - 2026-11-01
 

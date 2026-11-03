@@ -40,6 +40,8 @@ flowchart LR
     subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
         EX[extract<br/>una tarea por conector]
         SP[PySpark<br/>normaliza + reglas de calidad]
+        AN[anomalías<br/>z-score + Isolation Forest]
+        CO[correcciones<br/>interpolación + fuentes de apoyo]
         DBT[dbt build]
     end
     subgraph MinIO["MinIO (S3)"]
@@ -49,14 +51,18 @@ flowchart LR
     subgraph PG[PostgreSQL warehouse]
         SV[(silver.observations)]
         QC[(quality.check_results)]
+        AC[(silver.anomalies<br/>silver.corrections)]
         GD[(gold.*)]
     end
     OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA & GO --> EX --> BR --> SP
-    SP --> SL
+    SP -->|MERGE| SL
     SP -->|JDBC + upsert idempotente| SV
     SP --> QC
-    SV & QC --> DBT --> GD --> GF[Grafana]
+    SV --> AN --> AC
+    SV --> CO --> AC
+    SV & QC & AC --> DBT --> GD --> GF[Grafana]
     GD --> API[API REST · FastAPI]
+    Airflow -.->|OpenLineage, opcional| MQ[Marquez<br/>linaje]:::next
     classDef next stroke-dasharray: 5 5
 ```
 
@@ -79,7 +85,8 @@ flowchart LR
   su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída o una fuente que ha dejado de
   publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
-  (`quality_reasons`), pero nunca modifican el valor. Las correcciones irán en una capa propia (ver roadmap).
+  (`quality_reasons`), pero nunca modifican el valor. Las correcciones van aparte, en `silver.corrections`, y gold
+  muestra los dos valores ([abajo](#correcciones-con-fuentes-de-apoyo)).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.
 
 ## Puesta en marcha
@@ -259,7 +266,9 @@ forman cada versión ([core/lake.py](core/lake.py)).
   lo convierte en su sitio (`CONVERT TO DELTA`, que solo escribe el log) y lo reescribe una vez por fuente: quedan
   29 ficheros. `make silver-maintain` compacta cada fuente en ficheros de hasta 32 MB ordenados por hora
   (`OPTIMIZE … ZORDER BY (ts)`) y borra los que ya no forman parte de ninguna versión de los últimos 7 días
-  (`VACUUM`). El *time travel* llega hasta donde llegan esos ficheros.
+  (`VACUUM`). El *time travel* llega hasta donde llegan esos ficheros. Entre medias, la *auto compaction* de Delta
+  junta el fichero nuevo de cada ejecución con los de su fuente: en el pipeline queda un fichero por fuente (8-25 s
+  más por ejecución, dentro del *lock*).
 - **Un escritor a la vez.** Delta en S3 no tiene un "escribir si no existe" atómico desde Spark, y el DAG ejecuta dos
   conectores a la vez, es decir, dos *drivers* de Spark. Un *advisory lock* de Postgres serializa los commits, en el
   papel que en AWS haría DynamoDB.

@@ -1031,7 +1031,8 @@
           "custom": {
             "align": "auto"
           },
-          "decimals": 1
+          "decimals": 1,
+          "noValue": "Ningún sismo en el rango"
         },
         "overrides": [
           {
