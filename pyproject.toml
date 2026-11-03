@@ -77,7 +77,7 @@ pythonpath = ["."]
 addopts = "-ra --import-mode=importlib"
 markers = [
     "spark: needs a local SparkSession (Java required)",
-    "integration: needs a warehouse with the dbt marts (API_DB_* or WAREHOUSE_* variables)",
+    "integration: needs a warehouse (API_DB_* or WAREHOUSE_* variables)",
 ]
 
 [tool.coverage.run]

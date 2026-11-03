@@ -23,48 +23,17 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 ```mermaid
 flowchart LR
-    subgraph Fuentes
-        OM[Open-Meteo]
-        OMM[Open-Meteo Marine]
-        AE[AEMET]
-        RD[REData]
-        SO[SOCIB]
-        IG[IGN sismos]
-        EM[EMT Palma GTFS]
-        CT[CTM GTFS]
-        DE[Dataestur turismo]
-        WR[Reservas hídricas]
-        EA[EEA calidad del aire]
-        GO[GOIB histórico del aire]
-    end
-    subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
-        EX[extract<br/>una tarea por conector]
-        SP[PySpark<br/>normaliza + reglas de calidad]
-        AN[anomalías<br/>z-score + Isolation Forest]
-        CO[correcciones<br/>interpolación + fuentes de apoyo]
-        DBT[dbt build]
-    end
-    subgraph MinIO["MinIO (S3)"]
-        BR[(bronze<br/>JSON crudo, versionado)]
-        SL[(silver<br/>tabla Delta Lake)]
-    end
-    subgraph PG[PostgreSQL warehouse]
-        SV[(silver.observations)]
-        QC[(quality.check_results)]
-        AC[(silver.anomalies<br/>silver.corrections)]
-        GD[(gold.*)]
-    end
-    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA & GO --> EX --> BR --> SP
-    SP -->|MERGE| SL
-    SP -->|JDBC + upsert idempotente| SV
-    SP --> QC
-    SV --> AN --> AC
-    SV --> CO --> AC
-    SV & QC & AC --> DBT --> GD --> GF[Grafana]
-    GD --> API[API REST · FastAPI]
-    Airflow -.->|OpenLineage, opcional| MQ[Marquez<br/>linaje]:::next
-    classDef next stroke-dasharray: 5 5
+    SRC["12 fuentes abiertas<br/>APIs, GTFS y ficheros"] -->|extract| BR[("bronze<br/>respuesta cruda")]
+    BR -->|"normalize + calidad<br/>(PySpark)"| SL[("silver<br/>esquema común")]
+    SL -->|"anomalías y<br/>correcciones"| AC[("silver.anomalies<br/>silver.corrections")]
+    SL & AC -->|dbt build| GD[("gold<br/>marts")]
+    GD --> GF[Grafana]
+    GD --> API[API REST]
 ```
+
+Airflow orquesta cada flecha con el DAG `mallorca_pipeline`: una tarea `ingest` por conector, y después
+`detect_anomalies`, `correct_values` y `dbt_build`. Bronze vive en MinIO; silver, en una tabla Delta de MinIO y en
+Postgres; gold, en Postgres.
 
 | Capa | Dónde | Contenido |
 |---|---|---|

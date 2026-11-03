@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import functions as F
 
+from core.models import COMPARED, KEY
 from core.warehouse import Warehouse
 
 if TYPE_CHECKING:
@@ -54,13 +55,12 @@ DELTA_SPARK_CONFIG = {
     "spark.databricks.delta.autoCompact.enabled": "true",
     "spark.databricks.delta.autoCompact.maxFileSize": str(32 * 1024 * 1024),
     "spark.databricks.delta.autoCompact.minNumFiles": "50",
+    # VACUUM lists the table's files with up to 10,000 tasks by default: 8 are plenty (55 s -> 5 s on a small table).
+    "spark.sql.sources.parallelPartitionDiscovery.parallelism": "8",
 }
 # Advisory lock key of the silver writers (7302 is the DDL).
 SILVER_LOCK = 7303
-KEY = ("source", "entity", "metric", "ts")
 PARTITIONS = ("source",)
-# Columns whose change counts as a real update (run_id / ingested_at always differ), as in core/warehouse.py.
-COMPARED = ("value", "unit", "quality", "quality_reasons", "lat", "lon")
 # The commit metrics shown by `history` (Delta names them per operation).
 _METRICS = {
     "inserted": ("numTargetRowsInserted", "numOutputRows"),

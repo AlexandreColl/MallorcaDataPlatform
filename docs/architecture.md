@@ -27,35 +27,17 @@ agua?
 
 ```mermaid
 flowchart LR
-    subgraph Fuentes["12 fuentes abiertas"]
-        API[APIs REST · THREDDS · FDSN<br/>GTFS · xlsx · ODS · PDF]
+    SRC["12 fuentes abiertas"] --> AF
+    subgraph AF["Airflow (con PySpark y dbt)"]
+        direction TB
+        ING["ingest<br/>una tarea por conector, 2 a la vez"] --> DET[detect_anomalies] --> COR[correct_values] --> DBT[dbt_build]
     end
-    subgraph Orq["Airflow 3 · DAG mallorca_pipeline"]
-        R[resolve_connectors] --> I["ingest × N<br/>(2 a la vez)<br/>extract → normalize → calidad"]
-        I --> AN[detect_anomalies]
-        AN --> CO[correct_values]
-        CO --> DBT[dbt build]
-    end
-    subgraph Lake["MinIO (S3)"]
-        BR[(bronze<br/>respuesta cruda,<br/>versionada)]
-        SL[(silver<br/>tabla Delta)]
-    end
-    subgraph WH["PostgreSQL · warehouse"]
-        SV[(silver.observations<br/>quality.* · ops.*)]
-        AC[(silver.anomalies<br/>silver.corrections)]
-        GD[(gold.* · marts dbt)]
-    end
-    API --> I
-    I --> BR
-    I -->|MERGE bajo lock| SL
-    I -->|upsert idempotente| SV
-    SV --> AN --> AC
-    SV --> CO --> AC
-    SV & AC --> DBT --> GD
-    GD --> GF[Grafana<br/>6 dashboards + alertas]
-    GD --> FA[API REST<br/>FastAPI, solo lectura]
-    SL -.->|Glue + Athena<br/>Terraform, sin desplegar| AWS[(AWS)]
-    Orq -.->|OpenLineage, opcional| MQ[Marquez]
+    AF --> MINIO[("MinIO<br/>bronze · silver en Delta")]
+    AF --> PG[("PostgreSQL<br/>silver · quality · ops · gold")]
+    PG --> GF["Grafana<br/>dashboards y alertas"]
+    PG --> API["API REST<br/>solo lectura"]
+    AF -.->|OpenLineage| MQ["Marquez<br/>opcional"]
+    MINIO -.->|"Terraform, sin desplegar"| AWS["S3 · Glue · Athena"]
 ```
 
 | Capa | Dónde | Para qué |

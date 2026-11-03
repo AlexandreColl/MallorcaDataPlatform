@@ -26,11 +26,6 @@ def discover(connectors_dir: Path | None = None) -> dict[str, ConnectorConfig]:
     return configs
 
 
-def enabled_names(connectors_dir: Path | None = None) -> list[str]:
-    """Names of the connectors with ``enabled: true``."""
-    return [name for name, cfg in discover(connectors_dir).items() if cfg.enabled]
-
-
 def runnable_names(connectors_dir: Path | None = None, env: Mapping[str, str] | None = None) -> list[str]:
     """Enabled connectors whose secrets are set: the default selection.
 
