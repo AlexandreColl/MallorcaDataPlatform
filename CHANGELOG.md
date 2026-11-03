@@ -16,6 +16,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   inputs, output and column lineage, under the task run. Both sides name the tables alike, so the graph goes from
   ingestion to gold. Optional Marquez backend (`COMPOSE_PROFILES=lineage` and `OPENLINEAGE_URL` in `.env`, UI at
   http://localhost:3001); without `OPENLINEAGE_URL` nothing is sent and dbt runs as before.
+- Integration tests of the warehouse writes against Postgres (`tests/test_warehouse.py`, a CI step on the dbt job's
+  database): a rerun with the same content writes nothing, a changed value or quality updates only its row and its
+  `updated_at`, the catch-up day comes from successful runs only, and anomalies are replaced only inside their window.
 
 ### Changed
 
@@ -42,6 +45,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   32 MB), so silver keeps one file per source between `make silver-maintain` runs.
   The table state is rebuilt with 2 tasks instead of 50, which saves about 5 s per connector run. Ingest tasks take
   37-60 s instead of 58-105 s.
+- `VACUUM` lists the table's files with 8 tasks instead of up to 10,000: 5 s instead of 55 s on a small table.
+- Cleanup: the silver key and compared columns are defined once (`core/models.py`) for the Delta MERGE, the Postgres
+  upsert and the duplicate rule; unused code is gone. The README and architecture diagrams are simpler: a linear data
+  flow and a services view.
 
 ### Fixed
 
