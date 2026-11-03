@@ -266,7 +266,8 @@ forman cada versión ([core/lake.py](core/lake.py)).
   lo convierte en su sitio (`CONVERT TO DELTA`, que solo escribe el log) y lo reescribe una vez por fuente: quedan
   29 ficheros. `make silver-maintain` compacta cada fuente en ficheros de hasta 32 MB ordenados por hora
   (`OPTIMIZE … ZORDER BY (ts)`) y borra los que ya no forman parte de ninguna versión de los últimos 7 días
-  (`VACUUM`). El *time travel* llega hasta donde llegan esos ficheros.
+  (`VACUUM`). El *time travel* llega hasta donde llegan esos ficheros. Entre medias, la *auto compaction* de Delta
+  junta los ficheros pequeños que deja cada ejecución en cuanto una fuente acumula 50.
 - **Un escritor a la vez.** Delta en S3 no tiene un "escribir si no existe" atómico desde Spark, y el DAG ejecuta dos
   conectores a la vez, es decir, dos *drivers* de Spark. Un *advisory lock* de Postgres serializa los commits, en el
   papel que en AWS haría DynamoDB.
