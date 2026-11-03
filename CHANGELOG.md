@@ -13,6 +13,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Trade-offs, costs and scaling in the architecture case: today's measured volumes, what each decision gains and
   costs and when to revisit it, what breaks first at 10× and 100×, and an AWS cost estimate (the lake costs cents,
   always-on compute is the real cost).
+- Architecture decision records (`docs/adr/`): 18 ADRs with status and date, a template and an index, including
+  the superseded and rejected ones (silver in Parquet, USGS earthquakes, OpenAQ). Each says when to revisit it.
+  Section 3 of the architecture case is now a summary that links to them.
 - Roadmap phase towards data architecture: ADRs, documented data model, a real AWS deployment and a second engine.
 - Lineage with OpenLineage. The DAG tasks declare the datasets they read and write as Airflow assets (bronze, the
   silver Delta table, `silver.observations`, `silver.anomalies` and `silver.corrections`), and the OpenLineage
