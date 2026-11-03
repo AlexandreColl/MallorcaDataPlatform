@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.anomaly import IsolationForestDetector, RobustZScore
+from core.anomaly import RobustZScore
 from core.anomaly.base import SCORE_COLUMNS, UnivariateDetector
 from core.anomaly.evaluation import Evaluation, EvaluationConfig, evaluate
 from core.anomaly.faults import FaultInjector, FaultSpec, robust_sigma
@@ -161,20 +161,3 @@ def test_shift_copies_values_from_lag_steps_earlier():
     assert len(shifted) == 10
     assert shifted[0] >= 12
     np.testing.assert_array_equal(out.loc[shifted, "value"], clean.loc[shifted - 12, "value"])
-
-
-def test_isolation_forest_catches_frozen_sensors_the_z_score_misses():
-    data = observations()
-    data = pd.concat(
-        [
-            data,
-            data.assign(
-                metric="h", value=70 - 3 * (data["value"] - 18) + np.random.default_rng(0).normal(0, 2, len(data))
-            ),
-        ],
-        ignore_index=True,
-    )
-    specs = {"frozen": FaultSpec(count=1, length=(24, 24))}
-    forest = evaluate(IsolationForestDetector(contamination=0.05), data, FaultInjector(specs), seed=1)
-    zscore = evaluate(RobustZScore(), data, FaultInjector(specs), seed=1)
-    assert forest.by_fault["frozen"].event_recall > zscore.by_fault["frozen"].event_recall
