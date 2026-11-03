@@ -47,8 +47,10 @@ DELTA_SPARK_CONFIG = {
     # The table state is rebuilt from its log with 50 tasks by default: 2 are enough for a local table (15 s -> 10 s).
     "spark.databricks.delta.snapshotPartitions": "2",
     "spark.databricks.delta.optimize.maxFileSize": str(32 * 1024 * 1024),
-    # Auto compaction: after a write, a source with 50 small files or more is compacted into files of up to 32 MB,
-    # so the files each run adds (one or two per source) never pile up between `make silver-maintain` runs.
+    # Auto compaction: after a write, the small files of the source it touched are compacted into files of up to
+    # 32 MB, so the files each run adds never pile up between `make silver-maintain` runs. Observed: the threshold
+    # holds within one Spark session (tests), but the pipeline, one session per ingest task, compacts after every
+    # run (8-25 s), leaving one file per source.
     "spark.databricks.delta.autoCompact.enabled": "true",
     "spark.databricks.delta.autoCompact.maxFileSize": str(32 * 1024 * 1024),
     "spark.databricks.delta.autoCompact.minNumFiles": "50",
