@@ -74,6 +74,9 @@ flowchart LR
 
 ### Decisiones de diseño
 
+El caso completo, con el contexto, las restricciones, cada decisión con su porqué, lo que se descartó y lo que cuesta:
+[docs/architecture.md](docs/architecture.md). En resumen:
+
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.
 - **Idempotencia en todas las capas**: ventanas de días completos (siempre la misma petición), claves
@@ -582,7 +585,8 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |
 
-Ramas y releases: [docs/git-workflow.md](docs/git-workflow.md) · Plan completo: [ROADMAP.md](ROADMAP.md)
+Ramas y releases: [docs/git-workflow.md](docs/git-workflow.md) · Arquitectura y decisiones:
+[docs/architecture.md](docs/architecture.md) · Plan completo: [ROADMAP.md](ROADMAP.md)
 
 ## Licencia
 
