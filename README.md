@@ -44,7 +44,8 @@ Postgres; gold, en Postgres.
 ### Decisiones de diseño
 
 El caso completo, con el contexto, las restricciones, cada decisión con su porqué, lo que se descartó y lo que cuesta:
-[docs/architecture.md](docs/architecture.md). En resumen:
+[docs/architecture.md](docs/architecture.md). Allí está también qué se rompe primero a 10× y 100× y cuánto costaría
+en AWS ([trade-offs, costes y escalado](docs/architecture.md#5-trade-offs-costes-y-escalado)). En resumen:
 
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.

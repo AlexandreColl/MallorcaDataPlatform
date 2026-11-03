@@ -144,6 +144,21 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | Silver como tabla **Delta Lake** en MinIO: `MERGE` por la clave, historial de versiones, *time travel* y *Change Data Feed* (`make silver-changes`), una partición por fuente con `OPTIMIZE … ZORDER BY (ts)` y `VACUUM`, conversión y reescritura del lake Parquet (67.000 ficheros → 12) y Glue/Athena leyendo el log. Iceberg aún no tiene runtime para Spark 4.2 |
 | ✅ | Diagrama de arquitectura local frente a AWS ([infra/terraform/README.md](infra/terraform/README.md)) |
 
+## Fase 7 · Hacia arquitectura de datos
+
+Lo que convierte el proyecto en un caso de arquitectura: decisiones registradas, un modelo de datos explícito y un
+despliegue real con su coste medido.
+
+| Estado | Tarea |
+|---|---|
+| ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
+| ⬜ | **ADRs** en `docs/adr/`, una por decisión, con estado y fecha. Incluir las sustituidas (USGS → IGN, OpenAQ → EEA, silver en Parquet → Delta) |
+| ⬜ | **Modelo de datos documentado**: diagrama de gold con el grano de cada hecho y sus dimensiones, por qué silver es largo y los marts anchos, `dbt snapshot` (SCD2) de estaciones y paradas, y `source freshness` como SLA por fuente |
+| ⬜ | Gobierno del dato: dueño y SLA por fuente, política de evolución de esquemas |
+| ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
+| ⬜ | Gold en Athena con `dbt-athena` (quita la copia de silver en Postgres) |
+| ⬜ | Segundo motor (BigQuery sandbox) solo si las ofertas objetivo lo piden, con su ADR 🔬 |
+
 ## Extras opcionales
 
 | Estado | Tarea |
