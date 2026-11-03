@@ -17,7 +17,8 @@ from pyspark.sql import functions as F
 
 from core.config import Settings, load_region
 from core.connectors import BaseConnector, registry
-from core.lake import MergeResult, open_silver
+from core.lake import open_silver
+from core.models import KEY
 from core.quality import QualityEngine, RuleResult, rules_for
 from core.spark import SILVER_SCHEMA, build_spark
 from core.storage import BronzeStore, ensure_bucket
@@ -79,7 +80,7 @@ def to_dataframe(spark: SparkSession, observations: list[Observation], run_id: s
 
 def deduplicate(df: DataFrame) -> DataFrame:
     """Keep one row per key; prefer a non-null value."""
-    w = Window.partitionBy("source", "entity", "metric", "ts").orderBy(F.col("value").isNull().asc())
+    w = Window.partitionBy(*KEY).orderBy(F.col("value").isNull().asc())
     return df.withColumn("_rn", F.row_number().over(w)).where("_rn = 1").drop("_rn")
 
 
@@ -89,10 +90,10 @@ def apply_quality(df: DataFrame, connector: BaseConnector, window: TimeWindow) -
     return deduplicate(flagged), results
 
 
-def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> MergeResult:
+def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:
     """Upsert silver into the Delta lake and write it to a Postgres landing table."""
-    # 1) Delta table (S3A -> MinIO), partitioned by source and day. MERGE on the key = idempotent reruns.
-    merged = open_silver(df.sparkSession, settings).merge(df)
+    # 1) Delta table (S3A -> MinIO), partitioned by source. MERGE on the key = idempotent reruns.
+    open_silver(df.sparkSession, settings).merge(df)
     # 2) Landing table in Postgres via JDBC; merged into silver.observations afterwards.
     (
         df.write.format("jdbc")
@@ -105,7 +106,6 @@ def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> Merge
         .mode("overwrite")
         .save()
     )
-    return merged
 
 
 def _load_observations(

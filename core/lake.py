@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import functions as F
 
+from core.models import COMPARED, KEY
 from core.warehouse import Warehouse
 
 if TYPE_CHECKING:
@@ -57,10 +58,7 @@ DELTA_SPARK_CONFIG = {
 }
 # Advisory lock key of the silver writers (7302 is the DDL).
 SILVER_LOCK = 7303
-KEY = ("source", "entity", "metric", "ts")
 PARTITIONS = ("source",)
-# Columns whose change counts as a real update (run_id / ingested_at always differ), as in core/warehouse.py.
-COMPARED = ("value", "unit", "quality", "quality_reasons", "lat", "lon")
 # The commit metrics shown by `history` (Delta names them per operation).
 _METRICS = {
     "inserted": ("numTargetRowsInserted", "numOutputRows"),

@@ -15,6 +15,7 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
+from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -41,7 +42,7 @@ class SourceNotUpdatedError(ConnectorError):
 
 
 # HTTP client errors that a retry minutes later may still clear: request timeout and rate limit.
-_TRANSIENT_CLIENT_ERRORS = {408, 429}
+_TRANSIENT_CLIENT_ERRORS = {HTTPStatus.REQUEST_TIMEOUT, HTTPStatus.TOO_MANY_REQUESTS}
 
 
 def is_permanent(exc: BaseException) -> bool:
@@ -54,7 +55,8 @@ def is_permanent(exc: BaseException) -> bool:
         return True
     response = getattr(exc, "response", None)
     status = getattr(response, "status_code", None)
-    return isinstance(status, int) and 400 <= status < 500 and status not in _TRANSIENT_CLIENT_ERRORS  # noqa: PLR2004
+    client_error = isinstance(status, int) and HTTPStatus.BAD_REQUEST <= status < HTTPStatus.INTERNAL_SERVER_ERROR
+    return client_error and status not in _TRANSIENT_CLIENT_ERRORS
 
 
 @dataclass(frozen=True)
