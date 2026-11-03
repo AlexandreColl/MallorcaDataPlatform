@@ -152,7 +152,7 @@ despliegue real con su coste medido.
 | Estado | Tarea |
 |---|---|
 | ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
-| ⬜ | **ADRs** en `docs/adr/`, una por decisión, con estado y fecha. Incluir las sustituidas (USGS → IGN, OpenAQ → EEA, silver en Parquet → Delta) |
+| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 18 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
 | ⬜ | **Modelo de datos documentado**: diagrama de gold con el grano de cada hecho y sus dimensiones, por qué silver es largo y los marts anchos, `dbt snapshot` (SCD2) de estaciones y paradas, y `source freshness` como SLA por fuente |
 | ⬜ | Gobierno del dato: dueño y SLA por fuente, política de evolución de esquemas |
 | ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
