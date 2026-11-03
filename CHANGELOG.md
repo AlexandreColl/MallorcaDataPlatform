@@ -10,6 +10,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Architecture case study (`docs/architecture.md`): context and constraints, overview and sequence diagrams of a
   run, 13 design decisions with why, the alternatives ruled out and what each costs, quality attributes and known
   limits.
+- Trade-offs, costs and scaling in the architecture case: today's measured volumes, what each decision gains and
+  costs and when to revisit it, what breaks first at 10× and 100×, and an AWS cost estimate (the lake costs cents,
+  always-on compute is the real cost).
+- Roadmap phase towards data architecture: ADRs, documented data model, a real AWS deployment and a second engine.
 - Lineage with OpenLineage. The DAG tasks declare the datasets they read and write as Airflow assets (bronze, the
   silver Delta table, `silver.observations`, `silver.anomalies` and `silver.corrections`), and the OpenLineage
   provider sends them with each run. `dbt_build` runs `dbt-ol`, which adds one job per model and test, with its

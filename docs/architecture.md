@@ -291,12 +291,81 @@ cuesta.
 | Resiliencia | Tareas aisladas por fuente, reintentos solo para cortes, catch-up, `all_done` |
 | Auditabilidad | Bronze versionado, historial y Change Data Feed de Delta, `run_id` en cada fila, calidad y correcciones en tablas propias |
 | Observabilidad | `ops.ingestion_runs`, `quality.check_results`, alertas de Grafana con aviso por Telegram, linaje OpenLineage |
-| Coste | 0 en local; en AWS, céntimos al mes con un presupuesto de 2 USD y un límite de 1 GB escaneado por consulta en Athena |
+| Coste | 0 en local; en AWS, el lake cuesta céntimos al mes (presupuesto de 2 USD y 1 GB como máximo por consulta en Athena) y el gasto real es el cómputo siempre encendido ([sección 5](#5-trade-offs-costes-y-escalado)) |
 | Seguridad | Roles de Postgres de solo lectura, claves en `.env` fuera del repo, IAM sin comodines, buckets privados, cifrados y solo TLS |
 | Extensibilidad | Contrato de conector, YAML de métricas y reglas, staging de dbt de una línea con una macro común |
 | Reproducibilidad | Una sola imagen para Airflow, Spark y dbt (dbt en su propio venv), versiones fijadas, `make up` |
 
-## 5. Limitaciones y siguientes pasos
+## 5. Trade-offs, costes y escalado
+
+Cada decisión de la sección 3 vale para el tamaño de hoy. Esta sección dice qué se paga por ella, a partir de qué
+tamaño deja de valer y qué la sustituiría.
+
+### Volumen de hoy
+
+Medido sobre la pila local el 3 de noviembre de 2026:
+
+| Medida | Valor |
+|---|---|
+| Fuentes y series | 12 fuentes, 3.910 series (fuente, entidad, métrica) |
+| Silver | 9,1 millones de filas; el 87 % es histórico de calidad del aire (Govern 2002-2021 y EEA desde 2021) |
+| Carga diaria | Unas 3.900 filas por ejecución, 10.100 como máximo: unos 1,4 millones al año |
+| Postgres | 5,9 GB: silver 2,6 GB y gold 3,3 GB (`fct_observations` repite silver con sus propios índices) |
+| MinIO | Bronze 0,5 GB y silver en Delta 1,2 GB, con las versiones que aún no ha borrado `VACUUM` |
+| Tiempo de una ejecución | 8,5 min, de los que unos 45 s por conector son fijos (arrancar Spark y leer Delta, D5) |
+
+La plataforma es pequeña en datos y grande en número de fuentes. Por eso lo primero que se rompe al crecer es el
+coste fijo por conector, no el volumen.
+
+### Lo que se gana, lo que se paga y cuándo cambiarlo
+
+| Decisión | Se gana | Se paga | Se revisa cuando… | Por qué se cambiaría |
+|---|---|---|---|---|
+| Spark local, uno por tarea (D5) | Ningún clúster que mantener; el mismo código que en un clúster | Unos 45 s fijos por conector, aunque traiga 10 filas | Hacia 30 fuentes, cuando la ingesta pasa del cuarto de hora | Un servidor Spark Connect compartido; en la nube, EMR Serverless o Glue |
+| Un lock para todos los escritores de Delta (D6) | Commits correctos sobre S3 sin DynamoDB | Los commits y la compactación van en fila, de 8 a 25 s cada uno | Más de dos escritores a la vez (hoy son dos) | Compactar fuera del lock (`OPTIMIZE` periódico) y, en AWS, el LogStore de DynamoDB |
+| Silver en Delta y en Postgres (D2) | Lake auditable y consultas en milisegundos | Doble escritura y 2,6 GB repetidos | El warehouse pasa a un motor que lea el lake | Athena (o Redshift Spectrum) sobre Delta; Postgres solo para marts pequeños |
+| Esquema largo, una fila por valor (D1) | Una fuente nueva no toca ni el núcleo ni el esquema | Los marts tienen que pivotar; los datos que no son series se resumen | Hacen falta tipos que no son números (texto, geometría) | Tablas anchas por dominio en silver, con el esquema largo solo para las series |
+| Postgres como warehouse (D7) | Un solo servicio para dbt, Grafana, la API y el estado | Almacenamiento por filas: gold ocupa más que silver | Gold pasa de unos 100 millones de filas o las consultas de Grafana tardan segundos | Particionar `fct_observations` por mes; después, un motor columnar con el mismo dbt |
+| Lotes diarios | Ventanas de días completos, idempotencia simple | Un día de retraso | Una fuente publica en continuo y alguien necesita actuar en minutos | Streaming solo para esa fuente; las fuentes de hoy publican cada hora como mucho |
+| Recalcular 14 días de anomalías y correcciones (D3) | Sin estado incremental que mantener | Se repite trabajo cada día (57 s) | Muchas más series: el tiempo crece con series × días | Recalcular solo las series que cambiaron (el Change Data Feed de Delta ya lo dice) |
+
+### Qué se rompe primero al crecer
+
+| Escala | Ejemplo | Qué se rompe | Qué se cambia |
+|---|---|---|---|
+| **1×** (hoy) | 12 fuentes, 9 M filas | Nada; la ingesta se lleva 5 de los 8,5 min | — |
+| **10× fuentes** | 120 fuentes, mismo volumen por fuente | La ingesta pasa a unos 50 min con dos tareas a la vez. Con más tareas a la vez, la compactación dentro del lock de Delta suma por sí sola de 16 a 50 min en fila | Spark Connect compartido, compactación fuera del lock, más tareas en paralelo |
+| **10× volumen** | 90 M filas en silver | Postgres ronda los 60 GB y los paneles que leen `fct_observations` se vuelven lentos | Particionar por mes en Postgres; Grafana lee agregados, no hechos |
+| **100×** | 900 M filas, cientos de fuentes | Postgres ya no sirve como warehouse analítico y un solo nodo de Airflow no basta | Gold en un motor columnar (Athena, Redshift Serverless, BigQuery o Snowflake, con el mismo dbt), Spark en un servicio gestionado y Postgres solo para servir marts y el estado operativo |
+
+Lo que no cambia en ninguna escala: el contrato de conector, bronze, la clave de silver, la idempotencia y el
+`MERGE`. Son las decisiones caras de cambiar, y por eso se tomaron pensando en el tamaño grande.
+
+### Costes en AWS
+
+Estimación con precios de lista de AWS en US East (noviembre de 2026). En la región de España (`eu-south-2`) son
+algo más altos; la cifra exacta sale de la calculadora de AWS.
+
+| Pieza | Hoy (1×) | 10× volumen |
+|---|---|---|
+| S3: bronze y silver, unos 2 GB | Unos 0,05 USD/mes | Unos 0,5 USD/mes |
+| Athena, 5 USD por TB leído | Una consulta que lee todo silver: menos de 0,01 USD. Con el límite de 1 GB por consulta, mil consultas al mes no pasan de 5 USD | Igual, si las consultas filtran por fuente y fecha; si no, crece con los datos |
+| Glue Data Catalog | 0 (gratis hasta un millón de objetos) | 0 |
+| Airflow gestionado (MWAA, entorno pequeño) | Unos 360 USD/mes (0,49 USD/h, encendido siempre) | Igual |
+| Toda la pila en una EC2 de 8 GB con el mismo Compose | Unos 50 USD/mes | Hay que separar el warehouse |
+| Postgres gestionado (RDS pequeño) | Entre 15 y 30 USD/mes | Entre 60 y 120 USD/mes |
+
+La conclusión cambia el diseño en la nube. El lake (S3, Glue y Athena) cuesta céntimos porque se paga por uso. Lo
+que cuesta es el cómputo siempre encendido, y sobre todo el orquestador. Para un DAG que trabaja unos 10 minutos al
+día, mantener MWAA encendido cuesta decenas de veces lo que el lake, incluso con mil consultas al mes en Athena. Por eso el camino a la nube va en este
+orden:
+
+1. Primero, el lake, que es casi gratis (lo que ya describe `infra/terraform`).
+2. Después, el cómputo por uso: Spark como job (EMR Serverless o Glue) y un orquestador que cobre por tarea, como
+   MWAA Serverless.
+3. Solo con usuarios de verdad, un warehouse siempre encendido.
+
+## 6. Limitaciones y siguientes pasos
 
 - **Arranque de Spark por tarea.** Es la mayor parte del tiempo de ingesta. Siguiente paso: un servidor Spark
   Connect compartido.
