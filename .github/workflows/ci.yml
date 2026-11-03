@@ -169,6 +169,11 @@ jobs:
           (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api)
           pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
           pytest -q api/tests/test_integration.py
+      # The pipeline's writes (the upsert behind idempotent reruns, run tracking) against the same Postgres.
+      - name: Warehouse writes against Postgres
+        env:
+          WAREHOUSE_INTEGRATION: "1"
+        run: pytest -q tests/test_warehouse.py
 
   compose:
     name: Docker compose config + image build
