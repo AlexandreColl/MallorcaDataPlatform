@@ -40,6 +40,14 @@ wait_for "scheduler health" "$COMPOSE exec -T airflow-scheduler curl -sf http://
 wait_for "DAG to be parsed" \
   "sql airflow \"select 1 from dag where dag_id='$DAG_ID'\" | grep -q 1"
 
+# The DAG runs one at a time (max_active_runs=1): a run left by an interrupted E2E would hold the new one queued
+# until the timeout.
+active=$(sql airflow "select string_agg(run_id, ' ') from dag_run where dag_id='$DAG_ID' and state in ('queued', 'running')")
+if [[ -n "$active" ]]; then
+  echo "DAG runs still active: $active. Wait for them or mark them failed in Airflow, then rerun the E2E."
+  exit 1
+fi
+
 run_dag() {
   local run_id=$1
   $COMPOSE exec -T airflow-scheduler airflow dags trigger "$DAG_ID" --run-id "$run_id" --conf "$CONF"

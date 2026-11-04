@@ -1,5 +1,7 @@
 import json
-from datetime import date
+from datetime import UTC, date, datetime
+
+import pytest
 
 import core.anomaly.evaluation
 import core.anomaly.runner
@@ -183,3 +185,67 @@ def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsy
     assert lines[1].split() == ["source", "metric", "gap", "hidden", "fixed", "support", "MAE", "no", "bias"]
     assert lines[2].split() == ["socib", "temperature_2m", "3h", "16", "16", "0", "0.41"]
     assert lines[3].split() == ["socib", "temperature_2m", "24h", "16", "16", "16", "0.95", "1.62"]
+
+
+class _FakeSilver:
+    def __init__(self, changes=None) -> None:
+        self.maintained = None
+        self._changes = changes
+
+    def history(self, limit):
+        commit = {"timestamp": datetime(2026, 11, 1, 6, 30, tzinfo=UTC), "files_added": 3, "files_removed": 2}
+        return [
+            {"version": 1, "operation": "MERGE", "inserted": 24, "updated": 2, **commit},
+            {"version": 0, "operation": "CONVERT", "inserted": 0, "updated": 0, **commit},
+        ][:limit]
+
+    def changes(self, version):
+        return self._changes
+
+    def maintain(self, retain_hours):
+        self.maintained = retain_hours
+
+
+def test_silver_history_and_maintain_use_the_delta_table(monkeypatch, capsys):
+    silver = _FakeSilver()
+    monkeypatch.setattr(cli, "_open_silver", lambda: silver)
+
+    assert cli.main(["silver-history", "--limit", "1"]) == 0
+    assert cli.main(["silver-maintain"]) == 0
+
+    out = capsys.readouterr().out.splitlines()
+    assert out[1].split() == ["1", "2026-11-01", "06:30:00", "MERGE", "24", "2", "3/2"]
+    assert len(out) == 3  # header, one commit and the maintenance line
+    assert silver.maintained == 168
+
+
+@pytest.mark.spark
+def test_silver_changes_counts_and_lists_the_changed_rows(monkeypatch, capsys, spark):
+    changes = spark.createDataFrame(
+        [
+            ("aemet", "palma", "temperature", datetime(2026, 10, 30, 9), 20.0, 20.5, "ok", "ok", "changed"),  # noqa: DTZ001
+            ("socib", "buoy", "wave_height", datetime(2026, 10, 30, 9), None, 1.2, None, "ok", "added"),  # noqa: DTZ001
+        ],
+        "source string, entity string, metric string, ts timestamp, value_before double, value_now double,"
+        " quality_before string, quality_now string, change string",
+    )
+    monkeypatch.setattr(cli, "_open_silver", lambda: _FakeSilver(changes))
+
+    assert cli.main(["silver-changes", "--version", "3", "--sources", "aemet"]) == 0
+
+    out = capsys.readouterr().out.splitlines()
+    assert out[1].split() == ["aemet", "temperature", "changed", "1"]
+    assert out[2].strip() == "aemet palma temperature 2026-10-30 09:00 20.0 (ok) -> 20.5 (ok)"
+    assert len(out) == 3
+
+
+def test_silver_changes_explains_a_version_without_change_data(monkeypatch, capsys):
+    class _Old(_FakeSilver):
+        def changes(self, version):
+            msg = "silver records its changes from version 5: ask for version 4 or later"
+            raise ValueError(msg)
+
+    monkeypatch.setattr(cli, "_open_silver", _Old)
+
+    assert cli.main(["silver-changes", "--version", "0"]) == 1
+    assert "ask for version 4 or later" in capsys.readouterr().out

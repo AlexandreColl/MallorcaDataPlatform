@@ -34,7 +34,7 @@ run "pipeline_role" {
     condition = contains(one([
       for s in data.aws_iam_policy_document.pipeline.statement : s.actions if s.sid == "ReadWriteSilver"
     ]), "s3:DeleteObject")
-    error_message = "the dynamic partition overwrite of Spark needs to delete silver files"
+    error_message = "the VACUUM of the silver Delta table needs to delete the files MERGE replaced"
   }
   assert {
     condition = alltrue(flatten([

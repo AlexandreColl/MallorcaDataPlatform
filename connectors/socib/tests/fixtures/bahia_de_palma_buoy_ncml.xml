@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2" location="Not provided because of security concerns.">
+  <attribute name="title" value="Data from instrument SCB-MET029 on platform Buoy BahiaDePalma" />
+  <attribute name="institution" value="SOCIB (Sistema de Observación y predicción Costero de las Islas Baleares)" />
+  <attribute name="netcdf_version" type="double" value="3.0" />
+  <attribute name="Conventions" value="CF-1.6" />
+  <attribute name="abstract" value="Deployment of instrument SCB-MET029 at Bahia de Palma in endurance line." />
+  <attribute name="summary" value="Deployment of instrument SCB-MET029 at Bahia de Palma in endurance line." />
+  <attribute name="date_created" value="2025-11-05T13:20:11+00:00" />
+  <attribute name="date_update" value="2026-11-02T21:40:21+00:00" />
+  <attribute name="date_modified" value="2026-11-02T21:40:21+00:00" />
+  <attribute name="cdm_data_type" value="TimeSeries" />
+  <attribute name="CF:featureType" value="timeSeries" />
+  <attribute name="featureType" value="timeSeries" />
+  <attribute name="data_mode" value="R" />
+  <attribute name="processing_level" value="L1 - Derived variables and quality control procedures applied" />
+  <attribute name="wmo_code" value="6100499" />
+  <attribute name="instrument_serial" value="24510094" />
+  <attribute name="id" value="143_980_2025-11-05T13:20:11+00:00_JCOMMOBS" />
+  <attribute name="platform_code" value="143" />
+  <attribute name="instrument_code" value="980" />
+  <attribute name="standard_name_vocabulary" value="https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html" />
+  <attribute name="geospatial_lat_min" type="double" value="39.498883" />
+  <attribute name="geospatial_lat_max" type="double" value="39.498883" />
+  <attribute name="geospatial_lon_min" type="double" value="2.702133" />
+  <attribute name="geospatial_lon_max" type="double" value="2.702133" />
+  <attribute name="geospatial_vertical_min" type="double" value="2.0" />
+  <attribute name="geospatial_vertical_max" type="double" value="2.0" />
+  <attribute name="geospatial_lat_units" value="degree_north" />
+  <attribute name="geospatial_lon_units" value="degree_east" />
+  <attribute name="geospatial_vertical_units" value="m" />
+  <attribute name="geospatial_vertical_positive" value="up" />
+  <attribute name="installation_depth" value="2.0" />
+  <attribute name="installation_depth_units" value="m" />
+  <attribute name="installation_depth_positive" value="down" />
+  <attribute name="installation_depth_axis" value="Z" />
+  <attribute name="installation_depth_reference_datum" value="geographical coordinates, WGS84 projection" />
+  <attribute name="time_coverage_start" value="2026-09-01T00:00:00Z" />
+  <attribute name="time_coverage_end" value="2026-11-02T21:20:00+00:00" />
+  <attribute name="time_coverage_duration" value="P0Y1M1DT21H20M0.000S" />
+  <attribute name="time_coverage_resolution" value="P0Y0M0DT0H10M0.000S" />
+  <attribute name="history" value="2025-11-10T17:40:10+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.54&quot;,&quot;timestamp&quot;:&quot;2025-11-10T17:40:10+00:00&quot;},&#xA;2025-11-10T23:10:10+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.55&quot;,&quot;timestamp&quot;:&quot;2025-11-10T23:10:10+00:00&quot;},&#xA;2025-11-11T07:46:08+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REPROCESSING_RT&quot;,&quot;comment&quot;:&quot;Interval update&quot;,&quot;parameters&quot;:&quot;-em rpr -dn SOCIB_ENL_BuoyBahiaPalma_20251104_SCB-MET029 -ov -cm Interval update&quot;,&quot;version&quot;:&quot;6.1.55&quot;,&quot;timestamp&quot;:&quot;2025-11-11T07:46:08+00:00&quot;},&#xA;2025-11-19T09:10:11+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.55&quot;,&quot;timestamp&quot;:&quot;2025-11-19T09:10:11+00:00&quot;},&#xA;2025-11-19T09:40:10+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.56&quot;,&quot;timestamp&quot;:&quot;2025-11-19T09:40:10+00:00&quot;},&#xA;2025-11-19T10:10:13+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.57&quot;,&quot;timestamp&quot;:&quot;2025-11-19T10:10:13+00:00&quot;},&#xA;2025-11-19T11:10:16+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.58&quot;,&quot;timestamp&quot;:&quot;2025-11-19T11:10:16+00:00&quot;},&#xA;2026-03-09T08:10:12+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.59&quot;,&quot;timestamp&quot;:&quot;2026-03-09T08:10:12+00:00&quot;},&#xA;2026-04-23T09:40:11+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.61&quot;,&quot;timestamp&quot;:&quot;2026-04-23T09:40:11+00:00&quot;},&#xA;2026-04-30T08:40:11+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.62&quot;,&quot;timestamp&quot;:&quot;2026-04-30T08:40:11+00:00&quot;},&#xA;2026-05-21T06:40:11+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.63&quot;,&quot;timestamp&quot;:&quot;2026-05-21T06:40:11+00:00&quot;},&#xA;2026-06-22T05:40:14+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.65&quot;,&quot;timestamp&quot;:&quot;2026-06-22T05:40:14+00:00&quot;},&#xA;2026-08-06T05:40:22+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.70&quot;,&quot;timestamp&quot;:&quot;2026-08-06T05:40:22+00:00&quot;},&#xA;2026-08-25T07:10:23+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.75&quot;,&quot;timestamp&quot;:&quot;2026-08-25T07:10:23+00:00&quot;},&#xA;2026-11-02T21:40:21+00:00 {&quot;app&quot;:&quot;Processing application&quot;,&quot;executionMode&quot;:&quot;REAL_TIME&quot;,&quot;comment&quot;:&quot;&quot;,&quot;parameters&quot;:&quot;-em REAL_TIME&quot;,&quot;version&quot;:&quot;6.1.82&quot;,&quot;timestamp&quot;:&quot;2026-11-02T21:40:21+00:00&quot;}" />
+  <attribute name="data_center" value="SOCIB Data Center" />
+  <attribute name="data_center_email" value="data.centre@socib.es" />
+  <attribute name="institution_references" value="http://www.socib.es/" />
+  <attribute name="principal_investigator" value="Joaquín Tintoré" />
+  <attribute name="principal_investigator_email" value="jtintore@socib.es" />
+  <attribute name="project" value="SOCIB Operational" />
+  <attribute name="author" value="SOCIB Data Center" />
+  <attribute name="author_email" value="data.centre@socib.es" />
+  <attribute name="creator_name" value="SOCIB Data Center" />
+  <attribute name="creator_url" value="http://www.socib.es/?seccion=dataCenter" />
+  <attribute name="creator_email" value="data.centre@socib.es" />
+  <attribute name="contributor_name" value="Benjamín Casas, Josep Baeza, Pablo Balaguer, Alba Canyelles, Irene Lizarán, Nikolaus Wirth, Juan Gabriel Fernández, Juan Miguel Villoria, Andrea Casaucao" />
+  <attribute name="contributor_role" value="ProjectLeader, DataCollector, DataCollector, DataCollector, DataCollector, DataCollector, DataManager, DataCurator, DataCurator" />
+  <attribute name="publisher_name" value="SOCIB" />
+  <attribute name="publisher_url" value="http://www.socib.es" />
+  <attribute name="publisher_email" value="info@socib.es" />
+  <attribute name="manufacture_name" value="Gill Instruments" />
+  <attribute name="instrument_model" value="GM501" />
+  <attribute name="distribution_statement" value="Approved for public release. Distribution Unlimited." />
+  <attribute name="license" value="Approved for public release. Distribution Unlimited." />
+  <attribute name="citation" value="Balearic Island Coastal and Observing Forecasting System." />
+  <attribute name="acknowledgement" value="Ministerio de Economia y Competitividad (http://www.mineco.gob.es/). Govern de les Illes Balears (http://www.caib.es/). Consejo Superior de Investigaciones Científicas (http://www.csic.es/).)" />
+  <attribute name="update_interval" value="every 600 seconds" />
+  <attribute name="_CoordSysBuilder" value="ucar.nc2.internal.dataset.conv.CF1Convention" />
+</netcdf>

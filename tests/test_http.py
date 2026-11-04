@@ -6,6 +6,7 @@ import pytest
 import requests
 
 from core import __version__
+from core.connectors import ConnectorError, SourceNotUpdatedError, is_permanent
 from core.connectors.http import HttpClient
 
 
@@ -75,3 +76,26 @@ def test_retries_cover_server_errors_and_read_only_posts():
     assert retry.backoff_factor == 0.5
     assert set(retry.status_forcelist) == {429, 500, 502, 503, 504}
     assert retry.allowed_methods == {"GET", "POST"}
+
+
+def _http_error(status: int) -> requests.HTTPError:
+    response = requests.Response()
+    response.status_code = status
+    return requests.HTTPError(f"{status} error", response=response)
+
+
+@pytest.mark.parametrize(
+    ("exc", "permanent"),
+    [
+        (SourceNotUpdatedError("EEA files end before the window"), True),
+        (_http_error(404), True),  # a moved URL: SOCIB's /ncss/ in November 2026
+        (_http_error(403), True),
+        (_http_error(429), False),  # rate limit: a later try may pass
+        (_http_error(408), False),
+        (_http_error(503), False),
+        (requests.ConnectionError("connection refused"), False),
+        (ConnectorError("no file of the configured stations"), False),
+    ],
+)
+def test_only_failures_that_waiting_will_not_fix_are_permanent(exc, permanent):
+    assert is_permanent(exc) is permanent

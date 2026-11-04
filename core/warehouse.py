@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 import psycopg
 from psycopg import sql
 
+from core.models import COMPARED, KEY
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from datetime import date
@@ -20,22 +22,7 @@ if TYPE_CHECKING:
 
 DDL_PATH = Path(__file__).parent / "sql" / "warehouse.sql"
 
-SILVER_COLUMNS = (
-    "source",
-    "entity",
-    "metric",
-    "ts",
-    "value",
-    "unit",
-    "quality",
-    "quality_reasons",
-    "lat",
-    "lon",
-    "run_id",
-    "ingested_at",
-)
-# Columns whose change counts as a real update (run_id / ingested_at always differ).
-_COMPARED = ("value", "unit", "quality", "quality_reasons", "lat", "lon")
+SILVER_COLUMNS = (*KEY, *COMPARED, "run_id", "ingested_at")
 
 
 @dataclass(frozen=True)
@@ -75,6 +62,13 @@ class Warehouse:
             conn.execute("SELECT pg_advisory_xact_lock(7302)")
             conn.execute(DDL_PATH.read_text(encoding="utf-8"))
 
+    @contextmanager
+    def lock(self, key: int) -> Iterator[None]:
+        """Hold a Postgres advisory lock for the block: one holder at a time across processes and machines."""
+        with self.connect() as conn:
+            conn.execute("SELECT pg_advisory_xact_lock(%s)", (key,))
+            yield
+
     def merge_observations(self, landing_table: str) -> int:
         """Upsert a Spark-written landing table into silver.observations.
 
@@ -90,17 +84,15 @@ class Warehouse:
             for c in SILVER_COLUMNS
         )
         updates = sql.SQL(", ").join(
-            sql.SQL("{c} = EXCLUDED.{c}").format(c=sql.Identifier(c))
-            for c in SILVER_COLUMNS
-            if c not in ("source", "entity", "metric", "ts")
+            sql.SQL("{c} = EXCLUDED.{c}").format(c=sql.Identifier(c)) for c in SILVER_COLUMNS if c not in KEY
         )
-        old = sql.SQL(", ").join(sql.SQL("t.{c}").format(c=sql.Identifier(c)) for c in _COMPARED)
-        new = sql.SQL(", ").join(sql.SQL("EXCLUDED.{c}").format(c=sql.Identifier(c)) for c in _COMPARED)
+        old = sql.SQL(", ").join(sql.SQL("t.{c}").format(c=sql.Identifier(c)) for c in COMPARED)
+        new = sql.SQL(", ").join(sql.SQL("EXCLUDED.{c}").format(c=sql.Identifier(c)) for c in COMPARED)
         query = sql.SQL(
             """
             INSERT INTO silver.observations AS t ({cols})
             SELECT {select_cols} FROM landing.{table}
-            ON CONFLICT (source, entity, metric, ts) DO UPDATE
+            ON CONFLICT ({key}) DO UPDATE
                SET {updates}, updated_at = now()
              WHERE ({old}) IS DISTINCT FROM ({new})
             """
@@ -108,6 +100,7 @@ class Warehouse:
             cols=cols,
             select_cols=select_cols,
             table=sql.Identifier(landing_table),
+            key=sql.SQL(", ").join(map(sql.Identifier, KEY)),
             updates=updates,
             old=old,
             new=new,

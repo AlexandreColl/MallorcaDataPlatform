@@ -7,18 +7,10 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-# Common silver schema. Every connector must emit observations with these fields.
-SILVER_COLUMNS: tuple[str, ...] = (
-    "source",
-    "entity",
-    "metric",
-    "ts",
-    "value",
-    "unit",
-    "quality",
-    "lat",
-    "lon",
-)
+# The key of a silver row: one value per source, entity, metric and instant.
+KEY = ("source", "entity", "metric", "ts")
+# The columns whose change counts as a real update when a row is loaded again (run_id and ingested_at always differ).
+COMPARED = ("value", "unit", "quality", "quality_reasons", "lat", "lon")
 
 
 class Quality:

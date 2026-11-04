@@ -36,6 +36,9 @@ x-airflow-common: &airflow-common
     AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "30"
     # Retries of each ingest task when a source fails (the E2E lowers it to keep runs short).
     MDP_TASK_RETRIES: ${MDP_TASK_RETRIES:-3}
+    # Optional lineage (OpenLineage): with OPENLINEAGE_URL set, every task and dbt model sends its run and datasets.
+    OPENLINEAGE_URL: ${OPENLINEAGE_URL:-}
+    OPENLINEAGE_NAMESPACE: mallorca-data-platform
   volumes:
     # The whole checkout, not one mount per folder: git may delete and recreate a folder when
     # switching branches, and a per-folder bind mount would keep pointing at the deleted one.
@@ -195,6 +198,54 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Optional lineage backend (`COMPOSE_PROFILES=lineage` in .env): Marquez stores the OpenLineage events of Airflow
+  # and dbt. UI at http://localhost:3001, API at http://localhost:5000.
+  marquez-db:
+    image: postgres:16.15-alpine
+    profiles: ["lineage"]
+    environment:
+      # marquez.dev.yml (the image default) connects as marquez/marquez to the database marquez. Local only.
+      POSTGRES_USER: marquez
+      POSTGRES_PASSWORD: marquez
+      POSTGRES_DB: marquez
+    volumes:
+      - marquez-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez -d marquez"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  marquez:
+    image: marquezproject/marquez:0.51.1
+    profiles: ["lineage"]
+    environment:
+      MARQUEZ_PORT: "5000"
+      MARQUEZ_ADMIN_PORT: "5001"
+      POSTGRES_HOST: marquez-db
+      POSTGRES_PORT: "5432"
+      SEARCH_ENABLED: "false"
+    ports:
+      - "${MARQUEZ_PORT:-5000}:5000"
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  marquez-web:
+    image: marquezproject/marquez-web:0.51.1
+    profiles: ["lineage"]
+    environment:
+      MARQUEZ_HOST: marquez
+      MARQUEZ_PORT: "5000"
+      WEB_PORT: "3000"
+      REACT_APP_ADVANCED_SEARCH: "false"
+    ports:
+      - "${MARQUEZ_WEB_PORT:-3001}:3000"
+    depends_on:
+      - marquez
+    restart: unless-stopped
+
   # Test/lint toolbox with the same runtime as Airflow: `make test`, `make lint`.
   toolbox:
     <<: *airflow-common
@@ -216,3 +267,4 @@ volumes:
   minio-data:
   grafana-data:
   airflow-logs:
+  marquez-data:

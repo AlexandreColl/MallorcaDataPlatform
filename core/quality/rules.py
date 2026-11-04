@@ -18,12 +18,10 @@ from typing import TYPE_CHECKING
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as F
 
-from core.models import Quality
+from core.models import KEY, Quality
 
 if TYPE_CHECKING:
     from datetime import timedelta
-
-KEY_COLUMNS = ("source", "entity", "metric", "ts")
 
 
 @dataclass(frozen=True)
@@ -126,7 +124,7 @@ class DuplicateRule(RowRule):
 
     name = "duplicate"
 
-    def __init__(self, keys: tuple[str, ...] = KEY_COLUMNS) -> None:
+    def __init__(self, keys: tuple[str, ...] = KEY) -> None:
         self.keys = keys
 
     def failed(self) -> Column:

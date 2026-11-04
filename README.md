@@ -23,63 +23,46 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 ```mermaid
 flowchart LR
-    subgraph Fuentes
-        OM[Open-Meteo]
-        OMM[Open-Meteo Marine]
-        AE[AEMET]
-        RD[REData]
-        SO[SOCIB]
-        IG[IGN sismos]
-        EM[EMT Palma GTFS]
-        CT[CTM GTFS]
-        DE[Dataestur turismo]
-        WR[Reservas hídricas]
-        EA[EEA calidad del aire]
-        GO[GOIB histórico del aire]
-    end
-    subgraph Airflow["Airflow 3 · DAG mallorca_pipeline"]
-        EX[extract<br/>una tarea por conector]
-        SP[PySpark<br/>normaliza + reglas de calidad]
-        DBT[dbt build]
-    end
-    subgraph MinIO["MinIO (S3)"]
-        BR[(bronze<br/>JSON crudo, versionado)]
-        SL[(silver<br/>Parquet particionado)]
-    end
-    subgraph PG[PostgreSQL warehouse]
-        SV[(silver.observations)]
-        QC[(quality.check_results)]
-        GD[(gold.*)]
-    end
-    OM & OMM & AE & RD & SO & IG & EM & CT & DE & WR & EA & GO --> EX --> BR --> SP
-    SP --> SL
-    SP -->|JDBC + upsert idempotente| SV
-    SP --> QC
-    SV & QC --> DBT --> GD --> GF[Grafana]
-    GD --> API[API REST · FastAPI]
-    classDef next stroke-dasharray: 5 5
+    SRC["12 fuentes abiertas<br/>APIs, GTFS y ficheros"] -->|extract| BR[("bronze<br/>respuesta cruda")]
+    BR -->|"normalize + calidad<br/>(PySpark)"| SL[("silver<br/>esquema común")]
+    SL -->|"anomalías y<br/>correcciones"| AC[("silver.anomalies<br/>silver.corrections")]
+    SL & AC -->|dbt build| GD[("gold<br/>marts")]
+    GD --> GF[Grafana]
+    GD --> API[API REST]
 ```
+
+Airflow orquesta cada flecha con el DAG `mallorca_pipeline`: una tarea `ingest` por conector, y después
+`detect_anomalies`, `correct_values` y `dbt_build`. Bronze vive en MinIO; silver, en una tabla Delta de MinIO y en
+Postgres; gold, en Postgres.
 
 | Capa | Dónde | Contenido |
 |---|---|---|
 | **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json` | Respuesta de la API sin tocar. Clave determinista + versionado del bucket: relanzar no duplica y el crudo anterior se conserva |
-| **silver** | `s3://silver/observations/source=…/date=…` y `silver.observations` | Esquema común: `source, entity, metric, ts, value, unit, quality, lat, lon` (+ `quality_reasons`, `run_id`, `ingested_at`) |
+| **silver** | tabla Delta `s3://silver/observations` (una partición por fuente, `source=…`) y `silver.observations` | Esquema común: `source, entity, metric, ts, value, unit, quality, lat, lon` (+ `quality_reasons`, `run_id`, `ingested_at`). Cada carga es una versión de la tabla Delta: historial y *time travel* ([abajo](#silver-en-delta-lake)) |
 | **gold** | esquema `gold` (dbt: staging → intermediate → marts, [detalle](dbt/README.md)) | hechos incrementales (`fct_observations`, `agg_daily_metrics`), marts por dominio (tiempo diario, mar, electricidad, bus, calidad del aire, sismos) y salud de las fuentes |
 
 ### Decisiones de diseño
 
+El caso completo, con el contexto, las restricciones, cada decisión con su porqué, lo que se descartó y lo que cuesta:
+[docs/architecture.md](docs/architecture.md). Allí está también qué se rompe primero a 10× y 100× y cuánto costaría
+en AWS ([trade-offs, costes y escalado](docs/architecture.md#5-trade-offs-costes-y-escalado)). Cada decisión tiene
+su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se rechazaron. El modelo de datos (silver,
+la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). En
+resumen:
+
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.
 - **Idempotencia en todas las capas**: ventanas de días completos (siempre la misma petición), claves
-  deterministas en bronze, `overwrite` dinámico de particiones en Parquet y `INSERT … ON CONFLICT … WHERE
-  IS DISTINCT FROM` en Postgres. El E2E de CI lanza el DAG dos veces y comprueba que no cambia el número de filas.
+  deterministas en bronze, `MERGE` en la tabla Delta de silver y `INSERT … ON CONFLICT … WHERE IS DISTINCT FROM`
+  en Postgres: las filas que no cambian no se reescriben. El E2E de CI lanza el DAG dos veces y comprueba que no cambia el número de filas.
 - **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
   si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
   error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
   su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída o una fuente que ha dejado de
   publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
-  (`quality_reasons`), pero nunca modifican el valor. Las correcciones irán en una capa propia (ver roadmap).
+  (`quality_reasons`), pero nunca modifican el valor. Las correcciones van aparte, en `silver.corrections`, y gold
+  muestra los dos valores ([abajo](#correcciones-con-fuentes-de-apoyo)).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.
 
 ## Puesta en marcha
@@ -101,6 +84,7 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un
 | MinIO | http://localhost:9001 | minioadmin/minioadmin |
 | API REST | http://localhost:8000/docs | lectura pública (rol `api_reader`) |
 | PostgreSQL | localhost:5432 | `make psql` |
+| Marquez (opcional) | http://localhost:3001 | linaje OpenLineage, con `COMPOSE_PROFILES=lineage` ([abajo](#linaje-con-openlineage)) |
 
 Otros comandos: `make help`.
 
@@ -235,6 +219,84 @@ como error. Es la primera fuente mensual: el núcleo gana `frequency: 1mo` (huec
 años. Prueba real: diez años en un minuto; agosto de 2026, 2,6 M turistas (+2,6 %) y 4,8 M pasajeros en Palma.
 
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
+
+## Silver en Delta Lake
+
+El lake de silver (`s3://silver/observations`) es una tabla [Delta Lake](https://delta.io/): ficheros Parquet con
+una partición por fuente (`source=…`), más un `_delta_log` con un commit JSON por escritura que dice qué ficheros
+forman cada versión ([core/lake.py](core/lake.py)).
+
+- **`MERGE` en lugar de sobrescribir particiones.** Cada ejecución de un conector hace un `MERGE` por la clave
+  (fuente, entidad, métrica, hora). Las filas nuevas se insertan, las que cambian se actualizan y las que no cambian
+  se descartan antes, porque Delta reescribe todo fichero que tenga una fila coincidente. Así, relanzar una ventana
+  sin cambios no escribe nada ni crea versión, igual que el upsert de Postgres no toca esas filas. La condición
+  nombra la fuente y los días de la ventana, y las estadísticas de cada fichero (mínimo y máximo de `ts` y `date`)
+  dejan fuera los que no tienen esos días.
+- **Historial, *time travel* y cambios.** Cada commit es una versión. `make silver-history` las lista con sus filas
+  insertadas y actualizadas, y la tabla se puede leer tal como estaba en una versión o una hora. `make silver-changes
+  VERSION=n` lista las filas que aparecieron, desaparecieron o cambiaron de valor o de calidad desde la versión `n`.
+  Lo hace con el *Change Data Feed*, que guarda las filas que tocó cada commit, en lugar de comparar dos copias de
+  9 millones de filas: esa comparación se quedaba sin memoria con 1 GB.
+- **Pocos ficheros grandes.** El lake Parquet tenía una partición por fuente y día: 16.973 particiones de unos
+  17 KB, en 67.000 ficheros, cuando Delta y Athena trabajan mejor con ficheros de decenas de MB. La primera ejecución
+  lo convierte en su sitio (`CONVERT TO DELTA`, que solo escribe el log) y lo reescribe una vez por fuente: quedan
+  29 ficheros. `make silver-maintain` compacta cada fuente en ficheros de hasta 32 MB ordenados por hora
+  (`OPTIMIZE … ZORDER BY (ts)`) y borra los que ya no forman parte de ninguna versión de los últimos 7 días
+  (`VACUUM`). El *time travel* llega hasta donde llegan esos ficheros. Entre medias, la *auto compaction* de Delta
+  junta el fichero nuevo de cada ejecución con los de su fuente: en el pipeline queda un fichero por fuente (8-25 s
+  más por ejecución, dentro del *lock*).
+- **Un escritor a la vez.** Delta en S3 no tiene un "escribir si no existe" atómico desde Spark, y el DAG ejecuta dos
+  conectores a la vez, es decir, dos *drivers* de Spark. Un *advisory lock* de Postgres serializa los commits, en el
+  papel que en AWS haría DynamoDB.
+- **Sin paquete de Python.** `delta-spark` fija una versión de PySpark anterior a la del proyecto. La imagen trae
+  solo los jars de Delta 4.4 para Spark 4.2, y el código usa SQL (`MERGE INTO`, `DESCRIBE HISTORY`,
+  `readChangeFeed`).
+
+Prueba real (2 de noviembre de 2026, 9,1 millones de filas):
+
+| Paso | Resultado |
+|---|---|
+| Conversión del lake Parquet | 67.326 ficheros (288 MiB), 8 min, una sola vez |
+| Reescritura por fuente | 16.960 ficheros → 29, 2,5 min, una sola vez |
+| `OPTIMIZE … ZORDER BY (ts)` | 29 → 12 ficheros, 2,7 min (25 min con la partición por día, que dejaba 16.828) |
+| Open-Meteo, 2 días nuevos | 4.320 filas insertadas, versión nueva |
+| Relanzar la misma ventana | 0 filas, sin versión, 44 s |
+
+En AWS, Athena lee la tabla con su log ([infra/terraform](infra/terraform/README.md)).
+
+## Linaje con OpenLineage
+
+Cada ejecución del DAG puede contar qué leyó y qué escribió cada paso, en el formato abierto
+[OpenLineage](https://openlineage.io/). Los eventos los guarda y dibuja [Marquez](https://marquezproject.ai/), su
+implementación de referencia. Es opcional: se activa con dos líneas del `.env` y, sin ellas, no se envía nada.
+
+```bash
+COMPOSE_PROFILES=lineage           # arranca Marquez: interfaz en http://localhost:3001, API en :5000
+OPENLINEAGE_URL=http://marquez:5000
+```
+
+- **Airflow.** Las tareas declaran como *assets* los datos que leen y escriben, y el proveedor de OpenLineage los
+  envía con cada ejecución:
+  - `ingest` escribe bronze, la tabla Delta de silver y `silver.observations`;
+  - `detect_anomalies` lee `silver.observations` y escribe `silver.anomalies`;
+  - `correct_values` lee las dos y escribe `silver.corrections`.
+
+  Los mismos *assets* aparecen en la vista *Assets* de Airflow.
+- **dbt.** Con `OPENLINEAGE_URL`, `dbt_build` ejecuta `dbt-ol` en lugar de `dbt`. Cada modelo y cada test es un job
+  con sus entradas, su salida y el **linaje por columna** (`gold.fct_observations.value` ← `stg_silver__observations.value`).
+  Todos cuelgan de la ejecución de `dbt_build`.
+- **Un solo grafo.** Las tablas tienen el mismo nombre en los dos lados (`postgres://postgres:5432`,
+  `warehouse.silver.observations`). Así, el grafo une las tareas de Airflow con los modelos de dbt: de la ingesta a
+  gold, pasando por anomalías y correcciones.
+
+![Linaje de gold.fct_observations_corrected en Marquez](docs/img/linaje.png)
+
+Prueba real (DAG con Open-Meteo y la EEA): 6 tareas de Airflow y 75 jobs de dbt en Marquez, y 12 columnas con linaje
+en `gold.fct_observations`.
+
+Spark no envía eventos propios. Sus filas salen de Python, no de una lectura de Spark, así que su integración solo
+repetiría lo que ya declara `ingest`. Marquez no publica versión desde marzo de 2025 (0.51.1), pero los eventos son
+OpenLineage estándar y cualquier otro *backend* los acepta cambiando `OPENLINEAGE_URL`.
 
 ## Calidad de datos
 
@@ -496,7 +558,8 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |
 | `pr-title.yml` | PRs | gitmoji + Conventional Commits en el título (`✨ feat(connector): ...`) |
 
-Ramas y releases: [docs/git-workflow.md](docs/git-workflow.md) · Plan completo: [ROADMAP.md](ROADMAP.md)
+Ramas y releases: [docs/git-workflow.md](docs/git-workflow.md) · Arquitectura y decisiones:
+[docs/architecture.md](docs/architecture.md) · Plan completo: [ROADMAP.md](ROADMAP.md)
 
 ## Licencia
 

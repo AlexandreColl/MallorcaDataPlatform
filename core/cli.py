@@ -9,6 +9,9 @@ Examples:
     python -m core.cli evaluate
     python -m core.cli correct --days 14
     python -m core.cli evaluate-corrections
+    python -m core.cli silver-history
+    python -m core.cli silver-changes --version 12 --sources aemet
+    python -m core.cli silver-maintain
 """
 
 from __future__ import annotations
@@ -19,9 +22,13 @@ import logging
 import math
 import sys
 from datetime import date
+from typing import TYPE_CHECKING
 
 from core.config import Settings, available_regions
 from core.connectors import registry
+
+if TYPE_CHECKING:
+    from core.lake import SilverTable
 
 log = logging.getLogger("core.cli")
 
@@ -136,12 +143,77 @@ def _cmd_evaluate_corrections(args: argparse.Namespace) -> int:
     return 0
 
 
+def _open_silver() -> SilverTable:
+    from core.lake import open_silver
+    from core.spark import build_spark
+
+    settings = Settings.from_env()
+    return open_silver(build_spark(settings, app_name="mdp-silver"), settings)
+
+
+def _cmd_silver_history(args: argparse.Namespace) -> int:
+    print(f"{'version':>7}  {'time (UTC)':<19}  {'operation':<12} {'inserted':>8} {'updated':>8} {'files +/-':>9}")
+    for c in _open_silver().history(limit=args.limit):
+        files = f"{c['files_added']}/{c['files_removed']}"
+        print(
+            f"{c['version']:>7}  {c['timestamp']:%Y-%m-%d %H:%M:%S}  {c['operation']:<12}"
+            f" {c['inserted']:>8} {c['updated']:>8} {files:>9}"
+        )
+    return 0
+
+
+def _cmd_silver_changes(args: argparse.Namespace) -> int:
+    from pyspark.sql import functions as F
+
+    try:
+        changes = _open_silver().changes(args.version)
+    except ValueError as exc:
+        print(exc)
+        return 1
+    if args.sources:
+        changes = changes.where(F.col("source").isin(args.sources))
+    summary = changes.groupBy("source", "metric", "change").count().orderBy("source", "metric", "change").collect()
+    print(f"{'source':<18} {'metric':<24} {'change':<8} {'rows':>7}")
+    for r in summary:
+        print(f"{r['source']:<18} {r['metric']:<24} {r['change']:<8} {r['count']:>7}")
+    for r in changes.orderBy("source", "entity", "metric", "ts").limit(args.limit).collect():
+        print(
+            f"  {r['source']} {r['entity']} {r['metric']} {r['ts']:%Y-%m-%d %H:%M}"
+            f" {r['value_before']} ({r['quality_before']}) -> {r['value_now']} ({r['quality_now']})"
+        )
+    return 0
+
+
+def _cmd_silver_maintain(args: argparse.Namespace) -> int:
+    _open_silver().maintain(retain_hours=args.retain_hours)
+    print(f"silver compacted; files unreferenced for {args.retain_hours} h deleted")
+    return 0
+
+
 def _num(value: float | None) -> str:
     return "" if value is None or math.isnan(value) else f"{value:.2f}"
 
 
 def _pct(value: float | None) -> str:
     return "" if value is None else f"{value:.0%}"
+
+
+def _add_silver_commands(sub: argparse._SubParsersAction) -> None:
+    silver_history = sub.add_parser("silver-history", help="list the latest commits of the silver Delta table")
+    silver_history.add_argument("--limit", type=int, default=20)
+    silver_history.set_defaults(func=_cmd_silver_history)
+
+    silver_changes = sub.add_parser("silver-changes", help="rows of silver that changed since a past version")
+    silver_changes.add_argument("--version", type=int, required=True, help="a version of `silver-history`")
+    silver_changes.add_argument("--sources", nargs="*", help="default: every source")
+    silver_changes.add_argument("--limit", type=int, default=20, help="changed rows to print")
+    silver_changes.set_defaults(func=_cmd_silver_changes)
+
+    silver_maintain = sub.add_parser(
+        "silver-maintain", help="compact silver and delete files time travel no longer needs"
+    )
+    silver_maintain.add_argument("--retain-hours", type=int, default=168, help="time travel reach (Delta minimum: 168)")
+    silver_maintain.set_defaults(func=_cmd_silver_maintain)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -192,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
     evaluate_corrections.add_argument("--days", type=int, help="default: `evaluation.days` of config/corrections.yaml")
     evaluate_corrections.add_argument("--seed", type=int, help="default: `evaluation.seed` of config/corrections.yaml")
     evaluate_corrections.set_defaults(func=_cmd_evaluate_corrections)
+
+    _add_silver_commands(sub)
 
     args = parser.parse_args(argv)
     return args.func(args)

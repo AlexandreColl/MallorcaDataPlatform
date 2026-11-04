@@ -5,6 +5,75 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-04
+
+### Added
+
+- Data model (`docs/data-model.md`): conceptual model, the long silver table with its key and the meaning of each
+  column, the gold star with the grain and type of every fact, shared dimensions and their history policy,
+  contracts at three boundaries, time, unit and null conventions, freshness per source and schema evolution rules.
+- `dim_metrics` in gold: one row per source and metric with its unit and coverage. Its primary key makes one unit
+  per metric part of the contract.
+
+- Architecture case study (`docs/architecture.md`): context and constraints, overview and sequence diagrams of a
+  run, 13 design decisions with why, the alternatives ruled out and what each costs, quality attributes and known
+  limits.
+- Trade-offs, costs and scaling in the architecture case: today's measured volumes, what each decision gains and
+  costs and when to revisit it, what breaks first at 10× and 100×, and an AWS cost estimate (the lake costs cents,
+  always-on compute is the real cost).
+- Architecture decision records (`docs/adr/`): 18 ADRs with status and date, a template and an index, including
+  the superseded and rejected ones (silver in Parquet, USGS earthquakes, OpenAQ). Each says when to revisit it.
+  Section 3 of the architecture case is now a summary that links to them.
+- Roadmap phase towards data architecture: ADRs, documented data model, a real AWS deployment and a second engine.
+- Lineage with OpenLineage. The DAG tasks declare the datasets they read and write as Airflow assets (bronze, the
+  silver Delta table, `silver.observations`, `silver.anomalies` and `silver.corrections`), and the OpenLineage
+  provider sends them with each run. `dbt_build` runs `dbt-ol`, which adds one job per model and test, with its
+  inputs, output and column lineage, under the task run. Both sides name the tables alike, so the graph goes from
+  ingestion to gold. Optional Marquez backend (`COMPOSE_PROFILES=lineage` and `OPENLINEAGE_URL` in `.env`, UI at
+  http://localhost:3001); without `OPENLINEAGE_URL` nothing is sent and dbt runs as before.
+- Integration tests of the warehouse writes against Postgres (`tests/test_warehouse.py`, a CI step on the dbt job's
+  database): a rerun with the same content writes nothing, a changed value or quality updates only its row and its
+  `updated_at`, the catch-up day comes from successful runs only, and anomalies are replaced only inside their window.
+
+### Changed
+
+- `dim_locations` has a contract with its primary key, and `dim_date` starts in 2002 so it covers every day with
+  data (it started in 2020 and the air quality history goes back to 2002). `agg_daily_metrics.local_date` is tested
+  against it.
+- Silver is a Delta Lake table (`core/lake.py`). Each connector run MERGEs its rows on the key instead of overwriting
+  its Parquet partitions; rows that did not change are dropped first, so a rerun without changes writes no file and
+  no version. A Postgres advisory lock serialises the commits of the two Spark drivers the DAG runs at once, since
+  Delta on S3 has no atomic put-if-absent from Spark.
+- One partition per source instead of per source and day: the old lake had 16,973 partitions of ~17 KB (67,000
+  files). The first run converts it in place (`CONVERT TO DELTA`) and rewrites it once by source (29 files); MERGEs
+  and queries on a few days skip the other files through the Delta min/max statistics.
+- New `make silver-history` (commits with the rows inserted and updated), `make silver-changes VERSION=n` (rows
+  added, removed or changed since a version, read from the Change Data Feed) and `make silver-maintain`
+  (`OPTIMIZE … ZORDER BY (ts)` into files of up to 32 MB, then a 7-day `VACUUM`). On the real lake, OPTIMIZE takes
+  2.7 min and leaves 12 files.
+- The Airflow image adds the Delta 4.4.1 jars for Spark 4.2 (no Python package: `delta-spark` pins an older
+  PySpark), and CI passes the same jars to the test SparkSession.
+- Terraform: the Glue table `observations` is a Delta table (`table_type = DELTA`) that Athena reads through the log,
+  so files a MERGE replaced never reach the results. Partition projection and the `sources` and `history_start`
+  variables are gone.
+- Failures that waiting will not fix skip the task retries (2, 4 and 8 min): a source that has not published the
+  window yet (`SourceNotUpdatedError`) or an HTTP 4xx other than 408 and 429. The stale EEA feed now fails in 7 s
+  instead of about 14 minutes; outages (connection errors, 5xx) keep their retries.
+- Delta auto compaction: after a write, the new file of the source is compacted with its old ones (files of up to
+  32 MB), so silver keeps one file per source between `make silver-maintain` runs.
+  The table state is rebuilt with 2 tasks instead of 50, which saves about 5 s per connector run. Ingest tasks take
+  37-60 s instead of 58-105 s.
+- `VACUUM` lists the table's files with 8 tasks instead of up to 10,000: 5 s instead of 55 s on a small table.
+- Cleanup: the silver key and compared columns are defined once (`core/models.py`) for the Delta MERGE, the Postgres
+  upsert and the duplicate rule; unused code is gone. The README and architecture diagrams are simpler: a linear data
+  flow and a services view.
+
+### Fixed
+
+- SOCIB: the THREDDS server moved its subset service from `/ncss/` to `/ncss/point/` (the old path answers 404),
+  and its `dataset.xml` sometimes leaves out the time coverage. The connector uses the new path and reads the
+  coverage from the file's NcML (`time_coverage_start`).
+
 ## [0.8.0] - 2026-11-01
 
 ### Added
@@ -391,7 +460,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.5.0...v0.6.0

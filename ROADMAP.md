@@ -128,7 +128,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 
 | Estado | Tarea |
 |---|---|
-| ⬜ | Linaje con OpenLineage (proveedor de Airflow) 🔬 |
+| ✅ | Linaje con **OpenLineage**: las tareas del DAG declaran sus datos (assets) y el proveedor de Airflow los envía; dbt corre como `dbt-ol` (linaje por modelo y por columna, colgado de la tarea). Marquez opcional (`COMPOSE_PROFILES=lineage`) con un solo grafo de la ingesta a gold |
 | ✅ | Alertas de Grafana provisionadas (`dashboards/provisioning/alerting`): ingesta fallida, fuente activa sin ejecución correcta en 36 h y regla de calidad que pasa de verde a rojo, con un panel de alertas en Operación y avisos opcionales a **Telegram** (punto de contacto provisionado solo si `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` están en el `.env`) |
 | ⬜ | Probar el envío real de las alertas a Telegram con un bot propio (probado sin token, con un token falso y al quitarlo; falta un mensaje real) |
 | ✅ | Cobertura de tests ≥ 80 % en `core/` (84 %, ramas incluidas): el CI falla por debajo, y el informe HTML y el badge del README se publican en GitHub Pages |
@@ -141,8 +141,23 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | 🟡 | Mismo código, otro perfil: `terraform output pipeline_env` da las variables para S3 real. Falta que Spark use las credenciales del rol en lugar de claves estáticas, y llevar el warehouse a Athena (`dbt-athena`) |
 | ✅ | Terraform en CI sin coste: `fmt`, `validate`, tflint (ruleset de AWS) y `terraform test` con `mock_provider` (13 tests). LocalStack no hace falta: su edición gratuita no tiene Glue ni Athena |
 | ⬜ | Variante **Databricks**: notebook/job que lee el mismo bronze; Delta Lake en lugar de Parquet 🔬 |
-| ⬜ | Tabla Delta / Iceberg en local para demostrar MERGE y time travel |
+| ✅ | Silver como tabla **Delta Lake** en MinIO: `MERGE` por la clave, historial de versiones, *time travel* y *Change Data Feed* (`make silver-changes`), una partición por fuente con `OPTIMIZE … ZORDER BY (ts)` y `VACUUM`, conversión y reescritura del lake Parquet (67.000 ficheros → 12) y Glue/Athena leyendo el log. Iceberg aún no tiene runtime para Spark 4.2 |
 | ✅ | Diagrama de arquitectura local frente a AWS ([infra/terraform/README.md](infra/terraform/README.md)) |
+
+## Fase 7 · Hacia arquitectura de datos
+
+Lo que convierte el proyecto en un caso de arquitectura: decisiones registradas, un modelo de datos explícito y un
+despliegue real con su coste medido.
+
+| Estado | Tarea |
+|---|---|
+| ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
+| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 18 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
+| ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
+| ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |
+| ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
+| ⬜ | Gold en Athena con `dbt-athena` (quita la copia de silver en Postgres) |
+| ⬜ | Segundo motor (BigQuery sandbox) solo si las ofertas objetivo lo piden, con su ADR 🔬 |
 
 ## Extras opcionales
 

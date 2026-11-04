@@ -1,5 +1,5 @@
 # Two roles with the least privilege each one needs:
-# - pipeline: what the Airflow/Spark containers do (write raw responses to bronze, overwrite silver partitions);
+# - pipeline: what the Airflow/Spark containers do (write raw responses to bronze, merge into the silver Delta table);
 # - analyst: read-only SQL through Athena (silver and the catalog, its own results), never the raw bronze.
 
 locals {
@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "pipeline" {
     resources = ["${module.bronze.arn}/*"]
   }
 
-  # Spark's dynamic partition overwrite deletes the files of the partitions it rewrites.
+  # Delta's VACUUM deletes the data files that MERGE and OPTIMIZE replaced once time travel no longer needs them.
   statement {
     sid = "ReadWriteSilver"
     actions = [

@@ -1,0 +1,179 @@
+from contextlib import contextmanager
+from datetime import datetime
+
+import pytest
+from pyspark.sql import functions as F
+
+from core.lake import SilverTable
+
+pytestmark = pytest.mark.spark
+
+T0 = datetime(2026, 10, 30, 9)  # noqa: DTZ001 - the session time zone is UTC
+T1 = datetime(2026, 10, 31, 9)  # noqa: DTZ001
+
+
+def _rows(spark, *rows, run_id="run1"):
+    data = [
+        (source, "palma", metric, ts, value, "C", quality, None, 39.5, 2.6, run_id)
+        for source, metric, ts, value, quality in rows
+    ]
+    return spark.createDataFrame(
+        data,
+        "source string, entity string, metric string, ts timestamp, value double, unit string, quality string,"
+        " quality_reasons string, lat double, lon double, run_id string",
+    )
+
+
+@pytest.fixture
+def table(spark, tmp_path):
+    locks = []
+
+    @contextmanager
+    def lock():
+        locks.append("held")
+        yield
+
+    silver = SilverTable(spark, str(tmp_path / "observations"), lock=lock)
+    silver.locks = locks
+    return silver
+
+
+def _values(df):
+    return {(r["source"], r["metric"], r["ts"]): r["value"] for r in df.collect()}
+
+
+def test_the_first_run_creates_the_table_partitioned_by_source_with_its_change_feed(table, spark):
+    result = table.merge(
+        _rows(spark, ("aemet", "temperature", T0, 20.0, "ok"), ("aemet", "temperature", T1, 21.0, "ok"))
+    )
+
+    assert (result.version, result.inserted, result.updated) == (0, 2, 0)
+    assert table.is_delta()
+    detail = spark.sql(f"DESCRIBE DETAIL delta.`{table.path}`").first()
+    assert detail["partitionColumns"] == ["source"]
+    assert detail["properties"]["delta.enableChangeDataFeed"] == "true"
+    assert table.locks == ["held"]
+
+
+def test_a_rerun_with_the_same_values_commits_nothing(table, spark):
+    rows = _rows(spark, ("aemet", "temperature", T0, 20.0, "ok"))
+    table.merge(rows)
+
+    result = table.merge(_rows(spark, ("aemet", "temperature", T0, 20.0, "ok"), run_id="run2"))
+
+    assert (result.version, result.inserted, result.updated) == (0, 0, 0)
+    assert len(table.history()) == 1  # no commit, no rewritten file
+    assert table.snapshot().count() == 1
+    assert table.snapshot().first()["run_id"] == "run1"  # an unchanged row keeps the run that wrote it
+
+
+def test_changed_values_are_updated_and_new_keys_inserted(table, spark):
+    table.merge(_rows(spark, ("aemet", "temperature", T0, 20.0, "ok"), ("socib", "temperature", T0, 18.0, "ok")))
+
+    result = table.merge(
+        _rows(spark, ("aemet", "temperature", T0, 20.5, "ok"), ("aemet", "temperature", T1, 21.0, "ok"))
+    )
+
+    assert (result.inserted, result.updated) == (1, 1)
+    assert _values(table.snapshot()) == {
+        ("aemet", "temperature", T0): 20.5,
+        ("aemet", "temperature", T1): 21.0,
+        ("socib", "temperature", T0): 18.0,  # another source's partition is never touched
+    }
+
+
+def test_time_travel_reads_a_past_version_and_lists_the_changes(table, spark):
+    table.merge(_rows(spark, ("aemet", "temperature", T0, 20.0, "ok")))
+    table.merge(_rows(spark, ("aemet", "temperature", T0, None, "missing"), ("aemet", "temperature", T1, 21.0, "ok")))
+
+    assert _values(table.snapshot(version=0)) == {("aemet", "temperature", T0): 20.0}
+    changes = {(r["ts"], r["change"]): (r["value_before"], r["value_now"]) for r in table.changes(0).collect()}
+    assert changes == {(T0, "changed"): (20.0, None), (T1, "added"): (None, 21.0)}
+
+
+def test_changes_compare_the_value_before_the_first_commit_with_the_last(table, spark):
+    for value in (20.0, 20.5, 21.0):
+        table.merge(_rows(spark, ("aemet", "temperature", T0, value, "ok")))
+
+    changes = [(r["change"], r["value_before"], r["value_now"]) for r in table.changes(0).collect()]
+
+    assert changes == [("changed", 20.0, 21.0)]
+    assert table.changes(2).count() == 0  # the latest version: nothing after it
+
+
+def test_history_lists_the_commits_newest_first(table, spark):
+    table.merge(_rows(spark, ("aemet", "temperature", T0, 20.0, "ok")))
+    table.merge(_rows(spark, ("aemet", "temperature", T0, 19.0, "ok")))
+
+    history = table.history()
+
+    assert [(h["version"], h["operation"]) for h in history] == [(1, "MERGE"), (0, "WRITE")]
+    assert (history[0]["inserted"], history[0]["updated"]) == (0, 1)
+    assert history[1]["inserted"] == 1
+
+
+def test_the_old_parquet_lake_is_converted_and_rewritten_by_source(table, spark):
+    old = _rows(spark, ("aemet", "temperature", T0, 20.0, "ok")).withColumn("date", F.to_date("ts"))
+    old.write.partitionBy("source", "date").parquet(table.path)
+    assert not table.is_delta()
+
+    result = table.merge(
+        _rows(spark, ("aemet", "temperature", T0, 20.0, "ok"), ("aemet", "temperature", T1, 21.0, "ok"))
+    )
+
+    assert table.is_delta()
+    operations = [h["operation"] for h in table.history()]
+    assert (operations[0], operations[-1]) == ("MERGE", "CONVERT")
+    assert "WRITE" in operations  # the rewrite by source
+    detail = spark.sql(f"DESCRIBE DETAIL delta.`{table.path}`").first()
+    assert detail["partitionColumns"] == ["source"]
+    assert detail["properties"]["delta.enableChangeDataFeed"] == "true"
+    assert [r["change"] for r in table.changes(len(operations) - 2).collect()] == ["added"]  # only the MERGE
+    assert (result.inserted, result.updated) == (1, 0)  # the converted row is matched, not duplicated
+    assert table.snapshot().count() == 2
+
+
+def test_maintenance_compacts_and_keeps_the_current_rows(table, spark):
+    for value in (20.0, 20.5, 21.0):
+        table.merge(_rows(spark, ("aemet", "temperature", T0, value, "ok")))
+
+    table.maintain(retain_hours=168)
+
+    assert "VACUUM END" in [h["operation"] for h in table.history()]
+    assert _values(table.snapshot()) == {("aemet", "temperature", T0): 21.0}
+    assert len(table.locks) == 4
+
+
+def test_changes_before_the_change_feed_was_turned_on_are_refused(table, spark):
+    old = _rows(spark, ("aemet", "temperature", T0, 20.0, "ok")).withColumn("date", F.to_date("ts"))
+    old.write.partitionBy("source", "date").parquet(table.path)
+    # A lake converted before the Change Data Feed was on by default (as the real one was).
+    default = "spark.databricks.delta.properties.defaults.enableChangeDataFeed"
+    spark.conf.set(default, "false")
+    try:
+        spark.sql(f"CONVERT TO DELTA parquet.`{table.path}` PARTITIONED BY (source STRING, date DATE)")
+    finally:
+        spark.conf.set(default, "true")
+    table.merge(_rows(spark, ("aemet", "temperature", T1, 21.0, "ok")))
+    enabled = next(h["version"] for h in table.history() if h["operation"] == "SET TBLPROPERTIES")
+
+    with pytest.raises(ValueError, match=f"from version {enabled}: ask for version {enabled - 1} or later"):
+        table.changes(0)
+    assert table.changes(enabled - 1).count() == 1
+
+
+def test_small_files_are_compacted_after_a_write(table, spark):
+    spark.conf.set("spark.databricks.delta.autoCompact.minNumFiles", "3")  # 50 in production
+    try:
+        results = [
+            table.merge(_rows(spark, ("aemet", "temperature", T0.replace(hour=hour), value, "ok")))
+            for hour, value in enumerate((20.0, 20.5, 21.0, 21.5))
+        ]
+    finally:
+        spark.conf.unset("spark.databricks.delta.autoCompact.minNumFiles")
+
+    operations = {h["version"]: h["operation"] for h in table.history()}
+    assert "OPTIMIZE" in operations.values()
+    # Each run reports its own commit and rows, not the OPTIMIZE that may follow it.
+    assert [(operations[r.version], r.inserted) for r in results] == [("WRITE", 1)] + [("MERGE", 1)] * 3
+    assert table.snapshot().count() == 4

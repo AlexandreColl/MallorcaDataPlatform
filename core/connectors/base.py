@@ -15,6 +15,7 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
+from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -38,6 +39,24 @@ class SourceNotUpdatedError(ConnectorError):
 
     Like a connection error, this is an upstream outage and not a bug: the next run catches up the missed days.
     """
+
+
+# HTTP client errors that a retry minutes later may still clear: request timeout and rate limit.
+_TRANSIENT_CLIENT_ERRORS = {HTTPStatus.REQUEST_TIMEOUT, HTTPStatus.TOO_MANY_REQUESTS}
+
+
+def is_permanent(exc: BaseException) -> bool:
+    """True for a failure that retrying in a few minutes will not fix, so a task should not wait for it.
+
+    A source that has not published the window yet, or an HTTP 4xx other than 408 and 429 (a wrong or moved URL, a
+    rejected key). Connection errors and 5xx answers are outages that often clear between retries.
+    """
+    if isinstance(exc, SourceNotUpdatedError):
+        return True
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None)
+    client_error = isinstance(status, int) and HTTPStatus.BAD_REQUEST <= status < HTTPStatus.INTERNAL_SERVER_ERROR
+    return client_error and status not in _TRANSIENT_CLIENT_ERRORS
 
 
 @dataclass(frozen=True)

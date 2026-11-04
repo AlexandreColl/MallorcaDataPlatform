@@ -1,4 +1,4 @@
-# The Glue table matches what Spark writes, Athena is capped, and the budget alerts only when someone listens.
+# The Glue table is the Delta table Spark writes, Athena is capped, and the budget alerts only when someone listens.
 
 mock_provider "aws" {
   mock_data "aws_caller_identity" {
@@ -14,7 +14,7 @@ mock_provider "aws" {
   }
 }
 
-run "table_matches_the_spark_layout" {
+run "table_is_the_spark_delta_table" {
   command = apply
 
   assert {
@@ -22,26 +22,22 @@ run "table_matches_the_spark_layout" {
     error_message = "Glue names use underscores"
   }
   assert {
-    condition     = [for k in aws_glue_catalog_table.observations.partition_keys : k.name] == ["source", "date"]
-    error_message = "partitions are source then date, like partitionBy(\"source\", \"date\") in core/pipeline.py"
+    condition     = aws_glue_catalog_table.observations.parameters["table_type"] == "DELTA"
+    error_message = "Athena reads the Delta log, not every Parquet file under the location"
+  }
+  assert {
+    condition     = one(aws_glue_catalog_table.observations.storage_descriptor).location == "s3://mallorca-data-platform-dev-silver/observations/"
+    error_message = "the table points at the directory Spark writes (core/lake.py)"
+  }
+  assert {
+    condition     = length(aws_glue_catalog_table.observations.partition_keys) == 0
+    error_message = "partitions come from the Delta log: Glue partitions would be ignored"
   }
   assert {
     condition = [for c in one(aws_glue_catalog_table.observations.storage_descriptor).columns : c.name] == [
-      "entity", "metric", "ts", "value", "unit", "quality", "lat", "lon",
+      "source", "entity", "metric", "ts", "value", "unit", "quality", "lat", "lon", "date",
     ]
-    error_message = "columns follow SILVER_SCHEMA (source is a partition)"
-  }
-  assert {
-    condition     = aws_glue_catalog_table.observations.parameters["storage.location.template"] == "s3://mallorca-data-platform-dev-silver/observations/source=$${source}/date=$${date}"
-    error_message = "partition projection points at the Spark directories"
-  }
-  assert {
-    condition     = contains(split(",", aws_glue_catalog_table.observations.parameters["projection.source.values"]), "goib_air_quality")
-    error_message = "every connector is a projected source"
-  }
-  assert {
-    condition     = aws_glue_catalog_table.observations.parameters["projection.date.range"] == "2002-01-01,NOW"
-    error_message = "dates start with the oldest history"
+    error_message = "columns follow SILVER_SCHEMA plus the date column"
   }
 }
 
@@ -101,8 +97,7 @@ run "invalid_inputs_are_rejected" {
   variables {
     environment        = "staging"
     monthly_budget_usd = 0
-    sources            = ["Open-Meteo"]
   }
 
-  expect_failures = [var.environment, var.monthly_budget_usd, var.sources]
+  expect_failures = [var.environment, var.monthly_budget_usd]
 }

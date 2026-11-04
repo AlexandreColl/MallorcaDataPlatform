@@ -22,7 +22,7 @@ flowchart LR
         IW[int_weather__daily<br/>int_station_model_pairs<br/>int_weather_extremes__daily]
     end
     subgraph marts[marts · gold]
-        C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_date · dim_sources]
+        C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_metrics · dim_date · dim_sources]
         D[dominios: weather · marine · energy<br/>mobility · air_quality · seismic]
         Q[quality: data_quality_summary · source_health<br/>fct_observations_corrected]
     end
@@ -47,7 +47,7 @@ flowchart LR
 |---|---|---|
 | core | `fct_observations` (**incremental, merge**) | fuente, entidad, métrica, hora |
 | core | `agg_daily_metrics` (**incremental, delete+insert**) | serie y día local |
-| core | `dim_locations`, `dim_date` (contrato), `dim_sources` (seed); snapshot `snap_locations` (SCD2) | — |
+| core | `dim_locations`, `dim_metrics`, `dim_date` (con contrato), `dim_sources` (seed); snapshot `snap_locations` (SCD2) | fuente y entidad / fuente y métrica / día. El modelo dimensional completo está en [docs/data-model.md](../docs/data-model.md) |
 | weather | `fct_weather_daily` | estación o punto de modelo y día: observación real junto al modelo |
 | weather | `fct_model_bias_daily`, `agg_model_bias_by_station` (contrato) | estación y día / estación: error del modelo |
 | weather | `fct_weather_episodes` (contrato) | episodio de lluvia, viento o mar |
@@ -119,7 +119,7 @@ columnas de `dbt_expectations`.
 
 ## Contratos
 
-Los marts que se consumen fuera (`dim_date`, `fct_electricity_daily`, `fct_bus_network_daily`,
+Las dimensiones compartidas (`dim_date`, `dim_locations`, `dim_metrics`) y los marts que se consumen fuera (`fct_electricity_daily`, `fct_bus_network_daily`,
 `fct_island_transit_daily`, `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`,
 `agg_model_bias_by_station`,
 `fct_weather_episodes`) tienen

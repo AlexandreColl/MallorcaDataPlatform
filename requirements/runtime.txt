@@ -10,3 +10,5 @@ PyYAML
 pandas
 pyarrow
 scikit-learn
+# Lineage events of the DAG tasks (sent only when OPENLINEAGE_URL is set).
+apache-airflow-providers-openlineage
