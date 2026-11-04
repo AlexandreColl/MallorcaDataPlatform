@@ -46,7 +46,9 @@ Postgres; gold, en Postgres.
 El caso completo, con el contexto, las restricciones, cada decisión con su porqué, lo que se descartó y lo que cuesta:
 [docs/architecture.md](docs/architecture.md). Allí está también qué se rompe primero a 10× y 100× y cuánto costaría
 en AWS ([trade-offs, costes y escalado](docs/architecture.md#5-trade-offs-costes-y-escalado)). Cada decisión tiene
-su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se rechazaron. En resumen:
+su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se rechazaron. El modelo de datos (silver,
+la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). En
+resumen:
 
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.

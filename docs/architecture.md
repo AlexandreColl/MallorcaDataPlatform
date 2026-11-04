@@ -200,4 +200,5 @@ orden:
 - **Detectores.** El desfase horario se escapa a los dos detectores; queda pendiente probar uno estacional y
   combinar los dos que hay.
 
-Plan completo: [ROADMAP.md](../ROADMAP.md) · Historial de cambios: [CHANGELOG.md](../CHANGELOG.md)
+Modelo de datos: [data-model.md](data-model.md) · Decisiones: [adr](adr/README.md) · Plan completo:
+[ROADMAP.md](../ROADMAP.md) · Historial de cambios: [CHANGELOG.md](../CHANGELOG.md)
