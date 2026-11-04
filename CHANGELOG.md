@@ -7,6 +7,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Data model (`docs/data-model.md`): conceptual model, the long silver table with its key and the meaning of each
+  column, the gold star with the grain and type of every fact, shared dimensions and their history policy,
+  contracts at three boundaries, time, unit and null conventions, freshness per source and schema evolution rules.
+- `dim_metrics` in gold: one row per source and metric with its unit and coverage. Its primary key makes one unit
+  per metric part of the contract.
+
 - Architecture case study (`docs/architecture.md`): context and constraints, overview and sequence diagrams of a
   run, 13 design decisions with why, the alternatives ruled out and what each costs, quality attributes and known
   limits.
@@ -29,6 +35,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- `dim_locations` has a contract with its primary key, and `dim_date` starts in 2002 so it covers every day with
+  data (it started in 2020 and the air quality history goes back to 2002). `agg_daily_metrics.local_date` is tested
+  against it.
 - Silver is a Delta Lake table (`core/lake.py`). Each connector run MERGEs its rows on the key instead of overwriting
   its Parquet partitions; rows that did not change are dropped first, so a rerun without changes writes no file and
   no version. A Postgres advisory lock serialises the commits of the two Spark drivers the DAG runs at once, since

@@ -153,8 +153,8 @@ despliegue real con su coste medido.
 |---|---|
 | ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
 | ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 18 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
-| ⬜ | **Modelo de datos documentado**: diagrama de gold con el grano de cada hecho y sus dimensiones, por qué silver es largo y los marts anchos, `dbt snapshot` (SCD2) de estaciones y paradas, y `source freshness` como SLA por fuente |
-| ⬜ | Gobierno del dato: dueño y SLA por fuente, política de evolución de esquemas |
+| ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
+| ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |
 | ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
 | ⬜ | Gold en Athena con `dbt-athena` (quita la copia de silver en Postgres) |
 | ⬜ | Segundo motor (BigQuery sandbox) solo si las ofertas objetivo lo piden, con su ADR 🔬 |
