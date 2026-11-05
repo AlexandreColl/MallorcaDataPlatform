@@ -250,6 +250,28 @@ class StationDay(BaseModel):
     wind_gust_max: float | None
 
 
+class WeatherWarning(BaseModel):
+    """An AEMET warning: one zone and phenomenon at one level for a period (gold.fct_weather_warnings)."""
+
+    warning_id: str
+    zone: str = Field(examples=["645403"])
+    zone_name: str | None = Field(examples=["Interior de Mallorca"])
+    zone_kind: str | None = Field(examples=["land"], description="`land` or `coast`")
+    phenomenon: str = Field(examples=["rain"], description="`rain`, `storms`, `wind`, `coastal`, `max_temperature`...")
+    level: int = Field(ge=1, le=3, description="1 yellow, 2 orange, 3 red.")
+    start_ts: datetime
+    end_ts: datetime
+
+
+class WarningZone(BaseModel):
+    """An AEMET warning zone of Mallorca with its polygon (gold.dim_warning_zones)."""
+
+    zone: str = Field(examples=["645403"])
+    name: str = Field(examples=["Interior de Mallorca"])
+    kind: str = Field(examples=["land"])
+    polygon: list[list[float]] = Field(description="[lon, lat] vertices.")
+
+
 class WeatherEpisode(BaseModel):
     """Consecutive days of heavy rain, strong wind or high waves on the island (gold.fct_weather_episodes)."""
 

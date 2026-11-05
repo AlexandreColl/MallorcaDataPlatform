@@ -213,7 +213,7 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
-        "/v1/sea/hourly", "/v1/earthquakes",
+        "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
         "/v1/quality/rules", "/v1/anomalies/daily",
     }  # fmt: skip
 
@@ -239,6 +239,8 @@ def test_settings_from_environment():
         ("/v1/mobility/stops", "gold.fct_observations"),
         ("/v1/weather/daily", "gold.fct_weather_daily"),
         ("/v1/weather/stations", "gold.fct_weather_daily"),
+        ("/v1/warnings", "gold.fct_weather_warnings"),
+        ("/v1/warnings/zones", "gold.dim_warning_zones"),
         ("/v1/weather/episodes", "gold.fct_weather_episodes"),
         ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),
         ("/v1/air-quality/latest", "gold.air_quality_hourly"),
@@ -283,3 +285,14 @@ def test_stops_filter_by_network_and_reject_an_unknown_one():
     assert api.get("/v1/mobility/stops", params={"network": "ctm"}).json()[0]["departures"] == 1028.0
     assert db.calls[-1][1] == {"network": "ctm"}
     assert api.get("/v1/mobility/stops", params={"network": "tram"}).status_code == 422
+
+
+def test_warnings_default_to_the_next_days_and_zones_come_with_their_polygon():
+    zone = {"zone": "645403", "name": "Interior de Mallorca", "kind": "land", "polygon": "[[2.93,39.81],[2.95,39.76]]"}
+    db = FakeDatabase({"gold.dim_warning_zones": [zone]})
+    api = client(db)
+
+    api.get("/v1/warnings")
+    params = db.calls[-1][1]
+    assert round((params["end"] - params["start"]).total_seconds() / 86400) == 3
+    assert api.get("/v1/warnings/zones").json()[0]["polygon"] == [[2.93, 39.81], [2.95, 39.76]]

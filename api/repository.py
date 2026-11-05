@@ -96,6 +96,18 @@ WHERE w.source = %(source)s AND w.lat IS NOT NULL AND w.temperature_mean IS NOT 
 ORDER BY w.temperature_mean DESC
 """
 
+# AEMET warnings in force or announced: periods that end after `start` and begin before `end`.
+_WARNINGS = """
+SELECT warning_id, zone, zone_name, zone_kind, phenomenon, level, start_ts, end_ts
+FROM gold.fct_weather_warnings
+WHERE end_ts > %(start)s AND start_ts < %(end)s
+ORDER BY start_ts, level DESC, zone, phenomenon
+"""
+
+_WARNING_ZONES = """
+SELECT zone, name, kind, polygon FROM gold.dim_warning_zones ORDER BY kind DESC, zone
+"""
+
 _EPISODES = """
 SELECT episode_id, start_date, end_date, days, episode_type, peak_rain_mm, peak_rain_station, peak_rain_day,
        max_stations_over_rain_threshold, peak_gust_kmh, peak_wave_m
@@ -296,6 +308,14 @@ class Warehouse:
     def weather_stations(self, source: str) -> list[Row]:
         """Every station or point of ``source`` on its latest day with temperatures, warmest first."""
         return self.db.fetch_all(_WEATHER_STATIONS, {"source": source})
+
+    def warnings(self, start: datetime, end: datetime) -> list[Row]:
+        """AEMET warning periods that overlap ``[start, end)``, earliest first."""
+        return self.db.fetch_all(_WARNINGS, {"start": start, "end": end})
+
+    def warning_zones(self) -> list[Row]:
+        """The AEMET warning zones of Mallorca with their polygons."""
+        return self.db.fetch_all(_WARNING_ZONES)
 
     def episodes(self, start: date, end: date) -> list[Row]:
         """Rain, wind and sea episodes that started in the range, newest first."""

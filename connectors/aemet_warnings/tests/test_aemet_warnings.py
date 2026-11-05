@@ -1,5 +1,6 @@
 import io
 import json
+import re
 import tarfile
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -57,7 +58,7 @@ def test_two_step_requests_read_the_archive_from_the_lookback_days():
     payloads = _connector(http).extract(WINDOW, MALLORCA)
 
     assert [p.dataset for p in payloads] == ["archive", "latest"]
-    assert "fechaini/2026-11-01T00:00:00UTC/fechafin/2026-11-03T23:59:59UTC" in payloads[0].request["path"]
+    assert "fechaini/2026-11-02T00:00:00UTC/fechafin/2026-11-03T23:59:59UTC" in payloads[0].request["path"]
     assert payloads[1].request["path"].endswith("/avisos_cap/ultimoelaborado/area/64")
     api_calls = [(url, headers) for url, headers in http.calls if url.startswith("https://opendata.aemet.es")]
     assert all(headers == {"api_key": "test-key"} for _, headers in api_calls)
@@ -137,3 +138,16 @@ def test_the_archive_layout_is_a_tar_of_gzipped_tars():
         issue = outer.extractfile(outer.getmembers()[0]).read()
     with tarfile.open(fileobj=io.BytesIO(issue), mode="r:gz") as inner:
         assert all("AFAZ64" in n for n in inner.getnames())
+
+
+def test_a_long_window_is_read_in_requests_of_at_most_two_days():
+    """AEMET rejects archive ranges over 2 days ("El rango de fechas no puede ser superior a 2 dias")."""
+    week = TimeWindow(date(2026, 10, 28), date(2026, 11, 3))
+
+    payloads = _connector().extract(week, MALLORCA)
+
+    archive = payloads[:-1]
+    for p in archive:
+        start, end = (date.fromisoformat(day) for day in re.findall(r"/(\d{4}-\d{2}-\d{2})T", p.request["path"]))
+        assert (end - start).days <= 2
+    assert [p.window.n_days for p in archive] == [2, 2, 2, 1]  # the window, chunk by chunk, without gaps
