@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import pytest
 
 from core.connectors import BaseConnector, ConnectorError, registry
-from core.connectors.base import MONTH, parse_frequency
+from core.connectors.base import MONTH, YEAR, parse_frequency
 from core.models import TimeWindow
 
 
@@ -70,7 +70,13 @@ def test_missing_secret_is_reported(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize(
     ("freq", "delta"),
-    [("15m", timedelta(minutes=15)), ("1h", timedelta(hours=1)), ("1d", timedelta(days=1)), ("1mo", MONTH)],
+    [
+        ("15m", timedelta(minutes=15)),
+        ("1h", timedelta(hours=1)),
+        ("1d", timedelta(days=1)),
+        ("1mo", MONTH),
+        ("1y", YEAR),
+    ],
 )
 def test_parse_frequency(freq, delta):
     assert parse_frequency(freq) == delta

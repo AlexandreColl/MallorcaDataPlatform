@@ -86,7 +86,7 @@ con un grano declarado y dimensiones compartidas entre dominios.
 | `dim_sources` | `source` | Seed (`dbt/seeds/dim_sources.csv`): etiqueta, tipo de dato y descripción | Se sobrescribe (tipo 1); vive en git |
 | `dim_locations` | `source, entity` | Derivada de silver: coordenadas y cobertura temporal | Tipo 1 en la tabla y tipo 2 en el snapshot `snap_locations`: si una estación se reubica, la versión anterior se cierra |
 | `dim_metrics` | `source, metric` | Derivada de silver: unidad, número de entidades y cobertura | Tipo 1. La clave primaria impide que una métrica tenga dos unidades |
-| `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde 2002 hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
+| `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde 1996 (el primer padrón) hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
 
 `dim_sources.kind` clasifica las fuentes por el tipo de dato: `observation` (una medida real), `model` (un modelo
 numérico), `system` (el sistema eléctrico), `schedule` (un servicio programado), `statistic` (estadística oficial),

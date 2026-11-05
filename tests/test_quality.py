@@ -153,3 +153,17 @@ def test_monthly_gaps_count_calendar_months(spark):
 
     gaps = _results_by_rule(results)[("gaps", "airport_passengers")]
     assert (gaps.checked, gaps.failed) == (12, 1)
+
+
+def test_yearly_gaps_count_years(spark):
+    population = registry.load("ine_population")
+    window = TimeWindow(date(2022, 11, 16), date(2025, 11, 19))  # 1 January of 2023, 2024 and 2025 inside it
+    observations = [
+        Observation("ine_population", "07040", "population", datetime(year, 1, 1, tzinfo=UTC), 4e5, "people")
+        for year in (2023, 2025)  # 2024 is missing
+    ]
+
+    _, results = apply_quality(_frame(spark, observations), population, window)
+
+    gaps = _results_by_rule(results)[("gaps", "population")]
+    assert (gaps.checked, gaps.failed) == (3, 1)

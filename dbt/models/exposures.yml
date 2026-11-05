@@ -143,6 +143,8 @@ exposures:
       - ref('data_quality_summary')
       - ref('fct_weather_warnings')
       - ref('dim_warning_zones')
+      - ref('fct_population_yearly')
+      - ref('dim_municipalities')
 
   - name: web
     label: Web front end · Mallorca en datos
@@ -176,6 +178,8 @@ exposures:
       - ref('fct_observations_corrected')
       - ref('fct_weather_warnings')
       - ref('dim_warning_zones')
+      - ref('fct_population_yearly')
+      - ref('dim_municipalities')
 
   - name: corrections_phase
     label: Corrections with support sources (phase 4)

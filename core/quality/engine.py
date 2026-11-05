@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from core.connectors.base import MONTH
+from core.connectors.base import MONTH, YEAR
 from core.models import Quality, TimeWindow
 from core.quality.rules import (
     DatasetRule,
@@ -90,13 +90,17 @@ def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
 
     One gaps rule per sampling frequency, so hourly and daily datasets of the same
     connector are each checked against their own expected number of steps. Monthly
-    datasets expect one value per calendar month starting in the window. Event
+    datasets expect one value per calendar month starting in the window, yearly ones one per year. Event
     datasets have no expected steps and get no gaps rule.
     """
     span = window.end_dt_exclusive() - window.start_dt()
 
     def expected_steps(freq: timedelta) -> int:
-        return len(window.month_starts()) if freq == MONTH else int(span / freq)
+        if freq == MONTH:
+            return len(window.month_starts())
+        if freq == YEAR:
+            return len(window.year_starts())
+        return int(span / freq)
 
     by_frequency: dict[timedelta, set[str]] = defaultdict(set)
     for metric in config.metrics.values():

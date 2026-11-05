@@ -7,6 +7,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Connector `ine_population`: the population of the 53 municipalities of Mallorca on 1 January by sex, from the
+  INE municipal register (table 2860, 1996-2025; there was no register in 1997).
+  - The core gains `frequency: 1y`: the gaps rule counts calendar years, like months.
+  - It comes with the `dim_municipalities` seed (IGN boundaries, simplified), the `fct_population_yearly` mart
+    (density and change against the previous register) and the `/v1/population` and `/v1/municipalities`
+    endpoints.
+  - The mobility dashboard shows the island's population, a map of the municipalities by density, service per
+    inhabitant or growth in ten years, the most populated ones and the population since 1996.
 - Connector `aemet_warnings`: AEMET weather warnings (Meteoalerta, CAP) of the nine zones of Mallorca, hour by hour
   and per phenomenon (level 0 to 3), from the CAP archive and the latest issue of area 64.
   - Every issue is a snapshot of the warnings in force, and withdrawn warnings disappear without a Cancel, so each
@@ -42,6 +50,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   Each has unit tests and runs against the warehouse in CI.
 - dbt exposure `web`: the marts the web front end reads through the API. The `rest_api` exposure lists the new
   marts too, so CI builds them before testing the API.
+
+### Fixed
+
+- `dim_date` starts in 1996, the first municipal register; it started in 2002.
 
 ## [0.9.0] - 2026-11-04
 

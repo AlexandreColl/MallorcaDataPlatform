@@ -22,7 +22,8 @@ connectors/<nombre>/
    alarga una ventana para recuperar días de ejecuciones fallidas; bájalo si la fuente no guarda tanto histórico
    (SOCIB: 28). `lag_days` retrasa el final de la ventana para fuentes que publican tarde (AEMET: 3).
    Para estadísticas mensuales usa `frequency: 1mo` (un valor por mes, fechado el día 1) y `min_days` para que
-   cada ejecución cubra meses ya publicados (ver `connectors/dataestur`).
+   cada ejecución cubra meses ya publicados (ver `connectors/dataestur`). Las anuales usan `frequency: 1y` (un valor
+   por año, fechado el 1 de enero; ver `connectors/ine_population`).
    Para fuentes de eventos sin muestreo regular (sismos…)
    usa `frequency: event`: no se aplica la regla de huecos y una ventana sin eventos no es un error (ver
    `connectors/ign`); añádela también a `vars.event_sources` en `dbt/dbt_project.yml` y a `EVENT_SOURCES` en

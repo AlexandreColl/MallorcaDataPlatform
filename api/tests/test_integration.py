@@ -49,6 +49,8 @@ def test_health(api):
         "/v1/weather/stations?source=socib",
         "/v1/warnings?start=2016-01-01T00:00:00Z",
         "/v1/warnings/zones",
+        "/v1/population?from=2020",
+        "/v1/municipalities",
         "/v1/air-quality/latest",
         "/v1/sea/hourly?start=2016-01-01T00:00:00Z",
         "/v1/earthquakes",
