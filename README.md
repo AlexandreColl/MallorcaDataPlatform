@@ -106,6 +106,7 @@ Otros comandos: `make help`.
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
 | [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | Avisos meteorológicos de AEMET (lluvias, tormentas, viento, costeros…) por zona de Mallorca y hora, del nivel 0 al 3 | Sí |
+| [ine_population](connectors/ine_population/README.md) | ✅ | Población de los 53 municipios de Mallorca a 1 de enero, por sexo, del padrón del INE (desde 1996) | No |
 
 ### Open-Meteo
 
@@ -137,6 +138,18 @@ una foto de los avisos en vigor: un aviso que deja de aparecer se ha retirado, s
 el nivel de la foto que estaba en vigor. El archivo da las horas pasadas y la última emisión las de hoy y los próximos
 días. En gold, `fct_weather_warnings` da un periodo por aviso; en la web, un mapa con las zonas coloreadas por nivel.
 [Detalle y pruebas reales](connectors/aemet_warnings/README.md).
+
+### INE (población)
+
+La población de cada municipio de Mallorca a 1 de enero, por sexo, del padrón continuo del INE (tabla 2860, desde
+1996; en 1997 no hubo padrón). Es la primera fuente anual: el núcleo gana `frequency: 1y` (huecos contados en años
+naturales). Cada ejecución relee los tres últimos años, porque el INE revisa las cifras una vez, y la ventana acaba
+350 días antes de ayer, porque las cifras de un año salen a mediados de diciembre. El seed `dim_municipalities`
+guarda el límite de cada municipio (IGN, simplificado a unos 150 m). En gold, `fct_population_yearly` añade la
+densidad y el cambio frente al padrón anterior; el total de la isla es la suma de sus municipios. En la web, el
+dashboard de Movilidad cruza la población con las paradas de cada municipio: Palma tiene 186 pasos programados por
+cada 1.000 habitantes en un día laborable y Manacor, 27.
+[Detalle y pruebas reales](connectors/ine_population/README.md).
 
 ### REData
 
@@ -446,8 +459,8 @@ abre seis dashboards. Cada uno agrupa datos que van juntos, igual que las carpet
 | **Inicio** | Cinco cifras clave frente a lo normal de cada mes (reservas, lluvia, turistas, electricidad y temperatura) y el mapa de estaciones y puntos de modelo |
 | **Turismo y recursos** | Turistas, aeropuerto y ocupación hotelera; turistas frente a reservas de agua y a demanda eléctrica, y ocupación frente a gasto, cada serie con su tendencia de 12 meses y su correlación de Pearson (con y sin el ciclo anual) |
 | **Clima y agua** | Reservas frente a la media del mes, los 18 acuíferos, lluvia acumulada de cada año hidrológico y anomalía de temperatura |
-| **Movilidad** | Servicio programado de EMT y CTM por día, mapa del servicio de cada parada y paradas con más servicio |
-| **Tiempo y entorno** | Temperatura por zonas (las 33 estaciones de AEMET interpoladas sobre la isla), temperatura de cada fuente, calidad del aire ahora (índice europeo) con la tabla de estaciones, oleaje, episodios, sismos y error del modelo |
+| **Movilidad** | Población de la isla y servicio por cada 1.000 habitantes; mapa de los municipios por densidad, servicio por habitante o crecimiento en 10 años; población desde 1996; servicio programado de EMT y CTM por día, mapa del servicio de cada parada y paradas con más servicio |
+| **Tiempo y entorno** | Temperatura por zonas (las 33 estaciones de AEMET interpoladas sobre la isla), avisos de AEMET por zona (ahora y en las próximas 72 h), temperatura de cada fuente, calidad del aire ahora (índice europeo) con la tabla de estaciones, oleaje, episodios, sismos y error del modelo |
 | **Operación** | Estado de cada fuente, reglas de calidad que fallan, anomalías por día y últimas correcciones |
 
 En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala noticia, junto con la evolución de los
@@ -544,6 +557,8 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/mobility/daily`, `/v1/mobility/stops` | Servicio programado de EMT y CTM por día, y el de cada parada en el último día |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación; `stations`: cada estación en el último día publicado |
 | `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | Última hora de calidad del aire con su índice europeo, oleaje por hora y sismos |
+| `GET /v1/warnings`, `/v1/warnings/zones` | Avisos de AEMET en vigor o anunciados (por defecto, de ahora a 3 días) y las zonas de aviso con su polígono |
+| `GET /v1/population`, `/v1/municipalities` | Población de cada municipio por año (filtrable con `from` y `to`) y los 53 municipios con su superficie y su límite |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | Último chequeo de cada regla de calidad y anomalías por día y detector |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
