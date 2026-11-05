@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag vX.Y.Z on main -> GitHub Release (notes from CHANGELOG.md) + Airflow and REST API images on GHCR.
+# Push a tag vX.Y.Z on main -> GitHub Release (notes from CHANGELOG.md) + Airflow, REST API and web images on GHCR.
 # Run it by hand with an existing tag to (re)publish that tag's images without touching its GitHub Release.
 on:
   push:
@@ -89,6 +89,23 @@ jobs:
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
           cache-from: type=gha,scope=api
+
+      - id: meta-web
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/web
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+      - name: Web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/web/Dockerfile
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha,scope=web
 
       - uses: softprops/action-gh-release@v3
         if: github.event_name == 'push'
