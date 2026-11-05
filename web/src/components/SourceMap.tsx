@@ -3,6 +3,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, StyleSpecification } from "maplibre-gl";
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Location } from "../api";
@@ -20,6 +21,9 @@ const MALLORCA: [[number, number], [number, number]] = [
   [2.28, 39.25],
   [3.5, 40.0],
 ];
+
+// maplibre looks for its worker next to its own module, which bundling renames: give it the bundled URL instead.
+maplibregl.setWorkerUrl(workerUrl);
 
 /** Spanish texts of the map controls. */
 const LOCALE = {
