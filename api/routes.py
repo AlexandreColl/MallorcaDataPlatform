@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Literal
 
@@ -31,15 +32,18 @@ from api.schemas import (
     StationDay,
     StopService,
     TourismMonth,
+    WarningZone,
     WaterReservesMonth,
     WeatherEpisode,
     WeatherSourceDay,
+    WeatherWarning,
 )
 
 router = APIRouter(prefix="/v1", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 
 DEFAULT_PAGE_SIZE = 100
 DEFAULT_DAYS = 7
+WARNINGS_AHEAD_DAYS = 3
 
 
 def get_warehouse(request: Request) -> Warehouse:
@@ -252,6 +256,20 @@ def weather_stations(
 ) -> list[StationDay]:
     """Every station of a source on its latest day with temperatures (AEMET publishes 2-3 days late)."""
     return [StationDay(**row) for row in warehouse.weather_stations(source)]
+
+
+@router.get("/warnings", tags=["environment"])
+def warnings(warehouse: WarehouseDep, start: Start = None, end: End = None) -> list[WeatherWarning]:
+    """AEMET warnings of the zones of Mallorca that overlap the range (default: in force now or in the next 3 days)."""
+    now = datetime.now(UTC)
+    start, end = _window(start or now, end or now + timedelta(days=WARNINGS_AHEAD_DAYS))
+    return [WeatherWarning(**row) for row in warehouse.warnings(start, end)]
+
+
+@router.get("/warnings/zones", tags=["environment"])
+def warning_zones(warehouse: WarehouseDep) -> list[WarningZone]:
+    """The AEMET warning zones of Mallorca (land and coastal waters) with their polygons."""
+    return [WarningZone(**{**row, "polygon": json.loads(row["polygon"])}) for row in warehouse.warning_zones()]
 
 
 @router.get("/weather/episodes", tags=["environment"])

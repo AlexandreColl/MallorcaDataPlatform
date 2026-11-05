@@ -134,6 +134,24 @@ export interface StationDay {
   precipitation_sum: number | null;
 }
 
+export interface WeatherWarning {
+  warning_id: string;
+  zone: string;
+  zone_name: string | null;
+  zone_kind: string | null;
+  phenomenon: string;
+  level: number;
+  start_ts: string;
+  end_ts: string;
+}
+
+export interface WarningZone {
+  zone: string;
+  name: string;
+  kind: "land" | "coast";
+  polygon: [number, number][];
+}
+
 export interface WeatherEpisode {
   episode_id: string;
   start_date: string;
@@ -251,6 +269,8 @@ export const api = {
   stops: () => get<StopService[]>("/mobility/stops"),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
   stations: (source: "aemet" | "socib" | "open_meteo") => get<StationDay[]>(`/weather/stations?source=${source}`),
+  warnings: () => get<WeatherWarning[]>("/warnings"),
+  warningZones: () => get<WarningZone[]>("/warnings/zones"),
   episodes: (from: string) => get<WeatherEpisode[]>(`/weather/episodes?from=${from}`),
   modelBias: () => get<ModelBias[]>("/weather/model-bias"),
   airQuality: () => get<AirQualityNow[]>("/air-quality/latest"),

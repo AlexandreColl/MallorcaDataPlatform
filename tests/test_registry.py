@@ -122,9 +122,9 @@ def test_default_selection_skips_connectors_without_their_key():
     without_key = registry.runnable_names(env={})
     with_key = registry.runnable_names(env={"AEMET_API_KEY": "x"})
 
-    assert "aemet" not in without_key
+    assert not {"aemet", "aemet_warnings"} & set(without_key)
     assert "open_meteo" in without_key
-    assert set(with_key) - set(without_key) == {"aemet"}
+    assert set(with_key) - set(without_key) == {"aemet", "aemet_warnings"}
 
 
 def test_monthly_frequency_and_minimum_window():

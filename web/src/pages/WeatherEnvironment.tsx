@@ -1,6 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { type AirQualityNow, api, daysAgo, type SeaHour, type StationDay, type WeatherSourceDay } from "../api";
+import {
+  type AirQualityNow,
+  api,
+  daysAgo,
+  type SeaHour,
+  type StationDay,
+  type WarningZone,
+  type WeatherSourceDay,
+  type WeatherWarning,
+} from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart, SERIES } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
@@ -9,6 +18,7 @@ import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { dayName, dayShort, number, signed } from "../lib/format";
 import { surface, TEMPERATURE_STOPS, temperatureColor } from "../lib/interpolate";
+import { describe, LEVELS, overlapping, zoneLevels } from "../lib/warnings";
 import type { Kpi } from "../lib/kpis";
 
 /** Bands of the European Air Quality Index, with the EEA's own colours. */
@@ -170,6 +180,75 @@ function airLayers(air: AirQualityNow[]): MapLayer[] {
   ];
 }
 
+/** An instant in Mallorca's local time: "5 nov 14:00". */
+function when(iso: string): string {
+  const local = new Date(iso).toLocaleString("sv-SE", { timeZone: "Europe/Madrid" }); // "2026-11-05 14:00:00"
+  return `${dayShort(local)} ${local.slice(11, 16)}`;
+}
+
+const WARNING_PERIODS = {
+  now: { label: "Ahora", hours: 1 },
+  next: { label: "Próximas 72 h", hours: 72 },
+} as const;
+
+type WarningPeriod = keyof typeof WARNING_PERIODS;
+
+/**
+ * The AEMET warning zones of Mallorca coloured by their highest level in the period, with the warnings listed by
+ * zone in the popup of each one.
+ */
+function WarningsMap({ zones, warnings }: { zones: WarningZone[]; warnings: WeatherWarning[] }) {
+  const [period, setPeriod] = useState<WarningPeriod>("next");
+  const { areas, layers, active } = useMemo(() => {
+    const now = new Date();
+    const active = overlapping(warnings, now, new Date(now.getTime() + WARNING_PERIODS[period].hours * 3_600_000));
+    const levels = zoneLevels(active);
+    // Coastal waters first, so the land zones are drawn over them.
+    const ordered = [...zones].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "coast" ? -1 : 1));
+    const areas: MapArea[] = ordered.map((z) => ({ polygon: z.polygon, color: LEVELS[levels.get(z.zone) ?? 0]?.color ?? "#4ade80" }));
+    const layers: MapLayer[] = [
+      {
+        id: "zones", label: "Zonas", color: "#0a120d", radius: 4,
+        points: zones.filter((z) => z.kind === "land").map((z) => {
+          // A land zone and its coastal waters (same code with a C) share the popup.
+          const own = active.filter((w) => w.zone === z.zone || w.zone === `${z.zone}C`);
+          const [lon, lat] = z.polygon.reduce(
+            ([x, y], [px, py]) => [x + px / z.polygon.length, y + py / z.polygon.length],
+            [0, 0],
+          );
+          const lines = own.map((w) => `${describe(w)}${w.zone_kind === "coast" ? " (costa)" : ""} · ${when(w.start_ts)}`);
+          return {
+            lat, lon, color: LEVELS[levels.get(z.zone) ?? 0]?.color,
+            popup: [z.name, ...(lines.length ? lines : ["Sin avisos"])],
+          };
+        }),
+      },
+    ];
+    return { areas, layers, active };
+  }, [zones, warnings, period]);
+
+  return (
+    <>
+      <div className="segmented" role="group" aria-label="Periodo">
+        {(Object.keys(WARNING_PERIODS) as WarningPeriod[]).map((p) => (
+          <button key={p} type="button" aria-pressed={p === period} onClick={() => setPeriod(p)}>
+            {WARNING_PERIODS[p].label}
+          </button>
+        ))}
+      </div>
+      <PointMap layers={layers} areas={areas} height={420} />
+      <div className="scale">
+        {LEVELS.map((l) => (
+          <span key={l.label}>
+            <span className="dot" style={{ background: l.color }} /> {l.label}
+          </span>
+        ))}
+        <span>{active.length === 0 ? "Ningún aviso en el periodo" : `${active.length} avisos en el periodo`}</span>
+      </div>
+    </>
+  );
+}
+
 export function WeatherEnvironment() {
   const weather = useLoad(() => api.weatherDaily(daysAgo(30)));
   const air = useLoad(api.airQuality);
@@ -189,12 +268,45 @@ export function WeatherEnvironment() {
   }, [weather, air, sea, quakes]);
   const layers = useMemo(() => (air.status === "ready" ? airLayers(air.data) : []), [air]);
   const stations = useLoad(() => api.stations("aemet"));
+  const warnings = useLoad(api.warnings);
+  const zones = useLoad(api.warningZones);
   const stationDay = stations.status === "ready" && stations.data[0] ? ` (${dayName(stations.data[0].local_date)})` : "";
 
   return (
     <>
       <KpiRow kpis={kpis} colors={["#dc2626", "#0891b2", "#2563eb", "#7c3aed"]} />
       <div className="grid">
+        <Panel title="Avisos de AEMET" subtitle="Zonas de aviso de Mallorca con el nivel más alto en vigor o anunciado; pulsa una zona para ver sus avisos." wide>
+          <Async state={zones} height={420}>
+            {(z) => <Async state={warnings} height={420}>{(w) => <WarningsMap zones={z} warnings={w} />}</Async>}
+          </Async>
+        </Panel>
+        <Panel title="Avisos en vigor y anunciados" subtitle="Los próximos 3 días, por orden de inicio (hora de Mallorca).">
+          <Async state={warnings}>
+            {(rows) => (
+              <Table
+                rows={rows.slice(0, 12)}
+                empty="Ningún aviso en los próximos 3 días"
+                columns={[
+                  {
+                    label: "Aviso",
+                    value: (w) => (
+                      <span className="source-cell">
+                        <span className="dot" style={{ background: LEVELS[w.level]?.color }} />
+                        <span className="stacked">
+                          {describe(w)}
+                          <small>{w.zone_name ?? w.zone}{w.zone_kind === "coast" ? " (costa)" : ""}</small>
+                        </span>
+                      </span>
+                    ),
+                  },
+                  { label: "Desde", value: (w) => when(w.start_ts) },
+                  { label: "Hasta", value: (w) => when(w.end_ts) },
+                ]}
+              />
+            )}
+          </Async>
+        </Panel>
         <Panel
           title="Temperatura por zonas"
           subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas.`}
