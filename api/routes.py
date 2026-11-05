@@ -16,6 +16,7 @@ from api.schemas import (
     Correction,
     ErrorResponse,
     Health,
+    Location,
     Observation,
     Page,
     ResourcesMonth,
@@ -93,6 +94,15 @@ def source(source: str, warehouse: WarehouseDep) -> Source:
     if not rows:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown source '{source}'")
     return Source(**rows[0])
+
+
+@router.get("/locations", tags=["platform"])
+def locations(
+    warehouse: WarehouseDep,
+    source: Annotated[str | None, Query(description="Only this source.")] = None,
+) -> list[Location]:
+    """Every place with coordinates: stations, model points and stops. Series without a place are left out."""
+    return [Location(**row) for row in warehouse.locations(source)]
 
 
 @router.get("/observations", tags=["series"], responses={404: {"model": ErrorResponse}})

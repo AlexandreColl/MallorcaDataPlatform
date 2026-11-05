@@ -32,6 +32,20 @@ class Source(BaseModel):
     observations: int
 
 
+class Location(BaseModel):
+    """A place a source measures at (gold.dim_locations with its source from gold.dim_sources)."""
+
+    source: str = Field(examples=["aemet"])
+    label: str | None = Field(examples=["AEMET (estaciones oficiales)"])
+    kind: str | None = Field(examples=["observation"], description="`observation`, `model`, `schedule`...")
+    entity: str = Field(examples=["B278"])
+    lat: float
+    lon: float
+    first_seen: datetime | None
+    last_seen: datetime | None
+    n_metrics: int
+
+
 class Observation(BaseModel):
     """One value of a series in the common schema (gold.fct_observations)."""
 

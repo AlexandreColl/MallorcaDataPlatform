@@ -32,6 +32,7 @@ def test_health(api):
     "path",
     [
         "/v1/sources",
+        "/v1/locations",
         "/v1/water/reserves",
         "/v1/water/aquifers",
         "/v1/climate/monthly",
