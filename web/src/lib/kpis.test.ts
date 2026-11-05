@@ -38,7 +38,10 @@ describe("buildKpi", () => {
 
   it("compares the rain of the hydrological year with its mean at the same point", () => {
     const rows: ClimateMonth[] = [
-      { month: "2026-10-01", hydrological_year: 2027, rain_hydrological_year_mm: 120, rain_hydrological_year_mean_mm: 100 },
+      {
+        month: "2026-10-01", hydrological_year: 2027, rain_mm: 40, rain_hydrological_year_mm: 120,
+        rain_hydrological_year_mean_mm: 100, temperature_mean_c: 20, temperature_anomaly_c: 0.5, hot_days: 0,
+      },
     ];
 
     expect(buildKpi(RAIN_SPEC, rows)).toMatchObject({ value: "120", tone: "good", deviation: "+20 % sobre lo normal" });

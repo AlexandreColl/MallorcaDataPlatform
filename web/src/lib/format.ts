@@ -37,6 +37,18 @@ export function monthShort(isoMonth: string): string {
   return `${MONTHS[(month ?? 1) - 1]} ${String(year).slice(2)}`;
 }
 
+/** "2026-11-04" -> "4 nov". */
+export function dayShort(isoDay: string): string {
+  const [, month, day] = isoDay.slice(0, 10).split("-").map(Number);
+  return `${day} ${MONTHS[(month ?? 1) - 1]}`;
+}
+
+/** "2026-11-04" -> "4 de noviembre de 2026". */
+export function dayName(isoDay: string): string {
+  const [year, month, day] = isoDay.slice(0, 10).split("-").map(Number);
+  return `${day} de ${MONTHS_LONG[(month ?? 1) - 1]} de ${year}`;
+}
+
 /** Age of a value in words: "hace 3 h", "hace 5 días". */
 export function age(hours: number): string {
   if (hours < 1) return "hace menos de 1 h";

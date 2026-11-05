@@ -1,16 +1,40 @@
+import { useCallback } from "react";
+
+import { monthShort, number } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
-import { Sparkline } from "./Sparkline";
+import { Chart, type ChartColors } from "./Chart";
 
-const COLORS: Record<string, string> = {
-  reserves: "#0891b2",
-  rain: "#2563eb",
-  tourists: "#d97706",
-  electricity: "#7c3aed",
-  temperature: "#dc2626",
-};
+function Sparkline({ points, color, unit }: { points: Kpi["history"]; color: string; unit: string }) {
+  const option = useCallback(
+    (c: ChartColors) => ({
+      grid: { left: 0, right: 0, top: 4, bottom: 0, containLabel: false },
+      legend: { show: false },
+      xAxis: { type: "category", show: false, boundaryGap: false, data: points.map((p) => p.month) },
+      yAxis: { type: "value", show: false, scale: true },
+      tooltip: {
+        axisPointer: { type: "line", lineStyle: { color, opacity: 0.4 } },
+        formatter: (params: { name: string; value: number }[]) => {
+          const point = params[0];
+          return point ? `${monthShort(point.name)} · <b>${number(point.value, 1)}</b> ${unit}` : "";
+        },
+      },
+      series: [
+        {
+          type: "line",
+          data: points.map((p) => p.value),
+          smooth: 0.3,
+          symbol: "none",
+          lineStyle: { width: 2, color },
+          areaStyle: { color, opacity: c.theme === "dark" ? 0.18 : 0.12 },
+        },
+      ],
+    }),
+    [points, color, unit],
+  );
+  return <Chart option={option} height={60} label="Evolución de los últimos meses" />;
+}
 
-export function KpiCard({ kpi }: { kpi: Kpi }) {
-  const color = COLORS[kpi.id] ?? "#0891b2";
+export function KpiCard({ kpi, color = "var(--brand)" }: { kpi: Kpi; color?: string }) {
   return (
     <article className="card kpi" style={{ "--accent": color } as React.CSSProperties}>
       <header className="kpi-header">
@@ -22,7 +46,11 @@ export function KpiCard({ kpi }: { kpi: Kpi }) {
         {kpi.unit && <span className="kpi-unit">{kpi.unit}</span>}
       </p>
       {kpi.deviation && <p className={`chip chip-${kpi.tone}`}>{kpi.deviation}</p>}
-      <Sparkline points={kpi.history} color={color} unit={kpi.unit} />
+      {kpi.history.length > 1 && (
+        <div className="kpi-spark">
+          <Sparkline points={kpi.history} color={color.startsWith("var") ? "#15803d" : color} unit={kpi.unit} />
+        </div>
+      )}
     </article>
   );
 }
@@ -34,5 +62,16 @@ export function KpiSkeleton() {
       <div className="bar tall" />
       <div className="bar" />
     </article>
+  );
+}
+
+/** A row of key figures, with skeletons while they load. */
+export function KpiRow({ kpis, colors }: { kpis: Kpi[] | null; colors?: string[] }) {
+  return (
+    <section className="kpis" aria-label="Cifras clave">
+      {kpis === null
+        ? Array.from({ length: 4 }, (_, i) => <KpiSkeleton key={i} />)
+        : kpis.map((kpi, i) => <KpiCard key={kpi.id} kpi={kpi} color={colors?.[i]} />)}
+    </section>
   );
 }
