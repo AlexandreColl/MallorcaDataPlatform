@@ -28,6 +28,7 @@ from api.schemas import (
     ResourcesMonth,
     SeaHour,
     Source,
+    StationDay,
     StopService,
     TourismMonth,
     WaterReservesMonth,
@@ -239,6 +240,18 @@ def weather_daily(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = No
     """Island-wide daily weather per source: the mean of its stations or model points (default: the last 30 days)."""
     start, end = _days(from_, to, 30)
     return [WeatherSourceDay(**row) for row in warehouse.weather_daily(start, end)]
+
+
+@router.get("/weather/stations", tags=["environment"])
+def weather_stations(
+    warehouse: WarehouseDep,
+    source: Annotated[
+        Literal["aemet", "socib", "open_meteo"],
+        Query(description="`aemet` (33 official stations), `socib` or `open_meteo` (the model)."),
+    ] = "aemet",
+) -> list[StationDay]:
+    """Every station of a source on its latest day with temperatures (AEMET publishes 2-3 days late)."""
+    return [StationDay(**row) for row in warehouse.weather_stations(source)]
 
 
 @router.get("/weather/episodes", tags=["environment"])

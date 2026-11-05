@@ -122,6 +122,18 @@ export interface WeatherSourceDay {
   wind_gust_max: number | null;
 }
 
+export interface StationDay {
+  source: string;
+  entity: string;
+  lat: number;
+  lon: number;
+  local_date: string;
+  temperature_mean: number;
+  temperature_max: number | null;
+  temperature_min: number | null;
+  precipitation_sum: number | null;
+}
+
 export interface WeatherEpisode {
   episode_id: string;
   start_date: string;
@@ -238,6 +250,7 @@ export const api = {
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
+  stations: (source: "aemet" | "socib" | "open_meteo") => get<StationDay[]>(`/weather/stations?source=${source}`),
   episodes: (from: string) => get<WeatherEpisode[]>(`/weather/episodes?from=${from}`),
   modelBias: () => get<ModelBias[]>("/weather/model-bias"),
   airQuality: () => get<AirQualityNow[]>("/air-quality/latest"),

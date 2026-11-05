@@ -235,6 +235,21 @@ class WeatherSourceDay(BaseModel):
     wind_gust_max: float | None
 
 
+class StationDay(BaseModel):
+    """The weather of one station or model point on the latest day of its source (gold.fct_weather_daily)."""
+
+    source: str = Field(examples=["aemet"])
+    entity: str = Field(examples=["B228"])
+    lat: float
+    lon: float
+    local_date: date
+    temperature_mean: float
+    temperature_max: float | None
+    temperature_min: float | None
+    precipitation_sum: float | None
+    wind_gust_max: float | None
+
+
 class WeatherEpisode(BaseModel):
     """Consecutive days of heavy rain, strong wind or high waves on the island (gold.fct_weather_episodes)."""
 

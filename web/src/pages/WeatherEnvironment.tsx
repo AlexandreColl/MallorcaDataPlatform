@@ -1,13 +1,14 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { type AirQualityNow, api, daysAgo, type SeaHour, type WeatherSourceDay } from "../api";
+import { type AirQualityNow, api, daysAgo, type SeaHour, type StationDay, type WeatherSourceDay } from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart, SERIES } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
-import { type MapLayer, PointMap } from "../components/PointMap";
+import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { dayName, dayShort, number, signed } from "../lib/format";
+import { surface, TEMPERATURE_STOPS, temperatureColor } from "../lib/interpolate";
 import type { Kpi } from "../lib/kpis";
 
 /** Bands of the European Air Quality Index, with the EEA's own colours. */
@@ -104,6 +105,59 @@ function Waves({ hours }: { hours: SeaHour[] }) {
   return <Chart option={option} label="Altura de ola en cada punto de la costa" height={300} />;
 }
 
+const TEMPERATURE_FIELDS = {
+  temperature_mean: "Media",
+  temperature_max: "Máxima",
+  temperature_min: "Mínima",
+} as const;
+
+type TemperatureField = keyof typeof TEMPERATURE_FIELDS;
+
+/**
+ * The temperature of the AEMET stations spread over the island: each cell takes the inverse-distance mean of the
+ * stations, so the colours show the warm south and the cool Tramuntana between the points that were measured.
+ */
+function TemperatureZones({ stations }: { stations: StationDay[] }) {
+  const [field, setField] = useState<TemperatureField>("temperature_max");
+  const { samples, areas, layers, min, max } = useMemo(() => {
+    const samples = stations
+      .filter((s) => s[field] !== null)
+      .map((s) => ({ lon: s.lon, lat: s.lat, value: s[field] as number, entity: s.entity }));
+    const values = samples.map((s) => s.value);
+    const [min, max] = [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
+    const areas: MapArea[] = surface(samples).map((c) => ({ polygon: c.polygon, color: temperatureColor(c.value, min, max) }));
+    const layers: MapLayer[] = [
+      {
+        id: "stations", label: "Estaciones", color: "#0a120d", radius: 3.5,
+        points: samples.map((s) => ({
+          lat: s.lat, lon: s.lon, color: temperatureColor(s.value, min, max),
+          popup: [s.entity, `${TEMPERATURE_FIELDS[field]}: ${number(s.value, 1)} °C`],
+        })),
+      },
+    ];
+    return { samples, areas, layers, min, max };
+  }, [stations, field]);
+
+  if (samples.length === 0) return <p className="empty">Sin temperaturas para ese día.</p>;
+  return (
+    <>
+      <div className="segmented" role="group" aria-label="Temperatura">
+        {(Object.keys(TEMPERATURE_FIELDS) as TemperatureField[]).map((f) => (
+          <button key={f} type="button" aria-pressed={f === field} onClick={() => setField(f)}>
+            {TEMPERATURE_FIELDS[f]}
+          </button>
+        ))}
+      </div>
+      <PointMap layers={layers} areas={areas} height={480} />
+      <div className="gradient-scale">
+        <span>{number(min)} °C</span>
+        <span className="gradient-bar" style={{ background: `linear-gradient(90deg, ${TEMPERATURE_STOPS.join(", ")})` }} />
+        <span>{number(max)} °C</span>
+      </div>
+    </>
+  );
+}
+
 function airLayers(air: AirQualityNow[]): MapLayer[] {
   const point = (a: AirQualityNow) => ({
     lat: a.lat as number, lon: a.lon as number, color: EAQI[a.eaqi_band - 1]?.color,
@@ -134,19 +188,28 @@ export function WeatherEnvironment() {
     return environmentKpis(w, a, s, lastYear);
   }, [weather, air, sea, quakes]);
   const layers = useMemo(() => (air.status === "ready" ? airLayers(air.data) : []), [air]);
+  const stations = useLoad(() => api.stations("aemet"));
+  const stationDay = stations.status === "ready" && stations.data[0] ? ` (${dayName(stations.data[0].local_date)})` : "";
 
   return (
     <>
       <KpiRow kpis={kpis} colors={["#dc2626", "#0891b2", "#2563eb", "#7c3aed"]} />
       <div className="grid">
-        <Panel title="Temperatura de los últimos 30 días" subtitle="Media diaria de la isla según cada fuente: estaciones oficiales frente al modelo." wide>
+        <Panel
+          title="Temperatura por zonas"
+          subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas.`}
+          wide
+        >
+          <Async state={stations} height={480}>{(rows) => <TemperatureZones stations={rows} />}</Async>
+        </Panel>
+        <Panel title="Temperatura de los últimos 30 días" subtitle="Media diaria de la isla según cada fuente: estaciones oficiales frente al modelo.">
           <Async state={weather} height={300}>{(rows) => <DailyTemperature days={rows} />}</Async>
         </Panel>
-        <Panel title="Calidad del aire ahora" subtitle="Índice europeo de la última hora: el color es el del peor contaminante.">
-          <Async state={air} height={360}>
+        <Panel title="Calidad del aire ahora" subtitle="Índice europeo de la última hora: el color es el del peor contaminante." wide>
+          <Async state={air} height={480}>
             {() => (
               <>
-                <PointMap layers={layers} height={360} />
+                <PointMap layers={layers} height={480} />
                 <div className="scale">
                   {EAQI.slice(0, 4).map((b) => (
                     <span key={b.label}>
@@ -155,6 +218,29 @@ export function WeatherEnvironment() {
                   ))}
                 </div>
               </>
+            )}
+          </Async>
+        </Panel>
+        <Panel title="Estaciones de calidad del aire" subtitle="Concentraciones de la última hora en µg/m³, de la peor a la mejor.">
+          <Async state={air}>
+            {(rows) => (
+              <Table
+                rows={rows.filter((a) => a.source === "eea_air_quality").sort((a, b) => b.eaqi_band - a.eaqi_band)}
+                columns={[
+                  {
+                    label: "Estación",
+                    value: (a) => (
+                      <span className="source-cell">
+                        <span className="dot" style={{ background: EAQI[a.eaqi_band - 1]?.color }} />
+                        {placeName(a.entity)}
+                      </span>
+                    ),
+                  },
+                  { label: "NO₂", value: (a) => (a.no2 === null ? "—" : number(a.no2)), numeric: true },
+                  { label: "O₃", value: (a) => (a.o3 === null ? "—" : number(a.o3)), numeric: true },
+                  { label: "PM10", value: (a) => (a.pm10 === null ? "—" : number(a.pm10)), numeric: true },
+                ]}
+              />
             )}
           </Async>
         </Panel>

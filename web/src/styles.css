@@ -399,6 +399,39 @@ main,
   background: var(--neutral-bg);
 }
 
+/* Correlations: a second row of figures under the key ones */
+.correlations {
+  margin-top: 16px;
+}
+
+.correlation {
+  min-height: 0;
+}
+
+.kpi-unit.r {
+  margin: 0 4px 0 0;
+  font-style: italic;
+}
+
+.correlation-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.explain {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.explain strong {
+  color: var(--text);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -525,6 +558,50 @@ main,
 
 .maplibregl-popup-content span {
   color: #5a675d;
+}
+
+/* Segmented buttons (a small choice over a chart or a map) and the scale of a colour gradient */
+.segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.segmented button {
+  border: 0;
+  background: none;
+  padding: 4px 12px;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+.gradient-scale {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.gradient-bar {
+  flex: 1;
+  max-width: 260px;
+  height: 8px;
+  border-radius: 999px;
 }
 
 /* Home: links to the dashboards */

@@ -91,12 +91,30 @@ function toGeoJson(layers: MapLayer[]): FeatureCollection {
   };
 }
 
-export function PointMap({ layers, height = 480 }: { layers: MapLayer[]; height?: number }) {
+/** A filled polygon drawn under the points (a cell of an interpolated surface, a warning zone). */
+export interface MapArea {
+  polygon: [number, number][];
+  color: string;
+}
+
+function areasGeoJson(areas: MapArea[]): FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: areas.map((a) => ({
+      type: "Feature" as const,
+      geometry: { type: "Polygon" as const, coordinates: [a.polygon] },
+      properties: { color: a.color },
+    })),
+  };
+}
+
+export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLayer[]; areas?: MapArea[]; height?: number }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const { theme } = useTheme();
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const data = useMemo(() => toGeoJson(layers), [layers]);
+  const areaData = useMemo(() => areasGeoJson(areas), [areas]);
 
   useEffect(() => {
     if (!container.current) return;
@@ -112,6 +130,15 @@ export function PointMap({ layers, height = 480 }: { layers: MapLayer[]; height?
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     instance.on("load", () => {
+      if (areaData.features.length > 0) {
+        instance.addSource("areas", { type: "geojson", data: areaData });
+        instance.addLayer({
+          id: "areas",
+          type: "fill",
+          source: "areas",
+          paint: { "fill-color": ["get", "color"], "fill-opacity": dark ? 0.6 : 0.7, "fill-antialias": false },
+        });
+      }
       instance.addSource("points", { type: "geojson", data });
       // The first layer is drawn last, on top of the others.
       for (const layer of [...layers].reverse()) {
@@ -157,7 +184,7 @@ export function PointMap({ layers, height = 480 }: { layers: MapLayer[]; height?
       map.current = null;
     };
     // Rebuilt when the theme changes (basemap and strokes) or the layers do.
-  }, [theme, data, layers]);
+  }, [theme, data, layers, areaData]);
 
   useEffect(() => {
     const instance = map.current;

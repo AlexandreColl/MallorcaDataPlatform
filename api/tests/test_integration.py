@@ -45,6 +45,8 @@ def test_health(api):
         "/v1/weather/daily?from=2016-01-01",
         "/v1/weather/episodes?from=2016-01-01",
         "/v1/weather/model-bias",
+        "/v1/weather/stations",
+        "/v1/weather/stations?source=socib",
         "/v1/air-quality/latest",
         "/v1/sea/hourly?start=2016-01-01T00:00:00Z",
         "/v1/earthquakes",

@@ -81,6 +81,21 @@ GROUP BY source, source_label, source_kind, local_date
 ORDER BY local_date, source
 """
 
+# The latest day of one source with temperatures, for every station or point of that source.
+_WEATHER_STATIONS = """
+WITH latest AS (
+    SELECT max(local_date) AS local_date
+    FROM gold.fct_weather_daily
+    WHERE source = %(source)s AND temperature_mean IS NOT NULL
+)
+SELECT w.source, w.entity, w.lat, w.lon, w.local_date, w.temperature_mean, w.temperature_max, w.temperature_min,
+       w.precipitation_sum, w.wind_gust_max
+FROM gold.fct_weather_daily AS w
+JOIN latest USING (local_date)
+WHERE w.source = %(source)s AND w.lat IS NOT NULL AND w.temperature_mean IS NOT NULL
+ORDER BY w.temperature_mean DESC
+"""
+
 _EPISODES = """
 SELECT episode_id, start_date, end_date, days, episode_type, peak_rain_mm, peak_rain_station, peak_rain_day,
        max_stations_over_rain_threshold, peak_gust_kmh, peak_wave_m
@@ -277,6 +292,10 @@ class Warehouse:
     def weather_daily(self, start: date, end: date) -> list[Row]:
         """Island-wide daily weather per source, oldest first."""
         return self.db.fetch_all(_WEATHER_DAILY, {"start": start, "end": end})
+
+    def weather_stations(self, source: str) -> list[Row]:
+        """Every station or point of ``source`` on its latest day with temperatures, warmest first."""
+        return self.db.fetch_all(_WEATHER_STATIONS, {"source": source})
 
     def episodes(self, start: date, end: date) -> list[Row]:
         """Rain, wind and sea episodes that started in the range, newest first."""
