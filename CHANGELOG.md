@@ -7,6 +7,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Connector `aemet_warnings`: AEMET weather warnings (Meteoalerta, CAP) of the nine zones of Mallorca, hour by hour
+  and per phenomenon (level 0 to 3), from the CAP archive and the latest issue of area 64.
+  - Every issue is a snapshot of the warnings in force, and withdrawn warnings disappear without a Cancel, so each
+    hour takes the snapshot that was in force.
+  - The archive is read in requests of at most 2 days, which is the limit AEMET enforces.
+  - It comes with the `dim_warning_zones` seed (zone polygons), the `fct_weather_warnings` mart (warning periods) and
+    the `/v1/warnings` and `/v1/warnings/zones` endpoints.
+  - The weather dashboard has a map of the zones coloured by level, now or over the next 72 hours, and the list of
+    warnings.
 - Web front end (`web/`, service `web` on port 3002) with six dashboards in a side menu, each grouping related
   data like the Grafana folders:
   - home: five key figures against the usual value of their month, and a map of stations and model points;

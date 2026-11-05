@@ -89,9 +89,9 @@ con un grano declarado y dimensiones compartidas entre dominios.
 | `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde 2002 hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
 
 `dim_sources.kind` clasifica las fuentes por el tipo de dato: `observation` (una medida real), `model` (un modelo
-numérico), `system` (el sistema eléctrico), `schedule` (un servicio programado), `statistic` (estadística oficial) y
-`event`. Mezclar una observación con un modelo es justo lo que miden los marts de sesgo, así que el tipo forma parte
-del modelo.
+numérico), `system` (el sistema eléctrico), `schedule` (un servicio programado), `statistic` (estadística oficial),
+`event` (un suceso puntual, como un sismo) y `warning` (un aviso oficial con su nivel). Mezclar una observación con
+un modelo es justo lo que miden los marts de sesgo, así que el tipo forma parte del modelo.
 
 ### Núcleo: la estrella de las observaciones
 

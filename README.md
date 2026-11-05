@@ -105,6 +105,7 @@ Otros comandos: `make help`.
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
+| [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | Avisos meteorológicos de AEMET (lluvias, tormentas, viento, costeros…) por zona de Mallorca y hora, del nivel 0 al 3 | Sí |
 
 ### Open-Meteo
 
@@ -126,6 +127,16 @@ máxima, lluvia, humedad, viento, horas de sol y presión). Necesita una API key
 (`AEMET_API_KEY`); sin ella el conector queda fuera de la selección por defecto. La API es de dos pasos, acepta
 hasta 25 estaciones por petición y publica con 2-3 días de retraso, por eso declara `lag_days: 3`. En Grafana,
 iconos de sol y nube en el mapa con el último día publicado.
+
+### AEMET (avisos)
+
+Los avisos de AEMET (Meteoalerta) de las nueve zonas de Mallorca (cinco de tierra y cuatro de aguas costeras),
+hora a hora y por fenómeno: lluvias, tormentas, viento, costeros, temperaturas, nieblas, rissagas… El valor es
+el nivel: 0 sin riesgo, 1 amarillo, 2 naranja y 3 rojo. Usa la misma clave que `aemet`. Cada emisión de AEMET es
+una foto de los avisos en vigor: un aviso que deja de aparecer se ha retirado, sin `Cancel`. Por eso cada hora toma
+el nivel de la foto que estaba en vigor. El archivo da las horas pasadas y la última emisión las de hoy y los próximos
+días. En gold, `fct_weather_warnings` da un periodo por aviso; en la web, un mapa con las zonas coloreadas por nivel.
+[Detalle y pruebas reales](connectors/aemet_warnings/README.md).
 
 ### REData
 
