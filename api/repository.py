@@ -29,6 +29,15 @@ WHERE %(source)s::text IS NULL OR source = %(source)s
 ORDER BY source
 """
 
+_LOCATIONS = """
+SELECT l.source, s.label, s.kind, l.entity, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
+FROM gold.dim_locations AS l
+JOIN gold.dim_sources AS s ON s.source = l.source
+WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
+  AND (%(source)s::text IS NULL OR l.source = %(source)s)
+ORDER BY l.source, l.entity
+"""
+
 _OBSERVATIONS = """
 SELECT o.source, o.entity, o.metric, o.ts, o.value, o.unit, o.quality, l.lat, l.lon
 FROM gold.fct_observations AS o
@@ -94,6 +103,10 @@ class Warehouse:
     def source_exists(self, source: str) -> bool:
         """True when ``source`` is a known source (dim_sources)."""
         return bool(self.db.fetch_all("SELECT 1 FROM gold.dim_sources WHERE source = %(source)s", {"source": source}))
+
+    def locations(self, source: str | None = None) -> list[Row]:
+        """Every place with coordinates (stations, model points, stops), or only those of ``source``."""
+        return self.db.fetch_all(_LOCATIONS, {"source": source})
 
     def observations(  # noqa: PLR0913 - one argument per filter, all keyword-only
         self,

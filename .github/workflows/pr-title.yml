@@ -36,6 +36,7 @@ jobs:
             anomaly
             airflow
             api
+            web
             dbt
             grafana
             infra

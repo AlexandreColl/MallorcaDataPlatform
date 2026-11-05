@@ -34,6 +34,7 @@ up: init ## Start the whole platform
 	@echo "Airflow  http://localhost:8080"
 	@echo "Grafana  http://localhost:3000"
 	@echo "MinIO    http://localhost:9001"
+	@echo "Web      http://localhost:3002"
 	@echo "API      http://localhost:8000/docs"
 
 down: ## Stop the platform (keeps data)

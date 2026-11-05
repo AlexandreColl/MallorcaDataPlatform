@@ -5,6 +5,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Web front end (`web/`, service `web` on port 3002): a home page with five key figures (water reserves, rain of
+  the hydrological year, tourists, electricity demand, temperature), each with its anomaly against the same month
+  and its last 36 months; a map of every station, model point and stop; and the state of each source. React,
+  TypeScript and Vite, with ECharts and MapLibre on OpenStreetMap tiles; light and dark mode, and phone sizes. It
+  reads only the REST API: nginx serves the build and proxies `/api`. CI typechecks, tests and builds it, and
+  builds its image; releases publish it to GHCR. ADR 0019 records why a web of its own and not a redesign of
+  Grafana.
+- `GET /v1/locations` in the REST API: every place with coordinates, with its source and kind.
+- dbt exposure `web_home`: the marts the home page reads through the API.
+
 ## [0.9.0] - 2026-11-04
 
 ### Added

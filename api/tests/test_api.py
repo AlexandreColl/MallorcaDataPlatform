@@ -82,6 +82,18 @@ def test_sources_and_one_source(db):
     assert missing.json()["error"] == {"code": "not_found", "message": "unknown source 'nope'"}
 
 
+def test_locations_with_an_optional_source(db):
+    location = {"source": "aemet", "label": "AEMET", "kind": "observation", "entity": "B278", "lat": 39.55,
+                "lon": 2.73, "first_seen": TS, "last_seen": TS, "n_metrics": 10}  # fmt: skip
+    db.rows = {"gold.dim_locations": [location], **db.rows}  # before gold.dim_sources, which the query joins
+    api = client(db)
+
+    assert api.get("/v1/locations").json()[0]["kind"] == "observation"
+    assert db.calls[-1][1] == {"source": None}
+    api.get("/v1/locations", params={"source": "aemet"})
+    assert db.calls[-1][1] == {"source": "aemet"}
+
+
 def test_observations_are_paginated_with_one_extra_row(db):
     api = client(db)
 
@@ -199,7 +211,7 @@ def test_openapi_documents_every_endpoint(db):
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
-        "/v1/resources/monthly",
+        "/v1/resources/monthly", "/v1/locations",
     }  # fmt: skip
 
 

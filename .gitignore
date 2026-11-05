@@ -40,3 +40,7 @@ infra/terraform/.terraform/
 *.tfvars
 !*.tfvars.example
 .terraform.tfstate.lock.info
+
+# Web front end
+web/node_modules/
+web/dist/

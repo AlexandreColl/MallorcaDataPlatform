@@ -1,0 +1,511 @@
+/* Design tokens: one palette for light mode, redefined for dark mode. */
+:root {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f4f8;
+  --border: #e3e8ef;
+  --text: #0f172a;
+  --muted: #5b6577;
+  --brand: #0e7490;
+  --good: #047857;
+  --good-bg: #ecfdf5;
+  --bad: #b91c1c;
+  --bad-bg: #fef2f2;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --neutral-bg: #eef2f7;
+  --shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
+  --radius: 14px;
+  font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0b1220;
+    --surface: #111a2b;
+    --surface-2: #17223a;
+    --border: #22304a;
+    --text: #e6ebf3;
+    --muted: #93a0b5;
+    --brand: #22d3ee;
+    --good: #34d399;
+    --good-bg: rgb(52 211 153 / 0.12);
+    --bad: #f87171;
+    --bad-bg: rgb(248 113 113 / 0.12);
+    --warn: #fbbf24;
+    --warn-bg: rgb(251 191 36 / 0.12);
+    --neutral-bg: rgb(148 163 184 / 0.12);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* Layout */
+.topbar,
+main,
+.footer {
+  width: min(1200px, 100% - 32px);
+  margin-inline: auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 0 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.hero {
+  padding: 40px 0 28px;
+  max-width: 720px;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 750;
+}
+
+.hero p {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Key figures */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 18px 0;
+  overflow: hidden;
+  min-height: 210px;
+}
+
+.kpi::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--accent);
+}
+
+.kpi-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kpi h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.kpi-month {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.kpi-value {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-top: 6px;
+}
+
+.kpi-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.chip {
+  align-self: flex-start;
+  font-size: 0.76rem;
+  font-weight: 550;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.chip-good {
+  color: var(--good);
+  background: var(--good-bg);
+}
+
+.chip-bad {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.chip-neutral {
+  color: var(--muted);
+  background: var(--neutral-bg);
+}
+
+.sparkline {
+  height: 64px;
+  margin: auto -18px 0;
+}
+
+/* Map and sources */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-header h2 {
+  font-size: 1.1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.panel-header p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-top: 2px;
+}
+
+/* The map grows with the panel, so it is as tall as the list of sources beside it. */
+.map-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.map {
+  flex: 1;
+  min-height: 480px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+@media (max-width: 600px) {
+  .map {
+    min-height: 360px;
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.legend-item[aria-pressed="false"] {
+  opacity: 0.45;
+}
+
+.legend-count {
+  color: var(--muted);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.maplibregl-popup-content {
+  font: inherit;
+  font-size: 0.82rem;
+  color: #0f172a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.maplibregl-popup-content span {
+  color: #5b6577;
+}
+
+.sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.source:first-child {
+  border-top: 0;
+}
+
+.source-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.source-name {
+  font-size: 0.9rem;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.status {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.status-ok {
+  background: var(--good);
+}
+
+.status-failed {
+  background: var(--bad);
+}
+
+.status-late {
+  background: var(--warn);
+}
+
+.status-inactive {
+  background: var(--muted);
+  opacity: 0.5;
+}
+
+.state {
+  font-size: 0.74rem;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+.state-failed {
+  color: var(--bad);
+}
+
+.state-late {
+  color: var(--warn);
+}
+
+/* Header pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 550;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pill-ok {
+  color: var(--good);
+  background: var(--good-bg);
+}
+
+.pill-warn {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
+/* Loading and errors */
+.skeleton .bar,
+.map.skeleton,
+.list.skeleton {
+  background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+
+.skeleton .bar {
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.skeleton .bar.short {
+  width: 50%;
+}
+
+.skeleton .bar.tall {
+  height: 36px;
+  width: 70%;
+}
+
+.list.skeleton {
+  height: 420px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton .bar,
+  .map.skeleton,
+  .list.skeleton {
+    animation: none;
+  }
+}
+
+.error {
+  color: var(--bad);
+  font-size: 0.9rem;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 32px 0 40px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.footer nav {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.footer a {
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--text);
+}
+
+.version {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phones: two columns of smaller key figures. Last in the file so it overrides the rules above. */
+@media (max-width: 600px) {
+  .brand span {
+    font-size: 0.9rem;
+  }
+
+  .pill {
+    font-size: 0.74rem;
+    white-space: nowrap;
+  }
+
+  .kpi {
+    padding: 14px 14px 0;
+    min-height: 180px;
+  }
+
+  .kpi-value {
+    font-size: 1.7rem;
+  }
+
+  .sparkline {
+    margin-inline: -14px;
+  }
+}
