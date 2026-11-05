@@ -123,10 +123,15 @@ export function PointMap({ layers, height = 480 }: { layers: MapLayer[]; height?
           filter: ["==", ["get", "layer"], layer.id],
           paint: {
             "circle-color": ["coalesce", ["get", "color"], layer.color],
+            // "zoom" may only sit at the top of an interpolate: the size multiplies each stop instead.
             "circle-radius": [
-              "*",
-              ["interpolate", ["linear"], ["zoom"], 8, layer.radius, 13, layer.radius * 2.2],
-              ["get", "size"],
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              8,
+              ["*", layer.radius, ["get", "size"]],
+              13,
+              ["*", layer.radius * 2.2, ["get", "size"]],
             ],
             "circle-opacity": layer.radius < 4 ? 0.6 : 0.92,
             "circle-stroke-width": layer.radius < 4 ? 0 : 1.5,

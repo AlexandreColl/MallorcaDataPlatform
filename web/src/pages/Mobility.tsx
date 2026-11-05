@@ -61,11 +61,11 @@ function stopLayers(stops: StopService[]): MapLayer[] {
     const own = stops.filter((s) => s.network === network);
     const busiest = Math.max(1, ...own.map((s) => s.departures ?? 0));
     return {
-      id: network, label: NETWORKS[network].label, color: NETWORKS[network].color, radius: 3,
+      id: network, label: NETWORKS[network].label, color: NETWORKS[network].color, radius: 2.2,
       points: own.map((s) => ({
         lat: s.lat, lon: s.lon,
         // Area proportional to the departures: the radius grows with their square root.
-        size: 0.6 + 2.4 * Math.sqrt((s.departures ?? 0) / busiest),
+        size: 0.5 + 2 * Math.sqrt((s.departures ?? 0) / busiest),
         popup: [s.stop, NETWORKS[network].label, `${number(s.departures ?? 0)} pasos · ${number(s.lines ?? 0)} líneas`],
       })),
     };

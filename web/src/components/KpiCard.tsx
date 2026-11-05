@@ -7,7 +7,7 @@ import { Chart, type ChartColors } from "./Chart";
 function Sparkline({ points, color, unit }: { points: Kpi["history"]; color: string; unit: string }) {
   const option = useCallback(
     (c: ChartColors) => ({
-      grid: { left: 0, right: 0, top: 4, bottom: 0, containLabel: false },
+      grid: { left: 0, right: 0, top: 4, bottom: 0, outerBoundsMode: "none" },
       legend: { show: false },
       xAxis: { type: "category", show: false, boundaryGap: false, data: points.map((p) => p.month) },
       yAxis: { type: "value", show: false, scale: true },

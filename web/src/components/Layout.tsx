@@ -87,14 +87,16 @@ export function Layout({ dashboards, current, children, version }: {
 }
 
 /** A card with a title, an optional subtitle and its content. */
-export function Panel({ title, subtitle, children, wide }: {
+export function Panel({ title, subtitle, children, wide, full }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   wide?: boolean;
+  /** Spans the whole row. */
+  full?: boolean;
 }) {
   return (
-    <section className={`card panel${wide ? " wide" : ""}`}>
+    <section className={`card panel${wide ? " wide" : ""}${full ? " full" : ""}`}>
       <header className="panel-header">
         <h2>{title}</h2>
         {subtitle && <p>{subtitle}</p>}

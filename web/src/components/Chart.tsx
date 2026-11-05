@@ -26,7 +26,8 @@ export function baseOption(c: ChartColors): echarts.EChartsCoreOption {
     color: SERIES,
     animationDuration: 500,
     textStyle: { fontFamily: "Inter Variable, system-ui, sans-serif" },
-    grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
+    // The labels stay inside the grid rect (ECharts 6 replacement of the old containLabel).
+    grid: { left: 8, right: 16, top: 36, bottom: 8, outerBoundsMode: "same", outerBoundsContain: "axisLabel" },
     legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, textStyle: { color: c.muted } },
     tooltip: {
       trigger: "axis",

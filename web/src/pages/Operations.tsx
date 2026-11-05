@@ -15,6 +15,18 @@ const DETECTORS: Record<string, { label: string; color: string }> = {
   isolation_forest: { label: "Isolation Forest", color: "#7c3aed" },
 };
 
+/** Why a station hour had no valid value. */
+const QUALITY: Record<string, string> = { missing: "falta", suspect: "dudoso", absent: "sin dato" };
+
+/** The quality rules in words (core/quality/rules.py). */
+const RULES: Record<string, string> = {
+  gaps: "Huecos",
+  range: "Fuera de rango",
+  duplicate: "Duplicados",
+  not_null: "Nulos",
+  source_qc: "Dudoso según la fuente",
+};
+
 function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRules: number): Kpi[] {
   const active = sources.filter((s) => sourceState(s) !== "inactive");
   const ok = active.filter((s) => sourceState(s) === "ok").length;
@@ -107,9 +119,16 @@ export function Operations() {
                 rows={rows.filter((r) => !r.passed).slice(0, 10)}
                 empty="Todas las reglas pasan"
                 columns={[
-                  { label: "Fuente", value: (r) => r.source },
-                  { label: "Regla", value: (r) => `${r.rule} · ${r.target}` },
-                  { label: "Fallan", value: (r) => `${number(r.failed)} de ${number(r.checked)}`, numeric: true },
+                  {
+                    label: "Regla",
+                    value: (r) => (
+                      <span className="stacked">
+                        <strong>{RULES[r.rule] ?? r.rule}</strong> · {r.target}
+                        <small>{r.source}</small>
+                      </span>
+                    ),
+                  },
+                  { label: "Fallan", value: (r) => `${number((r.failed_ratio ?? 0) * 100, 1)} %`, numeric: true },
                 ]}
               />
             )}
@@ -127,7 +146,7 @@ export function Operations() {
                 columns={[
                   { label: "Estación", value: (c) => `${c.entity} · ${c.metric}` },
                   { label: "Hora", value: (c) => `${dayShort(c.ts)} ${c.ts.slice(11, 16)}` },
-                  { label: "Original", value: (c) => (c.original_value === null ? c.original_quality : number(c.original_value, 1)), numeric: true },
+                  { label: "Original", value: (c) => (c.original_value === null ? (QUALITY[c.original_quality] ?? c.original_quality) : number(c.original_value, 1)), numeric: true },
                   { label: "Corregido", value: (c) => `${number(c.corrected_value, 1)} ${c.unit ?? ""}`, numeric: true },
                   { label: "Método", value: (c) => (c.method === "support" ? "Fuente de apoyo" : "Interpolación") },
                   { label: "Confianza", value: (c) => `${number(c.confidence * 100)} %`, numeric: true },

@@ -94,7 +94,7 @@ function Aquifers({ rows }: { rows: Aquifer[] }) {
   const option = useCallback(
     () => ({
       legend: { show: false },
-      grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
+      grid: { left: 8, right: 24, top: 8, bottom: 8 },
       xAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value} %" } },
       yAxis: { type: "category", data: sorted.map((a) => a.aquifer), axisLabel: { fontSize: 11 } },
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v: number) => `${number(v, 0)} %` },

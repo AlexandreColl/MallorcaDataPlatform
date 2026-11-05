@@ -19,8 +19,8 @@ function TouristsAndWater({ rows }: { rows: ResourcesMonth[] }) {
     (c: ChartColors) => ({
       xAxis: { type: "category", data: months(rows) },
       yAxis: [
-        { type: "value", name: "Turistas", axisLabel: { formatter: compact } },
-        { type: "value", name: "Reservas %", min: 0, max: 100, splitLine: { show: false }, axisLabel: { color: c.muted } },
+        { type: "value", axisLabel: { formatter: compact } },
+        { type: "value", min: 0, max: 100, splitLine: { show: false }, axisLabel: { color: c.muted, formatter: "{value} %" } },
       ],
       series: [
         { name: "Turistas internacionales", type: "bar", data: rows.map((r) => r.international_tourists), color: "#d97706" },
@@ -47,7 +47,6 @@ function Anomalies({ rows }: { rows: ResourcesMonth[] }) {
           name: "Demanda eléctrica", type: "line", symbol: "none",
           data: rows.map((r) => r.electricity_demand_anomaly), color: "#7c3aed",
         },
-        { name: "Lluvia", type: "line", symbol: "none", data: rows.map((r) => r.rain_anomaly), color: "#2563eb", lineStyle: { opacity: 0.6 } },
       ],
     }),
     [rows],
@@ -60,8 +59,8 @@ function HotelsAndSpending({ rows }: { rows: TourismMonth[] }) {
     () => ({
       xAxis: { type: "category", data: months(rows) },
       yAxis: [
-        { type: "value", name: "Ocupación %", min: 0, max: 100 },
-        { type: "value", name: "€ por turista", splitLine: { show: false } },
+        { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value} %" } },
+        { type: "value", splitLine: { show: false }, axisLabel: { formatter: "{value} €" } },
       ],
       series: [
         {
@@ -99,10 +98,10 @@ export function Tourism() {
         <Panel title="Turistas y reservas de agua" subtitle="Cada verano llegan más de dos millones de turistas al mes, justo cuando bajan las reservas." wide>
           <Async state={resources} height={320}>{(rows) => <TouristsAndWater rows={rows} />}</Async>
         </Panel>
-        <Panel title="Frente a lo normal" subtitle="Desviación de cada mes frente a la media de ese mes en otros años.">
-          <Async state={resources}>{(rows) => <Anomalies rows={rows} />}</Async>
+        <Panel title="Frente a lo normal" subtitle="Turistas y demanda eléctrica de cada mes frente a la media de ese mes en otros años (últimos 36 meses).">
+          <Async state={resources}>{(rows) => <Anomalies rows={rows.slice(-36)} />}</Async>
         </Panel>
-        <Panel title="Hoteles y gasto" subtitle="Ocupación de plazas hoteleras y gasto medio de cada turista internacional.">
+        <Panel title="Hoteles y gasto" subtitle="Ocupación de plazas hoteleras y gasto medio de cada turista internacional." full>
           <Async state={tourism}>{(rows) => <HotelsAndSpending rows={rows} />}</Async>
         </Panel>
       </div>

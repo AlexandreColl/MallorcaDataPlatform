@@ -40,7 +40,7 @@ necesitaba una portada que se entienda en 30 segundos: unas pocas cifras, si son
 
 - **A favor.**
   - La API pasa a tener un consumidor real, y su contrato se ejercita en cada visita.
-  - El exposure `web_home` de dbt dice qué marts rompería un cambio.
+  - El exposure `web` de dbt dice qué marts rompería un cambio.
   - La web es estática: nginx la sirve sin estado, y escala y se despliega sola (por ejemplo, en S3 con CloudFront).
 - **En contra.**
   - Una pila más que mantener: Node, sus dependencias y un job de CI.
@@ -51,3 +51,12 @@ necesitaba una portada que se entienda en 30 segundos: unas pocas cifras, si son
 
 - Si la web crece a varias páginas, harán falta un router y una caché de datos (React Router y TanStack Query).
 - Si la web tiene tráfico real, harán falta un proveedor de teselas con clave o teselas propias (PMTiles en S3).
+
+## Revisiones
+
+- **2026-11-05.** La portada única pasa a seis dashboards con un menú lateral, con los mismos grupos que en
+  Grafana: inicio, turismo y recursos, clima y agua, movilidad, tiempo y entorno, y operación. Cada mapa enseña
+  solo lo que va con su tema: las paradas pasan a Movilidad y ya no se mezclan con las estaciones. Además:
+  - un botón de modo claro y oscuro, que se recuerda en el navegador;
+  - un logo con la silueta de la isla, en verde pino;
+  - diez endpoints nuevos en la API, uno por cada dato que faltaba.

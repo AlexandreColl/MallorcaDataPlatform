@@ -7,15 +7,30 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
-- Web front end (`web/`, service `web` on port 3002): a home page with five key figures (water reserves, rain of
-  the hydrological year, tourists, electricity demand, temperature), each with its anomaly against the same month
-  and its last 36 months; a map of every station, model point and stop; and the state of each source. React,
-  TypeScript and Vite, with ECharts and MapLibre on OpenStreetMap tiles; light and dark mode, and phone sizes. It
-  reads only the REST API: nginx serves the build and proxies `/api`. CI typechecks, tests and builds it, and
-  builds its image; releases publish it to GHCR. ADR 0019 records why a web of its own and not a redesign of
-  Grafana.
-- `GET /v1/locations` in the REST API: every place with coordinates, with its source and kind.
-- dbt exposure `web_home`: the marts the home page reads through the API.
+- Web front end (`web/`, service `web` on port 3002) with six dashboards in a side menu, each grouping related
+  data like the Grafana folders:
+  - home: five key figures against the usual value of their month, and a map of stations and model points;
+  - tourism and resources;
+  - climate and water;
+  - mobility, with a map of the service of each stop;
+  - weather and environment: temperature, air quality now, waves, episodes, earthquakes and model error;
+  - operations: source health, failing quality rules, anomalies per day and the latest corrections.
+
+  Built with React, TypeScript and Vite, with ECharts and MapLibre on OpenStreetMap tiles. Light and dark mode
+  with a button (remembered in the browser), a logo with the island's silhouette in pine green, and a drawer menu
+  on phones. It reads only the REST API: nginx serves the build and proxies `/api`. CI typechecks, tests and
+  builds it, and builds its image; releases publish it to GHCR. ADR 0019 records why a web of its own and not a
+  redesign of Grafana.
+- REST API endpoints for the dashboards:
+  - `/v1/locations`;
+  - `/v1/mobility/daily` and `/v1/mobility/stops`;
+  - `/v1/weather/daily`, `/v1/weather/episodes` and `/v1/weather/model-bias`;
+  - `/v1/air-quality/latest`, `/v1/sea/hourly` and `/v1/earthquakes`;
+  - `/v1/quality/rules` and `/v1/anomalies/daily`.
+
+  Each has unit tests and runs against the warehouse in CI.
+- dbt exposure `web`: the marts the web front end reads through the API. The `rest_api` exposure lists the new
+  marts too, so CI builds them before testing the API.
 
 ## [0.9.0] - 2026-11-04
 

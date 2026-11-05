@@ -427,17 +427,24 @@ API las sirve en `GET /v1/corrections`.
 
 ## Frontal web
 
-Una portada para quien quiere ver la isla, no operar la plataforma: http://localhost:3002.
+La isla en cifras, para quien quiere verla y no operar la plataforma: http://localhost:3002. Un menú a la izquierda
+abre seis dashboards. Cada uno agrupa datos que van juntos, igual que las carpetas de Grafana:
 
-- **Cinco cifras clave:** reservas de agua, lluvia del año hidrológico, turistas internacionales, demanda eléctrica
-  y temperatura. Cada una muestra su último mes publicado, cuánto se aparta de lo normal para ese mes (en verde o
-  en rojo cuando es buena o mala noticia) y la evolución de los últimos 36 meses.
-- **Un mapa** con las 57 estaciones, los 14 puntos de modelo y las 1.639 paradas. Cada capa se puede ocultar, y al
-  pulsar un punto se ve qué mide.
-- **El estado de cada fuente:** al día, atrasada, fallida o histórico cerrado, con la antigüedad de su último dato.
+| Dashboard | Qué enseña |
+|---|---|
+| **Inicio** | Cinco cifras clave frente a lo normal de cada mes (reservas, lluvia, turistas, electricidad y temperatura) y el mapa de estaciones y puntos de modelo |
+| **Turismo y recursos** | Turistas, aeropuerto y ocupación hotelera; turistas frente a reservas de agua; turistas y demanda eléctrica frente a lo normal |
+| **Clima y agua** | Reservas frente a la media del mes, los 18 acuíferos, lluvia acumulada de cada año hidrológico y anomalía de temperatura |
+| **Movilidad** | Servicio programado de EMT y CTM por día, mapa del servicio de cada parada y paradas con más servicio |
+| **Tiempo y entorno** | Temperatura de cada fuente, calidad del aire ahora (índice europeo), oleaje, episodios, sismos y error del modelo |
+| **Operación** | Estado de cada fuente, reglas de calidad que fallan, anomalías por día y últimas correcciones |
+
+En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala noticia, junto con la evolución de los
+últimos meses. Los mapas tienen capas que se pueden ocultar, y al pulsar un punto se ve qué es.
 
 Está hecha con React, TypeScript y Vite, con ECharts para los gráficos y MapLibre con teselas de OpenStreetMap para
-el mapa. Sigue el modo claro u oscuro del sistema y se adapta al móvil.
+los mapas. El logo es la silueta de la isla. Tiene modo claro y oscuro, con un botón en el menú que se recuerda en el
+navegador, y en el móvil el menú pasa a ser un cajón.
 
 **Solo lee la API REST**, nunca el warehouse. La imagen `web` es nginx con la web ya construida, y hace de proxy de
 `/api` hacia la API, así que el navegador habla con un único origen. Grafana se queda para operar la plataforma:
@@ -446,7 +453,7 @@ alertas, calidad, anomalías y correcciones. Por qué una web propia y no rehace
 
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, con /api hacia la API del stack (localhost:8000)
-npm test                               # lógica de las cifras y del estado de las fuentes (Vitest)
+npm test                               # cifras clave y estado de las fuentes (Vitest)
 ```
 
 ## Grafana
@@ -523,6 +530,10 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/health` | Estado de la API y de su conexión al warehouse (503 si está caído) |
 | `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
 | `GET /v1/locations` | Cada estación, punto de modelo y parada con coordenadas, su fuente y su tipo (el mapa de la web) |
+| `GET /v1/mobility/daily`, `/v1/mobility/stops` | Servicio programado de EMT y CTM por día, y el de cada parada en el último día |
+| `GET /v1/weather/daily`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación |
+| `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | Última hora de calidad del aire con su índice europeo, oleaje por hora y sismos |
+| `GET /v1/quality/rules`, `/v1/anomalies/daily` | Último chequeo de cada regla de calidad y anomalías por día y detector |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
 | `GET /v1/corrections` | Valores propuestos para las horas sin valor válido de las estaciones, con el original, el método, el apoyo, el sesgo y la confianza; filtrados por fuente, estación, método y rango, paginados |
