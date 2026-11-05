@@ -15,7 +15,10 @@ function Sparkline({ points, color, unit }: { points: Kpi["history"]; color: str
         axisPointer: { type: "line", lineStyle: { color, opacity: 0.4 } },
         formatter: (params: { name: string; value: number }[]) => {
           const point = params[0];
-          return point ? `${monthShort(point.name)} · <b>${number(point.value, 1)}</b> ${unit}` : "";
+          if (!point) return "";
+          // Yearly series (the municipal register) are labelled by their year; large values need no decimals.
+          const label = /^\d{4}$/.test(point.name) ? point.name : monthShort(point.name);
+          return `${label} · <b>${number(point.value, Math.abs(point.value) >= 1000 ? 0 : 1)}</b> ${unit}`;
         },
       },
       series: [
@@ -31,7 +34,7 @@ function Sparkline({ points, color, unit }: { points: Kpi["history"]; color: str
     }),
     [points, color, unit],
   );
-  return <Chart option={option} height={60} label="Evolución de los últimos meses" />;
+  return <Chart option={option} height={60} label="Evolución reciente" />;
 }
 
 export function KpiCard({ kpi, color = "var(--brand)" }: { kpi: Kpi; color?: string }) {

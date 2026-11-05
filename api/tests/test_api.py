@@ -213,7 +213,8 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
-        "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
+        "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones", "/v1/population",
+        "/v1/municipalities",
         "/v1/quality/rules", "/v1/anomalies/daily",
     }  # fmt: skip
 
@@ -241,6 +242,8 @@ def test_settings_from_environment():
         ("/v1/weather/stations", "gold.fct_weather_daily"),
         ("/v1/warnings", "gold.fct_weather_warnings"),
         ("/v1/warnings/zones", "gold.dim_warning_zones"),
+        ("/v1/population", "gold.fct_population_yearly"),
+        ("/v1/municipalities", "gold.dim_municipalities"),
         ("/v1/weather/episodes", "gold.fct_weather_episodes"),
         ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),
         ("/v1/air-quality/latest", "gold.air_quality_hourly"),
@@ -296,3 +299,18 @@ def test_warnings_default_to_the_next_days_and_zones_come_with_their_polygon():
     params = db.calls[-1][1]
     assert round((params["end"] - params["start"]).total_seconds() / 86400) == 3
     assert api.get("/v1/warnings/zones").json()[0]["polygon"] == [[2.93, 39.81], [2.95, 39.76]]
+
+
+def test_population_filters_by_year_and_municipalities_come_with_their_rings():
+    palma = {"municipality": "07040", "name": "Palma", "lat": 39.58, "lon": 2.70, "area_km2": 208.6,
+             "polygon": "[[[2.6,39.5],[2.7,39.6],[2.6,39.5]],[[2.9,39.15],[3.0,39.2],[2.9,39.15]]]"}  # Cabrera too
+    db = FakeDatabase({"gold.dim_municipalities": [palma]})
+    api = client(db)
+
+    api.get("/v1/population")
+    assert db.calls[-1][1] == {"from_year": 1996, "to_year": 2100}
+    api.get("/v1/population", params={"from": 2015, "to": 2025})
+    assert db.calls[-1][1] == {"from_year": 2015, "to_year": 2025}
+    assert api.get("/v1/population", params={"from": 2025, "to": 2015}).status_code == 422
+    assert api.get("/v1/population", params={"from": 1990}).status_code == 422
+    assert len(api.get("/v1/municipalities").json()[0]["polygon"]) == 2

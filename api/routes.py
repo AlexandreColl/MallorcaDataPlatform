@@ -23,8 +23,10 @@ from api.schemas import (
     Location,
     MobilityDay,
     ModelBias,
+    Municipality,
     Observation,
     Page,
+    PopulationYear,
     QualityRule,
     ResourcesMonth,
     SeaHour,
@@ -270,6 +272,25 @@ def warnings(warehouse: WarehouseDep, start: Start = None, end: End = None) -> l
 def warning_zones(warehouse: WarehouseDep) -> list[WarningZone]:
     """The AEMET warning zones of Mallorca (land and coastal waters) with their polygons."""
     return [WarningZone(**{**row, "polygon": json.loads(row["polygon"])}) for row in warehouse.warning_zones()]
+
+
+@router.get("/population", tags=["population"])
+def population(
+    warehouse: WarehouseDep,
+    from_year: Annotated[int | None, Query(alias="from", ge=1996, description="First year (included).")] = None,
+    to_year: Annotated[int | None, Query(alias="to", le=2100, description="Last year (included).")] = None,
+) -> list[PopulationYear]:
+    """Population of every municipality of Mallorca on 1 January (INE municipal register; default: every year)."""
+    first, last = from_year or 1996, to_year or 2100
+    if first > last:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "`from` must not be after `to`")
+    return [PopulationYear(**row) for row in warehouse.population(first, last)]
+
+
+@router.get("/municipalities", tags=["population"])
+def municipalities(warehouse: WarehouseDep) -> list[Municipality]:
+    """The 53 municipalities of Mallorca with their area and boundary (IGN)."""
+    return [Municipality(**{**row, "polygon": json.loads(row["polygon"])}) for row in warehouse.municipalities()]
 
 
 @router.get("/weather/episodes", tags=["environment"])

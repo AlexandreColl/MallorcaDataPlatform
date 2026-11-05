@@ -108,6 +108,19 @@ _WARNING_ZONES = """
 SELECT zone, name, kind, polygon FROM gold.dim_warning_zones ORDER BY kind DESC, zone
 """
 
+# Population per municipality and year, filtered by year (both included).
+_POPULATION = """
+SELECT municipality, municipality_name, year, population, population_men, population_women,
+       density_per_km2, population_change, population_change_pct
+FROM gold.fct_population_yearly
+WHERE year BETWEEN %(from_year)s AND %(to_year)s
+ORDER BY year, municipality
+"""
+
+_MUNICIPALITIES = """
+SELECT municipality, name, lat, lon, area_km2, polygon FROM gold.dim_municipalities ORDER BY municipality
+"""
+
 _EPISODES = """
 SELECT episode_id, start_date, end_date, days, episode_type, peak_rain_mm, peak_rain_station, peak_rain_day,
        max_stations_over_rain_threshold, peak_gust_kmh, peak_wave_m
@@ -316,6 +329,14 @@ class Warehouse:
     def warning_zones(self) -> list[Row]:
         """The AEMET warning zones of Mallorca with their polygons."""
         return self.db.fetch_all(_WARNING_ZONES)
+
+    def population(self, from_year: int, to_year: int) -> list[Row]:
+        """Population of every municipality per year in ``[from_year, to_year]``, oldest first."""
+        return self.db.fetch_all(_POPULATION, {"from_year": from_year, "to_year": to_year})
+
+    def municipalities(self) -> list[Row]:
+        """The municipalities of Mallorca with their boundaries."""
+        return self.db.fetch_all(_MUNICIPALITIES)
 
     def episodes(self, start: date, end: date) -> list[Row]:
         """Rain, wind and sea episodes that started in the range, newest first."""

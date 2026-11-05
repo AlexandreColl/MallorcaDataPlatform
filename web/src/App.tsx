@@ -27,7 +27,7 @@ const DASHBOARDS: Dashboard[] = [
   },
   {
     path: "/movilidad", label: "Movilidad", icon: "mobility", title: "Movilidad",
-    description: "Servicio programado de autobuses, tren y metro: EMT en Palma y CTM en toda la isla.",
+    description: "Servicio programado de autobuses, tren y metro (EMT en Palma y CTM en toda la isla) frente a la población de cada municipio.",
   },
   {
     path: "/tiempo-y-entorno", label: "Tiempo y entorno", icon: "weather", title: "Tiempo y entorno",

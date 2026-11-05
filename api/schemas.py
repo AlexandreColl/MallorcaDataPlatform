@@ -272,6 +272,31 @@ class WarningZone(BaseModel):
     polygon: list[list[float]] = Field(description="[lon, lat] vertices.")
 
 
+class PopulationYear(BaseModel):
+    """Population of a municipality of Mallorca on 1 January (gold.fct_population_yearly, INE municipal register)."""
+
+    municipality: str = Field(examples=["07040"], description="INE municipality code.")
+    municipality_name: str | None = Field(examples=["Palma"])
+    year: int = Field(examples=[2025])
+    population: int | None
+    population_men: int | None
+    population_women: int | None
+    density_per_km2: float | None = Field(description="Inhabitants per km2.")
+    population_change: int | None = Field(description="Change against the previous register (1996 for 1998).")
+    population_change_pct: float | None = Field(description="Relative change (0.01 = +1 %).")
+
+
+class Municipality(BaseModel):
+    """A municipality of Mallorca with its boundary (gold.dim_municipalities, IGN)."""
+
+    municipality: str = Field(examples=["07040"])
+    name: str = Field(examples=["Palma"])
+    lat: float
+    lon: float
+    area_km2: float
+    polygon: list[list[list[float]]] = Field(description="Rings of [lon, lat] vertices; the largest first.")
+
+
 class WeatherEpisode(BaseModel):
     """Consecutive days of heavy rain, strong wind or high waves on the island (gold.fct_weather_episodes)."""
 

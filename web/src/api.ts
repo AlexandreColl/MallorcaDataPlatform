@@ -152,6 +152,28 @@ export interface WarningZone {
   polygon: [number, number][];
 }
 
+export interface PopulationYear {
+  municipality: string;
+  municipality_name: string | null;
+  year: number;
+  population: number | null;
+  population_men: number | null;
+  population_women: number | null;
+  density_per_km2: number | null;
+  population_change: number | null;
+  population_change_pct: number | null;
+}
+
+export interface Municipality {
+  municipality: string;
+  name: string;
+  lat: number;
+  lon: number;
+  area_km2: number;
+  /** Rings of [lon, lat] vertices, the largest first (Palma also has the Cabrera archipelago). */
+  polygon: [number, number][][];
+}
+
 export interface WeatherEpisode {
   episode_id: string;
   start_date: string;
@@ -271,6 +293,8 @@ export const api = {
   stations: (source: "aemet" | "socib" | "open_meteo") => get<StationDay[]>(`/weather/stations?source=${source}`),
   warnings: () => get<WeatherWarning[]>("/warnings"),
   warningZones: () => get<WarningZone[]>("/warnings/zones"),
+  population: (from: number) => get<PopulationYear[]>(`/population?from=${from}`),
+  municipalities: () => get<Municipality[]>("/municipalities"),
   episodes: (from: string) => get<WeatherEpisode[]>(`/weather/episodes?from=${from}`),
   modelBias: () => get<ModelBias[]>("/weather/model-bias"),
   airQuality: () => get<AirQualityNow[]>("/air-quality/latest"),
