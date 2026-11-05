@@ -10,7 +10,7 @@ seeds:
         data_tests:
           - accepted_values:
               arguments:
-                values: ["model", "observation", "system", "event", "schedule", "statistic"]
+                values: ["model", "observation", "system", "event", "schedule", "statistic", "warning"]
   - name: dim_aquifers
     description: >-
       Groundwater bodies (MAS) of Mallorca in the water reserves spreadsheet of the Govern, with their hydrogeological
@@ -20,3 +20,18 @@ seeds:
         data_tests: [not_null, unique]
       - name: code
         data_tests: [not_null, unique]
+  - name: dim_warning_zones
+    description: >-
+      AEMET warning zones (Meteoalerta) of Mallorca: five land zones and their coastal waters, with the polygon AEMET
+      publishes in every warning ([lon, lat] vertices, JSON). Written once from the recorded CAP files of the
+      aemet_warnings connector; the zones only change when AEMET redraws them.
+    columns:
+      - name: zone
+        data_tests: [not_null, unique]
+      - name: kind
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["land", "coast"]
+      - name: polygon
+        data_tests: [not_null]

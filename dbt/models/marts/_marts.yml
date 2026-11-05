@@ -359,6 +359,43 @@ models:
       - {name: peak_gust_kmh, data_type: double precision}
       - {name: peak_wave_m, data_type: double precision}
 
+  - name: fct_weather_warnings
+    description: >
+      AEMET warnings of the zones of Mallorca as periods: consecutive hours of one zone and phenomenon at the same
+      level (1 yellow, 2 orange, 3 red), built with gaps and islands from the hourly levels of aemet_warnings.
+      Includes the warnings announced for the coming days, which the next runs settle with the archive.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [warning_id]
+    data_tests:
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments: {column_A: end_ts, column_B: start_ts}
+    columns:
+      - {name: warning_id, data_type: text, constraints: [{type: not_null}]}
+      - name: zone
+        data_type: text
+        constraints: [{type: not_null}]
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_warning_zones')
+                field: zone
+      - {name: zone_name, data_type: text}
+      - name: zone_kind
+        data_type: text
+      - {name: phenomenon, data_type: text, constraints: [{type: not_null}]}
+      - name: level
+        data_type: integer
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3]
+      - {name: start_ts, data_type: timestamptz}
+      - {name: end_ts, data_type: timestamptz}
+      - {name: hours, data_type: bigint}
+
   - name: fct_tourism_monthly
     description: >-
       Balearic tourism per month (Dataestur): international tourists and spending (FRONTUR, EGATUR), hotel

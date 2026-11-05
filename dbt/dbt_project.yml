@@ -24,7 +24,7 @@ vars:
   episode_gust_kmh: 70
   episode_wave_m: 2.5
   # Connectors with `frequency: event` (see macros/event_sources.sql).
-  event_sources: ["ign"]
+  event_sources: ["ign", "aemet_warnings"]
 
 seeds:
   mallorca:
