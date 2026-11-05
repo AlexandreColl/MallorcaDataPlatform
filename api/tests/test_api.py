@@ -302,8 +302,14 @@ def test_warnings_default_to_the_next_days_and_zones_come_with_their_polygon():
 
 
 def test_population_filters_by_year_and_municipalities_come_with_their_rings():
-    palma = {"municipality": "07040", "name": "Palma", "lat": 39.58, "lon": 2.70, "area_km2": 208.6,
-             "polygon": "[[[2.6,39.5],[2.7,39.6],[2.6,39.5]],[[2.9,39.15],[3.0,39.2],[2.9,39.15]]]"}  # Cabrera too
+    palma = {
+        "municipality": "07040",
+        "name": "Palma",
+        "lat": 39.58,
+        "lon": 2.70,
+        "area_km2": 208.6,
+        "polygon": "[[[2.6,39.5],[2.7,39.6],[2.6,39.5]],[[2.9,39.15],[3.0,39.2],[2.9,39.15]]]",  # Cabrera too
+    }
     db = FakeDatabase({"gold.dim_municipalities": [palma]})
     api = client(db)
 
