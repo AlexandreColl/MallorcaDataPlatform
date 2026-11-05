@@ -125,10 +125,10 @@ function TemperatureZones({ stations }: { stations: StationDay[] }) {
       .map((s) => ({ lon: s.lon, lat: s.lat, value: s[field] as number, entity: s.entity }));
     const values = samples.map((s) => s.value);
     const [min, max] = [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
-    const areas: MapArea[] = surface(samples).map((c) => ({ polygon: c.polygon, color: temperatureColor(c.value, min, max) }));
+    const areas: MapArea[] = surface(samples, 0.012).map((c) => ({ polygon: c.polygon, color: temperatureColor(c.value, min, max) }));
     const layers: MapLayer[] = [
       {
-        id: "stations", label: "Estaciones", color: "#0a120d", radius: 3.5,
+        id: "stations", label: "Estaciones", color: "#0a120d", radius: 4.5,
         points: samples.map((s) => ({
           lat: s.lat, lon: s.lon, color: temperatureColor(s.value, min, max),
           popup: [s.entity, `${TEMPERATURE_FIELDS[field]}: ${number(s.value, 1)} °C`],

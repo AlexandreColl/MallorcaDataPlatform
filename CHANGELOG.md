@@ -10,10 +10,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Web front end (`web/`, service `web` on port 3002) with six dashboards in a side menu, each grouping related
   data like the Grafana folders:
   - home: five key figures against the usual value of their month, and a map of stations and model points;
-  - tourism and resources;
+  - tourism and resources, each pair of series with its 12-month trend and Pearson correlation, raw and without
+    the yearly cycle (tourists vs water reserves: r −0.53, −0.41 without it);
   - climate and water;
   - mobility, with a map of the service of each stop;
-  - weather and environment: temperature, air quality now, waves, episodes, earthquakes and model error;
+  - weather and environment: temperature by zone (the AEMET stations interpolated over the island), air quality
+    now on a large map with its stations, waves, episodes, earthquakes and model error;
   - operations: source health, failing quality rules, anomalies per day and the latest corrections.
 
   Built with React, TypeScript and Vite, with ECharts and MapLibre on OpenStreetMap tiles. Light and dark mode
@@ -24,7 +26,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - REST API endpoints for the dashboards:
   - `/v1/locations`;
   - `/v1/mobility/daily` and `/v1/mobility/stops`;
-  - `/v1/weather/daily`, `/v1/weather/episodes` and `/v1/weather/model-bias`;
+  - `/v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes` and `/v1/weather/model-bias`;
   - `/v1/air-quality/latest`, `/v1/sea/hourly` and `/v1/earthquakes`;
   - `/v1/quality/rules` and `/v1/anomalies/daily`.
 

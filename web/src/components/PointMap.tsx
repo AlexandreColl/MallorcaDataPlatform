@@ -129,7 +129,7 @@ export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLaye
       locale: LOCALE,
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    instance.on("load", () => {
+    const setup = () => {
       if (areaData.features.length > 0) {
         instance.addSource("areas", { type: "geojson", data: areaData });
         instance.addLayer({
@@ -177,7 +177,16 @@ export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLaye
         instance.on("mouseenter", id, () => (instance.getCanvas().style.cursor = "pointer"));
         instance.on("mouseleave", id, () => (instance.getCanvas().style.cursor = ""));
       }
-    });
+    };
+    // Layers go in as soon as the style is ready ("load" would wait for every OpenStreetMap tile), once.
+    let added = false;
+    const addOnce = () => {
+      if (added || !instance.isStyleLoaded()) return;
+      added = true;
+      setup();
+    };
+    instance.on("styledata", addOnce);
+    instance.once("load", addOnce);
     map.current = instance;
     return () => {
       instance.remove();
