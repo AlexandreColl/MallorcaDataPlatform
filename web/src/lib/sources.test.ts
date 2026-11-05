@@ -26,7 +26,11 @@ describe("sourceState", () => {
     expect(sourceState(source({ last_success_at: "2026-11-03T12:00:00Z" }), NOW)).toBe("late");
   });
 
-  it("is inactive when it has not run for a week (a closed history)", () => {
+  it("is inactive when it has not run for a week", () => {
     expect(sourceState(source({ last_run_at: "2026-10-01T00:00:00Z", last_status: "failed" }), NOW)).toBe("inactive");
+  });
+
+  it("is inactive when its newest value is over a year old (a closed history)", () => {
+    expect(sourceState(source({ data_age_hours: 5.4 * 365 * 24 }), NOW)).toBe("inactive");
   });
 });

@@ -40,3 +40,8 @@ Ninguno de los dos debe poder escribir, y un cambio en gold no debe romper a nin
 
 Si aparecen usuarios que exploran sin saber SQL. Entonces haría falta una herramienta de BI con capa semántica
 encima de los mismos marts.
+
+## Revisiones
+
+- **2026-11-05.** Gold tiene un tercer consumidor: un frontal web que solo lee la API
+  ([0019](0019-frontal-web-sobre-la-api.md)). Grafana se queda para operar la plataforma.

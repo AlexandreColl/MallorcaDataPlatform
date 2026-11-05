@@ -35,7 +35,7 @@ flowchart LR
     AF --> MINIO[("MinIO<br/>bronze · silver en Delta")]
     AF --> PG[("PostgreSQL<br/>silver · quality · ops · gold")]
     PG --> GF["Grafana<br/>dashboards y alertas"]
-    PG --> API["API REST<br/>solo lectura"]
+    PG --> API["API REST<br/>solo lectura"] --> WEB["Web<br/>la isla en cifras"]
     AF -.->|OpenLineage| MQ["Marquez<br/>opcional"]
     MINIO -.->|"Terraform, sin desplegar"| AWS["S3 · Glue · Athena"]
 ```
@@ -45,7 +45,7 @@ flowchart LR
 | **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json` | Guardar la respuesta tal cual llegó, para poder reprocesar sin volver a llamar a la fuente |
 | **silver** | Tabla Delta en `s3://silver/observations` y `silver.observations` en Postgres | Esquema común `source, entity, metric, ts, value, unit, quality, lat, lon`, con calidad marcada |
 | **gold** | Esquema `gold` (dbt) | Hechos incrementales, marts por dominio con contrato y salud de las fuentes |
-| **servicio** | Grafana y FastAPI | Lectura humana y programática de gold, cada una con su usuario de solo lectura |
+| **servicio** | Web, Grafana y FastAPI | La web para quien quiere ver la isla; Grafana para operar la plataforma; la API para leer gold desde un programa. Grafana y la API tienen su usuario de solo lectura, y la web solo habla con la API |
 
 ### Una ejecución, paso a paso
 
@@ -98,6 +98,7 @@ evolucionó la plataforma. Este es el resumen de las que están en vigor:
 | [0016](adr/0016-silver-en-delta.md) | Silver en Delta Lake | El lake pasa de 67.000 ficheros a 12, con historial, *time travel* y `MERGE` |
 | [0017](adr/0017-observabilidad-y-linaje.md) | Observabilidad y linaje | Las alertas leen el estado de las tablas; un solo grafo de linaje de la ingesta a gold |
 | [0018](adr/0018-sin-cache-de-extraccion.md) | Sin caché aparte (Redis) | Bronze ya hace de caché, y extraer cuesta 1 s de los 45 s que tarda cada conector |
+| [0019](adr/0019-frontal-web-sobre-la-api.md) | Un frontal web propio sobre la API | La isla en cifras para quien no opera la plataforma; solo lee la API, así que no toca el warehouse |
 
 Sustituidas y rechazadas:
 

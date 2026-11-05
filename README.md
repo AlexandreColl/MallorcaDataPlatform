@@ -28,7 +28,7 @@ flowchart LR
     SL -->|"anomalías y<br/>correcciones"| AC[("silver.anomalies<br/>silver.corrections")]
     SL & AC -->|dbt build| GD[("gold<br/>marts")]
     GD --> GF[Grafana]
-    GD --> API[API REST]
+    GD --> API[API REST] --> WEB[Web]
 ```
 
 Airflow orquesta cada flecha con el DAG `mallorca_pipeline`: una tarea `ingest` por conector, y después
@@ -79,6 +79,7 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un
 
 | Servicio | URL | Acceso |
 |---|---|---|
+| **Web** | http://localhost:3002 | la isla en cifras: KPIs, mapa y estado de las fuentes ([abajo](#frontal-web)) |
 | Airflow | http://localhost:8080 | sin login (modo demo local) |
 | Grafana | http://localhost:3000 | anónimo de lectura · admin/admin |
 | MinIO | http://localhost:9001 | minioadmin/minioadmin |
@@ -424,6 +425,30 @@ serie elegida (variable *Serie corregida*) y la tabla de las últimas correccion
 como bandas sobre la gráfica, igual que en el explorador de Tiempo y entorno: así se ve qué corrige cada parte. La
 API las sirve en `GET /v1/corrections`.
 
+## Frontal web
+
+Una portada para quien quiere ver la isla, no operar la plataforma: http://localhost:3002.
+
+- **Cinco cifras clave:** reservas de agua, lluvia del año hidrológico, turistas internacionales, demanda eléctrica
+  y temperatura. Cada una muestra su último mes publicado, cuánto se aparta de lo normal para ese mes (en verde o
+  en rojo cuando es buena o mala noticia) y la evolución de los últimos 36 meses.
+- **Un mapa** con las 57 estaciones, los 14 puntos de modelo y las 1.639 paradas. Cada capa se puede ocultar, y al
+  pulsar un punto se ve qué mide.
+- **El estado de cada fuente:** al día, atrasada, fallida o histórico cerrado, con la antigüedad de su último dato.
+
+Está hecha con React, TypeScript y Vite, con ECharts para los gráficos y MapLibre con teselas de OpenStreetMap para
+el mapa. Sigue el modo claro u oscuro del sistema y se adapta al móvil.
+
+**Solo lee la API REST**, nunca el warehouse. La imagen `web` es nginx con la web ya construida, y hace de proxy de
+`/api` hacia la API, así que el navegador habla con un único origen. Grafana se queda para operar la plataforma:
+alertas, calidad, anomalías y correcciones. Por qué una web propia y no rehacer Grafana:
+[ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md).
+
+```bash
+cd web && npm install && npm run dev   # http://localhost:5173, con /api hacia la API del stack (localhost:8000)
+npm test                               # lógica de las cifras y del estado de las fuentes (Vitest)
+```
+
 ## Grafana
 
 Seis dashboards en la carpeta *Mallorca Data Platform* (http://localhost:3000), enlazados entre sí desde la barra
@@ -497,6 +522,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 |---|---|
 | `GET /v1/health` | Estado de la API y de su conexión al warehouse (503 si está caído) |
 | `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
+| `GET /v1/locations` | Cada estación, punto de modelo y parada con coordenadas, su fuente y su tipo (el mapa de la web) |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
 | `GET /v1/corrections` | Valores propuestos para las horas sin valor válido de las estaciones, con el original, el método, el apoyo, el sesgo y la confianza; filtrados por fuente, estación, método y rango, paginados |
@@ -542,7 +568,8 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 ├── dbt/                  # staging → intermediate → marts, tests y seeds (ver dbt/README.md)
 ├── dashboards/           # provisioning y dashboards de Grafana
 ├── api/                  # API REST de solo lectura (FastAPI) y sus tests
-├── docker/               # Dockerfiles de Airflow+Spark+dbt y de la API, init de Postgres
+├── web/                  # frontal web (React + Vite) que lee la API
+├── docker/               # Dockerfiles de Airflow+Spark+dbt, de la API y de la web, init de Postgres
 ├── infra/terraform/      # AWS: S3, IAM, Glue Catalog, Athena y presupuesto, con tests sobre un AWS simulado
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/

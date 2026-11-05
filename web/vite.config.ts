@@ -6,6 +6,8 @@ const apiTarget = process.env.API_URL ?? "http://localhost:8000";
 
 export default defineConfig({
   plugins: [react()],
+  // maplibre loads its worker from a file next to its module: pre-bundling it would break that URL.
+  optimizeDeps: { exclude: ["maplibre-gl"] },
   server: {
     port: 5173,
     proxy: {

@@ -77,6 +77,7 @@ main,
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 20px 0 8px;
 }
@@ -87,6 +88,7 @@ main,
   gap: 10px;
   font-weight: 650;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .hero {
@@ -117,7 +119,7 @@ main,
 /* Key figures */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
 }
 
@@ -231,12 +233,17 @@ main,
   margin-top: 2px;
 }
 
+/* The map grows with the panel, so it is as tall as the list of sources beside it. */
 .map-wrap {
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .map {
-  height: 480px;
+  flex: 1;
+  min-height: 480px;
   border-radius: 10px;
   overflow: hidden;
   background: var(--surface-2);
@@ -244,7 +251,7 @@ main,
 
 @media (max-width: 600px) {
   .map {
-    height: 360px;
+    min-height: 360px;
   }
 }
 
@@ -476,4 +483,29 @@ main,
 
 .version {
   font-variant-numeric: tabular-nums;
+}
+
+/* Phones: two columns of smaller key figures. Last in the file so it overrides the rules above. */
+@media (max-width: 600px) {
+  .brand span {
+    font-size: 0.9rem;
+  }
+
+  .pill {
+    font-size: 0.74rem;
+    white-space: nowrap;
+  }
+
+  .kpi {
+    padding: 14px 14px 0;
+    min-height: 180px;
+  }
+
+  .kpi-value {
+    font-size: 1.7rem;
+  }
+
+  .sparkline {
+    margin-inline: -14px;
+  }
 }

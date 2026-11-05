@@ -12,3 +12,5 @@ dbt/logs
 logs
 docs
 dbt/dbt_packages
+web/node_modules
+web/dist

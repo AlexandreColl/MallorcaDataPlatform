@@ -21,19 +21,41 @@ const MALLORCA: [[number, number], [number, number]] = [
   [3.5, 40.0],
 ];
 
+/** Spanish texts of the map controls. */
+const LOCALE = {
+  "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para hacer zoom",
+  "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para hacer zoom",
+  "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa",
+  "NavigationControl.ZoomIn": "Acercar",
+  "NavigationControl.ZoomOut": "Alejar",
+};
+
+/**
+ * OpenStreetMap tiles (no key), toned down so the points stand out: greyed in light mode and inverted in dark mode
+ * (swapping the minimum and maximum brightness inverts the raster).
+ */
 function basemap(dark: boolean): StyleSpecification {
-  const theme = dark ? "dark_all" : "light_all";
   return {
     version: 8,
     sources: {
-      carto: {
+      osm: {
         type: "raster",
-        tiles: ["a", "b", "c"].map((s) => `https://${s}.basemaps.cartocdn.com/${theme}/{z}/{x}/{y}@2x.png`),
+        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
         tileSize: 256,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+        maxzoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       },
     },
-    layers: [{ id: "carto", type: "raster", source: "carto" }],
+    layers: [
+      {
+        id: "osm",
+        type: "raster",
+        source: "osm",
+        paint: dark
+          ? { "raster-saturation": -1, "raster-brightness-min": 0.92, "raster-brightness-max": 0.08, "raster-contrast": 0.1 }
+          : { "raster-saturation": -0.85, "raster-brightness-min": 0.08, "raster-contrast": -0.1 },
+      },
+    ],
   };
 }
 
@@ -89,6 +111,7 @@ export function SourceMap({ locations }: { locations: Location[] }) {
       fitBoundsOptions: { padding: 16 },
       attributionControl: { compact: true },
       cooperativeGestures: true,
+      locale: LOCALE,
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     instance.on("load", () => {
