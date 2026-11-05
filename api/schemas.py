@@ -194,6 +194,158 @@ class ResourcesMonth(BaseModel):
     hot_days: float | None
 
 
+class MobilityDay(BaseModel):
+    """Scheduled public transport of one network in one day (gold.fct_bus_network_daily, fct_island_transit_daily)."""
+
+    network: str = Field(examples=["emt_palma"], description="`emt_palma` (Palma buses) or `ctm` (the island)")
+    local_date: date
+    is_weekend: bool
+    stops: int
+    stops_with_service: int
+    scheduled_stop_calls: float | None = Field(description="Vehicles calling at a stop, summed over every stop.")
+    avg_lines_per_served_stop: float | None
+    busiest_stop: str | None
+    busiest_stop_departures: float | None
+
+
+class StopService(BaseModel):
+    """The scheduled service of one stop on the latest day of its network."""
+
+    network: str = Field(examples=["ctm"])
+    stop: str = Field(examples=["stop_452"])
+    lat: float
+    lon: float
+    local_date: date
+    departures: float | None
+    lines: float | None
+
+
+class WeatherSourceDay(BaseModel):
+    """Island-wide weather of one source in one day: the mean of its stations or points (gold.fct_weather_daily)."""
+
+    source: str = Field(examples=["aemet"])
+    source_label: str | None
+    source_kind: str | None = Field(examples=["observation"], description="`observation` or `model`")
+    local_date: date
+    entities: int
+    temperature_mean: float | None
+    temperature_max: float | None
+    temperature_min: float | None
+    precipitation_mean: float | None
+    wind_gust_max: float | None
+
+
+class StationDay(BaseModel):
+    """The weather of one station or model point on the latest day of its source (gold.fct_weather_daily)."""
+
+    source: str = Field(examples=["aemet"])
+    entity: str = Field(examples=["B228"])
+    lat: float
+    lon: float
+    local_date: date
+    temperature_mean: float
+    temperature_max: float | None
+    temperature_min: float | None
+    precipitation_sum: float | None
+    wind_gust_max: float | None
+
+
+class WeatherEpisode(BaseModel):
+    """Consecutive days of heavy rain, strong wind or high waves on the island (gold.fct_weather_episodes)."""
+
+    episode_id: str
+    start_date: date
+    end_date: date
+    days: int
+    episode_type: str = Field(examples=["rain + wind + sea"])
+    peak_rain_mm: float | None
+    peak_rain_station: str | None
+    peak_rain_day: date | None
+    max_stations_over_rain_threshold: int | None
+    peak_gust_kmh: float | None
+    peak_wave_m: float | None
+
+
+class ModelBias(BaseModel):
+    """Error of the weather model against one station (gold.agg_model_bias_by_station): model minus station."""
+
+    station_source: str
+    station: str
+    model_point: str
+    distance_km: float | None
+    days_compared: int
+    temperature_bias_c: float | None
+    temperature_mae_c: float | None
+    temperature_rmse_c: float | None
+    precipitation_bias_total_mm: float | None
+    rain_day_agreement: float | None
+    wind_speed_bias_kmh: float | None
+    first_day: date | None
+    last_day: date | None
+
+
+class AirQualityNow(BaseModel):
+    """The latest hour of one air quality station or model point (gold.air_quality_hourly)."""
+
+    source: str = Field(examples=["eea_air_quality"])
+    entity: str = Field(examples=["bellver"])
+    lat: float | None
+    lon: float | None
+    ts: datetime
+    pm2_5: float | None
+    pm10: float | None
+    no2: float | None
+    o3: float | None
+    eaqi_band: int = Field(description="European AQI band, 1 (good) to 6 (extremely poor), from the worst pollutant.")
+    eaqi_label: str | None = Field(examples=["fair"])
+
+
+class SeaHour(BaseModel):
+    """Sea conditions at one coastal point in one hour (gold.fct_sea_conditions_hourly)."""
+
+    point: str
+    lat: float | None
+    lon: float | None
+    ts: datetime
+    wave_height_m: float | None
+    wave_period_s: float | None
+    swell_height_m: float | None
+    sea_temperature_c: float | None
+
+
+class Earthquake(BaseModel):
+    """One earthquake located by the IGN, in its latest revision (gold.fct_earthquakes)."""
+
+    event_id: str
+    ts: datetime
+    lat: float
+    lon: float
+    magnitude: float | None
+    depth_km: float | None
+    distance_to_palma_km: float | None
+
+
+class QualityRule(BaseModel):
+    """The latest check of one quality rule on one source (gold.data_quality_summary)."""
+
+    source: str
+    rule: str = Field(examples=["range"])
+    target: str = Field(examples=["temperature_2m_mean"])
+    checked: int
+    failed: int
+    passed: bool
+    failed_ratio: float | None
+    checked_at: datetime | None
+
+
+class AnomaliesDay(BaseModel):
+    """How many values one detector flagged in one local day (silver.anomalies)."""
+
+    local_date: date
+    detector: str = Field(examples=["robust_zscore"])
+    anomalies: int
+
+
 class Error(BaseModel):
     """Every error has the same shape."""
 

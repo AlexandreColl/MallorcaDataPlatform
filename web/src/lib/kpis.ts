@@ -1,6 +1,6 @@
-// The key figures of the home page: the latest month of each series and how far it is from its usual value.
+// The key figures of the dashboards: the latest month of each series and how far it is from its usual value.
 
-import type { ClimateMonth, ResourcesMonth } from "../api";
+import type { ClimateMonth, ResourcesMonth, TourismMonth, WaterReservesMonth } from "../api";
 import { compact, monthName, number, signed } from "./format";
 
 /** Whether a deviation is good news, bad news or just a fact (more tourists is neither). */
@@ -17,7 +17,7 @@ export interface Kpi {
   history: { month: string; value: number }[];
 }
 
-interface Spec<Row> {
+export interface Spec<Row> {
   id: string;
   label: string;
   unit: string;
@@ -80,6 +80,73 @@ export const RESOURCE_SPECS: Spec<ResourcesMonth>[] = [
         : { text: `${signed(r.temperature_anomaly_c)} °C sobre lo normal`, tone: tone(r.temperature_anomaly_c, false) },
   },
 ];
+
+/** A change against the same month a year earlier (0.05 = 5 % more). */
+function yearOnYear(change: number | null) {
+  if (change === null) return null;
+  return { text: `${signed(change * 100, 1)} % que hace un año`, tone: "neutral" as Tone };
+}
+
+export const TOURISM_SPECS: Spec<TourismMonth>[] = [
+  {
+    id: "tourists",
+    label: "Turistas internacionales",
+    unit: "",
+    value: (r) => r.international_tourists,
+    format: compact,
+    deviation: (r) => yearOnYear(r.international_tourists_yoy),
+  },
+  {
+    id: "airport",
+    label: "Pasajeros del aeropuerto",
+    unit: "",
+    value: (r) => r.airport_passengers,
+    format: compact,
+    deviation: (r) => yearOnYear(r.airport_passengers_yoy),
+  },
+  {
+    id: "occupancy",
+    label: "Ocupación hotelera",
+    unit: "%",
+    value: (r) => r.hotel_bed_occupancy_pct,
+    format: (v) => number(v, 1),
+    deviation: () => null,
+  },
+];
+
+export const WATER_SPECS: Spec<WaterReservesMonth>[] = [
+  {
+    id: "reserves",
+    label: "Reservas de agua",
+    unit: "%",
+    value: (r) => r.reserves_pct,
+    format: (v) => number(v, 0),
+    deviation: (r) =>
+      r.anomaly_pts === null
+        ? null
+        : { text: `${signed(r.anomaly_pts)} puntos sobre lo normal`, tone: tone(r.anomaly_pts, true) },
+  },
+  {
+    id: "aquifers",
+    label: "Acuíferos bajo el 30 %",
+    unit: `de 18`,
+    value: (r) => r.aquifers_below_30_pct,
+    format: (v) => number(v, 0),
+    deviation: (r) => (r.lowest_aquifer ? { text: `El más bajo: ${r.lowest_aquifer}`, tone: "neutral" } : null),
+  },
+];
+
+export const HOT_DAYS_SPEC: Spec<ClimateMonth> = {
+  id: "hot-days",
+  label: "Días de calor",
+  unit: "días",
+  value: (r) => r.hot_days,
+  format: (v) => number(v, 0),
+  deviation: (r) =>
+    r.temperature_anomaly_c === null
+      ? null
+      : { text: `${signed(r.temperature_anomaly_c)} °C sobre lo normal`, tone: tone(r.temperature_anomaly_c, false) },
+};
 
 export const RAIN_SPEC: Spec<ClimateMonth> = {
   id: "rain",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ClimateMonth, ResourcesMonth } from "../api";
-import { buildKpi, RAIN_SPEC, RESOURCE_SPECS } from "./kpis";
+import { buildKpi, RAIN_SPEC, RESOURCE_SPECS, TOURISM_SPECS, WATER_SPECS } from "./kpis";
 
 function month(m: string, fields: Partial<ResourcesMonth>): ResourcesMonth {
   return {
@@ -38,7 +38,10 @@ describe("buildKpi", () => {
 
   it("compares the rain of the hydrological year with its mean at the same point", () => {
     const rows: ClimateMonth[] = [
-      { month: "2026-10-01", hydrological_year: 2027, rain_hydrological_year_mm: 120, rain_hydrological_year_mean_mm: 100 },
+      {
+        month: "2026-10-01", hydrological_year: 2027, rain_mm: 40, rain_hydrological_year_mm: 120,
+        rain_hydrological_year_mean_mm: 100, temperature_mean_c: 20, temperature_anomaly_c: 0.5, hot_days: 0,
+      },
     ];
 
     expect(buildKpi(RAIN_SPEC, rows)).toMatchObject({ value: "120", tone: "good", deviation: "+20 % sobre lo normal" });
@@ -58,5 +61,30 @@ describe("buildKpi", () => {
 
   it("is null for a series without any value", () => {
     expect(buildKpi(spec("electricity"), [month("2026-08-01", {})])).toBeNull();
+  });
+});
+
+describe("tourism and water figures", () => {
+  it("compare tourists with the same month a year earlier, as a plain fact", () => {
+    const rows = [
+      {
+        month: "2026-09-01", international_tourists: 2_200_000, international_spending_eur: null,
+        spending_per_tourist_eur: null, hotel_bed_occupancy_pct: null, airport_passengers: null,
+        international_tourists_yoy: 0.001, airport_passengers_yoy: null,
+      },
+    ];
+
+    expect(buildKpi(TOURISM_SPECS[0]!, rows)).toMatchObject({ value: "2,2 M", deviation: "+0,1 % que hace un año", tone: "neutral" });
+  });
+
+  it("name the lowest aquifer next to the count below 30 %", () => {
+    const rows = [
+      {
+        month: "2026-09-01", hydrological_year: 2026, reserves_pct: 36, same_month_mean_pct: 49.2, anomaly_pts: -13.2,
+        aquifers_below_30_pct: 8, lowest_aquifer: "Son Real",
+      },
+    ];
+
+    expect(buildKpi(WATER_SPECS[1]!, rows)).toMatchObject({ value: "8", unit: "de 18", deviation: "El más bajo: Son Real" });
   });
 });
