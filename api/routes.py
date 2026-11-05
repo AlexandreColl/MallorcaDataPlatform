@@ -10,19 +10,29 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from api import __version__
 from api.repository import Warehouse
 from api.schemas import (
+    AirQualityNow,
+    AnomaliesDay,
     Anomaly,
     Aquifer,
     ClimateMonth,
     Correction,
+    Earthquake,
     ErrorResponse,
     Health,
     Location,
+    MobilityDay,
+    ModelBias,
     Observation,
     Page,
+    QualityRule,
     ResourcesMonth,
+    SeaHour,
     Source,
+    StopService,
     TourismMonth,
     WaterReservesMonth,
+    WeatherEpisode,
+    WeatherSourceDay,
 )
 
 router = APIRouter(prefix="/v1", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
@@ -48,6 +58,8 @@ Start = Annotated[datetime | None, Query(description="From this instant (include
 End = Annotated[datetime | None, Query(description="Until this instant (excluded). Default: now.")]
 FromMonth = Annotated[date | None, Query(alias="from", description="First month, e.g. 2025-09-01 (included).")]
 ToMonth = Annotated[date | None, Query(alias="to", description="Last month (included).")]
+FromDay = Annotated[date | None, Query(alias="from", description="First local day (included).")]
+ToDay = Annotated[date | None, Query(alias="to", description="Last local day (included). Default: today.")]
 
 
 def _window(start: datetime | None, end: datetime | None) -> tuple[datetime, datetime]:
@@ -58,6 +70,15 @@ def _window(start: datetime | None, end: datetime | None) -> tuple[datetime, dat
     start = start if start.tzinfo else start.replace(tzinfo=UTC)
     if start >= end:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "`start` must be before `end`")
+    return start, end
+
+
+def _days(start: date | None, end: date | None, default_days: int) -> tuple[date, date]:
+    """A range of local days, both included: by default the last ``default_days`` days up to today."""
+    end = end or datetime.now(UTC).date()
+    start = start or end - timedelta(days=default_days - 1)
+    if start > end:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "`from` must not be after `to`")
     return start, end
 
 
@@ -195,3 +216,72 @@ def tourism_monthly(warehouse: WarehouseDep, from_: FromMonth = None, to: ToMont
 def resources_monthly(warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None) -> list[ResourcesMonth]:
     """Tourism, water, climate and electricity per month, each with its anomaly against the same calendar month."""
     return [ResourcesMonth(**row) for row in warehouse.monthly("resources", from_, to)]
+
+
+@router.get("/mobility/daily", tags=["mobility"])
+def mobility_daily(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[MobilityDay]:
+    """Scheduled service per day of the EMT Palma and CTM networks (default: the last 90 days)."""
+    start, end = _days(from_, to, 90)
+    return [MobilityDay(**row) for row in warehouse.mobility_daily(start, end)]
+
+
+@router.get("/mobility/stops", tags=["mobility"])
+def mobility_stops(
+    warehouse: WarehouseDep,
+    network: Annotated[Literal["emt_palma", "ctm"] | None, Query(description="Only this network.")] = None,
+) -> list[StopService]:
+    """Every stop with its scheduled departures and lines on the latest day of its network, busiest first."""
+    return [StopService(**row) for row in warehouse.mobility_stops(network)]
+
+
+@router.get("/weather/daily", tags=["environment"])
+def weather_daily(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[WeatherSourceDay]:
+    """Island-wide daily weather per source: the mean of its stations or model points (default: the last 30 days)."""
+    start, end = _days(from_, to, 30)
+    return [WeatherSourceDay(**row) for row in warehouse.weather_daily(start, end)]
+
+
+@router.get("/weather/episodes", tags=["environment"])
+def weather_episodes(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[WeatherEpisode]:
+    """Episodes of heavy rain, strong wind or high waves, newest first (default: the last 365 days)."""
+    start, end = _days(from_, to, 365)
+    return [WeatherEpisode(**row) for row in warehouse.episodes(start, end)]
+
+
+@router.get("/weather/model-bias", tags=["environment"])
+def weather_model_bias(warehouse: WarehouseDep) -> list[ModelBias]:
+    """How far the weather model is from each official station, worst first."""
+    return [ModelBias(**row) for row in warehouse.model_bias()]
+
+
+@router.get("/air-quality/latest", tags=["environment"])
+def air_quality_latest(warehouse: WarehouseDep) -> list[AirQualityNow]:
+    """The latest hour of each air quality station and model point, with its European AQI band."""
+    return [AirQualityNow(**row) for row in warehouse.air_quality_latest()]
+
+
+@router.get("/sea/hourly", tags=["environment"])
+def sea_hourly(warehouse: WarehouseDep, start: Start = None, end: End = None) -> list[SeaHour]:
+    """Hourly waves and sea temperature at the coastal points (default: the last 7 days)."""
+    start, end = _window(start, end)
+    return [SeaHour(**row) for row in warehouse.sea_hourly(start, end)]
+
+
+@router.get("/earthquakes", tags=["environment"])
+def earthquakes(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[Earthquake]:
+    """Earthquakes located by the IGN in and around Mallorca, newest first (default: the last 10 years)."""
+    start, end = _days(from_, to, 3650)
+    return [Earthquake(**row) for row in warehouse.earthquakes(start, end)]
+
+
+@router.get("/quality/rules", tags=["platform"])
+def quality_rules(warehouse: WarehouseDep) -> list[QualityRule]:
+    """The latest check of every quality rule on every source, failing ones first."""
+    return [QualityRule(**row) for row in warehouse.quality_rules()]
+
+
+@router.get("/anomalies/daily", tags=["series"])
+def anomalies_daily(warehouse: WarehouseDep, start: Start = None, end: End = None) -> list[AnomaliesDay]:
+    """Flagged values per local day and detector (default: the last 7 days)."""
+    start, end = _window(start, end)
+    return [AnomaliesDay(**row) for row in warehouse.anomalies_daily(start, end)]

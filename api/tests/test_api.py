@@ -211,7 +211,9 @@ def test_openapi_documents_every_endpoint(db):
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
-        "/v1/resources/monthly", "/v1/locations",
+        "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/weather/daily",
+        "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/air-quality/latest", "/v1/sea/hourly", "/v1/earthquakes",
+        "/v1/quality/rules", "/v1/anomalies/daily",
     }  # fmt: skip
 
 
@@ -227,3 +229,55 @@ def test_settings_from_environment():
 
     assert (settings.host, settings.user, settings.cors_origins) == ("postgres", "reader", ("a", "b"))
     assert "default_transaction_read_only=on" in settings.conninfo
+
+
+@pytest.mark.parametrize(
+    ("path", "table"),
+    [
+        ("/v1/mobility/daily", "gold.fct_island_transit_daily"),
+        ("/v1/mobility/stops", "gold.fct_observations"),
+        ("/v1/weather/daily", "gold.fct_weather_daily"),
+        ("/v1/weather/episodes", "gold.fct_weather_episodes"),
+        ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),
+        ("/v1/air-quality/latest", "gold.air_quality_hourly"),
+        ("/v1/sea/hourly", "gold.fct_sea_conditions_hourly"),
+        ("/v1/earthquakes", "gold.fct_earthquakes"),
+        ("/v1/quality/rules", "gold.data_quality_summary"),
+        ("/v1/anomalies/daily", "silver.anomalies"),
+    ],
+)
+def test_every_dashboard_endpoint_reads_its_mart(path, table):
+    db = FakeDatabase()
+
+    response = client(db).get(path)
+
+    assert response.status_code == 200
+    assert response.json() == []
+    assert table in db.calls[-1][0]
+
+
+def test_day_ranges_default_to_the_last_days_and_are_validated():
+    db = FakeDatabase()
+    api = client(db)
+
+    api.get("/v1/weather/daily")
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 29  # 30 days, both included
+    api.get("/v1/mobility/daily", params={"from": "2026-10-01", "to": "2026-10-31"})
+    assert db.calls[-1][1] == {"start": date(2026, 10, 1), "end": date(2026, 10, 31)}
+
+    response = api.get("/v1/earthquakes", params={"from": "2026-11-02", "to": "2026-11-01"})
+    assert response.status_code == 422
+    assert response.json()["error"]["message"] == "`from` must not be after `to`"
+
+
+def test_stops_filter_by_network_and_reject_an_unknown_one():
+    db = FakeDatabase({"gold.fct_observations": [
+        {"network": "ctm", "stop": "stop_1", "lat": 39.6, "lon": 2.9, "local_date": date(2026, 11, 4),
+         "departures": 1028.0, "lines": 31.0},
+    ]})  # fmt: skip
+    api = client(db)
+
+    assert api.get("/v1/mobility/stops", params={"network": "ctm"}).json()[0]["departures"] == 1028.0
+    assert db.calls[-1][1] == {"network": "ctm"}
+    assert api.get("/v1/mobility/stops", params={"network": "tram"}).status_code == 422
