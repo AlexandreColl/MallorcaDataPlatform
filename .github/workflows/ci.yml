@@ -186,7 +186,7 @@ jobs:
           API_DB_USER: warehouse
           API_DB_PASSWORD: warehouse
         run: |
-          (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api)
+          (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api --indirect-selection cautious)
           pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
           pytest -q api/tests/test_integration.py
       # The pipeline's writes (the upsert behind idempotent reruns, run tracking) against the same Postgres.
