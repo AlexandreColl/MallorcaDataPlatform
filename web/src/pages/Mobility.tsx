@@ -223,7 +223,7 @@ function PopulationHistory({ rows, places, selected, onSelect }: HistoryProps) {
           },
         ];
     const lines = trends.map((trend, i) => ({
-      name: `${trend.from}–${trend.to}: ${signed(trend.rate * 100)} % al año`,
+      name: `${trend.from}–${trend.to}: ${signed(trend.rate * 100)} %/año`,
       type: "line", symbol: "none", z: 3, color: i === trends.length - 1 ? "#b45309" : "#7c3aed",
       lineStyle: { type: "dashed", width: 2 },
       data: categories.map((year) => (year >= trend.from && year <= trend.to ? Math.round(trend.at(year)) : null)),
@@ -252,7 +252,7 @@ function PopulationHistory({ rows, places, selected, onSelect }: HistoryProps) {
       yAxis: { type: "value", axisLabel: { formatter: compact } },
       // One line that scrolls on a phone: five entries would wrap over the chart.
       legend: {
-        type: "scroll", top: 0, left: 0, right: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10,
+        type: "scroll", top: 0, left: 0, right: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, itemGap: 16,
         textStyle: { color: c.muted }, pageTextStyle: { color: c.muted },
         data: [...bars, ...lines, ...projection].map((s) => s.name).filter((n) => !n.startsWith("band-")),
       },

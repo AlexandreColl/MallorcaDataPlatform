@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-06
+
 ### Changed
 
 - Web, Movilidad: the stop map and the municipality map are now one map, the stops of each network over the
@@ -550,7 +552,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.8.0...v0.9.0
