@@ -76,6 +76,16 @@ export interface GrowthTrend {
   rate: number;
   /** The trend's value in a year. */
   at: (year: number) => number;
+  /** First and last year of the fit. */
+  from: number;
+  to: number;
+  /** Sum of the squared residuals of the logarithms: how far the years are from the trend. */
+  sse: number;
+  /**
+   * Prediction interval of a year's value (95 % by default): where a new year would fall if the trend held. It
+   * widens with the distance to the years of the fit.
+   */
+  interval: (year: number, z?: number) => [number, number];
 }
 
 /**
@@ -97,5 +107,36 @@ export function growthTrend(points: { year: number; value: number }[]): GrowthTr
   }
   if (varX === 0) return null;
   const slope = cov / varX;
-  return { rate: Math.exp(slope) - 1, at: (year) => Math.exp(meanY + slope * (year - meanX)) };
+  const fitted = (year: number) => meanY + slope * (year - meanX);
+  const sse = valid.reduce((s, p) => s + (Math.log(p.value) - fitted(p.year)) ** 2, 0);
+  const sigma = n > 2 ? Math.sqrt(sse / (n - 2)) : 0;
+  const years = valid.map((p) => p.year);
+  return {
+    rate: Math.exp(slope) - 1,
+    at: (year) => Math.exp(fitted(year)),
+    from: Math.min(...years),
+    to: Math.max(...years),
+    sse,
+    interval: (year, z = 1.96) => {
+      const spread = z * sigma * Math.sqrt(1 + 1 / n + (year - meanX) ** 2 / varX);
+      return [Math.exp(fitted(year) - spread), Math.exp(fitted(year) + spread)];
+    },
+  };
+}
+
+/**
+ * The trend in one or two stretches: the series is split at the year that fits best (each stretch at least
+ * `minYears` long) and kept whole unless the split halves the error. Mallorca grew fast until the 2008 crisis, then
+ * stalled and grew again: one line for 30 years would hide it.
+ */
+export function segmentedTrend(points: { year: number; value: number }[], minYears = 6): GrowthTrend[] {
+  const sorted = [...points].filter((p) => p.value > 0).sort((a, b) => a.year - b.year);
+  const whole = growthTrend(sorted);
+  if (!whole) return [];
+  let best: [GrowthTrend, GrowthTrend] | null = null;
+  for (let k = minYears; k <= sorted.length - minYears; k++) {
+    const [before, after] = [growthTrend(sorted.slice(0, k)), growthTrend(sorted.slice(k))];
+    if (before && after && (!best || before.sse + after.sse < best[0].sse + best[1].sse)) best = [before, after];
+  }
+  return best && best[0].sse + best[1].sse < whole.sse / 2 ? best : [whole];
 }
