@@ -8,8 +8,12 @@ export type SourceState = "ok" | "failed" | "late" | "inactive";
 const LATE_AFTER_HOURS = 36;
 /** A source that has not run in a week is no longer scheduled. */
 const INACTIVE_AFTER_DAYS = 7;
-/** A source whose newest value is over a year old is a closed history (GOIB air quality ends in 2021). */
-const HISTORY_AFTER_DAYS = 365;
+/**
+ * A source whose newest value is older than this is a closed history (GOIB air quality ends in 2021). The yearly
+ * municipal register is published in December, so its newest value (1 January of the year before) can be almost two
+ * years old while the source is still current.
+ */
+const HISTORY_AFTER_DAYS = 800;
 
 const HOUR = 3_600_000;
 

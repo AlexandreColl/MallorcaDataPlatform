@@ -30,7 +30,11 @@ describe("sourceState", () => {
     expect(sourceState(source({ last_run_at: "2026-10-01T00:00:00Z", last_status: "failed" }), NOW)).toBe("inactive");
   });
 
-  it("is inactive when its newest value is over a year old (a closed history)", () => {
+  it("is inactive when its newest value is years old (a closed history)", () => {
     expect(sourceState(source({ data_age_hours: 5.4 * 365 * 24 }), NOW)).toBe("inactive");
+  });
+
+  it("stays current with a yearly value from almost two years ago (the municipal register)", () => {
+    expect(sourceState(source({ data_age_hours: 22 * 30 * 24 }), NOW)).toBe("ok");
   });
 });
