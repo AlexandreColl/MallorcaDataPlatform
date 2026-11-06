@@ -418,20 +418,6 @@ main,
   color: var(--muted);
 }
 
-.explain {
-  margin: 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 0.86rem;
-  color: var(--muted);
-}
-
-.explain strong {
-  color: var(--text);
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

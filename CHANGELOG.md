@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Removed
+
+- Web, Turismo y recursos: the "Cómo leer la correlación" panel. It explained what a correlation is to readers who
+  already know; the electricity chart takes the full width instead.
+
 ## [0.11.0] - 2026-11-06
 
 ### Changed
