@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-05
+
 ### Added
 
 - Connector `ine_population`: the population of the 53 municipalities of Mallorca on 1 January by sex, from the
@@ -50,6 +52,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   Each has unit tests and runs against the warehouse in CI.
 - dbt exposure `web`: the marts the web front end reads through the API. The `rest_api` exposure lists the new
   marts too, so CI builds them before testing the API.
+
+### Changed
+
+- The README opens with the web front end, in light and dark mode, and shows every web dashboard. The Grafana
+  screenshots move to `docs/img/grafana/`, and `make screenshots` takes both sets (`scripts/web_screenshots.py`).
+- Movilidad shows one key figure per network: its stops with service go next to its scheduled departures.
 
 ### Fixed
 
@@ -510,7 +518,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.6.0...v0.7.0
