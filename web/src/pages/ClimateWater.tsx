@@ -6,7 +6,7 @@ import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
-import { monthName, monthShort, number } from "../lib/format";
+import { monthName, monthShort, number, orDash } from "../lib/format";
 import { buildKpi, HOT_DAYS_SPEC, type Kpi, RAIN_SPEC, WATER_SPECS } from "../lib/kpis";
 
 const SINCE = "2016-01-01";
@@ -20,7 +20,7 @@ function Reserves({ rows }: { rows: WaterReservesMonth[] }) {
     () => ({
       xAxis: { type: "category", data: rows.map((r) => monthShort(r.month)) },
       yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value} %" } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : `${number(v, 1)} %`) },
+      tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} %`) },
       series: [
         {
           name: "Reservas", type: "line", smooth: true, symbol: "none", data: rows.map((r) => r.reserves_pct),
@@ -57,7 +57,7 @@ function RainByYear({ rows }: { rows: ClimateMonth[] }) {
       color: ["#94a3b8", "#a3a3a3", "#65a30d", "#0891b2", "#2563eb"],
       xAxis: { type: "category", data: HYDRO_MONTHS },
       yAxis: { type: "value", axisLabel: { formatter: "{value} mm" } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : `${number(v, 0)} mm`) },
+      tooltip: { valueFormatter: orDash((v) => `${number(v, 0)} mm`) },
       series: [
         ...series,
         { name: "Normal", type: "line", symbol: "none", data: mean, color: "#15803d", lineStyle: { type: "dashed", width: 2 } },
@@ -73,7 +73,7 @@ function TemperatureAnomaly({ rows }: { rows: ClimateMonth[] }) {
       legend: { show: false },
       xAxis: { type: "category", data: rows.map((r) => monthShort(r.month)) },
       yAxis: { type: "value", axisLabel: { formatter: "{value} °C" } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : `${number(v, 2)} °C`) },
+      tooltip: { valueFormatter: orDash((v) => `${number(v, 2)} °C`) },
       series: [
         {
           name: "Anomalía", type: "bar",
@@ -97,7 +97,7 @@ function Aquifers({ rows }: { rows: Aquifer[] }) {
       grid: { left: 8, right: 24, top: 8, bottom: 8 },
       xAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value} %" } },
       yAxis: { type: "category", data: sorted.map((a) => a.aquifer), axisLabel: { fontSize: 11 } },
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v: number) => `${number(v, 0)} %` },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: orDash((v) => `${number(v, 0)} %`) },
       series: [
         {
           name: "Reservas", type: "bar", barWidth: "62%",

@@ -16,7 +16,7 @@ import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
-import { dayName, dayShort, number, signed } from "../lib/format";
+import { dayName, dayShort, number, orDash, signed } from "../lib/format";
 import { surface, TEMPERATURE_STOPS, temperatureColor } from "../lib/interpolate";
 import { describe, LEVELS, overlapping, zoneLevels } from "../lib/warnings";
 import type { Kpi } from "../lib/kpis";
@@ -87,7 +87,7 @@ function DailyTemperature({ days }: { days: WeatherSourceDay[] }) {
     return {
       xAxis: { type: "category", data: dates.map(dayShort) },
       yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value} °C" } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : `${number(v, 1)} °C`) },
+      tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} °C`) },
       series: sources.map((source) => ({
         name: days.find((d) => d.source === source)?.source_label ?? source,
         type: "line", smooth: true, symbol: "none", connectNulls: true,
@@ -104,7 +104,7 @@ function Waves({ hours }: { hours: SeaHour[] }) {
     return {
       xAxis: { type: "time", axisLabel: { formatter: (v: number) => dayShort(new Date(v).toISOString()) } },
       yAxis: { type: "value", axisLabel: { formatter: "{value} m" } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : `${number(v, 2)} m`) },
+      tooltip: { valueFormatter: orDash((v) => `${number(v, 2)} m`) },
       legend: { type: "scroll", top: 0, left: 0, right: 0 },
       series: points.map((point, i) => ({
         name: placeName(point), type: "line", symbol: "none", color: SERIES[i % SERIES.length],

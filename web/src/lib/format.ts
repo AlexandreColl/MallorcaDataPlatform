@@ -10,6 +10,14 @@ export function number(value: number, digits = 0): string {
   return value.toLocaleString("es-ES", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+/**
+ * A tooltip value formatter that shows "—" for a missing value. ECharts passes `undefined` (not `null`) for an empty
+ * month, and a formatter that throws stops the tooltip from updating until the page reloads.
+ */
+export function orDash(format: (value: number) => string): (value: unknown) => string {
+  return (value) => (typeof value === "number" && Number.isFinite(value) ? format(value) : "—");
+}
+
 /** 2.596.458 -> "2,6 M"; 619,5 -> "620". */
 export function compact(value: number): string {
   if (Math.abs(value) >= 1e6) return `${number(value / 1e6, 1)} M`;

@@ -7,7 +7,7 @@ import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
-import { compact, dayName, dayShort, number, signed } from "../lib/format";
+import { compact, dayName, dayShort, number, orDash, signed } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
 import { binColor, change, islandTotals, type Service, serviceByMunicipality } from "../lib/population";
 
@@ -166,7 +166,7 @@ function PopulationHistory({ rows }: { rows: PopulationYear[] }) {
     return {
       xAxis: { type: "category", data: totals.map((t) => String(t.year)) },
       yAxis: { type: "value", axisLabel: { formatter: compact } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : number(v)) },
+      tooltip: { valueFormatter: orDash((v) => number(v)) },
       series: [
         { name: "Palma", type: "bar", stack: "island", color: "#15803d", data: totals.map((t) => palma.get(t.year) ?? null) },
         {
@@ -186,7 +186,7 @@ function DailyCalls({ days }: { days: MobilityDay[] }) {
     return {
       xAxis: { type: "category", data: dates.map(dayShort) },
       yAxis: { type: "value", axisLabel: { formatter: compact } },
-      tooltip: { valueFormatter: (v: number | null) => (v === null ? "—" : number(v)) },
+      tooltip: { valueFormatter: orDash((v) => number(v)) },
       series: (Object.keys(NETWORKS) as (keyof typeof NETWORKS)[]).map((network) => ({
         name: NETWORKS[network].label, type: "bar", color: NETWORKS[network].color, barGap: "10%",
         itemStyle: { borderRadius: [3, 3, 0, 0] },
