@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deseasonalize, movingAverage, pearson, strength } from "./stats";
+import { deseasonalize, growthTrend, movingAverage, pearson, strength } from "./stats";
 
 describe("movingAverage", () => {
   it("cancels a yearly cycle and keeps the trend", () => {
@@ -55,5 +55,21 @@ describe("deseasonalize", () => {
 
     expect(pearson(tourists, water)?.r).toBeLessThan(-0.9);
     expect(Math.abs(pearson(deseasonalize(months, tourists), deseasonalize(months, water))?.r ?? 1)).toBeLessThan(0.5);
+  });
+});
+
+describe("growthTrend", () => {
+  it("recovers a steady growth of 2 % a year, with a missing year", () => {
+    const points = [1996, 1998, 1999, 2000, 2005].map((year) => ({ year, value: 1000 * 1.02 ** (year - 1996) }));
+    const trend = growthTrend(points);
+    expect(trend?.rate).toBeCloseTo(0.02, 10);
+    expect(trend?.at(1997)).toBeCloseTo(1020, 6);
+    expect(trend?.at(2010)).toBeCloseTo(1000 * 1.02 ** 14, 6);
+  });
+
+  it("is negative for a falling series and null without two years", () => {
+    expect(growthTrend([{ year: 2000, value: 100 }, { year: 2001, value: 90 }])?.rate).toBeCloseTo(-0.1);
+    expect(growthTrend([{ year: 2000, value: 100 }])).toBeNull();
+    expect(growthTrend([{ year: 2000, value: 100 }, { year: 2000, value: 120 }])).toBeNull();
   });
 });

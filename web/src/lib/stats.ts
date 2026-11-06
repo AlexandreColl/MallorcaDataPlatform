@@ -70,3 +70,32 @@ export function strength(r: number): string {
   if (size === "débil") return "Relación débil";
   return `Relación ${size} ${r > 0 ? "directa" : "inversa"}`;
 }
+
+export interface GrowthTrend {
+  /** Mean annual growth (0.012 = +1,2 % a year). */
+  rate: number;
+  /** The trend's value in a year. */
+  at: (year: number) => number;
+}
+
+/**
+ * Exponential trend of a yearly series, fitted by least squares on the logarithm: the mean annual growth, steady
+ * from the first year to the last. Years may be missing (there was no municipal register in 1997). Null with fewer
+ * than two positive values.
+ */
+export function growthTrend(points: { year: number; value: number }[]): GrowthTrend | null {
+  const valid = points.filter((p) => p.value > 0);
+  const n = valid.length;
+  if (n < 2) return null;
+  const meanX = valid.reduce((s, p) => s + p.year, 0) / n;
+  const meanY = valid.reduce((s, p) => s + Math.log(p.value), 0) / n;
+  let cov = 0;
+  let varX = 0;
+  for (const p of valid) {
+    cov += (p.year - meanX) * (Math.log(p.value) - meanY);
+    varX += (p.year - meanX) ** 2;
+  }
+  if (varX === 0) return null;
+  const slope = cov / varX;
+  return { rate: Math.exp(slope) - 1, at: (year) => Math.exp(meanY + slope * (year - meanX)) };
+}

@@ -4,6 +4,7 @@ import {
   type AirQualityNow,
   api,
   daysAgo,
+  type Municipality,
   type SeaHour,
   type StationDay,
   type WarningZone,
@@ -14,10 +15,20 @@ import { Async, Table } from "../components/Async";
 import { Chart, SERIES } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
-import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
+import { type MapArea, type MapImage, type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { dayName, dayShort, number, orDash, signed } from "../lib/format";
-import { surface, TEMPERATURE_STOPS, temperatureColor } from "../lib/interpolate";
+import {
+  type Bounds,
+  grid,
+  imageHeight,
+  ISLAND_BOUNDS,
+  mercatorY,
+  type Sample,
+  TEMPERATURE_STOPS,
+  temperatureColor,
+  temperatureRgb,
+} from "../lib/interpolate";
 import { describe, LEVELS, overlapping, zoneLevels } from "../lib/warnings";
 import type { Kpi } from "../lib/kpis";
 
@@ -123,19 +134,62 @@ const TEMPERATURE_FIELDS = {
 
 type TemperatureField = keyof typeof TEMPERATURE_FIELDS;
 
+/** Pixels across the temperature image: about 160 m each, fine enough that MapLibre's smoothing hides them. */
+const IMAGE_WIDTH = 640;
+
 /**
- * The temperature of the AEMET stations spread over the island: each cell takes the inverse-distance mean of the
+ * The interpolated temperatures as a PNG over the bounds, transparent outside the coastline: the pixels are painted
+ * first and then kept only where the municipalities are filled in.
+ */
+function temperatureImage(samples: Sample[], coast: [number, number][][], bounds: Bounds, min: number, max: number): string {
+  const [width, height] = [IMAGE_WIDTH, imageHeight(bounds, IMAGE_WIDTH)];
+  const values = grid(samples, bounds, width, height);
+  const pixels = new ImageData(width, height);
+  values.forEach((value, i) => {
+    const [r, g, b] = temperatureRgb(value, min, max);
+    pixels.data.set([r, g, b, 255], i * 4);
+  });
+  const painted = document.createElement("canvas");
+  [painted.width, painted.height] = [width, height];
+  painted.getContext("2d")?.putImageData(pixels, 0, 0);
+
+  const canvas = document.createElement("canvas");
+  [canvas.width, canvas.height] = [width, height];
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+  const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
+  context.beginPath();
+  for (const ring of coast) {
+    ring.forEach(([lon, lat], i) => {
+      const x = ((lon - bounds.west) / (bounds.east - bounds.west)) * width;
+      const y = ((top - mercatorY(lat)) / (top - bottom)) * height;
+      if (i === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.closePath();
+  }
+  context.fill();
+  // Keeps the painted temperatures only where the coastline was just filled.
+  context.globalCompositeOperation = "source-in";
+  context.drawImage(painted, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+/**
+ * The temperature of the AEMET stations spread over the island: every pixel takes the inverse-distance mean of the
  * stations, so the colours show the warm south and the cool Tramuntana between the points that were measured.
  */
-function TemperatureZones({ stations }: { stations: StationDay[] }) {
+function TemperatureZones({ stations, places }: { stations: StationDay[]; places: Municipality[] }) {
   const [field, setField] = useState<TemperatureField>("temperature_max");
-  const { samples, areas, layers, min, max } = useMemo(() => {
+  const { samples, image, layers, min, max } = useMemo(() => {
     const samples = stations
       .filter((s) => s[field] !== null)
       .map((s) => ({ lon: s.lon, lat: s.lat, value: s[field] as number, entity: s.entity }));
     const values = samples.map((s) => s.value);
     const [min, max] = [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
-    const areas: MapArea[] = surface(samples, 0.012).map((c) => ({ polygon: c.polygon, color: temperatureColor(c.value, min, max) }));
+    const coast = places.flatMap((p) => p.polygon);
+    const image: MapImage | undefined =
+      samples.length > 0 ? { url: temperatureImage(samples, coast, ISLAND_BOUNDS, min, max), ...ISLAND_BOUNDS } : undefined;
     const layers: MapLayer[] = [
       {
         id: "stations", label: "Estaciones", color: "#0a120d", radius: 4.5,
@@ -145,8 +199,8 @@ function TemperatureZones({ stations }: { stations: StationDay[] }) {
         })),
       },
     ];
-    return { samples, areas, layers, min, max };
-  }, [stations, field]);
+    return { samples, image, layers, min, max };
+  }, [stations, places, field]);
 
   if (samples.length === 0) return <p className="empty">Sin temperaturas para ese día.</p>;
   return (
@@ -158,7 +212,7 @@ function TemperatureZones({ stations }: { stations: StationDay[] }) {
           </button>
         ))}
       </div>
-      <PointMap layers={layers} areas={areas} height={480} />
+      <PointMap layers={layers} image={image} height={480} />
       <div className="gradient-scale">
         <span>{number(min)} °C</span>
         <span className="gradient-bar" style={{ background: `linear-gradient(90deg, ${TEMPERATURE_STOPS.join(", ")})` }} />
@@ -268,6 +322,7 @@ export function WeatherEnvironment() {
   }, [weather, air, sea, quakes]);
   const layers = useMemo(() => (air.status === "ready" ? airLayers(air.data) : []), [air]);
   const stations = useLoad(() => api.stations("aemet"));
+  const places = useLoad(api.municipalities);
   const warnings = useLoad(api.warnings);
   const zones = useLoad(api.warningZones);
   const stationDay = stations.status === "ready" && stations.data[0] ? ` (${dayName(stations.data[0].local_date)})` : "";
@@ -312,7 +367,9 @@ export function WeatherEnvironment() {
           subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas.`}
           wide
         >
-          <Async state={stations} height={480}>{(rows) => <TemperatureZones stations={rows} />}</Async>
+          <Async state={stations} height={480}>
+            {(rows) => <Async state={places} height={480}>{(p) => <TemperatureZones stations={rows} places={p} />}</Async>}
+          </Async>
         </Panel>
         <Panel title="Temperatura de los últimos 30 días" subtitle="Media diaria de la isla según cada fuente: estaciones oficiales frente al modelo.">
           <Async state={weather} height={300}>{(rows) => <DailyTemperature days={rows} />}</Async>
