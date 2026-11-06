@@ -13,7 +13,10 @@ Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mal
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
 parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo listo para analizar.
 
-![Dashboard de inicio en Grafana: indicadores del último mes y mapa con todas las fuentes de Mallorca](docs/img/inicio.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/web/inicio-oscuro.png">
+  <img alt="Inicio de la web: cinco cifras clave frente a lo normal de cada mes y el mapa de estaciones de Mallorca" src="docs/img/web/inicio.png">
+</picture>
 
 ```json
 {"connectors": ["open_meteo"], "days": 30, "region": "mallorca"}
@@ -21,15 +24,12 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 ## Arquitectura
 
-```mermaid
-flowchart LR
-    SRC["12 fuentes abiertas<br/>APIs, GTFS y ficheros"] -->|extract| BR[("bronze<br/>respuesta cruda")]
-    BR -->|"normalize + calidad<br/>(PySpark)"| SL[("silver<br/>esquema común")]
-    SL -->|"anomalías y<br/>correcciones"| AC[("silver.anomalies<br/>silver.corrections")]
-    SL & AC -->|dbt build| GD[("gold<br/>marts")]
-    GD --> GF[Grafana]
-    GD --> API[API REST] --> WEB[Web]
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Arquitectura: 14 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+</picture>
+
+El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
 
 Airflow orquesta cada flecha con el DAG `mallorca_pipeline`: una tarea `ingest` por conector, y después
 `detect_anomalies`, `correct_values` y `dbt_build`. Bronze vive en MinIO; silver, en una tabla Delta de MinIO y en
@@ -466,6 +466,14 @@ abre seis dashboards. Cada uno agrupa datos que van juntos, igual que las carpet
 En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala noticia, junto con la evolución de los
 últimos meses. Los mapas tienen capas que se pueden ocultar, y al pulsar un punto se ve qué es.
 
+| Turismo y recursos | Clima y agua |
+|---|---|
+| [![Turismo y recursos](docs/img/web/turismo-y-recursos.png)](docs/img/web/turismo-y-recursos.png) | [![Clima y agua](docs/img/web/clima-y-agua.png)](docs/img/web/clima-y-agua.png) |
+| **Movilidad** | **Tiempo y entorno** |
+| [![Movilidad](docs/img/web/movilidad.png)](docs/img/web/movilidad.png) | [![Tiempo y entorno](docs/img/web/tiempo-y-entorno.png)](docs/img/web/tiempo-y-entorno.png) |
+| **Operación** | **Modo oscuro** |
+| [![Operación](docs/img/web/operacion.png)](docs/img/web/operacion.png) | [![Inicio en modo oscuro](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) |
+
 Está hecha con React, TypeScript y Vite, con ECharts para los gráficos y MapLibre con teselas de OpenStreetMap para
 los mapas. El logo es la silueta de la isla. Tiene modo claro y oscuro, con un botón en el menú que se recuerda en el
 navegador, y en el móvil el menú pasa a ser un cajón.
@@ -494,15 +502,15 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, con sus anomalías como anotaciones, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
 | **Operación** | Salud de cada fuente, anomalías detectadas, correcciones (antes y después), ejecuciones, reglas de calidad y completitud de cada serie |
 
-| Turismo y recursos | Clima y agua |
+| Inicio | Turismo y recursos |
 |---|---|
-| [![Turismo y recursos](docs/img/turismo-y-recursos.png)](docs/img/turismo-y-recursos.png) | [![Clima y agua](docs/img/clima-y-agua.png)](docs/img/clima-y-agua.png) |
+| [![Inicio](docs/img/grafana/inicio.png)](docs/img/grafana/inicio.png) | [![Turismo y recursos](docs/img/grafana/turismo-y-recursos.png)](docs/img/grafana/turismo-y-recursos.png) |
+| **Clima y agua** | **Movilidad** |
+| [![Clima y agua](docs/img/grafana/clima-y-agua.png)](docs/img/grafana/clima-y-agua.png) | [![Movilidad](docs/img/grafana/movilidad.png)](docs/img/grafana/movilidad.png) |
 | **Tiempo y entorno** | **Operación** |
-| [![Tiempo y entorno](docs/img/tiempo-y-entorno.png)](docs/img/tiempo-y-entorno.png) | [![Operación](docs/img/operacion.png)](docs/img/operacion.png) |
+| [![Tiempo y entorno](docs/img/grafana/tiempo-y-entorno.png)](docs/img/grafana/tiempo-y-entorno.png) | [![Operación](docs/img/grafana/operacion.png)](docs/img/grafana/operacion.png) |
 
-[![Movilidad](docs/img/movilidad.png)](docs/img/movilidad.png)
-
-Las capturas se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
+Las capturas de la web y de Grafana se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
 
 La pregunta de fondo (¿aprieta el turismo al agua?) necesita cuidado: turismo, calor, demanda y reservas son
 estacionales a la vez, así que comparar meses tal cual solo enseña el calendario. Los paneles de evaluación comparan

@@ -78,7 +78,7 @@ export function Layout({ dashboards, current, children, version }: {
           {children}
         </main>
         <footer className="footer">
-          Datos abiertos de AEMET, SOCIB, EEA, REData, IGN, EMT, CTM, SEGITTUR, Govern de les Illes Balears y
+          Datos abiertos de AEMET, SOCIB, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, Govern de les Illes Balears y
           Open-Meteo. Mapa © OpenStreetMap.
         </footer>
       </div>

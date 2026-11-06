@@ -1,7 +1,7 @@
 """Screenshot every Grafana dashboard for the README (``make screenshots``).
 
 Runs in the official Playwright image against the local stack: each dashboard opens in kiosk mode at 1600 px wide,
-the viewport grows to the whole grid so every panel renders, and the PNG lands in ``docs/img/``.
+the viewport grows to the whole grid so every panel renders, and the PNG lands in ``docs/img/grafana/``.
 """
 
 import sys
@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 GRAFANA = "http://localhost:3000"
 WIDTH = 1600
-# uid -> file name in docs/img
+# uid -> file name in docs/img/grafana
 DASHBOARDS = {
     "mallorca-overview": "inicio",
     "mallorca-tourism-resources": "turismo-y-recursos",
@@ -46,4 +46,4 @@ def main(out_dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]) if len(sys.argv) > 1 else Path("docs/img"))
+    main(Path(sys.argv[1]) if len(sys.argv) > 1 else Path("docs/img/grafana"))
