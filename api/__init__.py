@@ -1,3 +1,3 @@
 """Read-only REST API over the gold layer of the warehouse (FastAPI)."""
 
-__version__ = "0.10.1"
+__version__ = "0.11.0"

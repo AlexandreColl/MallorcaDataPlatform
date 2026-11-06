@@ -1,5 +1,5 @@
-// A temperature surface over the island from scattered stations: inverse distance weighting on a grid of cells,
-// keeping only the cells inside the coastline.
+// A temperature surface over the island from scattered stations: inverse distance weighting on a fine grid of
+// pixels, drawn as an image over the map and clipped to the coastline.
 
 /** Simplified coastline of Mallorca (lon, lat), clockwise from the western tip; the logo is drawn from it too. */
 export const ISLAND: [number, number][] = [
@@ -26,7 +26,12 @@ export interface Sample {
   lon: number;
   lat: number;
   value: number;
+  /** Height above the sea in metres, for the altitude correction of `grid`. */
+  elevation?: number;
 }
+
+/** Standard lapse rate: the air cools about 6.5 °C for every kilometre up. */
+export const LAPSE_RATE = 0.0065;
 
 /** Inverse distance weighting: nearby stations weigh more (power 2); on top of a station, its own value. */
 export function idw(samples: Sample[], lon: number, lat: number, power = 2): number {
@@ -43,41 +48,95 @@ export function idw(samples: Sample[], lon: number, lat: number, power = 2): num
   return num / den;
 }
 
-export interface Cell {
-  polygon: [number, number][];
-  value: number;
+/** A box of longitudes and latitudes. */
+export interface Bounds {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
 }
 
-/** Square cells of `step` degrees over the island, each with the interpolated value at its centre. */
-export function surface(samples: Sample[], step = 0.02): Cell[] {
-  if (samples.length === 0) return [];
-  const lons = ISLAND.map(([x]) => x);
-  const lats = ISLAND.map(([, y]) => y);
-  const cells: Cell[] = [];
-  for (let lon = Math.min(...lons); lon < Math.max(...lons); lon += step) {
-    for (let lat = Math.min(...lats); lat < Math.max(...lats); lat += step) {
-      const [cx, cy] = [lon + step / 2, lat + step / 2];
-      if (!inside(cx, cy)) continue;
-      cells.push({
-        polygon: [[lon, lat], [lon + step, lat], [lon + step, lat + step], [lon, lat + step], [lon, lat]],
-        value: idw(samples, cx, cy),
-      });
+/** Mallorca with a margin of sea: the area of the temperature image. */
+export const ISLAND_BOUNDS: Bounds = { west: 2.3, south: 39.24, east: 3.5, north: 39.98 };
+
+/** Web Mercator y of a latitude, up to a constant scale: MapLibre stretches an image linearly in this projection. */
+export function mercatorY(lat: number): number {
+  return Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+}
+
+export function latitudeOf(y: number): number {
+  return ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI;
+}
+
+/** Image height that keeps the pixels square on the map for a given width. */
+export function imageHeight(bounds: Bounds, width: number): number {
+  const lonSpan = ((bounds.east - bounds.west) * Math.PI) / 180;
+  return Math.round((width * (mercatorY(bounds.north) - mercatorY(bounds.south))) / lonSpan);
+}
+
+/** Longitude and latitude of the centre of a pixel of a width × height image over the bounds (rows in Mercator). */
+export function pixelCenter(bounds: Bounds, width: number, height: number, col: number, row: number): [number, number] {
+  const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
+  return [
+    bounds.west + ((bounds.east - bounds.west) * (col + 0.5)) / width,
+    latitudeOf(top + ((bottom - top) * (row + 0.5)) / height),
+  ];
+}
+
+/** The pixel of a width × height image over the bounds that contains a point, or null outside the image. */
+export function pixelOf(bounds: Bounds, width: number, height: number, lon: number, lat: number): number | null {
+  const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
+  const col = Math.floor(((lon - bounds.west) / (bounds.east - bounds.west)) * width);
+  const row = Math.floor(((top - mercatorY(lat)) / (top - bottom)) * height);
+  return col < 0 || col >= width || row < 0 || row >= height ? null : row * width + col;
+}
+
+/**
+ * The interpolated value at the centre of every pixel of a width × height image over the bounds, row by row from
+ * the north. Rows are evenly spaced in Web Mercator, not in latitude, so the image lines up with the map.
+ *
+ * With the height of every pixel (`elevation`, metres) the stations are first brought down to the sea with the
+ * lapse rate, interpolated there and each pixel taken back up to its own height: a mountain station then cools the
+ * mountains around it and not the plain at its foot.
+ */
+export function grid(
+  samples: Sample[],
+  bounds: Bounds,
+  width: number,
+  height: number,
+  elevation?: Float64Array,
+): Float64Array {
+  const values = new Float64Array(width * height);
+  if (samples.length === 0) return values.fill(Number.NaN);
+  const above = (h: number | undefined) => Math.max(0, h ?? 0);
+  const atSea = elevation ? samples.map((s) => ({ ...s, value: s.value + LAPSE_RATE * above(s.elevation) })) : samples;
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const i = row * width + col;
+      const [lon, lat] = pixelCenter(bounds, width, height, col, row);
+      values[i] = idw(atSea, lon, lat) - (elevation ? LAPSE_RATE * above(elevation[i]) : 0);
     }
   }
-  return cells;
+  return values;
 }
 
 /** A diverging blue → yellow → red scale for temperatures between `min` and `max`. */
 const STOPS = ["#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c"];
 
-export function temperatureColor(value: number, min: number, max: number): string {
+/** The red, green and blue (0-255) of a temperature on the scale. */
+export function temperatureRgb(value: number, min: number, max: number): [number, number, number] {
   const t = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0.5;
   const pos = t * (STOPS.length - 1);
   const i = Math.min(STOPS.length - 2, Math.floor(pos));
   const mix = pos - i;
   const a = hex(STOPS[i] as string);
   const b = hex(STOPS[i + 1] as string);
-  return `rgb(${a.map((c, k) => Math.round(c + ((b[k] as number) - c) * mix)).join(", ")})`;
+  const [r, g, bl] = a.map((c, k) => Math.round(c + ((b[k] as number) - c) * mix)) as [number, number, number];
+  return [r, g, bl];
+}
+
+export function temperatureColor(value: number, min: number, max: number): string {
+  return `rgb(${temperatureRgb(value, min, max).join(", ")})`;
 }
 
 function hex(color: string): number[] {

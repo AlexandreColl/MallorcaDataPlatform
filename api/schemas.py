@@ -12,7 +12,7 @@ class Health(BaseModel):
 
     status: str = Field(examples=["ok"])
     database: str = Field(examples=["ok"], description="`ok` or `unavailable`")
-    version: str = Field(examples=["0.10.1"])
+    version: str = Field(examples=["0.11.0"])
 
 
 class Source(BaseModel):

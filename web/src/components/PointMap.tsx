@@ -91,10 +91,47 @@ function toGeoJson(layers: MapLayer[]): FeatureCollection {
   };
 }
 
-/** A filled polygon drawn under the points (a cell of an interpolated surface, a warning zone). */
+/** A filled polygon drawn under the points (a municipality, a warning zone). */
 export interface MapArea {
   polygon: [number, number][];
   color: string;
+  /** Lines of the popup shown on a click on the area (not on a point over it), as for a point. */
+  popup?: string[];
+  /** Identifies the area in `onAreaSelect` and `focus` (several polygons may share it). */
+  id?: string;
+}
+
+/** Lines drawn over the image and under the areas (contour lines, for instance). */
+export interface MapLines {
+  lines: [number, number][][];
+  color: string;
+}
+
+/** A picture stretched over a box of the map, under the areas and points (an interpolated surface). */
+export interface MapImage {
+  url: string;
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+interface PointMapProps {
+  layers: MapLayer[];
+  areas?: MapArea[];
+  image?: MapImage;
+  height?: number;
+  /** Opacity of the areas: lower when points are drawn over them. */
+  areaOpacity?: number;
+  /** Draws the border of each area. */
+  outline?: boolean;
+  lines?: MapLines;
+  /** Text of a small label that follows the cursor (e.g. the value of the image under it), or null for none. */
+  describe?: (lon: number, lat: number) => string | null;
+  /** The area to highlight and zoom to, by its id. */
+  focus?: string | null;
+  /** Called with the id of an area clicked outside any point. */
+  onAreaSelect?: (id: string) => void;
 }
 
 function areasGeoJson(areas: MapArea[]): FeatureCollection {
@@ -103,18 +140,57 @@ function areasGeoJson(areas: MapArea[]): FeatureCollection {
     features: areas.map((a) => ({
       type: "Feature" as const,
       geometry: { type: "Polygon" as const, coordinates: [a.polygon] },
-      properties: { color: a.color },
+      properties: { color: a.color, popup: a.popup ? JSON.stringify(a.popup) : null, id: a.id ?? null },
     })),
   };
 }
 
-export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLayer[]; areas?: MapArea[]; height?: number }) {
+function popupHtml(popup: unknown): string {
+  const [title, ...rest] = JSON.parse(String(popup)) as string[];
+  return `<strong>${escape(title ?? "")}</strong>${rest.map((l) => `<br/><span>${escape(l)}</span>`).join("")}`;
+}
+
+function linesGeoJson(lines: MapLines | undefined): FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: lines
+      ? [{ type: "Feature" as const, geometry: { type: "MultiLineString" as const, coordinates: lines.lines }, properties: {} }]
+      : [],
+  };
+}
+
+const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
+
+/** The polygons of an area by its id, to highlight it. */
+function focusGeoJson(areas: MapArea[], id: string | null | undefined): FeatureCollection {
+  if (!id) return EMPTY;
+  return areasGeoJson(areas.filter((a) => a.id === id));
+}
+
+export function PointMap({
+  layers,
+  areas = [],
+  image,
+  height = 480,
+  areaOpacity,
+  outline = false,
+  lines,
+  describe,
+  focus,
+  onAreaSelect,
+}: PointMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const { theme } = useTheme();
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [label, setLabel] = useState<{ x: number; y: number; text: string } | null>(null);
   const data = useMemo(() => toGeoJson(layers), [layers]);
   const areaData = useMemo(() => areasGeoJson(areas), [areas]);
+  const lineData = useMemo(() => linesGeoJson(lines), [lines]);
+  const focusData = useMemo(() => focusGeoJson(areas, focus), [areas, focus]);
+  // Read by the map's own handlers, which are bound once per map: changing them must not rebuild the map.
+  const handlers = useRef({ describe, onAreaSelect, focusData });
+  handlers.current = { describe, onAreaSelect, focusData };
 
   useEffect(() => {
     if (!container.current) return;
@@ -129,15 +205,79 @@ export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLaye
       locale: LOCALE,
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    const pointLayers = layers.map((layer) => `points-${layer.id}`);
     const setup = () => {
+      if (image) {
+        instance.addSource("image", {
+          type: "image",
+          url: image.url,
+          coordinates: [
+            [image.west, image.north],
+            [image.east, image.north],
+            [image.east, image.south],
+            [image.west, image.south],
+          ],
+        });
+        instance.addLayer({
+          id: "image",
+          type: "raster",
+          source: "image",
+          paint: { "raster-opacity": dark ? 0.7 : 0.8, "raster-resampling": "linear", "raster-fade-duration": 0 },
+        });
+      }
+      if (lineData.features.length > 0 && lines) {
+        instance.addSource("lines", { type: "geojson", data: lineData });
+        instance.addLayer({
+          id: "lines",
+          type: "line",
+          source: "lines",
+          paint: { "line-color": lines.color, "line-opacity": 0.55, "line-width": 0.8 },
+        });
+      }
       if (areaData.features.length > 0) {
         instance.addSource("areas", { type: "geojson", data: areaData });
         instance.addLayer({
           id: "areas",
           type: "fill",
           source: "areas",
-          paint: { "fill-color": ["get", "color"], "fill-opacity": dark ? 0.6 : 0.7, "fill-antialias": false },
+          paint: {
+            "fill-color": ["get", "color"],
+            "fill-opacity": areaOpacity ?? (dark ? 0.6 : 0.7),
+            "fill-antialias": false,
+          },
         });
+        if (outline) {
+          instance.addLayer({
+            id: "areas-outline",
+            type: "line",
+            source: "areas",
+            paint: { "line-color": dark ? "#e5e7eb" : "#1f2937", "line-opacity": 0.35, "line-width": 0.6 },
+          });
+        }
+        instance.addSource("focus", { type: "geojson", data: handlers.current.focusData });
+        instance.addLayer({
+          id: "focus",
+          type: "line",
+          source: "focus",
+          paint: { "line-color": dark ? "#fde047" : "#0a120d", "line-width": 2.5 },
+        });
+        instance.on("click", "areas", (event) => {
+          const feature = event.features?.[0];
+          if (!feature) return;
+          // A point over the area has its own popup.
+          const visible = pointLayers.filter((id) => instance.getLayer(id));
+          if (instance.queryRenderedFeatures(event.point, { layers: visible }).length > 0) return;
+          if (feature.properties.id) handlers.current.onAreaSelect?.(String(feature.properties.id));
+          if (!feature.properties.popup) return;
+          new maplibregl.Popup({ closeButton: false })
+            .setLngLat(event.lngLat)
+            .setHTML(popupHtml(feature.properties.popup))
+            .addTo(instance);
+        });
+        if (areas.some((a) => a.popup)) {
+          instance.on("mouseenter", "areas", () => (instance.getCanvas().style.cursor = "pointer"));
+          instance.on("mouseleave", "areas", () => (instance.getCanvas().style.cursor = ""));
+        }
       }
       instance.addSource("points", { type: "geojson", data });
       // The first layer is drawn last, on top of the others.
@@ -168,10 +308,9 @@ export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLaye
         instance.on("click", id, (event) => {
           const feature = event.features?.[0];
           if (!feature || feature.geometry.type !== "Point") return;
-          const [title, ...rest] = JSON.parse(String(feature.properties.popup)) as string[];
           new maplibregl.Popup({ closeButton: false, offset: 8 })
             .setLngLat(feature.geometry.coordinates as [number, number])
-            .setHTML(`<strong>${escape(title ?? "")}</strong>${rest.map((l) => `<br/><span>${escape(l)}</span>`).join("")}`)
+            .setHTML(popupHtml(feature.properties.popup))
             .addTo(instance);
         });
         instance.on("mouseenter", id, () => (instance.getCanvas().style.cursor = "pointer"));
@@ -187,13 +326,46 @@ export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLaye
     };
     instance.on("styledata", addOnce);
     instance.once("load", addOnce);
+    instance.on("mousemove", (event) => {
+      const text = handlers.current.describe?.(event.lngLat.lng, event.lngLat.lat) ?? null;
+      setLabel(text === null ? null : { x: event.point.x, y: event.point.y, text });
+    });
+    instance.on("mouseout", () => setLabel(null));
     map.current = instance;
     return () => {
       instance.remove();
       map.current = null;
     };
     // Rebuilt when the theme changes (basemap and strokes) or the layers do.
-  }, [theme, data, layers, areaData]);
+  }, [theme, data, layers, areaData, areas, image, areaOpacity, outline, lineData, lines]);
+
+  // The highlighted area changes without rebuilding the map, and the map flies to it (and back to the island).
+  const zoomed = useRef(false);
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance) return;
+    const apply = () => {
+      (instance.getSource("focus") as GeoJSONSource | undefined)?.setData(focusData);
+      const points = focusData.features.flatMap((f) => (f.geometry.type === "Polygon" ? f.geometry.coordinates.flat() : []));
+      if (points.length === 0) {
+        if (zoomed.current) instance.fitBounds(MALLORCA, { padding: 16, duration: 600 });
+        zoomed.current = false;
+        return;
+      }
+      zoomed.current = true;
+      const lons = points.map((p) => p[0] as number);
+      const lats = points.map((p) => p[1] as number);
+      instance.fitBounds(
+        [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)],
+        ],
+        { padding: 60, maxZoom: 12, duration: 600 },
+      );
+    };
+    if (instance.getSource("focus")) apply();
+    else instance.once("idle", apply);
+  }, [focusData]);
 
   useEffect(() => {
     const instance = map.current;
@@ -220,6 +392,11 @@ export function PointMap({ layers, areas = [], height = 480 }: { layers: MapLaye
   return (
     <div className="map-wrap">
       <div ref={container} className="map" style={{ minHeight: height }} aria-label="Mapa" />
+      {label && (
+        <div className="map-label" style={{ left: label.x, top: label.y }} aria-hidden="true">
+          {label.text}
+        </div>
+      )}
       {layers.length > 1 && (
         <div className="legend" role="group" aria-label="Capas del mapa">
           {layers.map(({ id, label, color, points }) => (

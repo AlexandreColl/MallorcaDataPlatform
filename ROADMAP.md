@@ -17,7 +17,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | WSL2 con Debian 13 (trixie) |
 | ✅ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
 | ✅ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`gh`) |
-| ⬜ | Confirmar **Grafana** como visor principal (implementado como propuesta en v0.1) |
+| ✅ | Visor principal: la web (v0.9) para el público y **Grafana** para la operación de la plataforma |
 | ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`; demanda horaria, generación y CO₂ diarios |
 | ✅ | Probar SOCIB → API abierta, 1.598 fuentes, **estaciones activas en Mallorca** (p. ej. `Mobims_CalaMillor`) |
 | ✅ | Probar USGS → **0 eventos** en 12 meses en la zona; sustituir por IGN (ver Fase 4) |
@@ -40,7 +40,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | Release automática por tag + imagen en GHCR |
 | ✅ | **Primer `docker compose up` real** y `make e2e` en verde (fixes: jar S3A analytics accelerator, mapa OSM en Grafana) |
 | ✅ | Primer push a GitHub, CI en verde, release `v0.1.0` |
-| ⬜ | Captura del dashboard en el README |
+| ✅ | Captura del dashboard en el README |
 
 ## Fase 2 · v0.2.x — Más conectores (uno por PR)
 
@@ -156,6 +156,17 @@ despliegue real con su coste medido.
 | ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
 | ✅ | **Frontal web** (`web/`, http://localhost:3002): portada con cinco cifras clave frente a lo normal de cada mes, mapa de estaciones, puntos de modelo y paradas, y estado de las fuentes. React + Vite + ECharts + MapLibre, solo lee la API ([ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md)) |
 | ✅ | Seis dashboards en la web con un menú lateral (inicio, turismo y recursos, clima y agua, movilidad, tiempo y entorno, operación), modo claro y oscuro con botón, logo con la silueta de la isla y diez endpoints nuevos en la API |
+| ✅ | Tendencias de 12 meses y correlaciones de Pearson (con y sin el ciclo anual) en turismo y recursos, temperatura por zonas interpolada y mapa de calidad del aire más grande |
+| ✅ | Avisos de AEMET por zona (conector `aemet_warnings`) y población por municipio del padrón del INE (`ine_population`, frecuencia anual `1y`), con su mapa en la web |
+| ✅ | Diagrama de arquitectura en claro y oscuro generado desde código, y capturas de la web en el README (`make screenshots`) |
+| ✅ | Movilidad: un solo mapa con las paradas de cada red sobre los municipios, un selector para colorearlos (densidad, servicio por habitante, crecimiento o sin color) y la ficha del municipio o de la parada al pulsar |
+| ✅ | Movilidad: línea de tendencia sobre las barras de la población de Mallorca desde 1996, con el crecimiento medio anual (ajuste exponencial) |
+| ✅ | Tiempo y entorno: temperatura por zonas suave, una imagen interpolada píxel a píxel (unos 160 m) en lugar de celdas cuadradas, recortada con los límites municipales |
+| ✅ | Tiempo y entorno: temperatura corregida por la altitud (gradiente de 6,5 °C/km con el relieve abierto de Mapzen Terrain Tiles), isotermas cada grado y la temperatura y la altura bajo el cursor |
+| ✅ | Movilidad: mapa, tabla y gráfico enlazados por municipio (pulsar en uno lo resalta en los otros), población de cualquier municipio y tendencia en uno o dos tramos con la proyección a 2030 y su intervalo del 95 % |
+| ⬜ | Tiempo y entorno: elegir el día de la temperatura por zonas (la API solo devuelve el último; añadir `date` a `/v1/weather/stations`) |
+| ⬜ | Movilidad: recorridos de las líneas desde `shapes.txt` del GTFS (una geometría no encaja en el silver largo: necesita su propio diseño) |
+| ⬜ | Conector del **Indicador de Presión Humana** del Ibestat (población real presente por isla y día): residentes más turistas en la web |
 | ⬜ | Explorador de series en la web: elegir fuente, ubicación y métrica, con sus anomalías y correcciones |
 | ⬜ | Nombres de las paradas y estaciones en silver (hoy solo el identificador: `stop_452`, `B228`) |
 | ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |

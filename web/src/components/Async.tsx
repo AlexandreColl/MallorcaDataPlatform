@@ -19,11 +19,16 @@ export interface Column<Row> {
   numeric?: boolean;
 }
 
-/** A compact table; numeric columns are right-aligned with tabular figures. */
-export function Table<Row>({ rows, columns, empty = "Sin datos" }: {
+/**
+ * A compact table; numeric columns are right-aligned with tabular figures. With `onSelect`, a click (or Enter) on
+ * a row selects it, and `selected` marks the selected one.
+ */
+export function Table<Row>({ rows, columns, empty = "Sin datos", onSelect, selected }: {
   rows: Row[];
   columns: Column<Row>[];
   empty?: string;
+  onSelect?: (row: Row) => void;
+  selected?: (row: Row) => boolean;
 }) {
   if (rows.length === 0) return <p className="empty">{empty}</p>;
   return (
@@ -40,7 +45,14 @@ export function Table<Row>({ rows, columns, empty = "Sin datos" }: {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i}>
+            <tr
+              key={i}
+              className={[onSelect ? "selectable" : "", selected?.(row) ? "selected" : ""].join(" ").trim() || undefined}
+              aria-selected={onSelect ? (selected?.(row) ?? false) : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              onClick={onSelect ? () => onSelect(row) : undefined}
+              onKeyDown={onSelect ? (e) => e.key === "Enter" && onSelect(row) : undefined}
+            >
               {columns.map((c) => (
                 <td key={c.label} className={c.numeric ? "num" : undefined}>
                   {c.value(row)}
