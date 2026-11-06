@@ -26,7 +26,12 @@ export interface Sample {
   lon: number;
   lat: number;
   value: number;
+  /** Height above the sea in metres, for the altitude correction of `grid`. */
+  elevation?: number;
 }
+
+/** Standard lapse rate: the air cools about 6.5 °C for every kilometre up. */
+export const LAPSE_RATE = 0.0065;
 
 /** Inverse distance weighting: nearby stations weigh more (power 2); on top of a station, its own value. */
 export function idw(samples: Sample[], lon: number, lat: number, power = 2): number {
@@ -59,7 +64,7 @@ export function mercatorY(lat: number): number {
   return Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
 }
 
-function latitudeOf(y: number): number {
+export function latitudeOf(y: number): number {
   return ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI;
 }
 
@@ -69,19 +74,47 @@ export function imageHeight(bounds: Bounds, width: number): number {
   return Math.round((width * (mercatorY(bounds.north) - mercatorY(bounds.south))) / lonSpan);
 }
 
+/** Longitude and latitude of the centre of a pixel of a width × height image over the bounds (rows in Mercator). */
+export function pixelCenter(bounds: Bounds, width: number, height: number, col: number, row: number): [number, number] {
+  const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
+  return [
+    bounds.west + ((bounds.east - bounds.west) * (col + 0.5)) / width,
+    latitudeOf(top + ((bottom - top) * (row + 0.5)) / height),
+  ];
+}
+
+/** The pixel of a width × height image over the bounds that contains a point, or null outside the image. */
+export function pixelOf(bounds: Bounds, width: number, height: number, lon: number, lat: number): number | null {
+  const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
+  const col = Math.floor(((lon - bounds.west) / (bounds.east - bounds.west)) * width);
+  const row = Math.floor(((top - mercatorY(lat)) / (top - bottom)) * height);
+  return col < 0 || col >= width || row < 0 || row >= height ? null : row * width + col;
+}
+
 /**
  * The interpolated value at the centre of every pixel of a width × height image over the bounds, row by row from
  * the north. Rows are evenly spaced in Web Mercator, not in latitude, so the image lines up with the map.
+ *
+ * With the height of every pixel (`elevation`, metres) the stations are first brought down to the sea with the
+ * lapse rate, interpolated there and each pixel taken back up to its own height: a mountain station then cools the
+ * mountains around it and not the plain at its foot.
  */
-export function grid(samples: Sample[], bounds: Bounds, width: number, height: number): Float64Array {
+export function grid(
+  samples: Sample[],
+  bounds: Bounds,
+  width: number,
+  height: number,
+  elevation?: Float64Array,
+): Float64Array {
   const values = new Float64Array(width * height);
   if (samples.length === 0) return values.fill(Number.NaN);
-  const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
+  const above = (h: number | undefined) => Math.max(0, h ?? 0);
+  const atSea = elevation ? samples.map((s) => ({ ...s, value: s.value + LAPSE_RATE * above(s.elevation) })) : samples;
   for (let row = 0; row < height; row++) {
-    const lat = latitudeOf(top + ((bottom - top) * (row + 0.5)) / height);
     for (let col = 0; col < width; col++) {
-      const lon = bounds.west + ((bounds.east - bounds.west) * (col + 0.5)) / width;
-      values[row * width + col] = idw(samples, lon, lat);
+      const i = row * width + col;
+      const [lon, lat] = pixelCenter(bounds, width, height, col, row);
+      values[i] = idw(atSea, lon, lat) - (elevation ? LAPSE_RATE * above(elevation[i]) : 0);
     }
   }
   return values;

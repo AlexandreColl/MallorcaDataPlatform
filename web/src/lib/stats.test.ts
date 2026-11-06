@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deseasonalize, growthTrend, movingAverage, pearson, strength } from "./stats";
+import { deseasonalize, growthTrend, movingAverage, pearson, segmentedTrend, strength } from "./stats";
 
 describe("movingAverage", () => {
   it("cancels a yearly cycle and keeps the trend", () => {
@@ -71,5 +71,35 @@ describe("growthTrend", () => {
     expect(growthTrend([{ year: 2000, value: 100 }, { year: 2001, value: 90 }])?.rate).toBeCloseTo(-0.1);
     expect(growthTrend([{ year: 2000, value: 100 }])).toBeNull();
     expect(growthTrend([{ year: 2000, value: 100 }, { year: 2000, value: 120 }])).toBeNull();
+  });
+});
+
+describe("growthTrend interval", () => {
+  it("holds the trend and widens away from the years of the fit", () => {
+    const noisy = [100, 103, 101, 106, 104, 109, 107].map((value, i) => ({ year: 2000 + i, value }));
+    const trend = growthTrend(noisy);
+    const [lo, hi] = trend?.interval(2003) ?? [0, 0];
+    expect(lo).toBeLessThan(trend?.at(2003) ?? 0);
+    expect(hi).toBeGreaterThan(trend?.at(2003) ?? 0);
+    const [lo2, hi2] = trend?.interval(2015) ?? [0, 0];
+    expect(hi2 - lo2).toBeGreaterThan(hi - lo);
+  });
+});
+
+describe("segmentedTrend", () => {
+  it("finds where a fast growth slows down", () => {
+    const points = Array.from({ length: 24 }, (_, i) => ({
+      year: 2000 + i,
+      value: i < 12 ? 1000 * 1.03 ** i : 1000 * 1.03 ** 11 * 1.005 ** (i - 11),
+    }));
+    const [before, after] = segmentedTrend(points);
+    expect(before?.to).toBe(2011);
+    expect(before?.rate).toBeCloseTo(0.03, 3);
+    expect(after?.rate).toBeCloseTo(0.005, 3);
+  });
+
+  it("keeps one stretch for a steady series", () => {
+    const steady = Array.from({ length: 20 }, (_, i) => ({ year: 2000 + i, value: 500 * 1.01 ** i * (1 + 0.002 * (-1) ** i) }));
+    expect(segmentedTrend(steady)).toHaveLength(1);
   });
 });

@@ -47,6 +47,20 @@ describe("grid", () => {
     expect(imageHeight(ISLAND_BOUNDS, 600) / 600).toBeCloseTo(0.8, 1);
   });
 
+  it("corrects for altitude: a mountain station does not cool the plain, and the mountain is cooler", () => {
+    // Both stations have the same air brought to the sea: 20 °C at sea level, 13.5 °C at 1,000 m.
+    const samples = [
+      { lon: 2.2, lat: 39.5, value: 20, elevation: 0 },
+      { lon: 2.8, lat: 39.5, value: 13.5, elevation: 1000 },
+    ];
+    const flat = new Float64Array(20 * 10);
+    expect([...grid(samples, bounds, 20, 10, flat)].every((v) => Math.abs(v - 20) < 1e-9)).toBe(true);
+    const mountain = new Float64Array(20 * 10).fill(500);
+    expect([...grid(samples, bounds, 20, 10, mountain)].every((v) => Math.abs(v - 16.75) < 1e-9)).toBe(true);
+    // Without heights, the plain between them is pulled down by the mountain station.
+    expect(Math.min(...grid(samples, bounds, 20, 10))).toBeLessThan(15);
+  });
+
   it("is empty (not a number) without stations", () => {
     expect(Number.isNaN(grid([], bounds, 2, 2)[0])).toBe(true);
   });

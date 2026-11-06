@@ -487,6 +487,22 @@ main,
   flex-direction: column;
 }
 
+/* The value under the cursor (temperature map): a small label next to it. */
+.map-label {
+  position: absolute;
+  transform: translate(12px, -50%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .map {
   flex: 1;
   border-radius: 10px;
@@ -815,4 +831,49 @@ tr:last-child td {
   .panel {
     padding: 16px;
   }
+}
+
+/* Tables whose rows select something (a municipality on the Movilidad map). */
+tr.selectable {
+  cursor: pointer;
+}
+
+tr.selectable:hover td {
+  background: var(--surface-2);
+}
+
+tr.selected td {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+tr.selectable:focus-visible {
+  outline: 2px solid var(--accent, #15803d);
+  outline-offset: -2px;
+}
+
+/* A labelled drop-down above a chart (the municipality of the population chart). */
+.select-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+/* A line of explanation under a map scale. */
+.map-note {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
 }

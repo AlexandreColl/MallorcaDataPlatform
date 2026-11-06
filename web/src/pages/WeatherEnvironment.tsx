@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   type AirQualityNow,
@@ -15,16 +15,19 @@ import { Async, Table } from "../components/Async";
 import { Chart, SERIES } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
-import { type MapArea, type MapImage, type MapLayer, PointMap } from "../components/PointMap";
+import { type MapArea, type MapImage, type MapLayer, type MapLines, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { dayName, dayShort, number, orDash, signed } from "../lib/format";
+import { blur, contourLevels, contours } from "../lib/contours";
+import { type Elevation, loadElevation } from "../lib/elevation";
 import {
   type Bounds,
   grid,
   imageHeight,
   ISLAND_BOUNDS,
   mercatorY,
-  type Sample,
+  pixelCenter,
+  pixelOf,
   TEMPERATURE_STOPS,
   temperatureColor,
   temperatureRgb,
@@ -136,14 +139,20 @@ type TemperatureField = keyof typeof TEMPERATURE_FIELDS;
 
 /** Pixels across the temperature image: about 160 m each, fine enough that MapLibre's smoothing hides them. */
 const IMAGE_WIDTH = 640;
+const IMAGE_HEIGHT = imageHeight(ISLAND_BOUNDS, IMAGE_WIDTH);
 
 /**
- * The interpolated temperatures as a PNG over the bounds, transparent outside the coastline: the pixels are painted
- * first and then kept only where the municipalities are filled in.
+ * The interpolated temperatures as a PNG over the bounds, transparent outside the coastline, and which pixels are
+ * on land: the pixels are painted first and then kept only where the municipalities are filled in.
  */
-function temperatureImage(samples: Sample[], coast: [number, number][][], bounds: Bounds, min: number, max: number): string {
-  const [width, height] = [IMAGE_WIDTH, imageHeight(bounds, IMAGE_WIDTH)];
-  const values = grid(samples, bounds, width, height);
+function temperatureImage(
+  values: Float64Array,
+  coast: [number, number][][],
+  bounds: Bounds,
+  min: number,
+  max: number,
+): { url: string; land: Uint8Array } {
+  const [width, height] = [IMAGE_WIDTH, IMAGE_HEIGHT];
   const pixels = new ImageData(width, height);
   values.forEach((value, i) => {
     const [r, g, b] = temperatureRgb(value, min, max);
@@ -155,8 +164,9 @@ function temperatureImage(samples: Sample[], coast: [number, number][][], bounds
 
   const canvas = document.createElement("canvas");
   [canvas.width, canvas.height] = [width, height];
-  const context = canvas.getContext("2d");
-  if (!context) return "";
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const land = new Uint8Array(width * height);
+  if (!context) return { url: "", land };
   const [top, bottom] = [mercatorY(bounds.north), mercatorY(bounds.south)];
   context.beginPath();
   for (const ring of coast) {
@@ -169,40 +179,103 @@ function temperatureImage(samples: Sample[], coast: [number, number][][], bounds
     context.closePath();
   }
   context.fill();
+  // Pixels at least half covered by the coastline count as land (for the isotherms and the value under the cursor).
+  const alpha = context.getImageData(0, 0, width, height).data;
+  for (let i = 0; i < land.length; i++) land[i] = (alpha[i * 4 + 3] as number) >= 128 ? 1 : 0;
   // Keeps the painted temperatures only where the coastline was just filled.
   context.globalCompositeOperation = "source-in";
   context.drawImage(painted, 0, 0);
-  return canvas.toDataURL("image/png");
+  return { url: canvas.toDataURL("image/png"), land };
+}
+
+/** Isotherms in longitude and latitude: the pixel coordinates of the contours are pixel centres. */
+function isotherms(values: Float64Array, land: Uint8Array, min: number, max: number): [number, number][][] {
+  const toLonLat = ([x, y]: [number, number]): [number, number] => {
+    const [lon0, lat0] = pixelCenter(ISLAND_BOUNDS, IMAGE_WIDTH, IMAGE_HEIGHT, Math.floor(x), Math.floor(y));
+    const [lon1, lat1] = pixelCenter(ISLAND_BOUNDS, IMAGE_WIDTH, IMAGE_HEIGHT, Math.floor(x) + 1, Math.floor(y) + 1);
+    return [lon0 + (lon1 - lon0) * (x % 1), lat0 + (lat1 - lat0) * (y % 1)];
+  };
+  // On a blurred copy (about 500 m): the lines follow the shape of the relief, not every gully.
+  const smooth = blur(values, IMAGE_WIDTH, IMAGE_HEIGHT, 3);
+  return contours(smooth, IMAGE_WIDTH, IMAGE_HEIGHT, contourLevels(min, max), land).flatMap((c) =>
+    c.segments.map(([a, b]) => [toLonLat(a), toLonLat(b)]),
+  );
 }
 
 /**
- * The temperature of the AEMET stations spread over the island: every pixel takes the inverse-distance mean of the
- * stations, so the colours show the warm south and the cool Tramuntana between the points that were measured.
+ * The relief under the temperature image, from the open Terrarium tiles: null while it loads, "failed" when they
+ * cannot be read (the map then interpolates without the altitude correction).
+ */
+function useElevation(): Elevation | null | "failed" {
+  const [elevation, setElevation] = useState<Elevation | null | "failed">(null);
+  useEffect(() => {
+    let alive = true;
+    loadElevation(ISLAND_BOUNDS, IMAGE_WIDTH, IMAGE_HEIGHT)
+      .then((e) => alive && setElevation(e))
+      .catch(() => alive && setElevation("failed"));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return elevation;
+}
+
+/**
+ * The temperature of the AEMET stations spread over the island. Every station is brought down to the sea with the
+ * lapse rate (6.5 °C per km), the inverse-distance mean is taken there and every pixel goes back up to the height
+ * of its ground: the colours show the warm south and the cold summits of the Tramuntana, not just rings around
+ * the stations. Isotherms every degree, and the value under the cursor.
  */
 function TemperatureZones({ stations, places }: { stations: StationDay[]; places: Municipality[] }) {
   const [field, setField] = useState<TemperatureField>("temperature_max");
-  const { samples, image, layers, min, max } = useMemo(() => {
+  const elevation = useElevation();
+  const relief = elevation !== null && elevation !== "failed" ? elevation : null;
+  const surface = useMemo(() => {
+    if (elevation === null) return null; // waits for the relief rather than drawing the map twice
     const samples = stations
       .filter((s) => s[field] !== null)
-      .map((s) => ({ lon: s.lon, lat: s.lat, value: s[field] as number, entity: s.entity }));
-    const values = samples.map((s) => s.value);
-    const [min, max] = [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
+      .map((s) => ({
+        lon: s.lon, lat: s.lat, value: s[field] as number, entity: s.entity,
+        elevation: relief ? Math.max(0, relief.at(s.lon, s.lat)) : undefined,
+      }));
+    const measured = samples.map((s) => s.value);
+    const [min, max] = [Math.floor(Math.min(...measured)), Math.ceil(Math.max(...measured))];
     const coast = places.flatMap((p) => p.polygon);
-    const image: MapImage | undefined =
-      samples.length > 0 ? { url: temperatureImage(samples, coast, ISLAND_BOUNDS, min, max), ...ISLAND_BOUNDS } : undefined;
+    const values = grid(samples, ISLAND_BOUNDS, IMAGE_WIDTH, IMAGE_HEIGHT, relief?.values);
+    const painted = samples.length > 0 ? temperatureImage(values, coast, ISLAND_BOUNDS, min, max) : null;
+    const image: MapImage | undefined = painted ? { url: painted.url, ...ISLAND_BOUNDS } : undefined;
+    const lines: MapLines | undefined = painted
+      ? { lines: isotherms(values, painted.land, min, max), color: "#0a120d" }
+      : undefined;
     const layers: MapLayer[] = [
       {
         id: "stations", label: "Estaciones", color: "#0a120d", radius: 4.5,
         points: samples.map((s) => ({
           lat: s.lat, lon: s.lon, color: temperatureColor(s.value, min, max),
-          popup: [s.entity, `${TEMPERATURE_FIELDS[field]}: ${number(s.value, 1)} °C`],
+          popup: [
+            s.entity,
+            `${TEMPERATURE_FIELDS[field]}: ${number(s.value, 1)} °C`,
+            ...(s.elevation === undefined ? [] : [`${number(s.elevation)} m de altitud`]),
+          ],
         })),
       },
     ];
-    return { samples, image, layers, min, max };
-  }, [stations, places, field]);
+    return { samples, values, land: painted?.land, image, lines, layers, min, max };
+  }, [stations, places, field, elevation, relief]);
 
-  if (samples.length === 0) return <p className="empty">Sin temperaturas para ese día.</p>;
+  const describe = useCallback(
+    (lon: number, lat: number) => {
+      if (!surface?.land) return null;
+      const i = pixelOf(ISLAND_BOUNDS, IMAGE_WIDTH, IMAGE_HEIGHT, lon, lat);
+      if (i === null || !surface.land[i]) return null;
+      const height = relief ? ` · ${number(Math.max(0, relief.values[i] as number))} m` : "";
+      return `${number(surface.values[i] as number, 1)} °C${height}`;
+    },
+    [surface, relief],
+  );
+
+  if (surface === null) return <div className="block skeleton" style={{ height: 520 }} aria-busy="true" />;
+  if (surface.samples.length === 0) return <p className="empty">Sin temperaturas para ese día.</p>;
   return (
     <>
       <div className="segmented" role="group" aria-label="Temperatura">
@@ -212,12 +285,18 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
           </button>
         ))}
       </div>
-      <PointMap layers={layers} image={image} height={480} />
+      <PointMap layers={surface.layers} image={surface.image} lines={surface.lines} describe={describe} height={480} />
       <div className="gradient-scale">
-        <span>{number(min)} °C</span>
+        <span>{number(surface.min)} °C</span>
         <span className="gradient-bar" style={{ background: `linear-gradient(90deg, ${TEMPERATURE_STOPS.join(", ")})` }} />
-        <span>{number(max)} °C</span>
+        <span>{number(surface.max)} °C</span>
       </div>
+      <p className="map-note">
+        Isotermas cada {surface.max - surface.min > 12 ? 2 : 1} °C.{" "}
+        {elevation === "failed"
+          ? "Sin corrección por altitud: no se pudo cargar el relieve."
+          : "Corregido por la altitud del terreno (relieve de Mapzen Terrain Tiles); pasa el cursor para ver la temperatura y la altura."}
+      </p>
     </>
   );
 }
@@ -364,7 +443,7 @@ export function WeatherEnvironment() {
         </Panel>
         <Panel
           title="Temperatura por zonas"
-          subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas.`}
+          subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas y corregido por la altitud.`}
           wide
         >
           <Async state={stations} height={480}>

@@ -13,6 +13,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Web, Movilidad: the population of Mallorca since 1996 has a dashed trend line with the mean annual growth.
 - Web, Tiempo y entorno: the temperature by zone is smooth. It was square cells of about 1 km; it is now an image
   interpolated pixel by pixel (about 160 m), clipped to the municipal boundaries instead of a rough coastline.
+- Web, Tiempo y entorno: the temperature by zone is corrected for altitude. Every station is brought down to the sea
+  with the lapse rate (6.5 °C per km), interpolated there and every pixel taken back up to the height of its ground,
+  read from the open Terrarium relief tiles (Mapzen terrain on AWS). The Tramuntana is now cold along its ridges
+  instead of in rings around its two mountain stations. Isotherms every degree, and the temperature and height under
+  the cursor. Without the relief tiles the map falls back to the plain interpolation and says so.
+- Web, Movilidad: the map, the table of municipalities and the population chart follow one selected municipality.
+  A click on a municipality (map or table) or a choice in the chart highlights it and zooms the map to it.
+- Web, Movilidad: the population trend is fitted in one or two stretches (the split that halves the error, if any):
+  +2.7 % a year in 1996-2010 and +0.7 % since. The last stretch is carried on to 2030 with its 95 % prediction
+  interval.
 
 ## [0.10.1] - 2026-11-06
 

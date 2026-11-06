@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { api, daysAgo, type MobilityDay, type Municipality, type PopulationYear, type StopService } from "../api";
 import { Async, Table } from "../components/Async";
-import { Chart } from "../components/Chart";
+import { Chart, type ChartColors } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
@@ -10,7 +10,7 @@ import { ready, useLoad } from "../hooks";
 import { compact, dayName, dayShort, number, orDash, signed } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
 import { binColor, change, islandTotals, type Service, serviceByMunicipality } from "../lib/population";
-import { growthTrend } from "../lib/stats";
+import { segmentedTrend } from "../lib/stats";
 
 /** The municipal register starts in 1996 (there was none in 1997). */
 const FIRST_YEAR = 1996;
@@ -120,7 +120,13 @@ function municipalityRows(places: Municipality[], population: PopulationYear[], 
  * One map for both: the municipalities coloured by the chosen figure, with the stops of each network on top (sized
  * by their departures and toggled from the legend). A click on a stop shows the stop; anywhere else, the municipality.
  */
-function MobilityMap({ rows, stops, year }: { rows: MunicipalityRow[]; stops: MapLayer[]; year: number }) {
+function MobilityMap({ rows, stops, year, selected, onSelect }: {
+  rows: MunicipalityRow[];
+  stops: MapLayer[];
+  year: number;
+  selected: string | null;
+  onSelect: (code: string) => void;
+}) {
   const [view, setView] = useState<View>("density");
   const areas = useMemo(() => {
     const scale = VIEWS[view];
@@ -134,7 +140,7 @@ function MobilityMap({ rows, stops, year }: { rows: MunicipalityRow[]; stops: Ma
         `${number(r.service.stops)} paradas · ${number(r.perThousand ?? 0)} pasos por 1.000 hab.`,
       ];
       const color = view === "none" ? "rgba(0, 0, 0, 0)" : binColor(value(r), scale.bounds, scale.colors);
-      return r.place.polygon.map((ring) => ({ polygon: ring, color, popup }));
+      return r.place.polygon.map((ring) => ({ polygon: ring, color, popup, id: r.place.municipality }));
     });
   }, [rows, view, year]);
 
@@ -147,7 +153,15 @@ function MobilityMap({ rows, stops, year }: { rows: MunicipalityRow[]; stops: Ma
           </button>
         ))}
       </div>
-      <PointMap layers={stops} areas={areas} areaOpacity={0.55} outline height={560} />
+      <PointMap
+        layers={stops}
+        areas={areas}
+        areaOpacity={0.55}
+        outline
+        focus={selected}
+        onAreaSelect={onSelect}
+        height={560}
+      />
       {VIEWS[view].legend.length > 0 && (
         <div className="scale">
           {VIEWS[view].legend.map((label, i) => (
@@ -161,35 +175,129 @@ function MobilityMap({ rows, stops, year }: { rows: MunicipalityRow[]; stops: Ma
   );
 }
 
-function PopulationHistory({ rows }: { rows: PopulationYear[] }) {
-  const option = useCallback(() => {
-    const totals = islandTotals(rows);
+/** The trend is carried on to this year, with its 95 % prediction interval. */
+const PROJECTION_YEAR = 2030;
+
+interface HistoryProps {
+  rows: PopulationYear[];
+  places: Municipality[];
+  selected: string | null;
+  onSelect: (code: string | null) => void;
+}
+
+/**
+ * Population on 1 January since 1996, of the island (Palma and the rest) or of one municipality, with its trend in
+ * one or two stretches and the last one carried on to 2030.
+ */
+function PopulationHistory({ rows, places, selected, onSelect }: HistoryProps) {
+  const place = places.find((p) => p.municipality === selected);
+  const option = useCallback((c: ChartColors) => {
+    const series: { year: number; value: number }[] = place
+      ? rows
+          .filter((r) => r.municipality === place.municipality && r.population !== null)
+          .map((r) => ({ year: r.year, value: r.population as number }))
+          .sort((a, b) => a.year - b.year)
+      : islandTotals(rows).map((t) => ({ year: t.year, value: t.population }));
+    const years = series.map((s) => s.year);
+    const last = years.at(-1) ?? PROJECTION_YEAR;
+    const ahead = Array.from({ length: Math.max(0, PROJECTION_YEAR - last) }, (_, i) => last + 1 + i);
+    const categories = [...years, ...ahead];
+    const trends = segmentedTrend(series);
+    const latest = trends.at(-1);
+    const projected = (year: number) => year >= last && latest !== undefined;
+    const band = categories.map((year) => (projected(year) ? latest?.interval(year) : undefined));
+    const value = new Map(series.map((s) => [s.year, s.value]));
     const palma = new Map(rows.filter((r) => r.municipality === PALMA).map((r) => [r.year, r.population ?? 0]));
-    const trend = growthTrend(totals.map((t) => ({ year: t.year, value: t.population })));
+    const bars = place
+      ? [
+          {
+            name: place.name, type: "bar", color: "#15803d", itemStyle: { borderRadius: [3, 3, 0, 0] },
+            data: categories.map((year) => value.get(year) ?? null),
+          },
+        ]
+      : [
+          { name: "Palma", type: "bar", stack: "island", color: "#15803d", data: categories.map((y) => palma.get(y) ?? null) },
+          {
+            name: "Resto de la isla", type: "bar", stack: "island", color: "#86efac", itemStyle: { borderRadius: [3, 3, 0, 0] },
+            data: categories.map((y) => (value.has(y) ? (value.get(y) as number) - (palma.get(y) ?? 0) : null)),
+          },
+        ];
+    const lines = trends.map((trend, i) => ({
+      name: `${trend.from}–${trend.to}: ${signed(trend.rate * 100)} % al año`,
+      type: "line", symbol: "none", z: 3, color: i === trends.length - 1 ? "#b45309" : "#7c3aed",
+      lineStyle: { type: "dashed", width: 2 },
+      data: categories.map((year) => (year >= trend.from && year <= trend.to ? Math.round(trend.at(year)) : null)),
+    }));
+    const projection = latest
+      ? [
+          {
+            name: `Proyección a ${PROJECTION_YEAR}`, type: "line", symbol: "none", z: 3, color: "#b45309",
+            lineStyle: { type: "dotted", width: 2 },
+            data: categories.map((year) => (projected(year) ? Math.round(latest.at(year)) : null)),
+          },
+          // The interval as a band: an invisible line at its bottom and the width stacked on top of it.
+          {
+            name: "band-low", type: "line", symbol: "none", stack: "band", lineStyle: { opacity: 0 },
+            data: band.map((b) => (b ? Math.round(b[0]) : null)),
+          },
+          {
+            name: "band-width", type: "line", symbol: "none", stack: "band", lineStyle: { opacity: 0 },
+            areaStyle: { color: "#b45309", opacity: 0.15 },
+            data: band.map((b) => (b ? Math.round(b[1] - b[0]) : null)),
+          },
+        ]
+      : [];
     return {
-      xAxis: { type: "category", data: totals.map((t) => String(t.year)) },
+      xAxis: { type: "category", data: categories.map(String) },
       yAxis: { type: "value", axisLabel: { formatter: compact } },
-      tooltip: { valueFormatter: orDash((v) => number(v)) },
-      series: [
-        ...(trend
-          ? [
-              {
-                name: `Tendencia: ${signed(trend.rate * 100)} % al año`, type: "line", symbol: "none", z: 3,
-                color: "#b45309", lineStyle: { type: "dashed", width: 2 },
-                data: totals.map((t) => Math.round(trend.at(t.year))),
-              },
-            ]
-          : []),
-        { name: "Palma", type: "bar", stack: "island", color: "#15803d", data: totals.map((t) => palma.get(t.year) ?? null) },
-        {
-          name: "Resto de la isla", type: "bar", stack: "island", color: "#86efac",
-          itemStyle: { borderRadius: [3, 3, 0, 0] },
-          data: totals.map((t) => t.population - (palma.get(t.year) ?? 0)),
+      // One line that scrolls on a phone: five entries would wrap over the chart.
+      legend: {
+        type: "scroll", top: 0, left: 0, right: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10,
+        textStyle: { color: c.muted }, pageTextStyle: { color: c.muted },
+        data: [...bars, ...lines, ...projection].map((s) => s.name).filter((n) => !n.startsWith("band-")),
+      },
+      tooltip: {
+        // Each series with a value that year, and the interval as a range instead of its two stacked parts.
+        formatter: (params: { seriesName: string; value: unknown; marker: string; dataIndex: number; name: string }[]) => {
+          const shown = params.filter((p) => typeof p.value === "number" && !p.seriesName.startsWith("band-"));
+          const lines = shown.map((p) => `${p.marker} ${p.seriesName} <b>${number(p.value as number)}</b>`);
+          const b = band[params[0]?.dataIndex ?? -1];
+          if (b) lines.push(`Intervalo del 95 %: ${number(Math.round(b[0]))} – ${number(Math.round(b[1]))}`);
+          return [params[0]?.name ?? "", ...lines].join("<br/>");
         },
-      ],
+      },
+      series: [...lines, ...projection, ...bars],
     };
-  }, [rows]);
-  return <Chart option={option} label="Población de Mallorca a 1 de enero: Palma y el resto de la isla" height={320} />;
+  }, [rows, place]);
+
+  const sorted = useMemo(() => [...places].sort((a, b) => a.name.localeCompare(b.name, "es")), [places]);
+  return (
+    <>
+      <label className="select-row">
+        <span>Municipio</span>
+        <select className="select" aria-label="Municipio" value={selected ?? ""} onChange={(e) => onSelect(e.target.value || null)}>
+          <option value="">Toda la isla</option>
+          {sorted.map((p) => (
+            <option key={p.municipality} value={p.municipality}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Chart
+        option={option}
+        label={`Población de ${place?.name ?? "Mallorca"} a 1 de enero, con su tendencia y la proyección a ${PROJECTION_YEAR}`}
+        height={340}
+      />
+    </>
+  );
+}
+
+/** The twelve most populated municipalities, and the selected one at the end when it is not among them. */
+function withSelected(rows: MunicipalityRow[], selected: string | null): MunicipalityRow[] {
+  const top = rows.slice(0, 12);
+  const extra = rows.find((r) => r.place.municipality === selected);
+  return extra && !top.includes(extra) ? [...top, extra] : top;
 }
 
 function DailyCalls({ days }: { days: MobilityDay[] }) {
@@ -230,6 +338,8 @@ export function Mobility() {
   const stops = useLoad(api.stops);
   const population = useLoad(() => api.population(FIRST_YEAR));
   const places = useLoad(api.municipalities);
+  // The municipality chosen on the map, the table or the chart: the three follow it.
+  const [selected, setSelected] = useState<string | null>(null);
 
   const kpis = useMemo(() => {
     const [d, s, p] = [ready(daily), ready(stops), ready(population)];
@@ -258,7 +368,15 @@ export function Mobility() {
         >
           <Async state={places} height={600}>
             {() =>
-              municipalities ? <MobilityMap rows={municipalities.rows} stops={layers} year={municipalities.year} /> : null
+              municipalities ? (
+                <MobilityMap
+                  rows={municipalities.rows}
+                  stops={layers}
+                  year={municipalities.year}
+                  selected={selected}
+                  onSelect={setSelected}
+                />
+              ) : null
             }
           </Async>
         </Panel>
@@ -277,15 +395,30 @@ export function Mobility() {
             )}
           </Async>
         </Panel>
-        <Panel title="Población de Mallorca desde 1996" subtitle="Suma de los municipios a 1 de enero (no hubo padrón en 1997); en discontinua, el crecimiento medio anual." wide>
-          <Async state={population} height={320}>{(rows) => <PopulationHistory rows={rows} />}</Async>
+        <Panel
+          title="Población desde 1996"
+          subtitle="A 1 de enero (no hubo padrón en 1997). En discontinua, el crecimiento medio anual de cada tramo; en punteado, la proyección a 2030 si sigue la tendencia del último, con su intervalo del 95 %."
+          wide
+        >
+          <Async state={population} height={360}>
+            {(rows) => (
+              <Async state={places} height={360}>
+                {(p) => <PopulationHistory rows={rows} places={p} selected={selected} onSelect={setSelected} />}
+              </Async>
+            )}
+          </Async>
         </Panel>
-        <Panel title="Municipios más poblados" subtitle="Habitantes, cambio en diez años y pasos programados por cada 1.000 habitantes.">
+        <Panel
+          title="Municipios más poblados"
+          subtitle="Habitantes, cambio en diez años y pasos programados por cada 1.000 habitantes; pulsa uno para verlo en el mapa y en el gráfico."
+        >
           <Async state={places}>
             {() =>
               municipalities ? (
                 <Table
-                  rows={municipalities.rows.slice(0, 12)}
+                  rows={withSelected(municipalities.rows, selected)}
+                  onSelect={(r) => setSelected(r.place.municipality === selected ? null : r.place.municipality)}
+                  selected={(r) => r.place.municipality === selected}
                   columns={[
                     { label: "Municipio", value: (r) => r.place.name },
                     { label: "Hab.", value: (r) => number(r.latest?.population ?? 0), numeric: true },
