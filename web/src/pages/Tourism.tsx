@@ -7,7 +7,7 @@ import { CorrelationCard } from "../components/CorrelationCard";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
-import { compact, monthShort, number } from "../lib/format";
+import { compact, monthShort, number, orDash } from "../lib/format";
 import { buildKpi, type Kpi, RESOURCE_SPECS, TOURISM_SPECS } from "../lib/kpis";
 import { deseasonalize, movingAverage, pearson } from "../lib/stats";
 
@@ -44,7 +44,7 @@ function PairChart({ rows, left, right, label }: {
         { type: "value", min: right.max === undefined ? undefined : 0, max: right.max, splitLine: { show: false }, axisLabel: { color: c.muted, formatter: right.format } },
       ],
       tooltip: {
-        valueFormatter: (v: number | null) => (v === null ? "—" : number(v, v < 100 ? 1 : 0)),
+        valueFormatter: orDash((v) => number(v, v < 100 ? 1 : 0)),
       },
       series: [
         left.bars
