@@ -156,6 +156,12 @@ despliegue real con su coste medido.
 | ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
 | ✅ | **Frontal web** (`web/`, http://localhost:3002): portada con cinco cifras clave frente a lo normal de cada mes, mapa de estaciones, puntos de modelo y paradas, y estado de las fuentes. React + Vite + ECharts + MapLibre, solo lee la API ([ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md)) |
 | ✅ | Seis dashboards en la web con un menú lateral (inicio, turismo y recursos, clima y agua, movilidad, tiempo y entorno, operación), modo claro y oscuro con botón, logo con la silueta de la isla y diez endpoints nuevos en la API |
+| ✅ | Tendencias de 12 meses y correlaciones de Pearson (con y sin el ciclo anual) en turismo y recursos, temperatura por zonas interpolada y mapa de calidad del aire más grande |
+| ✅ | Avisos de AEMET por zona (conector `aemet_warnings`) y población por municipio del padrón del INE (`ine_population`, frecuencia anual `1y`), con su mapa en la web |
+| ✅ | Diagrama de arquitectura en claro y oscuro generado desde código, y capturas de la web en el README (`make screenshots`) |
+| ⬜ | Movilidad: comprobar si el servicio por parada y la capa de municipios (densidad, servicio por habitante, crecimiento) pueden ir en un solo mapa, con las paradas sobre los municipios y un selector de capas, en lugar de dos mapas separados |
+| ⬜ | Movilidad: línea de tendencia sobre las barras de la población de Mallorca desde 1996 (crecimiento medio anual) |
+| ⬜ | Tiempo y entorno: temperatura por zonas más suave. Hoy se ve pixelada porque pinta celdas cuadradas; probar una rejilla más fina o isobandas (contornos de temperatura) recortadas a la costa |
 | ⬜ | Explorador de series en la web: elegir fuente, ubicación y métrica, con sus anomalías y correcciones |
 | ⬜ | Nombres de las paradas y estaciones en silver (hoy solo el identificador: `stop_452`, `B228`) |
 | ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |
