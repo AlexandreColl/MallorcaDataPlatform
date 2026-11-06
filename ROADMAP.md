@@ -17,7 +17,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | WSL2 con Debian 13 (trixie) |
 | ✅ | Docker Engine, git y make dentro de Debian; `.wslconfig` con 10 GB ([guía](docs/setup-windows.md)) |
 | ✅ | Clonar el repo en el sistema de ficheros de Debian (`~/projects`) y GitHub CLI (`gh`) |
-| ⬜ | Confirmar **Grafana** como visor principal (implementado como propuesta en v0.1) |
+| ✅ | Visor principal: la web (v0.9) para el público y **Grafana** para la operación de la plataforma |
 | ✅ | Probar REData con llamadas reales → funciona, Baleares = `geo_ids=8743`; demanda horaria, generación y CO₂ diarios |
 | ✅ | Probar SOCIB → API abierta, 1.598 fuentes, **estaciones activas en Mallorca** (p. ej. `Mobims_CalaMillor`) |
 | ✅ | Probar USGS → **0 eventos** en 12 meses en la zona; sustituir por IGN (ver Fase 4) |
@@ -40,7 +40,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | Release automática por tag + imagen en GHCR |
 | ✅ | **Primer `docker compose up` real** y `make e2e` en verde (fixes: jar S3A analytics accelerator, mapa OSM en Grafana) |
 | ✅ | Primer push a GitHub, CI en verde, release `v0.1.0` |
-| ⬜ | Captura del dashboard en el README |
+| ✅ | Captura del dashboard en el README |
 
 ## Fase 2 · v0.2.x — Más conectores (uno por PR)
 
@@ -159,9 +159,9 @@ despliegue real con su coste medido.
 | ✅ | Tendencias de 12 meses y correlaciones de Pearson (con y sin el ciclo anual) en turismo y recursos, temperatura por zonas interpolada y mapa de calidad del aire más grande |
 | ✅ | Avisos de AEMET por zona (conector `aemet_warnings`) y población por municipio del padrón del INE (`ine_population`, frecuencia anual `1y`), con su mapa en la web |
 | ✅ | Diagrama de arquitectura en claro y oscuro generado desde código, y capturas de la web en el README (`make screenshots`) |
-| ⬜ | Movilidad: comprobar si el servicio por parada y la capa de municipios (densidad, servicio por habitante, crecimiento) pueden ir en un solo mapa, con las paradas sobre los municipios y un selector de capas, en lugar de dos mapas separados |
-| ⬜ | Movilidad: línea de tendencia sobre las barras de la población de Mallorca desde 1996 (crecimiento medio anual) |
-| ⬜ | Tiempo y entorno: temperatura por zonas más suave. Hoy se ve pixelada porque pinta celdas cuadradas; probar una rejilla más fina o isobandas (contornos de temperatura) recortadas a la costa |
+| ✅ | Movilidad: un solo mapa con las paradas de cada red sobre los municipios, un selector para colorearlos (densidad, servicio por habitante, crecimiento o sin color) y la ficha del municipio o de la parada al pulsar |
+| ✅ | Movilidad: línea de tendencia sobre las barras de la población de Mallorca desde 1996, con el crecimiento medio anual (ajuste exponencial) |
+| ✅ | Tiempo y entorno: temperatura por zonas suave, una imagen interpolada píxel a píxel (unos 160 m) en lugar de celdas cuadradas, recortada con los límites municipales |
 | ⬜ | Explorador de series en la web: elegir fuente, ubicación y métrica, con sus anomalías y correcciones |
 | ⬜ | Nombres de las paradas y estaciones en silver (hoy solo el identificador: `stop_452`, `B228`) |
 | ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |

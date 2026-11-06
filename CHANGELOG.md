@@ -5,6 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Web, Movilidad: the stop map and the municipality map are now one map, the stops of each network over the
+  municipalities, with a selector to colour them (density, service per inhabitant, growth or none) and the figures of
+  the municipality or the stop on a click. Service per inhabitant is violet so the blue CTM stops stand out.
+- Web, Movilidad: the population of Mallorca since 1996 has a dashed trend line with the mean annual growth.
+- Web, Tiempo y entorno: the temperature by zone is smooth. It was square cells of about 1 km; it is now an image
+  interpolated pixel by pixel (about 160 m), clipped to the municipal boundaries instead of a rough coastline.
+
 ## [0.10.1] - 2026-11-06
 
 ### Fixed

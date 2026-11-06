@@ -10,6 +10,7 @@ import { ready, useLoad } from "../hooks";
 import { compact, dayName, dayShort, number, orDash, signed } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
 import { binColor, change, islandTotals, type Service, serviceByMunicipality } from "../lib/population";
+import { growthTrend } from "../lib/stats";
 
 /** The municipal register starts in 1996 (there was none in 1997). */
 const FIRST_YEAR = 1996;
@@ -64,7 +65,7 @@ function populationKpis(rows: PopulationYear[], stops: StopService[]): Kpi[] {
   ];
 }
 
-type View = "density" | "service" | "growth";
+type View = "density" | "service" | "growth" | "none";
 
 const VIEWS: Record<View, { label: string; legend: string[]; bounds: number[]; colors: string[] }> = {
   density: {
@@ -77,7 +78,8 @@ const VIEWS: Record<View, { label: string; legend: string[]; bounds: number[]; c
     label: "Servicio por habitante",
     legend: ["< 50", "50-100", "100-200", "200-400", "400-800", "≥ 800 pasos por 1.000 hab."],
     bounds: [50, 100, 200, 400, 800],
-    colors: ["#eff6ff", "#bfdbfe", "#93c5fd", "#60a5fa", "#2563eb", "#1e3a8a"],
+    // Violet, not blue: the CTM stops are blue.
+    colors: ["#f5f3ff", "#ddd6fe", "#c4b5fd", "#a78bfa", "#7c3aed", "#4c1d95"],
   },
   growth: {
     label: "Crecimiento en 10 años",
@@ -85,6 +87,8 @@ const VIEWS: Record<View, { label: string; legend: string[]; bounds: number[]; c
     bounds: [0, 0.05, 0.1, 0.2, 0.3],
     colors: ["#f87171", "#fde68a", "#d9f99d", "#86efac", "#22c55e", "#15803d"],
   },
+  // Only the borders, so the stops stand out on the basemap.
+  none: { label: "Sin colorear", legend: [], bounds: [], colors: [] },
 };
 
 interface MunicipalityRow {
@@ -112,49 +116,47 @@ function municipalityRows(places: Municipality[], population: PopulationYear[], 
     .sort((a, b) => (b.latest?.population ?? 0) - (a.latest?.population ?? 0));
 }
 
-function MunicipalityMap({ rows, year }: { rows: MunicipalityRow[]; year: number }) {
+/**
+ * One map for both: the municipalities coloured by the chosen figure, with the stops of each network on top (sized
+ * by their departures and toggled from the legend). A click on a stop shows the stop; anywhere else, the municipality.
+ */
+function MobilityMap({ rows, stops, year }: { rows: MunicipalityRow[]; stops: MapLayer[]; year: number }) {
   const [view, setView] = useState<View>("density");
-  const { areas, layers } = useMemo(() => {
+  const areas = useMemo(() => {
     const scale = VIEWS[view];
     const value = (r: MunicipalityRow) =>
       view === "density" ? (r.latest?.density_per_km2 ?? null) : view === "service" ? r.perThousand : r.growth;
-    const areas: MapArea[] = rows.flatMap((r) =>
-      r.place.polygon.map((ring) => ({ polygon: ring, color: binColor(value(r), scale.bounds, scale.colors) })),
-    );
-    const layers: MapLayer[] = [
-      {
-        id: "municipalities", label: "Municipios", color: "#0a120d", radius: 3,
-        points: rows.map((r) => ({
-          lat: r.place.lat, lon: r.place.lon,
-          popup: [
-            r.place.name,
-            `${number(r.latest?.population ?? 0)} hab. · ${number(r.latest?.density_per_km2 ?? 0)} hab./km²`,
-            r.growth === null ? "Sin dato de hace 10 años" : `${signed(r.growth * 100)} % desde ${year - 10}`,
-            `${number(r.service.stops)} paradas · ${number(r.perThousand ?? 0)} pasos por 1.000 hab.`,
-          ],
-        })),
-      },
-    ];
-    return { areas, layers };
+    return rows.flatMap((r): MapArea[] => {
+      const popup = [
+        r.place.name,
+        `${number(r.latest?.population ?? 0)} hab. · ${number(r.latest?.density_per_km2 ?? 0)} hab./km²`,
+        r.growth === null ? "Sin dato de hace 10 años" : `${signed(r.growth * 100)} % desde ${year - 10}`,
+        `${number(r.service.stops)} paradas · ${number(r.perThousand ?? 0)} pasos por 1.000 hab.`,
+      ];
+      const color = view === "none" ? "rgba(0, 0, 0, 0)" : binColor(value(r), scale.bounds, scale.colors);
+      return r.place.polygon.map((ring) => ({ polygon: ring, color, popup }));
+    });
   }, [rows, view, year]);
 
   return (
     <>
-      <div className="segmented" role="group" aria-label="Indicador">
+      <div className="segmented" role="group" aria-label="Color de los municipios">
         {(Object.keys(VIEWS) as View[]).map((v) => (
           <button key={v} type="button" aria-pressed={v === view} onClick={() => setView(v)}>
             {VIEWS[v].label}
           </button>
         ))}
       </div>
-      <PointMap layers={layers} areas={areas} height={480} />
-      <div className="scale">
-        {VIEWS[view].legend.map((label, i) => (
-          <span key={label}>
-            <span className="dot" style={{ background: VIEWS[view].colors[i] }} /> {label}
-          </span>
-        ))}
-      </div>
+      <PointMap layers={stops} areas={areas} areaOpacity={0.55} outline height={560} />
+      {VIEWS[view].legend.length > 0 && (
+        <div className="scale">
+          {VIEWS[view].legend.map((label, i) => (
+            <span key={label}>
+              <span className="dot" style={{ background: VIEWS[view].colors[i] }} /> {label}
+            </span>
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -163,11 +165,21 @@ function PopulationHistory({ rows }: { rows: PopulationYear[] }) {
   const option = useCallback(() => {
     const totals = islandTotals(rows);
     const palma = new Map(rows.filter((r) => r.municipality === PALMA).map((r) => [r.year, r.population ?? 0]));
+    const trend = growthTrend(totals.map((t) => ({ year: t.year, value: t.population })));
     return {
       xAxis: { type: "category", data: totals.map((t) => String(t.year)) },
       yAxis: { type: "value", axisLabel: { formatter: compact } },
       tooltip: { valueFormatter: orDash((v) => number(v)) },
       series: [
+        ...(trend
+          ? [
+              {
+                name: `Tendencia: ${signed(trend.rate * 100)} % al año`, type: "line", symbol: "none", z: 3,
+                color: "#b45309", lineStyle: { type: "dashed", width: 2 },
+                data: totals.map((t) => Math.round(trend.at(t.year))),
+              },
+            ]
+          : []),
         { name: "Palma", type: "bar", stack: "island", color: "#15803d", data: totals.map((t) => palma.get(t.year) ?? null) },
         {
           name: "Resto de la isla", type: "bar", stack: "island", color: "#86efac",
@@ -239,8 +251,16 @@ export function Mobility() {
         colors={["#15803d", "#15803d", NETWORKS.emt_palma.color, NETWORKS.ctm.color]}
       />
       <div className="grid">
-        <Panel title="Servicio por parada" subtitle={`Pasos programados en cada parada el ${stopDay}: cuanto más grande, más servicio.`} wide>
-          <Async state={stops} height={480}>{() => <PointMap layers={layers} />}</Async>
+        <Panel
+          title="Población y servicio por municipio"
+          subtitle={`Padrón del INE a 1 de enero de ${municipalities?.year ?? "—"} y pasos programados en cada parada el ${stopDay} (cuanto más grande, más servicio); pulsa un municipio o una parada para ver sus cifras.`}
+          wide
+        >
+          <Async state={places} height={600}>
+            {() =>
+              municipalities ? <MobilityMap rows={municipalities.rows} stops={layers} year={municipalities.year} /> : null
+            }
+          </Async>
         </Panel>
         <Panel title="Paradas con más servicio" subtitle="Las diez con más pasos programados de las dos redes.">
           <Async state={stops}>
@@ -257,14 +277,8 @@ export function Mobility() {
             )}
           </Async>
         </Panel>
-        <Panel
-          title="Población y servicio por municipio"
-          subtitle={`Padrón del INE a 1 de enero de ${municipalities?.year ?? "—"} y paradas de autobús, tren y metro de cada municipio; pulsa un municipio para ver sus cifras.`}
-          wide
-        >
-          <Async state={places} height={520}>
-            {() => (municipalities ? <MunicipalityMap rows={municipalities.rows} year={municipalities.year} /> : null)}
-          </Async>
+        <Panel title="Población de Mallorca desde 1996" subtitle="Suma de los municipios a 1 de enero (no hubo padrón en 1997); en discontinua, el crecimiento medio anual." wide>
+          <Async state={population} height={320}>{(rows) => <PopulationHistory rows={rows} />}</Async>
         </Panel>
         <Panel title="Municipios más poblados" subtitle="Habitantes, cambio en diez años y pasos programados por cada 1.000 habitantes.">
           <Async state={places}>
@@ -283,10 +297,7 @@ export function Mobility() {
             }
           </Async>
         </Panel>
-        <Panel title="Población de Mallorca desde 1996" subtitle="Suma de los municipios a 1 de enero (no hubo padrón en 1997)." wide>
-          <Async state={population} height={320}>{(rows) => <PopulationHistory rows={rows} />}</Async>
-        </Panel>
-        <Panel title="Pasos programados por día" subtitle="Suma de los vehículos que pasan por cada parada, según los horarios GTFS." wide>
+        <Panel title="Pasos programados por día" subtitle="Suma de los vehículos que pasan por cada parada, según los horarios GTFS." full>
           <Async state={daily} height={320}>{(rows) => <DailyCalls days={rows} />}</Async>
         </Panel>
       </div>
