@@ -400,7 +400,7 @@ export function WeatherEnvironment() {
                 columns={[
                   { label: "Estación", value: (b) => b.station },
                   { label: "Sesgo", value: (b) => (b.temperature_bias_c === null ? "—" : `${signed(Number(b.temperature_bias_c))} °C`), numeric: true },
-                  { label: "Error medio", value: (b) => (b.temperature_mae_c === null ? "—" : `${number(Number(b.temperature_mae_c), 1)} °C`), numeric: true },
+                  { label: "Error", value: (b) => (b.temperature_mae_c === null ? "—" : `${number(Number(b.temperature_mae_c), 1)} °C`), numeric: true },
                   { label: "Días", value: (b) => number(b.days_compared), numeric: true },
                 ]}
               />

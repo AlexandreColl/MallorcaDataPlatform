@@ -28,17 +28,14 @@ function mobilityKpis(days: MobilityDay[]): Kpi[] {
     if (!latest) return [];
     const { label } = NETWORKS[network];
     const history = rows.map((d) => ({ month: d.local_date, value: d.scheduled_stop_calls as number }));
+    // One figure per network, so the row of key figures stays on one line next to the two of population.
+    const day = latest.is_weekend ? "fin de semana" : "laborable";
     return [
       {
         id: `${network}-calls`, label: `${label} · pasos programados`, value: compact(latest.scheduled_stop_calls as number),
-        unit: "", month: dayName(latest.local_date), deviation: latest.is_weekend ? "Fin de semana" : "Día laborable",
+        unit: "", month: `${dayName(latest.local_date)}, ${day}`,
+        deviation: `${number(latest.stops_with_service)} de ${number(latest.stops)} paradas con servicio`,
         tone: "neutral", history,
-      },
-      {
-        id: `${network}-stops`, label: `${label} · paradas con servicio`, value: number(latest.stops_with_service),
-        unit: `de ${number(latest.stops)}`, month: dayName(latest.local_date),
-        deviation: latest.busiest_stop ? `Más servicio: ${latest.busiest_stop} (${number(latest.busiest_stop_departures ?? 0)})` : null,
-        tone: "neutral", history: [],
       },
     ];
   });
@@ -239,7 +236,7 @@ export function Mobility() {
     <>
       <KpiRow
         kpis={kpis}
-        colors={["#15803d", "#15803d", NETWORKS.emt_palma.color, NETWORKS.emt_palma.color, NETWORKS.ctm.color, NETWORKS.ctm.color]}
+        colors={["#15803d", "#15803d", NETWORKS.emt_palma.color, NETWORKS.ctm.color]}
       />
       <div className="grid">
         <Panel title="Servicio por parada" subtitle={`Pasos programados en cada parada el ${stopDay}: cuanto más grande, más servicio.`} wide>
@@ -269,7 +266,7 @@ export function Mobility() {
             {() => (municipalities ? <MunicipalityMap rows={municipalities.rows} year={municipalities.year} /> : null)}
           </Async>
         </Panel>
-        <Panel title="Municipios más poblados" subtitle="Habitantes, cambio en diez años y servicio por habitante.">
+        <Panel title="Municipios más poblados" subtitle="Habitantes, cambio en diez años y pasos programados por cada 1.000 habitantes.">
           <Async state={places}>
             {() =>
               municipalities ? (
@@ -277,9 +274,9 @@ export function Mobility() {
                   rows={municipalities.rows.slice(0, 12)}
                   columns={[
                     { label: "Municipio", value: (r) => r.place.name },
-                    { label: "Habitantes", value: (r) => number(r.latest?.population ?? 0), numeric: true },
+                    { label: "Hab.", value: (r) => number(r.latest?.population ?? 0), numeric: true },
                     { label: "10 años", value: (r) => (r.growth === null ? "—" : `${signed(r.growth * 100)} %`), numeric: true },
-                    { label: "Pasos / 1.000 hab.", value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
+                    { label: "Pasos/1.000", value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
                   ]}
                 />
               ) : null
