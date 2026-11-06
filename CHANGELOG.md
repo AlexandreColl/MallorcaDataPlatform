@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-06
+
+### Fixed
+
+- Chart tooltips froze after passing over a month without data (the tourists of spring 2020, for instance). ECharts 6
+  gives the tooltip formatter `undefined` for an empty month and the formatter threw; it now shows a dash.
+
 ## [0.10.0] - 2026-11-05
 
 ### Added
@@ -524,7 +531,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.7.0...v0.8.0
