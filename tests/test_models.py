@@ -131,3 +131,15 @@ def test_month_starts_are_the_months_beginning_inside_the_window(start, end, exp
 
     assert len(months) == expected
     assert all(m.day == 1 and start <= m <= end for m in months)
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        (date(2023, 1, 1), date(2025, 12, 31), [2023, 2024, 2025]),
+        (date(2023, 1, 2), date(2026, 1, 1), [2024, 2025, 2026]),  # 2023 started before the window
+        (date(2025, 3, 1), date(2025, 12, 31), []),
+    ],
+)
+def test_year_starts_are_the_first_of_january_inside_the_window(start, end, expected):
+    assert TimeWindow(start, end).year_starts() == [date(y, 1, 1) for y in expected]

@@ -10,7 +10,7 @@ seeds:
         data_tests:
           - accepted_values:
               arguments:
-                values: ["model", "observation", "system", "event", "schedule", "statistic"]
+                values: ["model", "observation", "system", "event", "schedule", "statistic", "warning"]
   - name: dim_aquifers
     description: >-
       Groundwater bodies (MAS) of Mallorca in the water reserves spreadsheet of the Govern, with their hydrogeological
@@ -20,3 +20,39 @@ seeds:
         data_tests: [not_null, unique]
       - name: code
         data_tests: [not_null, unique]
+  - name: dim_warning_zones
+    description: >-
+      AEMET warning zones (Meteoalerta) of Mallorca: five land zones and their coastal waters, with the polygon AEMET
+      publishes in every warning ([lon, lat] vertices, JSON). Written once from the recorded CAP files of the
+      aemet_warnings connector; the zones only change when AEMET redraws them.
+    columns:
+      - name: zone
+        data_tests: [not_null, unique]
+      - name: kind
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["land", "coast"]
+      - name: polygon
+        data_tests: [not_null]
+
+  - name: dim_municipalities
+    description: >-
+      The 53 municipalities of Mallorca with their INE code, area and boundary ([lon, lat] rings, JSON; Palma includes
+      the Cabrera archipelago). Written once from IGN's municipal boundaries (es-atlas 0.6.0), simplified to about
+      150 m for the dashboard maps. The centre and the area come from the full boundary.
+    config:
+      column_types: {municipality: text, name: text, lat: double precision, lon: double precision, area_km2: double precision, polygon: text}
+    columns:
+      - name: municipality
+        description: INE municipality code (province 07 + three digits), the entity of ine_population.
+        data_tests: [not_null, unique]
+      - name: name
+        data_tests: [not_null]
+      - name: area_km2
+        data_tests:
+          - not_null
+          - value_between:
+              arguments: {min_value: 1, max_value: 400}
+      - name: polygon
+        data_tests: [not_null]

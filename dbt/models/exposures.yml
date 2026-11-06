@@ -132,6 +132,54 @@ exposures:
       - ref('fct_tourism_monthly')
       - ref('fct_resources_monthly')
       - ref('fct_observations_corrected')
+      - ref('fct_bus_network_daily')
+      - ref('fct_island_transit_daily')
+      - ref('fct_weather_daily')
+      - ref('fct_weather_episodes')
+      - ref('agg_model_bias_by_station')
+      - ref('air_quality_hourly')
+      - ref('fct_sea_conditions_hourly')
+      - ref('fct_earthquakes')
+      - ref('data_quality_summary')
+      - ref('fct_weather_warnings')
+      - ref('dim_warning_zones')
+      - ref('fct_population_yearly')
+      - ref('dim_municipalities')
+
+  - name: web
+    label: Web front end · Mallorca en datos
+    type: application
+    maturity: medium
+    url: http://localhost:3002
+    description: >
+      Web front end (web/) with six dashboards of related data: home, tourism and resources, climate and water,
+      mobility, weather and environment, and operations. It reads only the REST API, never the warehouse.
+    owner:
+      name: AlexandreColl
+    depends_on:
+      - ref('fct_resources_monthly')
+      - ref('fct_tourism_monthly')
+      - ref('fct_climate_monthly')
+      - ref('fct_water_reserves_monthly')
+      - ref('dim_aquifers')
+      - ref('dim_locations')
+      - ref('dim_sources')
+      - ref('source_health')
+      - ref('fct_bus_network_daily')
+      - ref('fct_island_transit_daily')
+      - ref('fct_observations')
+      - ref('fct_weather_daily')
+      - ref('fct_weather_episodes')
+      - ref('agg_model_bias_by_station')
+      - ref('air_quality_hourly')
+      - ref('fct_sea_conditions_hourly')
+      - ref('fct_earthquakes')
+      - ref('data_quality_summary')
+      - ref('fct_observations_corrected')
+      - ref('fct_weather_warnings')
+      - ref('dim_warning_zones')
+      - ref('fct_population_yearly')
+      - ref('dim_municipalities')
 
   - name: corrections_phase
     label: Corrections with support sources (phase 4)

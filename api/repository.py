@@ -29,6 +29,151 @@ WHERE %(source)s::text IS NULL OR source = %(source)s
 ORDER BY source
 """
 
+_LOCATIONS = """
+SELECT l.source, s.label, s.kind, l.entity, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
+FROM gold.dim_locations AS l
+JOIN gold.dim_sources AS s ON s.source = l.source
+WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
+  AND (%(source)s::text IS NULL OR l.source = %(source)s)
+ORDER BY l.source, l.entity
+"""
+
+_MOBILITY_DAILY = """
+SELECT network, local_date, is_weekend, stops, stops_with_service, scheduled_stop_calls, avg_lines_per_served_stop,
+       busiest_stop, busiest_stop_departures
+FROM (
+    SELECT 'emt_palma' AS network, * FROM gold.fct_bus_network_daily
+    UNION ALL
+    SELECT 'ctm' AS network, * FROM gold.fct_island_transit_daily
+) AS daily
+WHERE local_date BETWEEN %(start)s AND %(end)s
+ORDER BY local_date, network
+"""
+
+# The service of each stop on the latest day of its network: one value per stop and day, stamped at local midnight.
+_MOBILITY_STOPS = """
+WITH latest AS (
+    SELECT source, max(ts) AS ts
+    FROM gold.fct_observations
+    WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_departures'
+    GROUP BY source
+)
+SELECT o.source AS network, o.entity AS stop, l.lat, l.lon, (o.ts AT TIME ZONE 'Europe/Madrid')::date AS local_date,
+       max(o.value) FILTER (WHERE o.metric = 'scheduled_departures') AS departures,
+       max(o.value) FILTER (WHERE o.metric = 'lines_served') AS lines
+FROM gold.fct_observations AS o
+JOIN latest USING (source, ts)
+JOIN gold.dim_locations AS l ON l.source = o.source AND l.entity = o.entity
+WHERE (%(network)s::text IS NULL OR o.source = %(network)s) AND l.lat IS NOT NULL
+GROUP BY o.source, o.entity, l.lat, l.lon, o.ts
+ORDER BY departures DESC NULLS LAST, o.entity
+"""
+
+# Island-wide daily weather per source: the mean of its stations or model points.
+_WEATHER_DAILY = """
+SELECT source, source_label, source_kind, local_date, count(*) AS entities,
+       avg(temperature_mean) AS temperature_mean, max(temperature_max) AS temperature_max,
+       min(temperature_min) AS temperature_min, avg(precipitation_sum) AS precipitation_mean,
+       max(wind_gust_max) AS wind_gust_max
+FROM gold.fct_weather_daily
+WHERE local_date BETWEEN %(start)s AND %(end)s
+GROUP BY source, source_label, source_kind, local_date
+ORDER BY local_date, source
+"""
+
+# The latest day of one source with temperatures, for every station or point of that source.
+_WEATHER_STATIONS = """
+WITH latest AS (
+    SELECT max(local_date) AS local_date
+    FROM gold.fct_weather_daily
+    WHERE source = %(source)s AND temperature_mean IS NOT NULL
+)
+SELECT w.source, w.entity, w.lat, w.lon, w.local_date, w.temperature_mean, w.temperature_max, w.temperature_min,
+       w.precipitation_sum, w.wind_gust_max
+FROM gold.fct_weather_daily AS w
+JOIN latest USING (local_date)
+WHERE w.source = %(source)s AND w.lat IS NOT NULL AND w.temperature_mean IS NOT NULL
+ORDER BY w.temperature_mean DESC
+"""
+
+# AEMET warnings in force or announced: periods that end after `start` and begin before `end`.
+_WARNINGS = """
+SELECT warning_id, zone, zone_name, zone_kind, phenomenon, level, start_ts, end_ts
+FROM gold.fct_weather_warnings
+WHERE end_ts > %(start)s AND start_ts < %(end)s
+ORDER BY start_ts, level DESC, zone, phenomenon
+"""
+
+_WARNING_ZONES = """
+SELECT zone, name, kind, polygon FROM gold.dim_warning_zones ORDER BY kind DESC, zone
+"""
+
+# Population per municipality and year, filtered by year (both included).
+_POPULATION = """
+SELECT municipality, municipality_name, year, population, population_men, population_women,
+       density_per_km2, population_change, population_change_pct
+FROM gold.fct_population_yearly
+WHERE year BETWEEN %(from_year)s AND %(to_year)s
+ORDER BY year, municipality
+"""
+
+_MUNICIPALITIES = """
+SELECT municipality, name, lat, lon, area_km2, polygon FROM gold.dim_municipalities ORDER BY municipality
+"""
+
+_EPISODES = """
+SELECT episode_id, start_date, end_date, days, episode_type, peak_rain_mm, peak_rain_station, peak_rain_day,
+       max_stations_over_rain_threshold, peak_gust_kmh, peak_wave_m
+FROM gold.fct_weather_episodes
+WHERE start_date BETWEEN %(start)s AND %(end)s
+ORDER BY start_date DESC
+"""
+
+_MODEL_BIAS = """
+SELECT station_source, station, model_point, distance_km, days_compared, temperature_bias_c, temperature_mae_c,
+       temperature_rmse_c, precipitation_bias_total_mm, rain_day_agreement, wind_speed_bias_kmh, first_day, last_day
+FROM gold.agg_model_bias_by_station
+ORDER BY temperature_mae_c DESC NULLS LAST, station
+"""
+
+# The latest hour of each air quality station or model point in the last two days, with its European AQI band.
+_AIR_QUALITY_LATEST = """
+SELECT DISTINCT ON (a.source, a.entity)
+       a.source, a.entity, l.lat, l.lon, a.ts, a.pm2_5, a.pm10, a.no2, a.o3, a.eaqi_band, a.eaqi_label
+FROM gold.air_quality_hourly AS a
+LEFT JOIN gold.dim_locations AS l ON l.source = a.source AND l.entity = a.entity
+WHERE a.ts >= now() - interval '2 days' AND a.eaqi_band IS NOT NULL
+ORDER BY a.source, a.entity, a.ts DESC
+"""
+
+_SEA_HOURLY = """
+SELECT point, lat, lon, ts, wave_height_m, wave_period_s, swell_height_m, sea_temperature_c
+FROM gold.fct_sea_conditions_hourly
+WHERE ts >= %(start)s AND ts < %(end)s
+ORDER BY ts, point
+"""
+
+_EARTHQUAKES = """
+SELECT event_id, ts, lat, lon, magnitude, depth_km, distance_to_palma_km
+FROM gold.fct_earthquakes
+WHERE local_date BETWEEN %(start)s AND %(end)s
+ORDER BY ts DESC
+"""
+
+_QUALITY_RULES = """
+SELECT source, rule, target, checked, failed, passed, failed_ratio, checked_at
+FROM gold.data_quality_summary
+ORDER BY passed, failed_ratio DESC NULLS LAST, source, rule, target
+"""
+
+_ANOMALIES_DAILY = """
+SELECT (ts AT TIME ZONE 'Europe/Madrid')::date AS local_date, detector, count(*) AS anomalies
+FROM silver.anomalies
+WHERE ts >= %(start)s AND ts < %(end)s
+GROUP BY 1, 2
+ORDER BY 1, 2
+"""
+
 _OBSERVATIONS = """
 SELECT o.source, o.entity, o.metric, o.ts, o.value, o.unit, o.quality, l.lat, l.lon
 FROM gold.fct_observations AS o
@@ -95,6 +240,10 @@ class Warehouse:
         """True when ``source`` is a known source (dim_sources)."""
         return bool(self.db.fetch_all("SELECT 1 FROM gold.dim_sources WHERE source = %(source)s", {"source": source}))
 
+    def locations(self, source: str | None = None) -> list[Row]:
+        """Every place with coordinates (stations, model points, stops), or only those of ``source``."""
+        return self.db.fetch_all(_LOCATIONS, {"source": source})
+
     def observations(  # noqa: PLR0913 - one argument per filter, all keyword-only
         self,
         *,
@@ -156,3 +305,63 @@ class Warehouse:
     def aquifers(self) -> list[Row]:
         """Every aquifer of Mallorca in the latest published month, lowest first."""
         return self.db.fetch_all(_AQUIFERS)
+
+    def mobility_daily(self, start: date, end: date) -> list[Row]:
+        """Scheduled service per day of the EMT and CTM networks, oldest first."""
+        return self.db.fetch_all(_MOBILITY_DAILY, {"start": start, "end": end})
+
+    def mobility_stops(self, network: str | None) -> list[Row]:
+        """The service of every stop on the latest day of its network, busiest first."""
+        return self.db.fetch_all(_MOBILITY_STOPS, {"network": network})
+
+    def weather_daily(self, start: date, end: date) -> list[Row]:
+        """Island-wide daily weather per source, oldest first."""
+        return self.db.fetch_all(_WEATHER_DAILY, {"start": start, "end": end})
+
+    def weather_stations(self, source: str) -> list[Row]:
+        """Every station or point of ``source`` on its latest day with temperatures, warmest first."""
+        return self.db.fetch_all(_WEATHER_STATIONS, {"source": source})
+
+    def warnings(self, start: datetime, end: datetime) -> list[Row]:
+        """AEMET warning periods that overlap ``[start, end)``, earliest first."""
+        return self.db.fetch_all(_WARNINGS, {"start": start, "end": end})
+
+    def warning_zones(self) -> list[Row]:
+        """The AEMET warning zones of Mallorca with their polygons."""
+        return self.db.fetch_all(_WARNING_ZONES)
+
+    def population(self, from_year: int, to_year: int) -> list[Row]:
+        """Population of every municipality per year in ``[from_year, to_year]``, oldest first."""
+        return self.db.fetch_all(_POPULATION, {"from_year": from_year, "to_year": to_year})
+
+    def municipalities(self) -> list[Row]:
+        """The municipalities of Mallorca with their boundaries."""
+        return self.db.fetch_all(_MUNICIPALITIES)
+
+    def episodes(self, start: date, end: date) -> list[Row]:
+        """Rain, wind and sea episodes that started in the range, newest first."""
+        return self.db.fetch_all(_EPISODES, {"start": start, "end": end})
+
+    def model_bias(self) -> list[Row]:
+        """Error of the weather model against each station, largest first."""
+        return self.db.fetch_all(_MODEL_BIAS)
+
+    def air_quality_latest(self) -> list[Row]:
+        """The latest hour of each air quality station and model point."""
+        return self.db.fetch_all(_AIR_QUALITY_LATEST)
+
+    def sea_hourly(self, start: datetime, end: datetime) -> list[Row]:
+        """Hourly sea conditions of the coastal points, oldest first."""
+        return self.db.fetch_all(_SEA_HOURLY, {"start": start, "end": end})
+
+    def earthquakes(self, start: date, end: date) -> list[Row]:
+        """Earthquakes located by the IGN in the range, newest first."""
+        return self.db.fetch_all(_EARTHQUAKES, {"start": start, "end": end})
+
+    def quality_rules(self) -> list[Row]:
+        """The latest check of every quality rule, failing ones first."""
+        return self.db.fetch_all(_QUALITY_RULES)
+
+    def anomalies_daily(self, start: datetime, end: datetime) -> list[Row]:
+        """Flagged values per local day and detector."""
+        return self.db.fetch_all(_ANOMALIES_DAILY, {"start": start, "end": end})

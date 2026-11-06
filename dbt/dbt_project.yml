@@ -1,5 +1,5 @@
 name: mallorca
-version: "0.9.0"
+version: "0.10.0"
 config-version: 2
 profile: mallorca
 
@@ -15,7 +15,7 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   local_timezone: Europe/Madrid   # local day used by every daily model
   incremental_lookback: 1 hour     # re-read rows changed just before the last build (commit races)
-  date_spine_start: "2002-01-01"  # first day of dim_date: the oldest data (GOIB air quality history)
+  date_spine_start: "1996-01-01"  # first day of dim_date: the oldest data (INE municipal register)
   palma: {lat: 39.5696, lon: 2.6502}  # reference point for distances
   # station vs model: an observation station is compared with the nearest model point within this distance
   model_pairing_max_km: 25
@@ -24,7 +24,7 @@ vars:
   episode_gust_kmh: 70
   episode_wave_m: 2.5
   # Connectors with `frequency: event` (see macros/event_sources.sql).
-  event_sources: ["ign"]
+  event_sources: ["ign", "aemet_warnings"]
 
 seeds:
   mallorca:

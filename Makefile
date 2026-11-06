@@ -34,6 +34,7 @@ up: init ## Start the whole platform
 	@echo "Airflow  http://localhost:8080"
 	@echo "Grafana  http://localhost:3000"
 	@echo "MinIO    http://localhost:9001"
+	@echo "Web      http://localhost:3002"
 	@echo "API      http://localhost:8000/docs"
 
 down: ## Stop the platform (keeps data)
@@ -126,9 +127,9 @@ tf-check: ## Terraform fmt, validate, tflint and tests against a mocked AWS (no 
 tf-fmt: ## Format the Terraform files
 	$(TERRAFORM) fmt -recursive
 
-screenshots: ## Screenshot every Grafana dashboard into docs/img (Playwright in Docker, stack running)
+screenshots: ## Screenshot the web and Grafana dashboards into docs/img (Playwright in Docker, stack running)
 	docker run --rm --network host -v "$(CURDIR)":/work -w /work mcr.microsoft.com/playwright/python:v1.55.0-noble \
-		bash -c "pip install -q playwright==1.55.0 && python scripts/grafana_screenshots.py docs/img"
+		bash -c "pip install -q playwright==1.55.0 && python scripts/web_screenshots.py docs/img/web && python scripts/grafana_screenshots.py docs/img/grafana"
 
 e2e: ## End-to-end check (same as CI): run twice and assert idempotency
 	./scripts/e2e.sh

@@ -160,8 +160,8 @@ class ConnectorConfig:
     def frequency_for(self, dataset: str) -> timedelta | None:
         """Spacing between samples of one dataset: its own ``frequency`` or the connector default.
 
-        ``None`` for event datasets (``frequency: event``), which have no regular spacing; :data:`MONTH` for
-        monthly ones (``frequency: 1mo``).
+        ``None`` for event datasets (``frequency: event``), which have no regular spacing; :data:`MONTH` and
+        :data:`YEAR` for monthly and yearly ones (``frequency: 1mo`` or ``1y``).
         """
         spec = self.datasets.get(dataset) or {}
         freq = str(spec.get("frequency", self.frequency))
@@ -184,20 +184,26 @@ MONTHLY_FREQUENCY = "1mo"
 # Nominal spacing of monthly datasets. Months differ in length, so their expected steps are counted in calendar
 # months (see expected_steps), never as a span divided by this value.
 MONTH = timedelta(days=30)
+# Dataset frequency of yearly statistics (the municipal register...): one value per year, stamped on 1 January.
+YEARLY_FREQUENCY = "1y"
+# Nominal spacing of yearly datasets; their expected steps are counted in calendar years, like months.
+YEAR = timedelta(days=365)
 
 
 def parse_frequency(freq: str) -> timedelta:
-    """Parse ``15m``, ``1h`` or ``1d`` into a timedelta (``1mo`` into the nominal :data:`MONTH`).
+    """Parse ``15m``, ``1h`` or ``1d`` into a timedelta (``1mo`` and ``1y`` into :data:`MONTH` and :data:`YEAR`).
 
     Raises:
         ConnectorError: for any other format.
     """
     if freq == MONTHLY_FREQUENCY:
         return MONTH
+    if freq == YEARLY_FREQUENCY:
+        return YEAR
     units = {"m": "minutes", "h": "hours", "d": "days"}
     value, unit = freq[:-1], freq[-1]
     if unit not in units or not value.isdigit():
-        msg = f"invalid frequency '{freq}', expected e.g. 15m, 1h, 1d or 1mo"
+        msg = f"invalid frequency '{freq}', expected e.g. 15m, 1h, 1d, 1mo or 1y"
         raise ConnectorError(msg)
     return timedelta(**{units[unit]: int(value)})
 

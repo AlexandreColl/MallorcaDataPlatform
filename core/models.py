@@ -89,6 +89,11 @@ class TimeWindow:
             first = date(first.year + first.month // 12, first.month % 12 + 1, 1)
         return months
 
+    def year_starts(self) -> list[date]:
+        """1 January of the years that start inside the window (where yearly values are stamped)."""
+        first = self.start.year if (self.start.month, self.start.day) == (1, 1) else self.start.year + 1
+        return [date(year, 1, 1) for year in range(first, self.end.year + 1)]
+
     def split(self, max_days: int) -> list[TimeWindow]:
         """Consecutive sub-windows of at most `max_days`, for APIs that limit the range per request."""
         if max_days < 1:

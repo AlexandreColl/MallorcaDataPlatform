@@ -26,6 +26,24 @@ jobs:
       - run: ruff check --no-fix --output-format=github .
       - run: ruff format --check .
 
+  web:
+    name: Web (types, tests, build)
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   terraform:
     name: Terraform (mocked AWS)
     runs-on: ubuntu-26.04
@@ -146,7 +164,9 @@ jobs:
           run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow dbt-docs.yml --branch develop --status success \
             --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)  # no workflow run yet: full build
           if [ -n "$run_id" ] && gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name dbt-manifest --dir dbt/state; then
-            echo "DBT_SELECTION=--select @state:modified --state state" >> "$GITHUB_ENV"
+            # cautious: a test runs only when every model it reads was built (a relationships test against a model
+            # outside the selection would query a table that does not exist on the empty warehouse).
+            echo "DBT_SELECTION=--select @state:modified --state state --indirect-selection cautious" >> "$GITHUB_ENV"
             echo "Slim CI against develop (run $run_id)"
           else
             echo "No manifest of develop: full build"
@@ -166,7 +186,7 @@ jobs:
           API_DB_USER: warehouse
           API_DB_PASSWORD: warehouse
         run: |
-          (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api)
+          (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api --indirect-selection cautious)
           pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
           pytest -q api/tests/test_integration.py
       # The pipeline's writes (the upsert behind idempotent reruns, run tracking) against the same Postgres.
@@ -202,6 +222,15 @@ jobs:
           load: true
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
+      - name: Build web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/web/Dockerfile
+          tags: mallorca-data-platform/web:local
+          load: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
       - name: DAG integrity and tests inside the image
         run: >-
           docker run --rm -v "$PWD:/opt/project" -w /opt/project --entrypoint ""

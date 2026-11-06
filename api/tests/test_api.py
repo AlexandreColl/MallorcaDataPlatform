@@ -82,6 +82,18 @@ def test_sources_and_one_source(db):
     assert missing.json()["error"] == {"code": "not_found", "message": "unknown source 'nope'"}
 
 
+def test_locations_with_an_optional_source(db):
+    location = {"source": "aemet", "label": "AEMET", "kind": "observation", "entity": "B278", "lat": 39.55,
+                "lon": 2.73, "first_seen": TS, "last_seen": TS, "n_metrics": 10}  # fmt: skip
+    db.rows = {"gold.dim_locations": [location], **db.rows}  # before gold.dim_sources, which the query joins
+    api = client(db)
+
+    assert api.get("/v1/locations").json()[0]["kind"] == "observation"
+    assert db.calls[-1][1] == {"source": None}
+    api.get("/v1/locations", params={"source": "aemet"})
+    assert db.calls[-1][1] == {"source": "aemet"}
+
+
 def test_observations_are_paginated_with_one_extra_row(db):
     api = client(db)
 
@@ -199,7 +211,11 @@ def test_openapi_documents_every_endpoint(db):
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
-        "/v1/resources/monthly",
+        "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/weather/daily",
+        "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
+        "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones", "/v1/population",
+        "/v1/municipalities",
+        "/v1/quality/rules", "/v1/anomalies/daily",
     }  # fmt: skip
 
 
@@ -215,3 +231,92 @@ def test_settings_from_environment():
 
     assert (settings.host, settings.user, settings.cors_origins) == ("postgres", "reader", ("a", "b"))
     assert "default_transaction_read_only=on" in settings.conninfo
+
+
+@pytest.mark.parametrize(
+    ("path", "table"),
+    [
+        ("/v1/mobility/daily", "gold.fct_island_transit_daily"),
+        ("/v1/mobility/stops", "gold.fct_observations"),
+        ("/v1/weather/daily", "gold.fct_weather_daily"),
+        ("/v1/weather/stations", "gold.fct_weather_daily"),
+        ("/v1/warnings", "gold.fct_weather_warnings"),
+        ("/v1/warnings/zones", "gold.dim_warning_zones"),
+        ("/v1/population", "gold.fct_population_yearly"),
+        ("/v1/municipalities", "gold.dim_municipalities"),
+        ("/v1/weather/episodes", "gold.fct_weather_episodes"),
+        ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),
+        ("/v1/air-quality/latest", "gold.air_quality_hourly"),
+        ("/v1/sea/hourly", "gold.fct_sea_conditions_hourly"),
+        ("/v1/earthquakes", "gold.fct_earthquakes"),
+        ("/v1/quality/rules", "gold.data_quality_summary"),
+        ("/v1/anomalies/daily", "silver.anomalies"),
+    ],
+)
+def test_every_dashboard_endpoint_reads_its_mart(path, table):
+    db = FakeDatabase()
+
+    response = client(db).get(path)
+
+    assert response.status_code == 200
+    assert response.json() == []
+    assert table in db.calls[-1][0]
+
+
+def test_day_ranges_default_to_the_last_days_and_are_validated():
+    db = FakeDatabase()
+    api = client(db)
+
+    api.get("/v1/weather/daily")
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 29  # 30 days, both included
+    api.get("/v1/mobility/daily", params={"from": "2026-10-01", "to": "2026-10-31"})
+    assert db.calls[-1][1] == {"start": date(2026, 10, 1), "end": date(2026, 10, 31)}
+
+    response = api.get("/v1/earthquakes", params={"from": "2026-11-02", "to": "2026-11-01"})
+    assert response.status_code == 422
+    assert response.json()["error"]["message"] == "`from` must not be after `to`"
+
+
+def test_stops_filter_by_network_and_reject_an_unknown_one():
+    db = FakeDatabase({"gold.fct_observations": [
+        {"network": "ctm", "stop": "stop_1", "lat": 39.6, "lon": 2.9, "local_date": date(2026, 11, 4),
+         "departures": 1028.0, "lines": 31.0},
+    ]})  # fmt: skip
+    api = client(db)
+
+    assert api.get("/v1/mobility/stops", params={"network": "ctm"}).json()[0]["departures"] == 1028.0
+    assert db.calls[-1][1] == {"network": "ctm"}
+    assert api.get("/v1/mobility/stops", params={"network": "tram"}).status_code == 422
+
+
+def test_warnings_default_to_the_next_days_and_zones_come_with_their_polygon():
+    zone = {"zone": "645403", "name": "Interior de Mallorca", "kind": "land", "polygon": "[[2.93,39.81],[2.95,39.76]]"}
+    db = FakeDatabase({"gold.dim_warning_zones": [zone]})
+    api = client(db)
+
+    api.get("/v1/warnings")
+    params = db.calls[-1][1]
+    assert round((params["end"] - params["start"]).total_seconds() / 86400) == 3
+    assert api.get("/v1/warnings/zones").json()[0]["polygon"] == [[2.93, 39.81], [2.95, 39.76]]
+
+
+def test_population_filters_by_year_and_municipalities_come_with_their_rings():
+    palma = {
+        "municipality": "07040",
+        "name": "Palma",
+        "lat": 39.58,
+        "lon": 2.70,
+        "area_km2": 208.6,
+        "polygon": "[[[2.6,39.5],[2.7,39.6],[2.6,39.5]],[[2.9,39.15],[3.0,39.2],[2.9,39.15]]]",  # Cabrera too
+    }
+    db = FakeDatabase({"gold.dim_municipalities": [palma]})
+    api = client(db)
+
+    api.get("/v1/population")
+    assert db.calls[-1][1] == {"from_year": 1996, "to_year": 2100}
+    api.get("/v1/population", params={"from": 2015, "to": 2025})
+    assert db.calls[-1][1] == {"from_year": 2015, "to_year": 2025}
+    assert api.get("/v1/population", params={"from": 2025, "to": 2015}).status_code == 422
+    assert api.get("/v1/population", params={"from": 1990}).status_code == 422
+    assert len(api.get("/v1/municipalities").json()[0]["polygon"]) == 2

@@ -11,3 +11,5 @@ dataestur,Dataestur (turismo),statistic,"Turistas internacionales, gasto, ocupac
 water_reserves,Reservas hídricas (Govern),statistic,"Reservas de agua subterránea de Mallorca por acuífero y del conjunto de la isla, mensuales"
 goib_air_quality,GOIB (histórico de calidad del aire),observation,"Histórico horario de NO2, O3, PM10, PM2.5, SO2 y CO de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo de datos abiertos del Govern)"
 eea_air_quality,EEA (estaciones de calidad del aire),observation,"Medidas horarias de NO2, O3, PM10, PM2.5, SO2 y CO de 9 estaciones oficiales de Mallorca (red del Govern, vía Agencia Europea de Medio Ambiente)"
+aemet_warnings,AEMET (avisos),warning,"Avisos meteorológicos de AEMET (Meteoalerta) por zona de Mallorca y fenómeno, hora a hora: nivel 0 sin riesgo, 1 amarillo, 2 naranja, 3 rojo"
+ine_population,INE (padrón),statistic,"Población de cada municipio de Mallorca a 1 de enero, por sexo, anual"

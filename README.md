@@ -13,7 +13,10 @@ Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mal
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
 parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo listo para analizar.
 
-![Dashboard de inicio en Grafana: indicadores del último mes y mapa con todas las fuentes de Mallorca](docs/img/inicio.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/web/inicio-oscuro.png">
+  <img alt="Inicio de la web: cinco cifras clave frente a lo normal de cada mes y el mapa de estaciones de Mallorca" src="docs/img/web/inicio.png">
+</picture>
 
 ```json
 {"connectors": ["open_meteo"], "days": 30, "region": "mallorca"}
@@ -21,15 +24,12 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 ## Arquitectura
 
-```mermaid
-flowchart LR
-    SRC["12 fuentes abiertas<br/>APIs, GTFS y ficheros"] -->|extract| BR[("bronze<br/>respuesta cruda")]
-    BR -->|"normalize + calidad<br/>(PySpark)"| SL[("silver<br/>esquema común")]
-    SL -->|"anomalías y<br/>correcciones"| AC[("silver.anomalies<br/>silver.corrections")]
-    SL & AC -->|dbt build| GD[("gold<br/>marts")]
-    GD --> GF[Grafana]
-    GD --> API[API REST]
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Arquitectura: 14 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+</picture>
+
+El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
 
 Airflow orquesta cada flecha con el DAG `mallorca_pipeline`: una tarea `ingest` por conector, y después
 `detect_anomalies`, `correct_values` y `dbt_build`. Bronze vive en MinIO; silver, en una tabla Delta de MinIO y en
@@ -79,6 +79,7 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un
 
 | Servicio | URL | Acceso |
 |---|---|---|
+| **Web** | http://localhost:3002 | la isla en cifras: KPIs, mapa y estado de las fuentes ([abajo](#frontal-web)) |
 | Airflow | http://localhost:8080 | sin login (modo demo local) |
 | Grafana | http://localhost:3000 | anónimo de lectura · admin/admin |
 | MinIO | http://localhost:9001 | minioadmin/minioadmin |
@@ -104,6 +105,8 @@ Otros comandos: `make help`.
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
+| [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | Avisos meteorológicos de AEMET (lluvias, tormentas, viento, costeros…) por zona de Mallorca y hora, del nivel 0 al 3 | Sí |
+| [ine_population](connectors/ine_population/README.md) | ✅ | Población de los 53 municipios de Mallorca a 1 de enero, por sexo, del padrón del INE (desde 1996) | No |
 
 ### Open-Meteo
 
@@ -125,6 +128,28 @@ máxima, lluvia, humedad, viento, horas de sol y presión). Necesita una API key
 (`AEMET_API_KEY`); sin ella el conector queda fuera de la selección por defecto. La API es de dos pasos, acepta
 hasta 25 estaciones por petición y publica con 2-3 días de retraso, por eso declara `lag_days: 3`. En Grafana,
 iconos de sol y nube en el mapa con el último día publicado.
+
+### AEMET (avisos)
+
+Los avisos de AEMET (Meteoalerta) de las nueve zonas de Mallorca (cinco de tierra y cuatro de aguas costeras),
+hora a hora y por fenómeno: lluvias, tormentas, viento, costeros, temperaturas, nieblas, rissagas… El valor es
+el nivel: 0 sin riesgo, 1 amarillo, 2 naranja y 3 rojo. Usa la misma clave que `aemet`. Cada emisión de AEMET es
+una foto de los avisos en vigor: un aviso que deja de aparecer se ha retirado, sin `Cancel`. Por eso cada hora toma
+el nivel de la foto que estaba en vigor. El archivo da las horas pasadas y la última emisión las de hoy y los próximos
+días. En gold, `fct_weather_warnings` da un periodo por aviso; en la web, un mapa con las zonas coloreadas por nivel.
+[Detalle y pruebas reales](connectors/aemet_warnings/README.md).
+
+### INE (población)
+
+La población de cada municipio de Mallorca a 1 de enero, por sexo, del padrón continuo del INE (tabla 2860, desde
+1996; en 1997 no hubo padrón). Es la primera fuente anual: el núcleo gana `frequency: 1y` (huecos contados en años
+naturales). Cada ejecución relee los tres últimos años, porque el INE revisa las cifras una vez, y la ventana acaba
+350 días antes de ayer, porque las cifras de un año salen a mediados de diciembre. El seed `dim_municipalities`
+guarda el límite de cada municipio (IGN, simplificado a unos 150 m). En gold, `fct_population_yearly` añade la
+densidad y el cambio frente al padrón anterior; el total de la isla es la suma de sus municipios. En la web, el
+dashboard de Movilidad cruza la población con las paradas de cada municipio: Palma tiene 186 pasos programados por
+cada 1.000 habitantes en un día laborable y Manacor, 27.
+[Detalle y pruebas reales](connectors/ine_population/README.md).
 
 ### REData
 
@@ -424,6 +449,45 @@ serie elegida (variable *Serie corregida*) y la tabla de las últimas correccion
 como bandas sobre la gráfica, igual que en el explorador de Tiempo y entorno: así se ve qué corrige cada parte. La
 API las sirve en `GET /v1/corrections`.
 
+## Frontal web
+
+La isla en cifras, para quien quiere verla y no operar la plataforma: http://localhost:3002. Un menú a la izquierda
+abre seis dashboards. Cada uno agrupa datos que van juntos, igual que las carpetas de Grafana:
+
+| Dashboard | Qué enseña |
+|---|---|
+| **Inicio** | Cinco cifras clave frente a lo normal de cada mes (reservas, lluvia, turistas, electricidad y temperatura) y el mapa de estaciones y puntos de modelo |
+| **Turismo y recursos** | Turistas, aeropuerto y ocupación hotelera; turistas frente a reservas de agua y a demanda eléctrica, y ocupación frente a gasto, cada serie con su tendencia de 12 meses y su correlación de Pearson (con y sin el ciclo anual) |
+| **Clima y agua** | Reservas frente a la media del mes, los 18 acuíferos, lluvia acumulada de cada año hidrológico y anomalía de temperatura |
+| **Movilidad** | Población de la isla y servicio por cada 1.000 habitantes; mapa de los municipios por densidad, servicio por habitante o crecimiento en 10 años; población desde 1996; servicio programado de EMT y CTM por día, mapa del servicio de cada parada y paradas con más servicio |
+| **Tiempo y entorno** | Temperatura por zonas (las 33 estaciones de AEMET interpoladas sobre la isla), avisos de AEMET por zona (ahora y en las próximas 72 h), temperatura de cada fuente, calidad del aire ahora (índice europeo) con la tabla de estaciones, oleaje, episodios, sismos y error del modelo |
+| **Operación** | Estado de cada fuente, reglas de calidad que fallan, anomalías por día y últimas correcciones |
+
+En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala noticia, junto con la evolución de los
+últimos meses. Los mapas tienen capas que se pueden ocultar, y al pulsar un punto se ve qué es.
+
+| Turismo y recursos | Clima y agua |
+|---|---|
+| [![Turismo y recursos](docs/img/web/turismo-y-recursos.png)](docs/img/web/turismo-y-recursos.png) | [![Clima y agua](docs/img/web/clima-y-agua.png)](docs/img/web/clima-y-agua.png) |
+| **Movilidad** | **Tiempo y entorno** |
+| [![Movilidad](docs/img/web/movilidad.png)](docs/img/web/movilidad.png) | [![Tiempo y entorno](docs/img/web/tiempo-y-entorno.png)](docs/img/web/tiempo-y-entorno.png) |
+| **Operación** | **Modo oscuro** |
+| [![Operación](docs/img/web/operacion.png)](docs/img/web/operacion.png) | [![Inicio en modo oscuro](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) |
+
+Está hecha con React, TypeScript y Vite, con ECharts para los gráficos y MapLibre con teselas de OpenStreetMap para
+los mapas. El logo es la silueta de la isla. Tiene modo claro y oscuro, con un botón en el menú que se recuerda en el
+navegador, y en el móvil el menú pasa a ser un cajón.
+
+**Solo lee la API REST**, nunca el warehouse. La imagen `web` es nginx con la web ya construida, y hace de proxy de
+`/api` hacia la API, así que el navegador habla con un único origen. Grafana se queda para operar la plataforma:
+alertas, calidad, anomalías y correcciones. Por qué una web propia y no rehacer Grafana:
+[ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md).
+
+```bash
+cd web && npm install && npm run dev   # http://localhost:5173, con /api hacia la API del stack (localhost:8000)
+npm test                               # cifras clave y estado de las fuentes (Vitest)
+```
+
 ## Grafana
 
 Seis dashboards en la carpeta *Mallorca Data Platform* (http://localhost:3000), enlazados entre sí desde la barra
@@ -438,15 +502,15 @@ superior. Cada uno responde a una pregunta y lee sus marts de dbt (un exposure p
 | **Tiempo y entorno** | Explorador de cualquier métrica por fuente y entidad, con sus anomalías como anotaciones, calidad del aire, oleaje, error del modelo frente a las estaciones, episodios meteorológicos y sismos |
 | **Operación** | Salud de cada fuente, anomalías detectadas, correcciones (antes y después), ejecuciones, reglas de calidad y completitud de cada serie |
 
-| Turismo y recursos | Clima y agua |
+| Inicio | Turismo y recursos |
 |---|---|
-| [![Turismo y recursos](docs/img/turismo-y-recursos.png)](docs/img/turismo-y-recursos.png) | [![Clima y agua](docs/img/clima-y-agua.png)](docs/img/clima-y-agua.png) |
+| [![Inicio](docs/img/grafana/inicio.png)](docs/img/grafana/inicio.png) | [![Turismo y recursos](docs/img/grafana/turismo-y-recursos.png)](docs/img/grafana/turismo-y-recursos.png) |
+| **Clima y agua** | **Movilidad** |
+| [![Clima y agua](docs/img/grafana/clima-y-agua.png)](docs/img/grafana/clima-y-agua.png) | [![Movilidad](docs/img/grafana/movilidad.png)](docs/img/grafana/movilidad.png) |
 | **Tiempo y entorno** | **Operación** |
-| [![Tiempo y entorno](docs/img/tiempo-y-entorno.png)](docs/img/tiempo-y-entorno.png) | [![Operación](docs/img/operacion.png)](docs/img/operacion.png) |
+| [![Tiempo y entorno](docs/img/grafana/tiempo-y-entorno.png)](docs/img/grafana/tiempo-y-entorno.png) | [![Operación](docs/img/grafana/operacion.png)](docs/img/grafana/operacion.png) |
 
-[![Movilidad](docs/img/movilidad.png)](docs/img/movilidad.png)
-
-Las capturas se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
+Las capturas de la web y de Grafana se regeneran con `make screenshots` (Playwright en Docker contra la pila local).
 
 La pregunta de fondo (¿aprieta el turismo al agua?) necesita cuidado: turismo, calor, demanda y reservas son
 estacionales a la vez, así que comparar meses tal cual solo enseña el calendario. Los paneles de evaluación comparan
@@ -497,6 +561,13 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 |---|---|
 | `GET /v1/health` | Estado de la API y de su conexión al warehouse (503 si está caído) |
 | `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
+| `GET /v1/locations` | Cada estación, punto de modelo y parada con coordenadas, su fuente y su tipo (el mapa de la web) |
+| `GET /v1/mobility/daily`, `/v1/mobility/stops` | Servicio programado de EMT y CTM por día, y el de cada parada en el último día |
+| `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación; `stations`: cada estación en el último día publicado |
+| `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | Última hora de calidad del aire con su índice europeo, oleaje por hora y sismos |
+| `GET /v1/warnings`, `/v1/warnings/zones` | Avisos de AEMET en vigor o anunciados (por defecto, de ahora a 3 días) y las zonas de aviso con su polígono |
+| `GET /v1/population`, `/v1/municipalities` | Población de cada municipio por año (filtrable con `from` y `to`) y los 53 municipios con su superficie y su límite |
+| `GET /v1/quality/rules`, `/v1/anomalies/daily` | Último chequeo de cada regla de calidad y anomalías por día y detector |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
 | `GET /v1/corrections` | Valores propuestos para las horas sin valor válido de las estaciones, con el original, el método, el apoyo, el sesgo y la confianza; filtrados por fuente, estación, método y rango, paginados |
@@ -542,7 +613,8 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 ├── dbt/                  # staging → intermediate → marts, tests y seeds (ver dbt/README.md)
 ├── dashboards/           # provisioning y dashboards de Grafana
 ├── api/                  # API REST de solo lectura (FastAPI) y sus tests
-├── docker/               # Dockerfiles de Airflow+Spark+dbt y de la API, init de Postgres
+├── web/                  # frontal web (React + Vite) que lee la API
+├── docker/               # Dockerfiles de Airflow+Spark+dbt, de la API y de la web, init de Postgres
 ├── infra/terraform/      # AWS: S3, IAM, Glue Catalog, Athena y presupuesto, con tests sobre un AWS simulado
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/

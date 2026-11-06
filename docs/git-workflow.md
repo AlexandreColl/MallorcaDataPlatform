@@ -18,8 +18,8 @@ feature/connector-redata ──PR(squash)──► develop ──PR(release/v0.2
 ## Commits: gitmoji + Conventional Commits
 
 `<emoji> tipo(ámbito): descripción` — el emoji en Unicode (✨, no `:sparkles:`) para que se vea igual en
-GitHub, en la terminal y en el IDE. Ámbitos: `core`, `connector`, `airflow`, `dbt`, `grafana`, `infra`,
-`deps`, `release`.
+GitHub, en la terminal y en el IDE. Ámbitos: `core`, `connector`, `anomaly`, `airflow`, `api`, `web`, `dbt`, `grafana`,
+`infra`, `deps`, `release`.
 
 | Emoji | Tipo | Cuándo |
 |---|---|---|

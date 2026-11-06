@@ -1,0 +1,47 @@
+name: aemet_warnings
+description: AEMET weather warnings (Meteoalerta, CAP) for the warning zones of the region, hour by hour (needs a free API key)
+entrypoint: connectors.aemet_warnings.extractor:AemetWarningsConnector
+enabled: true
+frequency: event       # a level only while AEMET issues a warning or its all-clear: no gaps rule
+max_days: 90
+secrets: [AEMET_API_KEY]
+
+options:
+  base_url: https://opendata.aemet.es/opendata/api
+  area: "64"                 # AEMET's warning area of the Balearic Islands; its CAP files are named *AFAZ64*
+  # The archive rejects ranges over 2 days ("El rango de fechas no puede ser superior a 2 dias", end day minus start
+  # day): each request covers max_days_per_request days of the window plus lookback_days before them, 3 at most.
+  max_days_per_request: 2
+  # A warning for a day is usually issued the day before: the archive is read from this many days before
+  # the window, so every hour of the window gets its latest message even when it was sent earlier.
+  lookback_days: 1
+  # AEMET-Meteoalerta phenomenon code -> metric. The value is the level: 0 green (no risk), 1 yellow, 2 orange, 3 red.
+  phenomena:
+    PR: warning_rain
+    TO: warning_storms
+    VI: warning_wind
+    CO: warning_coastal
+    AT: warning_max_temperature
+    BT: warning_min_temperature
+    NE: warning_snow
+    NI: warning_fog
+    RI: warning_rissaga
+    VS: warning_dust
+
+datasets:
+  # Issued warnings of past days (archive), one hour per row inside the window.
+  archive: {}
+  # The warnings in force and the ones announced for the coming days (latest issue), for the hours after the window.
+  latest: {}
+
+metrics:
+  warning_rain:            {dataset: archive, unit: level, min: 0, max: 3}
+  warning_storms:          {dataset: archive, unit: level, min: 0, max: 3}
+  warning_wind:            {dataset: archive, unit: level, min: 0, max: 3}
+  warning_coastal:         {dataset: archive, unit: level, min: 0, max: 3}
+  warning_max_temperature: {dataset: archive, unit: level, min: 0, max: 3}
+  warning_min_temperature: {dataset: archive, unit: level, min: 0, max: 3}
+  warning_snow:            {dataset: archive, unit: level, min: 0, max: 3}
+  warning_fog:             {dataset: archive, unit: level, min: 0, max: 3}
+  warning_rissaga:         {dataset: archive, unit: level, min: 0, max: 3}
+  warning_dust:            {dataset: archive, unit: level, min: 0, max: 3}

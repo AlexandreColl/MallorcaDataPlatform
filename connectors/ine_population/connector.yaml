@@ -1,0 +1,83 @@
+name: ine_population
+description: INE municipal register (padrón continuo) - population of each municipality of Mallorca on 1 January, by sex, no API key
+entrypoint: connectors.ine_population.extractor:InePopulationConnector
+enabled: true
+frequency: 1y          # one value per year, stamped on 1 January (local midnight), the reference date of the register
+# Every run re-reads the last three years: the figures of a year are revised once after their first release.
+min_days: 1095
+max_days: 11500        # backfills: the table goes back to 1996 (there is no 1997 register)
+# The figures on 1 January of a year are published around mid-December of that same year. Windows end 350 days
+# before yesterday, so the latest year in a window is normally out.
+lag_days: 350
+secrets: []
+
+options:
+  base_url: https://servicios.ine.es/wstempus/js/ES
+  timezone: Europe/Madrid
+  # Values of the "Sexo" dimension of the table and the metric each one feeds.
+  sexes: {"0": population, "1": population_men, "2": population_women}
+  # INE code, name and centre of every municipality of Mallorca (from the IGN boundaries of the seed
+  # dim_municipalities). A municipality is kept when its centre is inside the region.
+  municipalities:
+    "07001": {name: "Alaró", lat: 39.7239, lon: 2.8019}
+    "07003": {name: "Alcúdia", lat: 39.8432, lon: 3.1124}
+    "07004": {name: "Algaida", lat: 39.5653, lon: 2.9026}
+    "07005": {name: "Andratx", lat: 39.5816, lon: 2.4056}
+    "07006": {name: "Artà", lat: 39.7156, lon: 3.3293}
+    "07007": {name: "Banyalbufar", lat: 39.6812, lon: 2.527}
+    "07008": {name: "Binissalem", lat: 39.6844, lon: 2.8585}
+    "07009": {name: "Búger", lat: 39.7579, lon: 2.9839}
+    "07010": {name: "Bunyola", lat: 39.7085, lon: 2.7127}
+    "07011": {name: "Calvià", lat: 39.5493, lon: 2.5076}
+    "07012": {name: "Campanet", lat: 39.7981, lon: 2.9675}
+    "07013": {name: "Campos", lat: 39.4065, lon: 3.0151}
+    "07014": {name: "Capdepera", lat: 39.6971, lon: 3.4273}
+    "07016": {name: "Consell", lat: 39.6662, lon: 2.8182}
+    "07017": {name: "Costitx", lat: 39.6562, lon: 2.9491}
+    "07018": {name: "Deià", lat: 39.7486, lon: 2.6481}
+    "07019": {name: "Escorca", lat: 39.828, lon: 2.8496}
+    "07020": {name: "Esporles", lat: 39.6635, lon: 2.5868}
+    "07021": {name: "Estellencs", lat: 39.6485, lon: 2.4755}
+    "07022": {name: "Felanitx", lat: 39.4519, lon: 3.1607}
+    "07025": {name: "Fornalutx", lat: 39.7987, lon: 2.7519}
+    "07027": {name: "Inca", lat: 39.7122, lon: 2.944}
+    "07028": {name: "Lloret de Vistalegre", lat: 39.6183, lon: 2.9764}
+    "07029": {name: "Lloseta", lat: 39.7208, lon: 2.8561}
+    "07030": {name: "Llubí", lat: 39.6984, lon: 3.0249}
+    "07031": {name: "Llucmajor", lat: 39.4501, lon: 2.8512}
+    "07033": {name: "Manacor", lat: 39.5554, lon: 3.2351}
+    "07034": {name: "Mancor de la Vall", lat: 39.7611, lon: 2.8656}
+    "07035": {name: "Maria de la Salut", lat: 39.6748, lon: 3.0937}
+    "07036": {name: "Marratxí", lat: 39.6237, lon: 2.7296}
+    "07038": {name: "Montuïri", lat: 39.5647, lon: 2.9896}
+    "07039": {name: "Muro", lat: 39.7576, lon: 3.0855}
+    "07040": {name: "Palma", lat: 39.5831, lon: 2.6988}
+    "07041": {name: "Petra", lat: 39.6282, lon: 3.1424}
+    "07042": {name: "Pollença", lat: 39.8867, lon: 3.0289}
+    "07043": {name: "Porreres", lat: 39.5075, lon: 3.03}
+    "07044": {name: "Sa Pobla", lat: 39.779, lon: 3.0299}
+    "07045": {name: "Puigpunyent", lat: 39.6255, lon: 2.5301}
+    "07047": {name: "Sencelles", lat: 39.6403, lon: 2.8974}
+    "07049": {name: "Sant Joan", lat: 39.5886, lon: 3.0444}
+    "07051": {name: "Sant Llorenç des Cardassar", lat: 39.6168, lon: 3.3062}
+    "07053": {name: "Santa Eugènia", lat: 39.6182, lon: 2.8324}
+    "07055": {name: "Santa Margalida", lat: 39.7213, lon: 3.1547}
+    "07056": {name: "Santa María del Camí", lat: 39.6641, lon: 2.7708}
+    "07057": {name: "Santanyí", lat: 39.3499, lon: 3.1321}
+    "07058": {name: "Selva", lat: 39.7674, lon: 2.9091}
+    "07059": {name: "ses Salines", lat: 39.3306, lon: 3.0433}
+    "07060": {name: "Sineu", lat: 39.6464, lon: 3.0221}
+    "07061": {name: "Sóller", lat: 39.7756, lon: 2.7055}
+    "07062": {name: "Son Servera", lat: 39.6404, lon: 3.3711}
+    "07063": {name: "Valldemossa", lat: 39.7024, lon: 2.6192}
+    "07065": {name: "Vilafranca de Bonany", lat: 39.5557, lon: 3.1171}
+    "07901": {name: "Ariany", lat: 39.6557, lon: 3.1335}
+
+datasets:
+  municipalities:
+    path: DATOS_TABLA/2860   # "Balears, Illes: Población por municipios y sexo"
+
+metrics:
+  population:       {dataset: municipalities, unit: people, min: 0, max: 600000}
+  population_men:   {dataset: municipalities, unit: people, min: 0, max: 300000}
+  population_women: {dataset: municipalities, unit: people, min: 0, max: 300000}
