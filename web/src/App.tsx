@@ -15,7 +15,7 @@ import { usePath } from "./router";
 const DASHBOARDS: Dashboard[] = [
   {
     path: "/", label: "Inicio", icon: "home", title: "Mallorca en datos",
-    description: "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Doce fuentes abiertas, cargadas cada día y con la calidad comprobada.",
+    description: "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Catorce fuentes abiertas, con la calidad comprobada en cada carga.",
   },
   {
     path: "/turismo-y-recursos", label: "Turismo y recursos", icon: "tourism", title: "Turismo y recursos",

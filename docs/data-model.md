@@ -65,7 +65,7 @@ tabla Delta del lake, con la misma clave ([ADR 0002](adr/0002-medallion.md)).
 **Clave primaria:** `(source, entity, metric, ts)`. Está definida una sola vez, en `core/models.py`, y la usan el
 `MERGE` de Delta, el upsert de Postgres, la regla de duplicados y la deduplicación.
 
-**Por qué es largo.** Doce fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
+**Por qué es largo.** Catorce fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
 cambia ninguna tabla, y la calidad, la idempotencia y la frescura se resuelven una vez para todas
 ([ADR 0001](adr/0001-nucleo-fijo-y-conectores.md)). El precio es que una consulta que cruza métricas tiene que
 pivotar. Eso se hace una sola vez, en gold.

@@ -24,15 +24,12 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 ## Arquitectura
 
-```mermaid
-flowchart LR
-    SRC["12 fuentes abiertas<br/>APIs, GTFS y ficheros"] -->|extract| BR[("bronze<br/>respuesta cruda")]
-    BR -->|"normalize + calidad<br/>(PySpark)"| SL[("silver<br/>esquema común")]
-    SL -->|"anomalías y<br/>correcciones"| AC[("silver.anomalies<br/>silver.corrections")]
-    SL & AC -->|dbt build| GD[("gold<br/>marts")]
-    GD --> GF[Grafana]
-    GD --> API[API REST] --> WEB[Web]
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Arquitectura: 14 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+</picture>
+
+El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
 
 Airflow orquesta cada flecha con el DAG `mallorca_pipeline`: una tarea `ingest` por conector, y después
 `detect_anomalies`, `correct_values` y `dbt_build`. Bronze vive en MinIO; silver, en una tabla Delta de MinIO y en
