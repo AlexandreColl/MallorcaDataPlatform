@@ -23,7 +23,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from core.connectors import BaseConnector, ConnectorError
-from core.models import Observation, Quality, RawPayload, Region, TimeWindow
+from core.models import Entity, Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -84,6 +84,11 @@ class GoibAirQualityConnector(BaseConnector):
             msg = f"the GOIB history (2002 to June 2021) has no file for {window.start}..{window.end}"
             raise ConnectorError(msg)
         return payloads
+
+    def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:  # noqa: ARG002 - names from config
+        """The name of the payload's station, from ``connector.yaml``."""
+        entity = payload.request["entity"]
+        yield Entity(source=self.name, entity=entity, name=str(self.config.options["stations"][entity]["name"]))
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:  # noqa: ARG002 - coords from config
         """One observation per hour and pollutant of the window.

@@ -9,7 +9,7 @@ range, plus the ``calendar_dates.txt`` exceptions for holidays) and counts, per 
 * ``lines_served``: distinct lines (``route_id``) calling at the stop.
 
 Days outside the feed's validity produce no rows, so the gaps rule reports them instead of reading them as
-"no service".
+"no service". ``describe`` names every stop with its ``stop_name``, as the feed publishes it.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from core.connectors.base import BaseConnector, ConnectorError
-from core.models import Observation, RawPayload, Region, TimeWindow
+from core.models import Entity, Observation, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -44,13 +44,18 @@ def _gtfs_date(raw: str) -> date:
     return datetime.strptime(raw.strip(), "%Y%m%d").date()  # noqa: DTZ007 - a calendar date, not an instant
 
 
+def _is_stop(row: dict[str, str]) -> bool:
+    """A boarding point (``location_type`` empty or 0), not a station, an entrance or a node."""
+    return row.get("location_type", "0").strip() in {"", "0"}
+
+
 class Gtfs:
     """The parts of a GTFS feed needed to count scheduled service per stop and day."""
 
     def __init__(self, archive: bytes) -> None:
         with zipfile.ZipFile(io.BytesIO(archive)) as zf:
             self._files = {name: zf.read(name).decode("utf-8-sig") for name in zf.namelist()}
-        self.stops = {s["stop_id"]: s for s in self._rows("stops.txt") if s.get("location_type", "0") in {"", "0"}}
+        self.stops = {s["stop_id"]: s for s in self._rows("stops.txt") if _is_stop(s)}
         self.trips = {t["trip_id"]: t for t in self._rows("trips.txt")}
         self.stops_of_trip: dict[str, set[str]] = defaultdict(set)
         for row in self._rows("stop_times.txt"):
@@ -156,3 +161,13 @@ class GtfsConnector(BaseConnector):
                         lon=lon,
                     )
             day += timedelta(days=1)
+
+    def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:
+        """The ``stop_name`` of every stop inside the region (only ``stops.txt`` is read, not the timetables)."""
+        with zipfile.ZipFile(io.BytesIO(base64.b64decode(payload.body))) as files:
+            if "stops.txt" not in files.namelist():
+                return
+            for stop in csv.DictReader(io.StringIO(files.read("stops.txt").decode("utf-8-sig"))):
+                name = (stop.get("stop_name") or "").strip()
+                if name and _is_stop(stop) and region.contains(float(stop["stop_lat"]), float(stop["stop_lon"])):
+                    yield Entity(source=self.name, entity=f"stop_{stop['stop_id']}", name=name)

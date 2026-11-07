@@ -30,7 +30,7 @@ ORDER BY source
 """
 
 _LOCATIONS = """
-SELECT l.source, s.label, s.kind, l.entity, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
+SELECT l.source, s.label, s.kind, l.entity, l.name, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
 FROM gold.dim_locations AS l
 JOIN gold.dim_sources AS s ON s.source = l.source
 WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
@@ -40,7 +40,7 @@ ORDER BY l.source, l.entity
 
 _MOBILITY_DAILY = """
 SELECT network, local_date, is_weekend, stops, stops_with_service, scheduled_stop_calls, avg_lines_per_served_stop,
-       busiest_stop, busiest_stop_departures
+       busiest_stop, busiest_stop_name, busiest_stop_departures
 FROM (
     SELECT 'emt_palma' AS network, * FROM gold.fct_bus_network_daily
     UNION ALL
@@ -58,14 +58,15 @@ WITH latest AS (
     WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_departures'
     GROUP BY source
 )
-SELECT o.source AS network, o.entity AS stop, l.lat, l.lon, (o.ts AT TIME ZONE 'Europe/Madrid')::date AS local_date,
+SELECT o.source AS network, o.entity AS stop, l.name, l.lat, l.lon,
+       (o.ts AT TIME ZONE 'Europe/Madrid')::date AS local_date,
        max(o.value) FILTER (WHERE o.metric = 'scheduled_departures') AS departures,
        max(o.value) FILTER (WHERE o.metric = 'lines_served') AS lines
 FROM gold.fct_observations AS o
 JOIN latest USING (source, ts)
 JOIN gold.dim_locations AS l ON l.source = o.source AND l.entity = o.entity
 WHERE (%(network)s::text IS NULL OR o.source = %(network)s) AND l.lat IS NOT NULL
-GROUP BY o.source, o.entity, l.lat, l.lon, o.ts
+GROUP BY o.source, o.entity, l.name, l.lat, l.lon, o.ts
 ORDER BY departures DESC NULLS LAST, o.entity
 """
 
@@ -88,10 +89,11 @@ WITH latest AS (
     FROM gold.fct_weather_daily
     WHERE source = %(source)s AND temperature_mean IS NOT NULL
 )
-SELECT w.source, w.entity, w.lat, w.lon, w.local_date, w.temperature_mean, w.temperature_max, w.temperature_min,
-       w.precipitation_sum, w.wind_gust_max
+SELECT w.source, w.entity, l.name, w.lat, w.lon, w.local_date, w.temperature_mean, w.temperature_max,
+       w.temperature_min, w.precipitation_sum, w.wind_gust_max
 FROM gold.fct_weather_daily AS w
 JOIN latest USING (local_date)
+LEFT JOIN gold.dim_locations AS l ON l.source = w.source AND l.entity = w.entity
 WHERE w.source = %(source)s AND w.lat IS NOT NULL AND w.temperature_mean IS NOT NULL
 ORDER BY w.temperature_mean DESC
 """
@@ -139,7 +141,7 @@ ORDER BY temperature_mae_c DESC NULLS LAST, station
 # The latest hour of each air quality station or model point in the last two days, with its European AQI band.
 _AIR_QUALITY_LATEST = """
 SELECT DISTINCT ON (a.source, a.entity)
-       a.source, a.entity, l.lat, l.lon, a.ts, a.pm2_5, a.pm10, a.no2, a.o3, a.eaqi_band, a.eaqi_label
+       a.source, a.entity, l.name, l.lat, l.lon, a.ts, a.pm2_5, a.pm10, a.no2, a.o3, a.eaqi_band, a.eaqi_label
 FROM gold.air_quality_hourly AS a
 LEFT JOIN gold.dim_locations AS l ON l.source = a.source AND l.entity = a.entity
 WHERE a.ts >= now() - interval '2 days' AND a.eaqi_band IS NOT NULL

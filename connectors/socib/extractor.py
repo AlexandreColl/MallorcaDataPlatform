@@ -20,7 +20,7 @@ from statistics import fmean
 from typing import TYPE_CHECKING, Any
 
 from core.connectors import BaseConnector, ConnectorError
-from core.models import Observation, Quality, RawPayload, Region, TimeWindow
+from core.models import Entity, Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -90,6 +90,11 @@ class SocibConnector(BaseConnector):
                 )
             )
         return payloads
+
+    def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:  # noqa: ARG002 - names from config
+        """The name of the payload's station, from ``connector.yaml``."""
+        station = self._station(payload.request["station"])
+        yield Entity(source=self.name, entity=station["entity"], name=str(station["name"]))
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:  # noqa: ARG002 - station coords come from config
         """Aggregate raw samples to one observation per station, variable and hour."""
