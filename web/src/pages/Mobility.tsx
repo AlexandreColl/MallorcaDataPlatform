@@ -347,6 +347,7 @@ function HumanPressure({ days }: { days: HumanPressureDay[] }) {
       const years = pressureByYear(days).slice(0, 3);
       const residents = days.at(-1)?.residents ?? null;
       const colors = ["#15803d", "#2563eb", c.muted];
+      const narrow = window.innerWidth < 640; // twelve month names do not fit a phone: their initials do
       return {
         xAxis: {
           type: "category",
@@ -354,7 +355,10 @@ function HumanPressure({ days }: { days: HumanPressureDay[] }) {
           boundaryGap: false,
           axisLabel: {
             interval: (_: number, day: string) => day.endsWith("-01"),
-            formatter: (day: string) => MONTH_LABELS[Number(day.slice(0, 2)) - 1] ?? "",
+            formatter: (day: string) => {
+              const month = MONTH_LABELS[Number(day.slice(0, 2)) - 1] ?? "";
+              return narrow ? month.charAt(0).toUpperCase() : month;
+            },
           },
         },
         yAxis: { type: "value", min: (v: { min: number }) => Math.floor(v.min / 100_000) * 100_000, axisLabel: { formatter: compact } },
