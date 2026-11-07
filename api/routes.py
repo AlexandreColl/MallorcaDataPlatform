@@ -20,6 +20,7 @@ from api.schemas import (
     Earthquake,
     ErrorResponse,
     Health,
+    HumanPressureDay,
     Location,
     MobilityDay,
     ModelBias,
@@ -289,6 +290,16 @@ def population(
     if first > last:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "`from` must not be after `to`")
     return [PopulationYear(**row) for row in warehouse.population(first, last)]
+
+
+@router.get("/population/pressure", tags=["population"])
+def human_pressure(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[HumanPressureDay]:
+    """People actually present in Mallorca each day, residents plus visitors (Ibestat; default: the last 2 years).
+
+    Ibestat publishes a month about two months later, so the newest day is about three months old.
+    """
+    start, end = _days(from_, to, 730)
+    return [HumanPressureDay(**row) for row in warehouse.human_pressure(start, end)]
 
 
 @router.get("/municipalities", tags=["population"])
