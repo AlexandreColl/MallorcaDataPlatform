@@ -20,6 +20,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   the arrow keys); the map keeps the previous day until the new one arrives.
 - Web, Tiempo y entorno: a play button next to the day slider walks through the days, one a second. It fetches
   every day at once when it starts and moves on only once the day on the map has arrived.
+- Connector `ibestat_iph`: the Ibestat Human Pressure Indicator, the people actually present in Mallorca each day
+  (residents plus visitors) since 1997, from the eDatos API. Windows end 95 days before yesterday (a month comes out
+  at the start of the third month after it) and every run re-reads 120 days, because recent days are estimates.
+- dbt: `fct_human_pressure_daily`, the people present against the residents of the INE register of that year.
+- API: `/v1/population/pressure`, the people present each day (default: the last two years).
+- Web, Movilidad: the people present each day, the last three years laid over each other, against the residents.
 
 ### Changed
 

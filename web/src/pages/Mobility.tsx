@@ -371,7 +371,7 @@ function HumanPressure({ days }: { days: HumanPressureDay[] }) {
                 markLine: {
                   symbol: "none", silent: true,
                   lineStyle: { color: c.text, type: "dashed", opacity: 0.6 },
-                  label: { formatter: `Empadronados: ${compact(residents)}`, position: "insideStartTop", color: c.muted },
+                  label: { formatter: `Empadronados: ${compact(residents)}`, position: "insideMiddleBottom", color: c.muted },
                   data: [{ yAxis: residents }],
                 },
               }

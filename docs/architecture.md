@@ -27,7 +27,7 @@ agua?
 
 ```mermaid
 flowchart LR
-    SRC["14 fuentes abiertas"] --> AF
+    SRC["15 fuentes abiertas"] --> AF
     subgraph AF["Airflow (con PySpark y dbt)"]
         direction TB
         ING["ingest<br/>una tarea por conector, 2 a la vez"] --> DET[detect_anomalies] --> COR[correct_values] --> DBT[dbt_build]
