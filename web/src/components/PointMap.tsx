@@ -2,7 +2,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection } from "geojson";
 import * as maplibregl from "maplibre-gl";
-import type { GeoJSONSource, StyleSpecification } from "maplibre-gl";
+import type { GeoJSONSource, ImageSource, StyleSpecification } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -191,6 +191,18 @@ export function PointMap({
   // Read by the map's own handlers, which are bound once per map: changing them must not rebuild the map.
   const handlers = useRef({ describe, onAreaSelect, focusData });
   handlers.current = { describe, onAreaSelect, focusData };
+  // The data the map is built with. Only a change of structure (the theme, which layers exist, their style) builds
+  // a new map; new data of the same layers (another day, another colouring) is swapped into the sources below, so
+  // the map neither flashes nor loses its zoom.
+  const latest = useRef({ data, areaData, lineData, image });
+  latest.current = { data, areaData, lineData, image };
+  const structure = [
+    layers.map((l) => `${l.id}:${l.color}:${l.radius}`).join(","),
+    image ? "image" : "",
+    lines ? `lines:${lines.color}` : "",
+    areaData.features.length > 0 ? "areas" : "",
+    areas.some((a) => a.popup) ? "popups" : "",
+  ].join("|");
 
   useEffect(() => {
     if (!container.current) return;
@@ -207,6 +219,7 @@ export function PointMap({
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     const pointLayers = layers.map((layer) => `points-${layer.id}`);
     const setup = () => {
+      const { data, areaData, lineData, image } = latest.current;
       if (image) {
         instance.addSource("image", {
           type: "image",
@@ -225,7 +238,7 @@ export function PointMap({
           paint: { "raster-opacity": dark ? 0.7 : 0.8, "raster-resampling": "linear", "raster-fade-duration": 0 },
         });
       }
-      if (lineData.features.length > 0 && lines) {
+      if (lines) {
         instance.addSource("lines", { type: "geojson", data: lineData });
         instance.addLayer({
           id: "lines",
@@ -336,8 +349,32 @@ export function PointMap({
       instance.remove();
       map.current = null;
     };
-    // Rebuilt when the theme changes (basemap and strokes) or the layers do.
-  }, [theme, data, layers, areaData, areas, image, areaOpacity, outline, lineData, lines]);
+    // Rebuilt when the theme changes (basemap and strokes) or the structure does; `latest` holds the data.
+  }, [theme, structure, areaOpacity, outline]);
+
+  // New data of the same layers goes into the existing sources.
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance) return;
+    const apply = () => {
+      const source = instance.getSource("image") as ImageSource | undefined;
+      if (source && image) {
+        source.updateImage({
+          url: image.url,
+          coordinates: [
+            [image.west, image.north],
+            [image.east, image.north],
+            [image.east, image.south],
+            [image.west, image.south],
+          ],
+        });
+      }
+      (instance.getSource("lines") as GeoJSONSource | undefined)?.setData(lineData);
+      (instance.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData);
+    };
+    if (instance.isStyleLoaded()) apply();
+    else instance.once("load", apply);
+  }, [image, lineData, areaData]);
 
   // The highlighted area changes without rebuilding the map, and the map flies to it (and back to the island).
   const zoomed = useRef(false);
