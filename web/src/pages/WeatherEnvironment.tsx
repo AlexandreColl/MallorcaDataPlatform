@@ -215,6 +215,11 @@ function useElevation(): Elevation | null | "failed" {
   return elevation;
 }
 
+/** Fetches the stations of every day at once (the answers are remembered, so each step of the player is instant). */
+function preloadDays(days: string[]) {
+  for (const day of days) api.stations("aemet", day).catch(() => undefined);
+}
+
 /** How long the player leaves each day on the map once it is drawn. */
 const PLAY_STEP_MS = 800;
 
@@ -224,7 +229,13 @@ const PLAY_STEP_MS = 800;
  * Play walks forward one day at a time (from the oldest when the thumb is at the newest), moving on only once the
  * shown day has arrived, so a slow answer never skips a day. Touching the slider pauses it.
  */
-function DaySlider({ days, value, onChange }: { days: string[]; value: string; onChange: (day: string) => void }) {
+function DaySlider({ days, value, onChange, onPlay }: {
+  days: string[];
+  value: string;
+  onChange: (day: string) => void;
+  /** Called when play starts, to fetch every day at once instead of one per step. */
+  onPlay?: (days: string[]) => void;
+}) {
   const ordered = useMemo(() => [...days].reverse(), [days]);
   const last = ordered.length - 1;
   const [position, setPosition] = useState(() => Math.max(0, ordered.indexOf(value)));
@@ -246,6 +257,7 @@ function DaySlider({ days, value, onChange }: { days: string[]; value: string; o
   }, [playing, position, value, ordered, last]);
 
   const toggle = () => {
+    if (!playing) onPlay?.(ordered);
     if (!playing && position >= last) setPosition(0);
     setPlaying(!playing);
   };
@@ -344,7 +356,7 @@ function TemperatureZones({ stations, places, days, onDay }: {
           </button>
         ))}
       </div>
-      {days.length > 1 && <DaySlider days={days} value={shown ?? days[0] as string} onChange={onDay} />}
+      {days.length > 1 && <DaySlider days={days} value={shown ?? days[0] as string} onChange={onDay} onPlay={preloadDays} />}
     </div>
   );
   if (surface.samples.length === 0) {

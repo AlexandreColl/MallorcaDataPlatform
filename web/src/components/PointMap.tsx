@@ -352,28 +352,25 @@ export function PointMap({
     // Rebuilt when the theme changes (basemap and strokes) or the structure does; `latest` holds the data.
   }, [theme, structure, areaOpacity, outline]);
 
-  // New data of the same layers goes into the existing sources.
+  // New data of the same layers goes into the existing sources. A source that does not exist yet needs nothing:
+  // `setup` reads `latest` when it adds it. (Not "wait for load": a loaded map never fires it again.)
   useEffect(() => {
     const instance = map.current;
     if (!instance) return;
-    const apply = () => {
-      const source = instance.getSource("image") as ImageSource | undefined;
-      if (source && image) {
-        source.updateImage({
-          url: image.url,
-          coordinates: [
-            [image.west, image.north],
-            [image.east, image.north],
-            [image.east, image.south],
-            [image.west, image.south],
-          ],
-        });
-      }
-      (instance.getSource("lines") as GeoJSONSource | undefined)?.setData(lineData);
-      (instance.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData);
-    };
-    if (instance.isStyleLoaded()) apply();
-    else instance.once("load", apply);
+    const source = instance.getSource("image") as ImageSource | undefined;
+    if (source && image) {
+      source.updateImage({
+        url: image.url,
+        coordinates: [
+          [image.west, image.north],
+          [image.east, image.north],
+          [image.east, image.south],
+          [image.west, image.south],
+        ],
+      });
+    }
+    (instance.getSource("lines") as GeoJSONSource | undefined)?.setData(lineData);
+    (instance.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData);
   }, [image, lineData, areaData]);
 
   // The highlighted area changes without rebuilding the map, and the map flies to it (and back to the island).
@@ -414,8 +411,8 @@ export function PointMap({
       }
       (instance.getSource("points") as GeoJSONSource | undefined)?.setData(data);
     };
-    if (instance.isStyleLoaded()) apply();
-    else instance.once("load", apply);
+    if (instance.getSource("points")) apply();
+    else instance.once("idle", apply); // the hidden layers of a map still being built
   }, [hidden, data, layers]);
 
   const toggle = (id: string) =>
