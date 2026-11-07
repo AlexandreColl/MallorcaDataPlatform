@@ -168,7 +168,7 @@ despliegue real con su coste medido.
 | ⬜ | Movilidad: recorridos de las líneas desde `shapes.txt` del GTFS (una geometría no encaja en el silver largo: necesita su propio diseño) |
 | ⬜ | Conector del **Indicador de Presión Humana** del Ibestat (población real presente por isla y día): residentes más turistas en la web |
 | ⬜ | Explorador de series en la web: elegir fuente, ubicación y métrica, con sus anomalías y correcciones |
-| ⬜ | Nombres de las paradas y estaciones en silver (hoy solo el identificador: `stop_452`, `B228`) |
+| ✅ | Nombres de las paradas y estaciones en silver (`silver.entities`): la web ya no enseña `stop_452` ni `B228` |
 | ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |
 | ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
 | ⬜ | Gold en Athena con `dbt-athena` (quita la copia de silver en Postgres) |

@@ -50,7 +50,7 @@ su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se
 la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). En
 resumen:
 
-- **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
+- **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()` (y el opcional `describe()`, que pone nombre a las paradas y estaciones).
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.
 - **Idempotencia en todas las capas**: ventanas de días completos (siempre la misma petición), claves
   deterministas en bronze, `MERGE` en la tabla Delta de silver y `INSERT … ON CONFLICT … WHERE IS DISTINCT FROM`

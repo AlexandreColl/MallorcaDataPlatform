@@ -327,7 +327,7 @@ function stopLayers(stops: StopService[]): MapLayer[] {
         lat: s.lat, lon: s.lon,
         // Area proportional to the departures: the radius grows with their square root.
         size: 0.5 + 2 * Math.sqrt((s.departures ?? 0) / busiest),
-        popup: [s.stop, NETWORKS[network].label, `${number(s.departures ?? 0)} pasos · ${number(s.lines ?? 0)} líneas`],
+        popup: [s.name ?? s.stop, NETWORKS[network].label, `${number(s.departures ?? 0)} pasos · ${number(s.lines ?? 0)} líneas`],
       })),
     };
   });
@@ -386,7 +386,7 @@ export function Mobility() {
               <Table
                 rows={rows.slice(0, 10)}
                 columns={[
-                  { label: "Parada", value: (s) => s.stop },
+                  { label: "Parada", value: (s) => s.name ?? s.stop },
                   { label: "Red", value: (s) => NETWORKS[s.network].label },
                   { label: "Pasos", value: (s) => number(s.departures ?? 0), numeric: true },
                   { label: "Líneas", value: (s) => number(s.lines ?? 0), numeric: true },
