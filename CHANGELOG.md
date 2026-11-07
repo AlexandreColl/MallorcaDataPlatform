@@ -15,8 +15,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   `/v1/corrections`, `station_name` in `/v1/weather/model-bias` and `busiest_stop_name` in `/v1/mobility/daily`.
 - Web: the stops and stations show their name instead of the identifier (`stop_452`, `B228`) in the maps and tables.
 - API: `date` in `/v1/weather/stations` returns the stations of any day; without it, still the latest with data.
-- Web, Tiempo y entorno: a day selector on the temperature by zone, with every day AEMET has published in the last
-  30 days. The map keeps the previous day until the new one arrives.
+- Web, Tiempo y entorno: a day slider on the temperature by zone, over every day AEMET has published in the last 30
+  days. The day under the thumb shows at once and is loaded when the thumb rests (one request per drag, also with
+  the arrow keys); the map keeps the previous day until the new one arrives.
 
 ### Removed
 
