@@ -218,9 +218,15 @@ function useElevation(): Elevation | null | "failed" {
  * The temperature of the AEMET stations spread over the island. Every station is brought down to the sea with the
  * lapse rate (6.5 °C per km), the inverse-distance mean is taken there and every pixel goes back up to the height
  * of its ground: the colours show the warm south and the cold summits of the Tramuntana, not just rings around
- * the stations. Isotherms every degree, and the value under the cursor.
+ * the stations. Isotherms every degree, and the value under the cursor. `days` are the days AEMET has published,
+ * newest first: the select shows any of them.
  */
-function TemperatureZones({ stations, places }: { stations: StationDay[]; places: Municipality[] }) {
+function TemperatureZones({ stations, places, days, onDay }: {
+  stations: StationDay[];
+  places: Municipality[];
+  days: string[];
+  onDay: (day: string) => void;
+}) {
   const [field, setField] = useState<TemperatureField>("temperature_max");
   const elevation = useElevation();
   const relief = elevation !== null && elevation !== "failed" ? elevation : null;
@@ -269,9 +275,9 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
   );
 
   if (surface === null) return <div className="block skeleton" style={{ height: 520 }} aria-busy="true" />;
-  if (surface.samples.length === 0) return <p className="empty">Sin temperaturas para ese día.</p>;
-  return (
-    <>
+  const shown = stations[0]?.local_date.slice(0, 10);
+  const controls = (
+    <div className="controls">
       <div className="segmented" role="group" aria-label="Temperatura">
         {(Object.keys(TEMPERATURE_FIELDS) as TemperatureField[]).map((f) => (
           <button key={f} type="button" aria-pressed={f === field} onClick={() => setField(f)}>
@@ -279,6 +285,29 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
           </button>
         ))}
       </div>
+      {days.length > 1 && (
+        <label className="select-row">
+          <span>Día</span>
+          <select className="select" aria-label="Día" value={shown ?? days[0]} onChange={(e) => onDay(e.target.value)}>
+            {days.map((d) => (
+              <option key={d} value={d}>{dayName(d)}</option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
+  );
+  if (surface.samples.length === 0) {
+    return (
+      <>
+        {controls}
+        <p className="empty">Sin temperaturas para ese día.</p>
+      </>
+    );
+  }
+  return (
+    <>
+      {controls}
       <PointMap layers={surface.layers} image={surface.image} lines={surface.lines} describe={describe} height={480} />
       <div className="gradient-scale">
         <span>{number(surface.min)} °C</span>
@@ -376,6 +405,13 @@ function WarningsMap({ zones, warnings }: { zones: WarningZone[]; warnings: Weat
   );
 }
 
+/** "Las 33 estaciones oficiales de AEMET el 3 de noviembre de 2026 (último día publicado), ...". */
+function temperatureSubtitle(stations: StationDay[] | null, day: string | null): string {
+  const shown = stations?.[0]?.local_date;
+  const when = shown ? ` el ${dayName(shown)}${day === null ? " (último día publicado)" : ""}` : "";
+  return `Las ${stations?.length ?? 33} estaciones oficiales de AEMET${when}, interpoladas entre ellas y corregidas por la altitud.`;
+}
+
 export function WeatherEnvironment() {
   const weather = useLoad(() => api.weatherDaily(daysAgo(30)));
   const air = useLoad(api.airQuality);
@@ -394,11 +430,19 @@ export function WeatherEnvironment() {
     return environmentKpis(w, a, s, lastYear);
   }, [weather, air, sea, quakes]);
   const layers = useMemo(() => (air.status === "ready" ? airLayers(air.data) : []), [air]);
-  const stations = useLoad(() => api.stations("aemet"));
+  const [day, setDay] = useState<string | null>(null); // null: the latest day AEMET has published
+  const stations = useLoad(() => api.stations("aemet", day), [day]);
+  const aemetDays = useMemo(
+    () =>
+      (ready(weather) ?? [])
+        .filter((d) => d.source === "aemet" && d.temperature_mean !== null)
+        .map((d) => d.local_date.slice(0, 10))
+        .reverse(),
+    [weather],
+  );
   const places = useLoad(api.municipalities);
   const warnings = useLoad(api.warnings);
   const zones = useLoad(api.warningZones);
-  const stationDay = stations.status === "ready" && stations.data[0] ? ` (${dayName(stations.data[0].local_date)})` : "";
 
   return (
     <>
@@ -437,11 +481,11 @@ export function WeatherEnvironment() {
         </Panel>
         <Panel
           title="Temperatura por zonas"
-          subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas y corregido por la altitud.`}
+          subtitle={temperatureSubtitle(ready(stations), day)}
           wide
         >
           <Async state={stations} height={480}>
-            {(rows) => <Async state={places} height={480}>{(p) => <TemperatureZones stations={rows} places={p} />}</Async>}
+            {(rows) => <Async state={places} height={480}>{(p) => <TemperatureZones stations={rows} places={p} days={aemetDays} onDay={setDay} />}</Async>}
           </Async>
         </Panel>
         <Panel title="Temperatura de los últimos 30 días" subtitle="Media diaria de la isla según cada fuente: estaciones oficiales frente al modelo.">

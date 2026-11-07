@@ -863,3 +863,11 @@ tr.selectable:focus-visible {
   font-size: 0.78rem;
   color: var(--muted);
 }
+
+/* A row of controls above a chart or a map: a segmented choice and a select, wrapping on a phone. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}

@@ -255,9 +255,13 @@ def weather_stations(
         Literal["aemet", "socib", "open_meteo"],
         Query(description="`aemet` (33 official stations), `socib` or `open_meteo` (the model)."),
     ] = "aemet",
+    day: Annotated[
+        date | None,
+        Query(alias="date", description="Local day. Default: the latest with temperatures (AEMET publishes 2-3 days late)."),
+    ] = None,
 ) -> list[StationDay]:
-    """Every station of a source on its latest day with temperatures (AEMET publishes 2-3 days late)."""
-    return [StationDay(**row) for row in warehouse.weather_stations(source)]
+    """Every station of a source on one day: by default its latest with temperatures. A day without data is empty."""
+    return [StationDay(**row) for row in warehouse.weather_stations(source, day)]
 
 
 @router.get("/warnings", tags=["environment"])

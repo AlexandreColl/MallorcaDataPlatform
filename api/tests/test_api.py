@@ -320,3 +320,14 @@ def test_population_filters_by_year_and_municipalities_come_with_their_rings():
     assert api.get("/v1/population", params={"from": 2025, "to": 2015}).status_code == 422
     assert api.get("/v1/population", params={"from": 1990}).status_code == 422
     assert len(api.get("/v1/municipalities").json()[0]["polygon"]) == 2
+
+
+def test_station_temperatures_of_the_latest_day_or_a_chosen_one():
+    db = FakeDatabase()
+    api = client(db)
+
+    api.get("/v1/weather/stations")
+    assert db.calls[-1][1] == {"source": "aemet", "day": None}  # the latest day with temperatures
+    api.get("/v1/weather/stations", params={"date": "2026-10-30", "source": "socib"})
+    assert db.calls[-1][1] == {"source": "socib", "day": date(2026, 10, 30)}
+    assert api.get("/v1/weather/stations", params={"date": "yesterday"}).status_code == 422

@@ -301,7 +301,8 @@ export const api = {
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
-  stations: (source: "aemet" | "socib" | "open_meteo") => get<StationDay[]>(`/weather/stations?source=${source}`),
+  stations: (source: "aemet" | "socib" | "open_meteo", day?: string | null) =>
+    get<StationDay[]>(`/weather/stations?source=${source}${day ? `&date=${day}` : ""}`),
   warnings: () => get<WeatherWarning[]>("/warnings"),
   warningZones: () => get<WarningZone[]>("/warnings/zones"),
   population: (from: number) => get<PopulationYear[]>(`/population?from=${from}`),
