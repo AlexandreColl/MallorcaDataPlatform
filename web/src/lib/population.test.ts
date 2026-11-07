@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { binColor, change, islandTotals, municipalityOf, serviceByMunicipality } from "./population";
+import {
+  binColor,
+  busiestDay,
+  change,
+  DAYS_OF_YEAR,
+  islandTotals,
+  municipalityOf,
+  pressureByYear,
+  serviceByMunicipality,
+} from "./population";
 
 const square = (x: number, y: number, size = 1): [number, number][] => [
   [x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y],
@@ -60,5 +69,29 @@ describe("change and binColor", () => {
     expect(binColor(50, [10, 100], ["a", "b", "c"])).toBe("b");
     expect(binColor(500, [10, 100], ["a", "b", "c"])).toBe("c");
     expect(binColor(null, [10], ["a", "b"])).toBe("#9ca3af");
+  });
+});
+
+describe("pressureByYear", () => {
+  const days = [
+    { local_date: "2025-08-11", people_present: 1_490_000 },
+    { local_date: "2026-08-11", people_present: 1_517_631 },
+    { local_date: "2024-02-29", people_present: 900_000 },
+  ];
+
+  it("lays each year over the days of a year, newest first", () => {
+    const years = pressureByYear(days);
+    expect(years.map((y) => y.year)).toEqual([2026, 2025, 2024]);
+    const august11 = DAYS_OF_YEAR.indexOf("08-11");
+    expect(years[0]?.values[august11]).toBe(1_517_631);
+    expect(years[1]?.values[august11]).toBe(1_490_000);
+    expect(years[2]?.values[DAYS_OF_YEAR.indexOf("02-29")]).toBe(900_000);
+    expect(years[0]?.values.filter((v) => v !== null)).toHaveLength(1);
+  });
+
+  it("has 366 days and finds the busiest one", () => {
+    expect(DAYS_OF_YEAR).toHaveLength(366);
+    expect(busiestDay(days)?.local_date).toBe("2026-08-11");
+    expect(busiestDay([])).toBeNull();
   });
 });
