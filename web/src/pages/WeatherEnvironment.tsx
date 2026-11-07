@@ -12,6 +12,7 @@ import {
   type WeatherWarning,
 } from "../api";
 import { Async, Table } from "../components/Async";
+import { Icon } from "../components/Icon";
 import { Chart, SERIES } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
@@ -30,7 +31,7 @@ import {
   pixelOf,
   TEMPERATURE_STOPS,
   temperatureColor,
-  temperatureRgb,
+  temperaturePalette,
 } from "../lib/interpolate";
 import { describe, LEVELS, overlapping, zoneLevels } from "../lib/warnings";
 import type { Kpi } from "../lib/kpis";
@@ -148,10 +149,15 @@ function temperatureImage(
 ): { url: string; land: Uint8Array } {
   const [width, height] = [IMAGE_WIDTH, IMAGE_HEIGHT];
   const pixels = new ImageData(width, height);
-  values.forEach((value, i) => {
-    const [r, g, b] = temperatureRgb(value, min, max);
-    pixels.data.set([r, g, b, 255], i * 4);
-  });
+  const palette = temperaturePalette(min, max);
+  const scale = max > min ? 255 / (max - min) : 0;
+  for (let i = 0; i < values.length; i++) {
+    const step = scale ? Math.round(Math.min(255, Math.max(0, ((values[i] as number) - min) * scale))) : 128;
+    pixels.data[i * 4] = palette[step * 3] as number;
+    pixels.data[i * 4 + 1] = palette[step * 3 + 1] as number;
+    pixels.data[i * 4 + 2] = palette[step * 3 + 2] as number;
+    pixels.data[i * 4 + 3] = 255;
+  }
   const painted = document.createElement("canvas");
   [painted.width, painted.height] = [width, height];
   painted.getContext("2d")?.putImageData(pixels, 0, 0);
@@ -214,13 +220,89 @@ function useElevation(): Elevation | null | "failed" {
   return elevation;
 }
 
+/** Fetches the stations of every day at once (the answers are remembered, so each step of the player is instant). */
+function preloadDays(days: string[]) {
+  for (const day of days) api.stations("aemet", day).catch(() => undefined);
+}
+
+/** How long the player leaves each day on the map once it is drawn. */
+const PLAY_STEP_MS = 800;
+
+/**
+ * A slider over `days` (newest first in the prop, oldest on the left of the track). The label follows the thumb at
+ * once; the day is only asked for once the thumb rests for a moment, so a drag across a month is one request.
+ * Play walks forward one day at a time (from the oldest when the thumb is at the newest), moving on only once the
+ * shown day has arrived, so a slow answer never skips a day. Touching the slider pauses it.
+ */
+function DaySlider({ days, value, onChange, onPlay }: {
+  days: string[];
+  value: string;
+  onChange: (day: string) => void;
+  /** Called when play starts, to fetch every day at once instead of one per step. */
+  onPlay?: (days: string[]) => void;
+}) {
+  const ordered = useMemo(() => [...days].reverse(), [days]);
+  const last = ordered.length - 1;
+  const [position, setPosition] = useState(() => Math.max(0, ordered.indexOf(value)));
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => setPosition(Math.max(0, ordered.indexOf(value))), [ordered, value]);
+  useEffect(() => {
+    const day = ordered[position];
+    if (day === undefined || day === value) return;
+    const timer = window.setTimeout(() => onChange(day), playing ? 0 : 250);
+    return () => window.clearTimeout(timer);
+  }, [ordered, position, value, onChange, playing]);
+  useEffect(() => {
+    if (!playing || ordered[position] !== value) return; // waits for the day on the thumb to be drawn
+    const timer = window.setTimeout(() => {
+      if (position >= last) setPlaying(false);
+      else setPosition(position + 1);
+    }, PLAY_STEP_MS);
+    return () => window.clearTimeout(timer);
+  }, [playing, position, value, ordered, last]);
+
+  const toggle = () => {
+    if (!playing) onPlay?.(ordered);
+    if (!playing && position >= last) setPosition(0);
+    setPlaying(!playing);
+  };
+  const day = ordered[position] ?? value;
+  return (
+    <div className="day-slider">
+      <button type="button" className="play" onClick={toggle} aria-label={playing ? "Pausar" : "Reproducir día a día"}>
+        <Icon name={playing ? "pause" : "play"} size={16} />
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={last}
+        step={1}
+        value={position}
+        aria-label="Día"
+        aria-valuetext={dayName(day)}
+        onChange={(e) => {
+          setPlaying(false);
+          setPosition(Number(e.target.value));
+        }}
+      />
+      <output>{dayShort(day)}</output>
+    </div>
+  );
+}
+
 /**
  * The temperature of the AEMET stations spread over the island. Every station is brought down to the sea with the
  * lapse rate (6.5 °C per km), the inverse-distance mean is taken there and every pixel goes back up to the height
  * of its ground: the colours show the warm south and the cold summits of the Tramuntana, not just rings around
- * the stations. Isotherms every degree, and the value under the cursor.
+ * the stations. Isotherms every degree, and the value under the cursor. `days` are the days AEMET has published,
+ * newest first: the select shows any of them.
  */
-function TemperatureZones({ stations, places }: { stations: StationDay[]; places: Municipality[] }) {
+function TemperatureZones({ stations, places, days, onDay }: {
+  stations: StationDay[];
+  places: Municipality[];
+  days: string[];
+  onDay: (day: string) => void;
+}) {
   const [field, setField] = useState<TemperatureField>("temperature_max");
   const elevation = useElevation();
   const relief = elevation !== null && elevation !== "failed" ? elevation : null;
@@ -269,9 +351,9 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
   );
 
   if (surface === null) return <div className="block skeleton" style={{ height: 520 }} aria-busy="true" />;
-  if (surface.samples.length === 0) return <p className="empty">Sin temperaturas para ese día.</p>;
-  return (
-    <>
+  const shown = stations[0]?.local_date.slice(0, 10);
+  const controls = (
+    <div className="controls">
       <div className="segmented" role="group" aria-label="Temperatura">
         {(Object.keys(TEMPERATURE_FIELDS) as TemperatureField[]).map((f) => (
           <button key={f} type="button" aria-pressed={f === field} onClick={() => setField(f)}>
@@ -279,6 +361,20 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
           </button>
         ))}
       </div>
+      {days.length > 1 && <DaySlider days={days} value={shown ?? days[0] as string} onChange={onDay} onPlay={preloadDays} />}
+    </div>
+  );
+  if (surface.samples.length === 0) {
+    return (
+      <>
+        {controls}
+        <p className="empty">Sin temperaturas para ese día.</p>
+      </>
+    );
+  }
+  return (
+    <>
+      {controls}
       <PointMap layers={surface.layers} image={surface.image} lines={surface.lines} describe={describe} height={480} />
       <div className="gradient-scale">
         <span>{number(surface.min)} °C</span>
@@ -376,6 +472,13 @@ function WarningsMap({ zones, warnings }: { zones: WarningZone[]; warnings: Weat
   );
 }
 
+/** "Las 33 estaciones oficiales de AEMET el 3 de noviembre de 2026 (último día publicado), ...". */
+function temperatureSubtitle(stations: StationDay[] | null, day: string | null): string {
+  const shown = stations?.[0]?.local_date;
+  const when = shown ? ` el ${dayName(shown)}${day === null ? " (último día publicado)" : ""}` : "";
+  return `Las ${stations?.length ?? 33} estaciones oficiales de AEMET${when}, interpoladas entre ellas y corregidas por la altitud.`;
+}
+
 export function WeatherEnvironment() {
   const weather = useLoad(() => api.weatherDaily(daysAgo(30)));
   const air = useLoad(api.airQuality);
@@ -394,11 +497,19 @@ export function WeatherEnvironment() {
     return environmentKpis(w, a, s, lastYear);
   }, [weather, air, sea, quakes]);
   const layers = useMemo(() => (air.status === "ready" ? airLayers(air.data) : []), [air]);
-  const stations = useLoad(() => api.stations("aemet"));
+  const [day, setDay] = useState<string | null>(null); // null: the latest day AEMET has published
+  const stations = useLoad(() => api.stations("aemet", day), [day]);
+  const aemetDays = useMemo(
+    () =>
+      (ready(weather) ?? [])
+        .filter((d) => d.source === "aemet" && d.temperature_mean !== null)
+        .map((d) => d.local_date.slice(0, 10))
+        .reverse(),
+    [weather],
+  );
   const places = useLoad(api.municipalities);
   const warnings = useLoad(api.warnings);
   const zones = useLoad(api.warningZones);
-  const stationDay = stations.status === "ready" && stations.data[0] ? ` (${dayName(stations.data[0].local_date)})` : "";
 
   return (
     <>
@@ -437,11 +548,11 @@ export function WeatherEnvironment() {
         </Panel>
         <Panel
           title="Temperatura por zonas"
-          subtitle={`Último día publicado por las ${stations.status === "ready" ? stations.data.length : 33} estaciones oficiales de AEMET${stationDay}, interpolado entre ellas y corregido por la altitud.`}
+          subtitle={temperatureSubtitle(ready(stations), day)}
           wide
         >
           <Async state={stations} height={480}>
-            {(rows) => <Async state={places} height={480}>{(p) => <TemperatureZones stations={rows} places={p} />}</Async>}
+            {(rows) => <Async state={places} height={480}>{(p) => <TemperatureZones stations={rows} places={p} days={aemetDays} onDay={setDay} />}</Async>}
           </Async>
         </Panel>
         <Panel title="Temperatura de los últimos 30 días" subtitle="Media diaria de la isla según cada fuente: estaciones oficiales frente al modelo.">

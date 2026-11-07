@@ -82,10 +82,10 @@ GROUP BY source, source_label, source_kind, local_date
 ORDER BY local_date, source
 """
 
-# The latest day of one source with temperatures, for every station or point of that source.
+# One day of one source (by default its latest with temperatures), for every station or point of that source.
 _WEATHER_STATIONS = """
 WITH latest AS (
-    SELECT max(local_date) AS local_date
+    SELECT coalesce(%(day)s::date, max(local_date)) AS local_date
     FROM gold.fct_weather_daily
     WHERE source = %(source)s AND temperature_mean IS NOT NULL
 )
@@ -323,9 +323,9 @@ class Warehouse:
         """Island-wide daily weather per source, oldest first."""
         return self.db.fetch_all(_WEATHER_DAILY, {"start": start, "end": end})
 
-    def weather_stations(self, source: str) -> list[Row]:
-        """Every station or point of ``source`` on its latest day with temperatures, warmest first."""
-        return self.db.fetch_all(_WEATHER_STATIONS, {"source": source})
+    def weather_stations(self, source: str, day: date | None = None) -> list[Row]:
+        """Every station or point of ``source`` on ``day`` (by default its latest with temperatures), warmest first."""
+        return self.db.fetch_all(_WEATHER_STATIONS, {"source": source, "day": day})
 
     def warnings(self, start: datetime, end: datetime) -> list[Row]:
         """AEMET warning periods that overlap ``[start, end)``, earliest first."""

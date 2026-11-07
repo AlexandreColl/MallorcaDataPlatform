@@ -282,6 +282,22 @@ async function get<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+const answers = new Map<string, Promise<unknown>>();
+
+/**
+ * The answer to `path`, asked for once per page load: a past day does not change, so playing the days again or
+ * going back to one is instant. A failed request is forgotten, so the next attempt asks again.
+ */
+function remembered<T>(path: string, load: (path: string) => Promise<T>): Promise<T> {
+  let answer = answers.get(path) as Promise<T> | undefined;
+  if (!answer) {
+    answer = load(path);
+    answers.set(path, answer);
+    answer.catch(() => answers.delete(path));
+  }
+  return answer;
+}
+
 /** An ISO day `days` before today, for the `from` and `start` parameters. */
 export function daysAgo(days: number): string {
   const date = new Date();
@@ -301,7 +317,8 @@ export const api = {
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
-  stations: (source: "aemet" | "socib" | "open_meteo") => get<StationDay[]>(`/weather/stations?source=${source}`),
+  stations: (source: "aemet" | "socib" | "open_meteo", day?: string | null) =>
+    remembered(`/weather/stations?source=${source}${day ? `&date=${day}` : ""}`, get<StationDay[]>),
   warnings: () => get<WeatherWarning[]>("/warnings"),
   warningZones: () => get<WarningZone[]>("/warnings/zones"),
   population: (from: number) => get<PopulationYear[]>(`/population?from=${from}`),

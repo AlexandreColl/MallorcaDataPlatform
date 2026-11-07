@@ -29,39 +29,48 @@ export function contours(
   levels: number[],
   mask?: ArrayLike<number>,
 ): Contour[] {
-  return levels.map((level) => {
-    const segments: Segment[] = [];
-    for (let y = 0; y < height - 1; y++) {
-      for (let x = 0; x < width - 1; x++) {
-        const corners = [y * width + x, y * width + x + 1, (y + 1) * width + x + 1, (y + 1) * width + x];
-        if (mask && corners.some((i) => !mask[i])) continue;
-        const [a, b, c, d] = corners.map((i) => values[i] as number) as [number, number, number, number];
-        if ([a, b, c, d].some((v) => !Number.isFinite(v))) continue;
-        // Where the level crosses each side, in the order top, right, bottom, left (null: not crossed).
-        const cross = (v0: number, v1: number, p0: [number, number], p1: [number, number]): [number, number] | null => {
-          if (v0 >= level === v1 >= level) return null;
-          const t = (level - v0) / (v1 - v0);
-          return [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t];
-        };
-        const points = [
-          cross(a, b, [x, y], [x + 1, y]),
-          cross(b, c, [x + 1, y], [x + 1, y + 1]),
-          cross(d, c, [x, y + 1], [x + 1, y + 1]),
-          cross(a, d, [x, y], [x, y + 1]),
-        ];
-        const hits = points.filter((p): p is [number, number] => p !== null);
-        if (hits.length === 2) segments.push([hits[0] as [number, number], hits[1] as [number, number]]);
-        else if (hits.length === 4) {
+  // One pass over the squares, trying only the levels between the lowest and the highest corner of each: this runs
+  // for every day the player shows, so the loop allocates nothing but the segments it finds.
+  const found: Segment[][] = levels.map(() => []);
+  for (let y = 0; y < height - 1; y++) {
+    for (let x = 0; x < width - 1; x++) {
+      const [ia, ib] = [y * width + x, y * width + x + 1];
+      const [ic, id] = [ib + width, ia + width];
+      if (mask && !(mask[ia] && mask[ib] && mask[ic] && mask[id])) continue;
+      const a = values[ia] as number;
+      const b = values[ib] as number;
+      const c = values[ic] as number;
+      const d = values[id] as number;
+      if (!(Number.isFinite(a) && Number.isFinite(b) && Number.isFinite(c) && Number.isFinite(d))) continue;
+      const low = Math.min(a, b, c, d);
+      const high = Math.max(a, b, c, d);
+      for (let l = 0; l < levels.length; l++) {
+        const level = levels[l] as number;
+        if (level <= low || level > high) continue; // every corner on the same side
+        // Where the level crosses each side: top, right, bottom, left (null: not crossed).
+        const top = a >= level === b >= level ? null : crossing(x, y, x + 1, y, (level - a) / (b - a));
+        const right = b >= level === c >= level ? null : crossing(x + 1, y, x + 1, y + 1, (level - b) / (c - b));
+        const bottom = d >= level === c >= level ? null : crossing(x, y + 1, x + 1, y + 1, (level - d) / (c - d));
+        const left = a >= level === d >= level ? null : crossing(x, y, x, y + 1, (level - a) / (d - a));
+        const segments = found[l] as Segment[];
+        if (top && right && bottom && left) {
           // A saddle: the mean of the square decides which corners are joined.
-          const [top, right, bottom, left] = points as [number, number][];
           const centreHigh = (a + b + c + d) / 4 >= level;
-          if (centreHigh === a >= level) segments.push([top as [number, number], right as [number, number]], [bottom as [number, number], left as [number, number]]);
-          else segments.push([top as [number, number], left as [number, number]], [bottom as [number, number], right as [number, number]]);
+          if (centreHigh === a >= level) segments.push([top, right], [bottom, left]);
+          else segments.push([top, left], [bottom, right]);
+        } else {
+          const hits = [top, right, bottom, left].filter((p): p is [number, number] => p !== null);
+          if (hits.length === 2) segments.push([hits[0] as [number, number], hits[1] as [number, number]]);
         }
       }
     }
-    return { level, segments };
-  });
+  }
+  return levels.map((level, l) => ({ level, segments: found[l] as Segment[] }));
+}
+
+/** The point a fraction `t` of the way from (x0, y0) to (x1, y1). */
+function crossing(x0: number, y0: number, x1: number, y1: number, t: number): [number, number] {
+  return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
 }
 
 /**
@@ -73,14 +82,22 @@ export function blur(values: ArrayLike<number>, width: number, height: number, r
   const pass = (source: Float64Array, horizontal: boolean) => {
     const out = new Float64Array(source.length);
     const [outer, inner] = horizontal ? [height, width] : [width, height];
+    // Plain counters, no arrays: this runs over every pixel four times for every day the player shows.
+    const [step, stride] = horizontal ? [1, width] : [width, 1];
     for (let o = 0; o < outer; o++) {
+      const base = o * stride;
       for (let i = 0; i < inner; i++) {
-        let [sum, count] = [0, 0];
-        for (let k = Math.max(0, i - radius); k <= Math.min(inner - 1, i + radius); k++) {
-          const v = source[horizontal ? o * width + k : k * width + o] as number;
-          if (Number.isFinite(v)) [sum, count] = [sum + v, count + 1];
+        let sum = 0;
+        let count = 0;
+        const last = Math.min(inner - 1, i + radius);
+        for (let k = Math.max(0, i - radius); k <= last; k++) {
+          const v = source[base + k * step] as number;
+          if (Number.isFinite(v)) {
+            sum += v;
+            count++;
+          }
         }
-        out[horizontal ? o * width + i : i * width + o] = count ? sum / count : Number.NaN;
+        out[base + i * step] = count ? sum / count : Number.NaN;
       }
     }
     return out;

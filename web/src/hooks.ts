@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 
 export type Loaded<T> = { status: "loading" } | { status: "error"; error: string } | { status: "ready"; data: T };
 
-/** Runs `load` once per mount and keeps its result: the page shows a skeleton, the data or the error. */
-export function useLoad<T>(load: () => Promise<T>): Loaded<T> {
+/**
+ * Runs `load` on mount and again whenever one of `deps` changes, and keeps its result: the page shows a skeleton,
+ * the data or the error. A reload keeps showing the previous data until the new one arrives, and an answer that
+ * arrives after a newer request was started is dropped.
+ */
+export function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[] = []): Loaded<T> {
   const [state, setState] = useState<Loaded<T>>({ status: "loading" });
   useEffect(() => {
     let active = true;
@@ -13,7 +17,7 @@ export function useLoad<T>(load: () => Promise<T>): Loaded<T> {
     return () => {
       active = false;
     };
-  }, []);
+  }, deps); // not `load`: it is a new closure on every render
   return state;
 }
 

@@ -47,6 +47,7 @@ def test_health(api):
         "/v1/weather/model-bias",
         "/v1/weather/stations",
         "/v1/weather/stations?source=socib",
+        "/v1/weather/stations?date=2026-10-01",
         "/v1/warnings?start=2016-01-01T00:00:00Z",
         "/v1/warnings/zones",
         "/v1/population?from=2020",

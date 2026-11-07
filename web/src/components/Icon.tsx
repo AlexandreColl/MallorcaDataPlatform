@@ -1,4 +1,4 @@
-// Line icons (24x24, stroke = currentColor) for the menu and the theme button.
+// Line icons (24x24, stroke = currentColor) for the menu, the theme button and the day player.
 
 const PATHS = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z",
@@ -13,6 +13,8 @@ const PATHS = {
   moon: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z",
   menu: "M4 6h16M4 12h16M4 18h16",
   close: "M6 6l12 12M18 6 6 18",
+  play: "M7 4.5v15a.5.5 0 0 0 .8.4l11-7.5a.5.5 0 0 0 0-.8l-11-7.5a.5.5 0 0 0-.8.4z",
+  pause: "M8 5v14M16 5v14",
 } as const;
 
 export type IconName = keyof typeof PATHS;
