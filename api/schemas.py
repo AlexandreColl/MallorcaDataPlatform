@@ -85,6 +85,7 @@ class Correction(BaseModel):
 
     source: str = Field(examples=["socib"])
     entity: str = Field(examples=["parcbit"])
+    name: str | None = Field(default=None, examples=["Parc Bit (Palma)"], description=NAME)
     metric: str = Field(examples=["temperature_2m"])
     ts: datetime
     unit: str | None = Field(examples=["degC"])
@@ -324,6 +325,7 @@ class ModelBias(BaseModel):
 
     station_source: str
     station: str
+    station_name: str | None = Field(default=None, examples=["Escorca, Son Torrella"], description=NAME)
     model_point: str
     distance_km: float | None
     days_compared: int

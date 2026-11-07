@@ -196,6 +196,7 @@ export interface WeatherEpisode {
 export interface ModelBias {
   station_source: string;
   station: string;
+  station_name: string | null;
   model_point: string;
   days_compared: number;
   temperature_bias_c: number | null;
@@ -255,6 +256,7 @@ export interface AnomaliesDay {
 export interface Correction {
   source: string;
   entity: string;
+  name: string | null;
   metric: string;
   ts: string;
   unit: string | null;

@@ -11,8 +11,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   the GTFS `stop_name` (EMT Palma, CTM), the AEMET inventory (`PALMA, PUERTO` as `Palma, Puerto`) and the station
   lists of `connector.yaml` (EEA and GOIB air quality, SOCIB). Every run upserts them, so a renamed stop is renamed.
   `dim_locations` has a `name` column and the transit marts the `busiest_stop_name`.
-- API: `name` in `/v1/locations`, `/v1/mobility/stops`, `/v1/weather/stations` and `/v1/air-quality/latest`, and
-  `busiest_stop_name` in `/v1/mobility/daily`.
+- API: `name` in `/v1/locations`, `/v1/mobility/stops`, `/v1/weather/stations`, `/v1/air-quality/latest` and
+  `/v1/corrections`, `station_name` in `/v1/weather/model-bias` and `busiest_stop_name` in `/v1/mobility/daily`.
 - Web: the stops and stations show their name instead of the identifier (`stop_452`, `B228`) in the maps and tables.
 
 ### Removed

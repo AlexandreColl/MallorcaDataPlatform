@@ -132,10 +132,12 @@ ORDER BY start_date DESC
 """
 
 _MODEL_BIAS = """
-SELECT station_source, station, model_point, distance_km, days_compared, temperature_bias_c, temperature_mae_c,
-       temperature_rmse_c, precipitation_bias_total_mm, rain_day_agreement, wind_speed_bias_kmh, first_day, last_day
-FROM gold.agg_model_bias_by_station
-ORDER BY temperature_mae_c DESC NULLS LAST, station
+SELECT b.station_source, b.station, l.name AS station_name, b.model_point, b.distance_km, b.days_compared,
+       b.temperature_bias_c, b.temperature_mae_c, b.temperature_rmse_c, b.precipitation_bias_total_mm,
+       b.rain_day_agreement, b.wind_speed_bias_kmh, b.first_day, b.last_day
+FROM gold.agg_model_bias_by_station AS b
+LEFT JOIN gold.dim_locations AS l ON l.source = b.station_source AND l.entity = b.station
+ORDER BY b.temperature_mae_c DESC NULLS LAST, b.station
 """
 
 # The latest hour of each air quality station or model point in the last two days, with its European AQI band.
@@ -199,15 +201,16 @@ LIMIT %(limit)s OFFSET %(offset)s
 """
 
 _CORRECTIONS = """
-SELECT source, entity, metric, ts, unit, original_quality, original_value, corrected_value,
-       correction_method AS method, support_source, support_entity, support_bias AS bias, confidence
-FROM gold.fct_observations_corrected
-WHERE is_corrected
-  AND (%(source)s::text IS NULL OR source = %(source)s)
-  AND (%(entity)s::text IS NULL OR entity = %(entity)s)
-  AND (%(method)s::text IS NULL OR correction_method = %(method)s)
-  AND ts >= %(start)s AND ts < %(end)s
-ORDER BY ts DESC, source, entity, metric
+SELECT c.source, c.entity, l.name, c.metric, c.ts, c.unit, c.original_quality, c.original_value, c.corrected_value,
+       c.correction_method AS method, c.support_source, c.support_entity, c.support_bias AS bias, c.confidence
+FROM gold.fct_observations_corrected AS c
+LEFT JOIN gold.dim_locations AS l ON l.source = c.source AND l.entity = c.entity
+WHERE c.is_corrected
+  AND (%(source)s::text IS NULL OR c.source = %(source)s)
+  AND (%(entity)s::text IS NULL OR c.entity = %(entity)s)
+  AND (%(method)s::text IS NULL OR c.correction_method = %(method)s)
+  AND c.ts >= %(start)s AND c.ts < %(end)s
+ORDER BY c.ts DESC, c.source, c.entity, c.metric
 LIMIT %(limit)s OFFSET %(offset)s
 """
 
