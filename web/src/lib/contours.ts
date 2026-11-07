@@ -73,14 +73,22 @@ export function blur(values: ArrayLike<number>, width: number, height: number, r
   const pass = (source: Float64Array, horizontal: boolean) => {
     const out = new Float64Array(source.length);
     const [outer, inner] = horizontal ? [height, width] : [width, height];
+    // Plain counters, no arrays: this runs over every pixel four times for every day the player shows.
+    const [step, stride] = horizontal ? [1, width] : [width, 1];
     for (let o = 0; o < outer; o++) {
+      const base = o * stride;
       for (let i = 0; i < inner; i++) {
-        let [sum, count] = [0, 0];
-        for (let k = Math.max(0, i - radius); k <= Math.min(inner - 1, i + radius); k++) {
-          const v = source[horizontal ? o * width + k : k * width + o] as number;
-          if (Number.isFinite(v)) [sum, count] = [sum + v, count + 1];
+        let sum = 0;
+        let count = 0;
+        const last = Math.min(inner - 1, i + radius);
+        for (let k = Math.max(0, i - radius); k <= last; k++) {
+          const v = source[base + k * step] as number;
+          if (Number.isFinite(v)) {
+            sum += v;
+            count++;
+          }
         }
-        out[horizontal ? o * width + i : i * width + o] = count ? sum / count : Number.NaN;
+        out[base + i * step] = count ? sum / count : Number.NaN;
       }
     }
     return out;

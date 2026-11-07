@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { grid, idw, imageHeight, inside, ISLAND_BOUNDS, temperatureColor, temperatureRgb } from "./interpolate";
+import {
+  grid,
+  idw,
+  imageHeight,
+  inside,
+  ISLAND_BOUNDS,
+  pixelCenter,
+  temperatureColor,
+  temperaturePalette,
+  temperatureRgb,
+} from "./interpolate";
 
 describe("inside", () => {
   it("knows Palma and Inca are on the island and Cabrera and Menorca are not", () => {
@@ -72,5 +82,29 @@ describe("temperatureColor", () => {
     expect(temperatureColor(20, 10, 20)).toBe("rgb(215, 25, 28)");
     expect(temperatureColor(15, 10, 20)).toBe("rgb(255, 255, 191)");
     expect(temperatureRgb(20, 10, 20)).toEqual([215, 25, 28]);
+  });
+});
+
+describe("grid against idw", () => {
+  it("gives every pixel the inverse-distance mean of the stations, as idw does", () => {
+    const bounds = { west: 2.3, south: 39.3, east: 3.4, north: 39.9 };
+    const samples = [
+      { lon: 2.6, lat: 39.6, value: 10 },
+      { lon: 3.1, lat: 39.7, value: 20 },
+      { lon: 2.9, lat: 39.4, value: 15 },
+    ];
+    const values = grid(samples, bounds, 12, 9);
+    for (const [col, row] of [[0, 0], [5, 4], [11, 8], [3, 7]] as const) {
+      const [lon, lat] = pixelCenter(bounds, 12, 9, col, row);
+      expect(values[row * 12 + col]).toBeCloseTo(idw(samples, lon, lat), 10);
+    }
+  });
+});
+
+describe("temperaturePalette", () => {
+  it("has the colour of the minimum first and of the maximum last", () => {
+    const palette = temperaturePalette(10, 20);
+    expect([...palette.slice(0, 3)]).toEqual(temperatureRgb(10, 10, 20));
+    expect([...palette.slice(255 * 3)]).toEqual(temperatureRgb(20, 10, 20));
   });
 });

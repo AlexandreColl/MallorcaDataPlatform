@@ -109,12 +109,37 @@ export function grid(
   const values = new Float64Array(width * height);
   if (samples.length === 0) return values.fill(Number.NaN);
   const above = (h: number | undefined) => Math.max(0, h ?? 0);
-  const atSea = elevation ? samples.map((s) => ({ ...s, value: s.value + LAPSE_RATE * above(s.elevation) })) : samples;
+  // The same inverse-distance mean as `idw` (power 2), unrolled: this runs for every pixel of every day the player
+  // shows, so nothing is allocated in the loop and the coordinates of each column and row are computed once.
+  const n = samples.length;
+  const [sLon, sLat, sValue] = [new Float64Array(n), new Float64Array(n), new Float64Array(n)];
+  samples.forEach((s, j) => {
+    [sLon[j], sLat[j]] = [s.lon, s.lat];
+    sValue[j] = s.value + (elevation ? LAPSE_RATE * above(s.elevation) : 0); // brought down to the sea
+  });
+  const lons = Float64Array.from({ length: width }, (_, col) => pixelCenter(bounds, width, height, col, 0)[0]);
   for (let row = 0; row < height; row++) {
+    const lat = pixelCenter(bounds, width, height, 0, row)[1];
+    const k = Math.cos((lat * Math.PI) / 180);
     for (let col = 0; col < width; col++) {
+      const lon = lons[col] as number;
+      let num = 0;
+      let den = 0;
+      let exact = Number.NaN;
+      for (let j = 0; j < n; j++) {
+        const dx = ((sLon[j] as number) - lon) * k;
+        const dy = (sLat[j] as number) - lat;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 1e-12) {
+          exact = sValue[j] as number;
+          break;
+        }
+        num += (sValue[j] as number) / d2;
+        den += 1 / d2;
+      }
       const i = row * width + col;
-      const [lon, lat] = pixelCenter(bounds, width, height, col, row);
-      values[i] = idw(atSea, lon, lat) - (elevation ? LAPSE_RATE * above(elevation[i]) : 0);
+      const atSea = Number.isNaN(exact) ? num / den : exact;
+      values[i] = atSea - (elevation ? LAPSE_RATE * above(elevation[i]) : 0);
     }
   }
   return values;
@@ -129,10 +154,20 @@ export function temperatureRgb(value: number, min: number, max: number): [number
   const pos = t * (STOPS.length - 1);
   const i = Math.min(STOPS.length - 2, Math.floor(pos));
   const mix = pos - i;
-  const a = hex(STOPS[i] as string);
-  const b = hex(STOPS[i + 1] as string);
+  const a = STOP_RGB[i] as number[];
+  const b = STOP_RGB[i + 1] as number[];
   const [r, g, bl] = a.map((c, k) => Math.round(c + ((b[k] as number) - c) * mix)) as [number, number, number];
   return [r, g, bl];
+}
+
+/**
+ * The scale as 256 steps from `min` to `max`, red, green and blue in a row: an image colours each pixel from it
+ * instead of mixing the stops again for every pixel.
+ */
+export function temperaturePalette(min: number, max: number): Uint8ClampedArray {
+  const palette = new Uint8ClampedArray(256 * 3);
+  for (let step = 0; step < 256; step++) palette.set(temperatureRgb(min + ((max - min) * step) / 255, min, max), step * 3);
+  return palette;
 }
 
 export function temperatureColor(value: number, min: number, max: number): string {
@@ -142,5 +177,7 @@ export function temperatureColor(value: number, min: number, max: number): strin
 function hex(color: string): number[] {
   return [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
 }
+
+const STOP_RGB = STOPS.map(hex);
 
 export const TEMPERATURE_STOPS = STOPS;

@@ -31,7 +31,7 @@ import {
   pixelOf,
   TEMPERATURE_STOPS,
   temperatureColor,
-  temperatureRgb,
+  temperaturePalette,
 } from "../lib/interpolate";
 import { describe, LEVELS, overlapping, zoneLevels } from "../lib/warnings";
 import type { Kpi } from "../lib/kpis";
@@ -149,10 +149,15 @@ function temperatureImage(
 ): { url: string; land: Uint8Array } {
   const [width, height] = [IMAGE_WIDTH, IMAGE_HEIGHT];
   const pixels = new ImageData(width, height);
-  values.forEach((value, i) => {
-    const [r, g, b] = temperatureRgb(value, min, max);
-    pixels.data.set([r, g, b, 255], i * 4);
-  });
+  const palette = temperaturePalette(min, max);
+  const scale = max > min ? 255 / (max - min) : 0;
+  for (let i = 0; i < values.length; i++) {
+    const step = scale ? Math.round(Math.min(255, Math.max(0, ((values[i] as number) - min) * scale))) : 128;
+    pixels.data[i * 4] = palette[step * 3] as number;
+    pixels.data[i * 4 + 1] = palette[step * 3 + 1] as number;
+    pixels.data[i * 4 + 2] = palette[step * 3 + 2] as number;
+    pixels.data[i * 4 + 3] = 255;
+  }
   const painted = document.createElement("canvas");
   [painted.width, painted.height] = [width, height];
   painted.getContext("2d")?.putImageData(pixels, 0, 0);
