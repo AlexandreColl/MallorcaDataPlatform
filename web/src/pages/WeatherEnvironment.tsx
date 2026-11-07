@@ -215,6 +215,39 @@ function useElevation(): Elevation | null | "failed" {
 }
 
 /**
+ * A slider over `days` (newest first in the prop, oldest on the left of the track). The label follows the thumb at
+ * once; the day is only asked for once the thumb rests for a moment, so a drag across a month is one request.
+ */
+function DaySlider({ days, value, onChange }: { days: string[]; value: string; onChange: (day: string) => void }) {
+  const ordered = useMemo(() => [...days].reverse(), [days]);
+  const [position, setPosition] = useState(() => Math.max(0, ordered.indexOf(value)));
+  useEffect(() => setPosition(Math.max(0, ordered.indexOf(value))), [ordered, value]);
+  useEffect(() => {
+    const day = ordered[position];
+    if (day === undefined || day === value) return;
+    const timer = window.setTimeout(() => onChange(day), 250);
+    return () => window.clearTimeout(timer);
+  }, [ordered, position, value, onChange]);
+  const day = ordered[position] ?? value;
+  return (
+    <label className="day-slider">
+      <span>Día</span>
+      <input
+        type="range"
+        min={0}
+        max={ordered.length - 1}
+        step={1}
+        value={position}
+        aria-label="Día"
+        aria-valuetext={dayName(day)}
+        onChange={(e) => setPosition(Number(e.target.value))}
+      />
+      <output>{dayShort(day)}</output>
+    </label>
+  );
+}
+
+/**
  * The temperature of the AEMET stations spread over the island. Every station is brought down to the sea with the
  * lapse rate (6.5 °C per km), the inverse-distance mean is taken there and every pixel goes back up to the height
  * of its ground: the colours show the warm south and the cold summits of the Tramuntana, not just rings around
@@ -285,16 +318,7 @@ function TemperatureZones({ stations, places, days, onDay }: {
           </button>
         ))}
       </div>
-      {days.length > 1 && (
-        <label className="select-row">
-          <span>Día</span>
-          <select className="select" aria-label="Día" value={shown ?? days[0]} onChange={(e) => onDay(e.target.value)}>
-            {days.map((d) => (
-              <option key={d} value={d}>{dayName(d)}</option>
-            ))}
-          </select>
-        </label>
-      )}
+      {days.length > 1 && <DaySlider days={days} value={shown ?? days[0] as string} onChange={onDay} />}
     </div>
   );
   if (surface.samples.length === 0) {

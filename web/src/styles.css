@@ -871,3 +871,28 @@ tr.selectable:focus-visible {
   align-items: center;
   gap: 8px 16px;
 }
+
+/* A slider over days: "Día", the track and the day under the thumb. Grows to fill the row of controls. */
+.day-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.day-slider input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.day-slider output {
+  min-width: 4.5em;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
