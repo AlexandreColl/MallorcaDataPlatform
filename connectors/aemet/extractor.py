@@ -14,12 +14,13 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from core.connectors import BaseConnector, ConnectorError
-from core.models import Observation, Quality, RawPayload, Region, TimeWindow
+from core.models import Entity, Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
@@ -29,6 +30,7 @@ log = logging.getLogger(__name__)
 _INVENTORY = "/valores/climatologicos/inventarioestaciones/todasestaciones"
 _NO_DATA = 404
 _TRACE = "Ip"  # precipitation below 0.1 mm
+_JOINING_WORDS = {"de", "del", "dels", "d", "i", "y"}  # Spanish and Catalan words kept in lower case in names
 
 
 def _dms(raw: str) -> float:
@@ -36,6 +38,22 @@ def _dms(raw: str) -> float:
     digits, hemisphere = raw[:-1], raw[-1]
     value = int(digits[:-4]) + int(digits[-4:-2]) / 60 + int(digits[-2:]) / 3600
     return round(-value if hemisphere in {"S", "W"} else value, 6)
+
+
+def _title(raw: str) -> str:
+    """AEMET's capitals as a name: ``SANTA MARÍA DEL CAMÍ`` as ``Santa María del Camí``.
+
+    Joining words stay in lower case except at the start of a part (after a comma, dash or parenthesis), and the
+    letter after an apostrophe is a capital: ``MURO, S'ALBUFERA`` as ``Muro, S'Albufera``.
+    """
+    text = " ".join(raw.split()).lower()
+
+    def capitalize(match: re.Match[str]) -> str:
+        word, before = match.group(0), text[: match.start()].rstrip()
+        starts_part = not before or before[-1] in ",-("
+        return word if word in _JOINING_WORDS and not starts_part else word[0].upper() + word[1:]
+
+    return re.sub(r"[^\W\d_]+", capitalize, text)
 
 
 def _number(raw: str | None) -> float | None:
@@ -87,6 +105,13 @@ class AemetConnector(BaseConnector):
                     )
                 )
         return payloads
+
+    def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:
+        """The name of every station of the region, from the inventory (``SÓLLER, PUERTO`` as ``Sóller, Puerto``)."""
+        if payload.dataset != "stations":
+            return
+        for station_id, station in self._stations_in(payload.body, region).items():
+            yield Entity(source=self.name, entity=station_id, name=_title(station["name"]))
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:  # noqa: ARG002 - stations were filtered in extract
         """One observation per station, day and variable the station reports."""

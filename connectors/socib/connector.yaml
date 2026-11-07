@@ -13,10 +13,10 @@ options:
   min_good_share: 0.5        # an hour with fewer good samples is labelled suspect (reason source_qc)
   # Active Mallorca stations; folder = THREDDS dataset folder, the current deployment is resolved at run time.
   stations:
-    - {entity: parcbit, folder: mooring/weather_station/station_parcbit-scb_met023, lat: 39.6352, lon: 2.6314}
-    - {entity: cala_millor, folder: mooring/weather_station/mobims_calamillor-scb_met012, lat: 39.5958, lon: 3.3826}
-    - {entity: muro, folder: mooring/weather_station/mobims_muro-scb_met016, lat: 39.8117, lon: 3.1161}
-    - {entity: bahia_de_palma_buoy, folder: mooring/weather_station/buoy_bahiadepalma-scb_met029, lat: 39.4984, lon: 2.7016}
+    - {entity: parcbit, name: Parc Bit (Palma), folder: mooring/weather_station/station_parcbit-scb_met023, lat: 39.6352, lon: 2.6314}
+    - {entity: cala_millor, name: Cala Millor, folder: mooring/weather_station/mobims_calamillor-scb_met012, lat: 39.5958, lon: 3.3826}
+    - {entity: muro, name: Platja de Muro, folder: mooring/weather_station/mobims_muro-scb_met016, lat: 39.8117, lon: 3.1161}
+    - {entity: bahia_de_palma_buoy, name: Boya de la bahía de Palma, folder: mooring/weather_station/buoy_bahiadepalma-scb_met029, lat: 39.4984, lon: 2.7016}
 
 datasets:
   weather:

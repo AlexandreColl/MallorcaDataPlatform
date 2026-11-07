@@ -6,7 +6,8 @@ A connector lives in ``connectors/<name>/`` and consists of:
 * ``extractor.py``    - a ``BaseConnector`` subclass implementing ``extract`` and ``normalize``.
 * ``tests/``          - unit tests running against recorded API responses (``tests/fixtures``).
 
-The core never knows anything source-specific: it only calls these two methods.
+The core never knows anything source-specific: it only calls these two methods, plus the optional ``describe``
+that names the entities (stops, stations).
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
     from pathlib import Path
 
-    from core.models import Observation, RawPayload, Region
+    from core.models import Entity, Observation, RawPayload, Region
 
 
 class ConnectorError(Exception):
@@ -250,3 +251,10 @@ class BaseConnector(ABC):
     @abstractmethod
     def normalize(self, payload: RawPayload, region: Region) -> Iterable[Observation]:
         """Turn one raw payload into observations in the common silver schema."""
+
+    def describe(self, payload: RawPayload, region: Region) -> Iterable[Entity]:  # noqa: ARG002 - for overrides
+        """The names of the entities in one raw payload (a stop's ``stop_name``, a station's ``nombre``).
+
+        Optional: sources whose identifiers already read as names (``palma``, ``demand``) keep the default, none.
+        """
+        return ()

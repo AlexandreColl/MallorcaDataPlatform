@@ -125,3 +125,11 @@ def test_region_without_stations_is_rejected():
 
     with pytest.raises(ConnectorError, match="no SOCIB station"):
         _connector().extract(WINDOW, ibiza)
+
+
+def test_stations_are_named_from_the_config():
+    connector = _connector()
+
+    names = {e.entity: e.name for p in connector.extract(WINDOW, PALMA) for e in connector.describe(p, PALMA)}
+
+    assert names == {"parcbit": "Parc Bit (Palma)", "bahia_de_palma_buoy": "Boya de la bahía de Palma"}

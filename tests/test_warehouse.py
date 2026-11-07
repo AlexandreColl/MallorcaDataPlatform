@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from core.config import Settings
-from core.models import TimeWindow
+from core.models import Entity, TimeWindow
 from core.warehouse import Warehouse
 
 pytestmark = [
@@ -35,7 +35,13 @@ def warehouse():
     wh.ensure_schema()
     yield wh
     with wh.connect() as conn:
-        for table in ("silver.observations", "silver.anomalies", "ops.ingestion_runs", "quality.check_results"):
+        for table in (
+            "silver.observations",
+            "silver.entities",
+            "silver.anomalies",
+            "ops.ingestion_runs",
+            "quality.check_results",
+        ):
             conn.execute(f"DELETE FROM {table} WHERE source = %s", (SOURCE,))  # noqa: S608 - fixed table names
         conn.execute(f"DROP TABLE IF EXISTS landing.{LANDING}")
 
@@ -150,3 +156,18 @@ def test_anomalies_are_replaced_only_inside_the_window_and_for_the_detector(ware
         ("robust_zscore", outside),
         ("robust_zscore", T1.replace(tzinfo=UTC)),
     ]
+
+
+def names(warehouse):
+    with warehouse.connect() as conn:
+        rows = conn.execute("SELECT entity, name, run_id FROM silver.entities WHERE source = %s", (SOURCE,)).fetchall()
+    return {entity: (name, run_id) for entity, name, run_id in rows}
+
+
+def test_entity_names_are_upserted_and_only_a_rename_counts(warehouse):
+    stops = [Entity(SOURCE, "stop_1", "Plaça d'Espanya"), Entity(SOURCE, "stop_2", "Sindicat")]
+    assert warehouse.merge_entities(stops, "run1") == 2
+
+    renamed = [Entity(SOURCE, "stop_1", "Plaça d'Espanya"), Entity(SOURCE, "stop_2", "Sindicat - intercanvi")]
+    assert warehouse.merge_entities(renamed, "run2") == 1
+    assert names(warehouse) == {"stop_1": ("Plaça d'Espanya", "run1"), "stop_2": ("Sindicat - intercanvi", "run2")}

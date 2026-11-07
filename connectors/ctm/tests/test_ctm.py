@@ -83,3 +83,15 @@ def test_every_stop_gets_a_value_each_day_and_its_location():
     stop = next(o for o in observations if o.entity == "stop_1386")
     assert MALLORCA.contains(stop.lat, stop.lon)
     assert stop.ts == datetime(2026, 10, 31, 23, tzinfo=UTC)  # local midnight (CET) of 2026-11-01
+
+
+def test_every_stop_is_named_as_the_feed_publishes_it():
+    connector = registry.load("ctm", http=RecordedFeed())
+    window = TimeWindow(date(2026, 10, 30), date(2026, 10, 30))
+    (payload,) = connector.extract(window, MALLORCA)
+
+    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA)}
+
+    assert len(names) == STOPS  # the same stops as the observations
+    assert names["stop_1024"] == "Jacint Verdaguer Estació (302)"
+    assert {e.source for e in connector.describe(payload, MALLORCA)} == {"ctm"}

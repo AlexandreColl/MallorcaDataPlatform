@@ -26,6 +26,8 @@ export interface Location {
   label: string | null;
   kind: string | null;
   entity: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number;
   lon: number;
   first_seen: string | null;
@@ -97,12 +99,15 @@ export interface MobilityDay {
   stops_with_service: number;
   scheduled_stop_calls: number | null;
   busiest_stop: string | null;
+  busiest_stop_name: string | null;
   busiest_stop_departures: number | null;
 }
 
 export interface StopService {
   network: "emt_palma" | "ctm";
   stop: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number;
   lon: number;
   local_date: string;
@@ -125,6 +130,8 @@ export interface WeatherSourceDay {
 export interface StationDay {
   source: string;
   entity: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number;
   lon: number;
   local_date: string;
@@ -189,6 +196,7 @@ export interface WeatherEpisode {
 export interface ModelBias {
   station_source: string;
   station: string;
+  station_name: string | null;
   model_point: string;
   days_compared: number;
   temperature_bias_c: number | null;
@@ -199,6 +207,8 @@ export interface ModelBias {
 export interface AirQualityNow {
   source: string;
   entity: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number | null;
   lon: number | null;
   ts: string;
@@ -246,6 +256,7 @@ export interface AnomaliesDay {
 export interface Correction {
   source: string;
   entity: string;
+  name: string | null;
   metric: string;
   ts: string;
   unit: string | null;

@@ -93,3 +93,16 @@ def test_stops_outside_the_region_are_skipped():
     assert observations
     assert all(palma_east.contains(o.lat, o.lon) for o in observations)
     assert len({o.entity for o in observations}) < STOPS
+
+
+def test_stops_are_named_only_inside_the_region():
+    palma_east = Region("palma_east", 39.55, 2.65, 39.60, 2.70)
+    connector = registry.load("emt_palma", http=RecordedFeed())
+    (payload,) = connector.extract(TimeWindow(date(2026, 10, 23), date(2026, 10, 23)), MALLORCA)
+
+    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA)}
+    east = {e.entity for e in connector.describe(payload, palma_east)}
+
+    assert len(names) == STOPS
+    assert names["stop_6"] == "6-Sindicat - Àrea d'intercanvi Sindicat"
+    assert east < set(names)

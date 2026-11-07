@@ -60,9 +60,10 @@ models:
 
   - name: dim_locations
     description: >
-      One row per source and entity with coordinates and time coverage (events are not locations). Entities that
-      are not places (the island's electricity system, a tourism series) have no coordinates. History of the
-      coordinates: snapshot `snap_locations` (SCD2).
+      One row per source and entity with its name, coordinates and time coverage (events are not locations).
+      Entities that are not places (the island's electricity system, a tourism series) have no coordinates. The
+      name comes from silver.entities and is null for sources whose identifiers already read as names (Open-Meteo
+      points). History of the coordinates: snapshot `snap_locations` (SCD2).
     config:
       contract: {enforced: true}
     constraints:
@@ -71,6 +72,7 @@ models:
     columns:
       - {name: source, data_type: text, constraints: [{type: not_null}]}
       - {name: entity, data_type: text, constraints: [{type: not_null}]}
+      - {name: name, data_type: text}
       - name: lat
         data_type: double precision
         data_tests:
@@ -230,6 +232,7 @@ models:
       - {name: scheduled_stop_calls, data_type: double precision}
       - {name: avg_lines_per_served_stop, data_type: "numeric(6,2)"}
       - {name: busiest_stop, data_type: text}
+      - {name: busiest_stop_name, data_type: text}
       - {name: busiest_stop_departures, data_type: double precision}
 
   - name: fct_island_transit_daily
@@ -254,6 +257,7 @@ models:
       - {name: scheduled_stop_calls, data_type: double precision}
       - {name: avg_lines_per_served_stop, data_type: "numeric(6,2)"}
       - {name: busiest_stop, data_type: text}
+      - {name: busiest_stop_name, data_type: text}
       - {name: busiest_stop_departures, data_type: double precision}
 
   - name: fct_earthquakes

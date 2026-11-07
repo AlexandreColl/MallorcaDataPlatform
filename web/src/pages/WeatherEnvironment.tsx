@@ -17,7 +17,7 @@ import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { type MapArea, type MapImage, type MapLayer, type MapLines, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
-import { dayName, dayShort, number, orDash, signed } from "../lib/format";
+import { dayName, dayShort, number, orDash, placeName, signed } from "../lib/format";
 import { blur, contourLevels, contours } from "../lib/contours";
 import { type Elevation, loadElevation } from "../lib/elevation";
 import {
@@ -46,12 +46,6 @@ export const EAQI = [
 ];
 
 const EPISODE_TYPES: Record<string, string> = { rain: "lluvia", wind: "viento", sea: "mar" };
-
-/** "cala_millor" -> "Cala millor": the identifiers of points and stations, readable. */
-export function placeName(id: string): string {
-  const text = id.replace(/_/g, " ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
 
 function episodeType(type: string): string {
   return type.split(" + ").map((t) => EPISODE_TYPES[t] ?? t).join(" + ");
@@ -235,7 +229,7 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
     const samples = stations
       .filter((s) => s[field] !== null)
       .map((s) => ({
-        lon: s.lon, lat: s.lat, value: s[field] as number, entity: s.entity,
+        lon: s.lon, lat: s.lat, value: s[field] as number, name: placeName(s.entity, s.name),
         elevation: relief ? Math.max(0, relief.at(s.lon, s.lat)) : undefined,
       }));
     const measured = samples.map((s) => s.value);
@@ -253,7 +247,7 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
         points: samples.map((s) => ({
           lat: s.lat, lon: s.lon, color: temperatureColor(s.value, min, max),
           popup: [
-            s.entity,
+            s.name,
             `${TEMPERATURE_FIELDS[field]}: ${number(s.value, 1)} °C`,
             ...(s.elevation === undefined ? [] : [`${number(s.elevation)} m de altitud`]),
           ],
@@ -304,7 +298,7 @@ function TemperatureZones({ stations, places }: { stations: StationDay[]; places
 function airLayers(air: AirQualityNow[]): MapLayer[] {
   const point = (a: AirQualityNow) => ({
     lat: a.lat as number, lon: a.lon as number, color: EAQI[a.eaqi_band - 1]?.color,
-    popup: [placeName(a.entity), EAQI[a.eaqi_band - 1]?.label ?? "", `NO₂ ${a.no2 ?? "—"} · O₃ ${a.o3 ?? "—"} · PM10 ${a.pm10 ?? "—"} µg/m³`],
+    popup: [placeName(a.entity, a.name), EAQI[a.eaqi_band - 1]?.label ?? "", `NO₂ ${a.no2 ?? "—"} · O₃ ${a.o3 ?? "—"} · PM10 ${a.pm10 ?? "—"} µg/m³`],
   });
   const located = air.filter((a) => a.lat !== null && a.lon !== null);
   return [
@@ -480,7 +474,7 @@ export function WeatherEnvironment() {
                     value: (a) => (
                       <span className="source-cell">
                         <span className="dot" style={{ background: EAQI[a.eaqi_band - 1]?.color }} />
-                        {placeName(a.entity)}
+                        {placeName(a.entity, a.name)}
                       </span>
                     ),
                   },
@@ -534,7 +528,7 @@ export function WeatherEnvironment() {
               <Table
                 rows={rows.slice(0, 8)}
                 columns={[
-                  { label: "Estación", value: (b) => b.station },
+                  { label: "Estación", value: (b) => b.station_name ?? b.station },
                   { label: "Sesgo", value: (b) => (b.temperature_bias_c === null ? "—" : `${signed(Number(b.temperature_bias_c))} °C`), numeric: true },
                   { label: "Error", value: (b) => (b.temperature_mae_c === null ? "—" : `${number(Number(b.temperature_mae_c), 1)} °C`), numeric: true },
                   { label: "Días", value: (b) => number(b.days_compared), numeric: true },
