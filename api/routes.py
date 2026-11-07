@@ -257,7 +257,7 @@ def weather_stations(
     ] = "aemet",
     day: Annotated[
         date | None,
-        Query(alias="date", description="Local day. Default: the latest with temperatures (AEMET publishes 2-3 days late)."),
+        Query(alias="date", description="Local day. Default: the latest with temperatures (AEMET is 2-3 days late)."),
     ] = None,
 ) -> list[StationDay]:
     """Every station of a source on one day: by default its latest with temperatures. A day without data is empty."""

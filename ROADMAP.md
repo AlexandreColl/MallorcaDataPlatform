@@ -164,7 +164,7 @@ despliegue real con su coste medido.
 | ✅ | Tiempo y entorno: temperatura por zonas suave, una imagen interpolada píxel a píxel (unos 160 m) en lugar de celdas cuadradas, recortada con los límites municipales |
 | ✅ | Tiempo y entorno: temperatura corregida por la altitud (gradiente de 6,5 °C/km con el relieve abierto de Mapzen Terrain Tiles), isotermas cada grado y la temperatura y la altura bajo el cursor |
 | ✅ | Movilidad: mapa, tabla y gráfico enlazados por municipio (pulsar en uno lo resalta en los otros), población de cualquier municipio y tendencia en uno o dos tramos con la proyección a 2030 y su intervalo del 95 % |
-| ⬜ | Tiempo y entorno: elegir el día de la temperatura por zonas (la API solo devuelve el último; añadir `date` a `/v1/weather/stations`) |
+| ✅ | Tiempo y entorno: elegir el día de la temperatura por zonas (`date` en `/v1/weather/stations`) |
 | ⬜ | Movilidad: recorridos de las líneas desde `shapes.txt` del GTFS (una geometría no encaja en el silver largo: necesita su propio diseño) |
 | ⬜ | Conector del **Indicador de Presión Humana** del Ibestat (población real presente por isla y día): residentes más turistas en la web |
 | ⬜ | Explorador de series en la web: elegir fuente, ubicación y métrica, con sus anomalías y correcciones |
