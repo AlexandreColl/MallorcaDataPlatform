@@ -119,6 +119,14 @@ WHERE year BETWEEN %(from_year)s AND %(to_year)s
 ORDER BY year, municipality
 """
 
+# People present in Mallorca each day (Ibestat IPH) against its registered residents.
+_HUMAN_PRESSURE = """
+SELECT local_date, is_weekend, people_present, residents, register_year, people_over_residents, pressure_ratio
+FROM gold.fct_human_pressure_daily
+WHERE local_date BETWEEN %(start)s AND %(end)s
+ORDER BY local_date
+"""
+
 _MUNICIPALITIES = """
 SELECT municipality, name, lat, lon, area_km2, polygon FROM gold.dim_municipalities ORDER BY municipality
 """
@@ -338,6 +346,10 @@ class Warehouse:
     def population(self, from_year: int, to_year: int) -> list[Row]:
         """Population of every municipality per year in ``[from_year, to_year]``, oldest first."""
         return self.db.fetch_all(_POPULATION, {"from_year": from_year, "to_year": to_year})
+
+    def human_pressure(self, start: date, end: date) -> list[Row]:
+        """People present in Mallorca per day in ``[start, end]``, oldest first."""
+        return self.db.fetch_all(_HUMAN_PRESSURE, {"start": start, "end": end})
 
     def municipalities(self) -> list[Row]:
         """The municipalities of Mallorca with their boundaries."""

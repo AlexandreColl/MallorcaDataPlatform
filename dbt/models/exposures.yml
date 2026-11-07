@@ -144,6 +144,7 @@ exposures:
       - ref('fct_weather_warnings')
       - ref('dim_warning_zones')
       - ref('fct_population_yearly')
+      - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
 
   - name: web
@@ -179,6 +180,7 @@ exposures:
       - ref('fct_weather_warnings')
       - ref('dim_warning_zones')
       - ref('fct_population_yearly')
+      - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
 
   - name: corrections_phase

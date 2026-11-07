@@ -139,11 +139,11 @@ function sources(t) {
     ["Mar y sismos", ["Open-Meteo Marine · IGN"]],
     ["Movilidad", ["EMT Palma · CTM (GTFS)"]],
     ["Turismo, agua y energía", ["Dataestur · REData", "Reservas hídricas (Govern)"]],
-    ["Población", ["INE, padrón desde 1996"]],
+    ["Población", ["INE, padrón desde 1996", "Ibestat, presión humana diaria"]],
   ];
   let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${t.card}" stroke="${t.border}"/>`;
   s += `<path d="M${x} ${y + 14} a14 14 0 0 1 14 -14 h${w - 28} a14 14 0 0 1 14 14 v-8 h-${w} z" fill="${ROLE.source.color}"/>`;
-  s += text(x + 20, y + 44, "14 fuentes abiertas", { size: 17, weight: 700, fill: t.text });
+  s += text(x + 20, y + 44, "15 fuentes abiertas", { size: 17, weight: 700, fill: t.text });
   s += text(x + 20, y + 64, "APIs REST, GTFS, CAP, CKAN y ficheros", { size: 11.5, fill: t.muted });
   let gy = y + 104;
   for (const [title, items] of groups) {
@@ -255,13 +255,13 @@ function diagram(t) {
   const mid = NODE_H / 2;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${FONT}">`;
   s += `<title>Arquitectura de Mallorca Data Platform</title>`;
-  s += `<desc>Catorce fuentes abiertas entran por conectores en Python a bronze (MinIO), PySpark las normaliza en silver (Delta Lake y Postgres), Python marca anomalías y propone correcciones, dbt construye gold en Postgres, y la API, la web y Grafana lo sirven. Airflow orquesta cada paso.</desc>`;
+  s += `<desc>Quince fuentes abiertas entran por conectores en Python a bronze (MinIO), PySpark las normaliza en silver (Delta Lake y Postgres), Python marca anomalías y propone correcciones, dbt construye gold en Postgres, y la API, la web y Grafana lo sirven. Airflow orquesta cada paso.</desc>`;
   s += `<defs>${markers()}</defs>`;
   s += `<rect width="${W}" height="${H}" fill="${t.bg}"/>`;
 
   // Header
   s += text(30, 44, "MALLORCA DATA PLATFORM", { size: 12, weight: 700, fill: ROLE.orchestration.color, spacing: 1.6 });
-  s += text(30, 80, "De 14 fuentes abiertas a la isla en cifras", { size: 28, weight: 750, fill: t.text });
+  s += text(30, 80, "De 15 fuentes abiertas a la isla en cifras", { size: 28, weight: 750, fill: t.text });
   s += text(W - 30, 80, "Un docker compose up levanta la plataforma entera, en local", { size: 13, fill: t.muted, anchor: "end" });
 
   s += sources(t);

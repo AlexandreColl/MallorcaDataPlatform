@@ -214,6 +214,7 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
         "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones", "/v1/population",
+        "/v1/population/pressure",
         "/v1/municipalities",
         "/v1/quality/rules", "/v1/anomalies/daily",
     }  # fmt: skip
@@ -243,6 +244,7 @@ def test_settings_from_environment():
         ("/v1/warnings", "gold.fct_weather_warnings"),
         ("/v1/warnings/zones", "gold.dim_warning_zones"),
         ("/v1/population", "gold.fct_population_yearly"),
+        ("/v1/population/pressure", "gold.fct_human_pressure_daily"),
         ("/v1/municipalities", "gold.dim_municipalities"),
         ("/v1/weather/episodes", "gold.fct_weather_episodes"),
         ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),

@@ -400,6 +400,32 @@ models:
       - {name: end_ts, data_type: timestamptz}
       - {name: hours, data_type: bigint}
 
+  - name: fct_human_pressure_daily
+    description: >-
+      People actually present in Mallorca each day (Ibestat Human Pressure Indicator, residents plus visitors) against
+      the people registered there (INE municipal register of that year, or the latest one before it), since 1997.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [local_date]
+    columns:
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: iso_day_of_week, data_type: integer}
+      - {name: is_weekend, data_type: boolean}
+      - name: people_present
+        data_type: integer
+        description: Human Pressure Indicator, the people present on the island that day.
+        data_tests:
+          - value_between:
+              arguments: {min_value: 300000, max_value: 2500000}
+      - {name: register_year, data_type: integer, description: Year of the register the residents come from.}
+      - {name: residents, data_type: integer, description: Population of Mallorca in that register.}
+      - name: people_over_residents
+        data_type: integer
+        description: People present minus residents (the visitors net of the residents who are away).
+      - {name: pressure_ratio, data_type: "numeric(6,3)", description: People present over residents.}
+
   - name: fct_population_yearly
     description: >-
       Population of each municipality of Mallorca on 1 January (INE municipal register, padrón continuo), by sex,

@@ -171,6 +171,16 @@ export interface PopulationYear {
   population_change_pct: number | null;
 }
 
+export interface HumanPressureDay {
+  local_date: string;
+  is_weekend: boolean | null;
+  people_present: number;
+  residents: number | null;
+  register_year: number | null;
+  people_over_residents: number | null;
+  pressure_ratio: number | null;
+}
+
 export interface Municipality {
   municipality: string;
   name: string;
@@ -322,6 +332,7 @@ export const api = {
   warnings: () => get<WeatherWarning[]>("/warnings"),
   warningZones: () => get<WarningZone[]>("/warnings/zones"),
   population: (from: number) => get<PopulationYear[]>(`/population?from=${from}`),
+  humanPressure: (from: string) => get<HumanPressureDay[]>(`/population/pressure?from=${from}`),
   municipalities: () => get<Municipality[]>("/municipalities"),
   episodes: (from: string) => get<WeatherEpisode[]>(`/weather/episodes?from=${from}`),
   modelBias: () => get<ModelBias[]>("/weather/model-bias"),

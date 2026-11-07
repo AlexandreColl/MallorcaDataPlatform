@@ -293,6 +293,18 @@ class PopulationYear(BaseModel):
     population_change_pct: float | None = Field(description="Relative change (0.01 = +1 %).")
 
 
+class HumanPressureDay(BaseModel):
+    """People actually present in Mallorca on one day (gold.fct_human_pressure_daily, Ibestat IPH)."""
+
+    local_date: date
+    is_weekend: bool | None
+    people_present: int = Field(examples=[1401167], description="Human Pressure Indicator: residents plus visitors.")
+    residents: int | None = Field(examples=[960270], description="Population in the INE register of that year.")
+    register_year: int | None = Field(examples=[2026], description="Year of the register (or the latest before).")
+    people_over_residents: int | None = Field(description="People present minus residents.")
+    pressure_ratio: float | None = Field(examples=[1.459], description="People present over residents.")
+
+
 class Municipality(BaseModel):
     """A municipality of Mallorca with its boundary (gold.dim_municipalities, IGN)."""
 

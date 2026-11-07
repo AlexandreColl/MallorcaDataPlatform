@@ -84,3 +84,35 @@ export function binColor(value: number | null, bounds: number[], colors: string[
   const index = bounds.findIndex((b) => value < b);
   return colors[index === -1 ? colors.length - 1 : index] ?? "#9ca3af";
 }
+
+/** The days of a year as "MM-DD", 29 February included, for charts that lay several years over each other. */
+export const DAYS_OF_YEAR: string[] = Array.from({ length: 366 }, (_, i) => {
+  const day = new Date(Date.UTC(2024, 0, 1 + i)); // 2024 is a leap year
+  return day.toISOString().slice(5, 10);
+});
+
+interface PressureRow {
+  local_date: string;
+  people_present: number;
+}
+
+/**
+ * The people present on each day of the year, one row per year (newest first) with a value per `DAYS_OF_YEAR`
+ * (null for the days a year does not have or has not published).
+ */
+export function pressureByYear(days: PressureRow[]): { year: number; values: (number | null)[] }[] {
+  const byYear = new Map<number, Map<string, number>>();
+  for (const d of days) {
+    const year = Number(d.local_date.slice(0, 4));
+    if (!byYear.has(year)) byYear.set(year, new Map());
+    byYear.get(year)?.set(d.local_date.slice(5, 10), d.people_present);
+  }
+  return [...byYear.keys()]
+    .sort((a, b) => b - a)
+    .map((year) => ({ year, values: DAYS_OF_YEAR.map((day) => byYear.get(year)?.get(day) ?? null) }));
+}
+
+/** The day of the most people present among `days`, or null without days. */
+export function busiestDay<T extends PressureRow>(days: T[]): T | null {
+  return days.reduce<T | null>((best, d) => (best === null || d.people_present > best.people_present ? d : best), null);
+}
