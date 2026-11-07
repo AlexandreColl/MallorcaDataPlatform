@@ -896,3 +896,21 @@ tr.selectable:focus-visible {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+.day-slider .play {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--brand-text);
+  cursor: pointer;
+}
+
+.day-slider .play:hover {
+  border-color: var(--brand);
+}
