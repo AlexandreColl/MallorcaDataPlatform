@@ -18,6 +18,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Web, Tiempo y entorno: a day slider on the temperature by zone, over every day AEMET has published in the last 30
   days. The day under the thumb shows at once and is loaded when the thumb rests (one request per drag, also with
   the arrow keys); the map keeps the previous day until the new one arrives.
+- Web, Tiempo y entorno: a play button next to the day slider walks through the days, one a second. It fetches
+  every day at once when it starts and moves on only once the day on the map has arrived.
+
+### Changed
+
+- Web: the maps update in place. New data of the same layers (another day, another colouring) goes into the
+  existing map instead of building a new one, so it no longer flashes grey or loses its zoom.
+- Web: the temperature surface draws about seven times faster (about 200 ms a day instead of 1.4 s): the
+  interpolation, the blur and the isotherms no longer allocate per pixel, and the isotherms are traced in one pass.
 
 ### Removed
 
