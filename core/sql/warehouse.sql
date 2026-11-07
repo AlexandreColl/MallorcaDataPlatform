@@ -27,6 +27,18 @@ CREATE INDEX IF NOT EXISTS ix_observations_metric_ts ON silver.observations (met
 -- Watermark of the incremental dbt models (fct_observations, agg_daily_metrics).
 CREATE INDEX IF NOT EXISTS ix_observations_updated_at ON silver.observations (updated_at);
 
+-- Names of the entities (stops, stations) that silver.observations only knows by identifier (stop_452, B228). Each
+-- run upserts the names it read from its own bronze payloads (core/connectors: describe), so a renamed stop is
+-- renamed here. A small dimension next to the observations: the Delta lake keeps the observations only.
+CREATE TABLE IF NOT EXISTS silver.entities (
+    source      text        NOT NULL,
+    entity      text        NOT NULL,
+    name        text        NOT NULL,
+    run_id      text        NOT NULL,
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (source, entity)
+);
+
 -- Values flagged by the anomaly detectors (core/anomaly). Flags only: silver.observations is never changed.
 -- Each run replaces the rows of its detector, sources and window, so re-scoring is idempotent.
 CREATE TABLE IF NOT EXISTS silver.anomalies (

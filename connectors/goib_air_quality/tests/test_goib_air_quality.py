@@ -200,3 +200,12 @@ def test_window_after_the_history_fails():
 
     with pytest.raises(ConnectorError, match="no file"):
         connector.extract(TimeWindow(date(2022, 1, 1), date(2022, 1, 2)), MALLORCA)
+
+
+def test_stations_are_named_from_the_config():
+    connector = registry.load("goib_air_quality", http=RecordedCatalogue())
+
+    names = {e.entity: e.name for p in connector.extract(JULY_2019, MALLORCA) for e in connector.describe(p, MALLORCA)}
+
+    assert names["foners"] == "Foners (Palma)"
+    assert names["menut"] == "Cases de Menut (Escorca)"

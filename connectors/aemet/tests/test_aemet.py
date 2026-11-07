@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from connectors.aemet import extractor
 from core.connectors import ConnectorError, registry
 from core.models import Quality, Region, TimeWindow
 
@@ -115,3 +116,30 @@ def test_window_ends_three_days_before_yesterday():
     config = registry.discover()["aemet"]
 
     assert config.window(1, today=date(2026, 10, 24)) == TimeWindow(date(2026, 10, 20), date(2026, 10, 20))
+
+
+def test_stations_are_named_from_the_inventory():
+    connector = _connector()
+    payloads = connector.extract(WINDOW, MALLORCA)
+
+    names = {e.entity: e.name for p in payloads for e in connector.describe(p, MALLORCA)}
+
+    # Only the inventory names stations, and only those inside the region (no Menorca or Ibiza).
+    assert names["B278"] == "Palma de Mallorca, Aeropuerto"
+    assert names["B228"] == "Palma, Puerto"
+    assert names["B051A"] == "Sóller, Puerto"
+    assert "B893" not in names  # Menorca airport
+
+
+@pytest.mark.parametrize(
+    ("raw", "name"),
+    [
+        ("SANTA MARÍA DEL CAMÍ", "Santa María del Camí"),
+        ("MURO, S'ALBUFERA", "Muro, S'Albufera"),
+        ("ARTÀ-COLÒNIA DE SANT PERE", "Artà-Colònia de Sant Pere"),
+        ("LA PUEBLA (SA CANOVA)", "La Puebla (Sa Canova)"),
+        ("PORTOCOLOM  ", "Portocolom"),
+    ],
+)
+def test_station_names_lose_the_capitals(raw, name):
+    assert extractor._title(raw) == name

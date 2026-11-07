@@ -37,6 +37,16 @@ sources:
       - {name: goib_air_quality, identifier: observations, freshness: null}  # history only (2002 to June 2021)
       # One value per year, published in December: every run re-reads the last three years.
       - {name: ine_population, identifier: observations, freshness: {warn_after: {count: 400, period: day}, filter: "source = 'ine_population'"}}
+      # The IPH comes out once a month, about two months late, and its days only change when a month is added.
+      - {name: ibestat_iph, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'ibestat_iph'"}}
+      - name: entities
+        description: >-
+          Names of the stops and stations that silver.observations knows only by identifier (stop_452, B228): the
+          GTFS stop_name, the AEMET inventory, the station lists of connector.yaml. Upserted on every run.
+        freshness: null  # names change rarely: an unchanged name keeps its updated_at
+        columns:
+          - name: name
+            data_tests: [not_null]
       - name: corrections
         description: >-
           Proposed corrections of station values (core/corrections): interpolation of short gaps or a nearby support

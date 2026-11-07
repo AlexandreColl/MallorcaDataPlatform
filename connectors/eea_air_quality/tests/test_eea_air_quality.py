@@ -219,3 +219,12 @@ def test_an_outage_inside_the_files_is_not_a_stale_source():
 
     assert payloads
     assert not any(p.request["rows"] for p in payloads)
+
+
+def test_stations_are_named_from_the_config():
+    connector = registry.load("eea_air_quality", http=RecordedEea())
+
+    names = {e.entity: e.name for p in connector.extract(WINDOW, MALLORCA) for e in connector.describe(p, MALLORCA)}
+
+    assert names["bellver"] == "Bellver (Palma)"
+    assert names["foners"] == "Foners (Palma)"

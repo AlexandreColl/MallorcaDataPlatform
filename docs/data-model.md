@@ -72,6 +72,10 @@ pivotar. Eso se hace una sola vez, en gold.
 
 Las anomalías (`silver.anomalies`) y las correcciones (`silver.corrections`) están en tablas aparte, con la misma
 clave más su detector o su método. El valor original no se toca nunca ([ADR 0011](adr/0011-marcar-no-es-corregir.md)).
+Los nombres de las paradas y estaciones están en `silver.entities` (una fila por fuente y entidad): las
+observaciones solo llevan el identificador (`stop_452`, `B228`). Cada ejecución los lee de sus propios payloads de
+bronze (el método opcional `describe` de los conectores) y los actualiza si la fuente los cambia. Es una dimensión
+pequeña y solo está en Postgres: el lago Delta guarda las observaciones.
 El estado operativo está en `ops.ingestion_runs` y `quality.check_results`.
 
 ## 3. Gold: estrellas por dominio
@@ -84,7 +88,7 @@ con un grano declarado y dimensiones compartidas entre dominios.
 | Dimensión | Clave | Origen | Historia |
 |---|---|---|---|
 | `dim_sources` | `source` | Seed (`dbt/seeds/dim_sources.csv`): etiqueta, tipo de dato y descripción | Se sobrescribe (tipo 1); vive en git |
-| `dim_locations` | `source, entity` | Derivada de silver: coordenadas y cobertura temporal | Tipo 1 en la tabla y tipo 2 en el snapshot `snap_locations`: si una estación se reubica, la versión anterior se cierra |
+| `dim_locations` | `source, entity` | Derivada de silver: nombre (de `silver.entities`), coordenadas y cobertura temporal | Tipo 1 en la tabla y tipo 2 en el snapshot `snap_locations`: si una estación se reubica, la versión anterior se cierra |
 | `dim_metrics` | `source, metric` | Derivada de silver: unidad, número de entidades y cobertura | Tipo 1. La clave primaria impide que una métrica tenga dos unidades |
 | `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde 1996 (el primer padrón) hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
 

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from datetime import date
 
     from core.config import Settings
-    from core.models import TimeWindow
+    from core.models import Entity, TimeWindow
     from core.quality.rules import RuleResult
 
 DDL_PATH = Path(__file__).parent / "sql" / "warehouse.sql"
@@ -107,6 +107,22 @@ class Warehouse:
         )
         with self.connect() as conn:
             cur = conn.execute(query)
+            return cur.rowcount
+
+    def merge_entities(self, entities: list[Entity], run_id: str) -> int:
+        """Upsert entity names into silver.entities; an unchanged name keeps its run and ``updated_at``.
+
+        Returns the number of new or renamed entities.
+        """
+        query = """
+            INSERT INTO silver.entities AS t (source, entity, name, run_id)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (source, entity) DO UPDATE
+               SET name = EXCLUDED.name, run_id = EXCLUDED.run_id, updated_at = now()
+             WHERE t.name IS DISTINCT FROM EXCLUDED.name
+        """
+        with self.connect() as conn, conn.cursor() as cur:
+            cur.executemany(query, [(e.source, e.entity, e.name, run_id) for e in entities])
             return cur.rowcount
 
     def record_quality(self, run_id: str, source: str, window: TimeWindow, results: list[RuleResult]) -> None:

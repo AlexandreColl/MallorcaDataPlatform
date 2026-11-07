@@ -1,6 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { api, daysAgo, type MobilityDay, type Municipality, type PopulationYear, type StopService } from "../api";
+import {
+  api,
+  daysAgo,
+  type HumanPressureDay,
+  type MobilityDay,
+  type Municipality,
+  type PopulationYear,
+  type StopService,
+} from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart, type ChartColors } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
@@ -9,7 +17,16 @@ import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { compact, dayName, dayShort, number, orDash, signed } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
-import { binColor, change, islandTotals, type Service, serviceByMunicipality } from "../lib/population";
+import {
+  binColor,
+  busiestDay,
+  change,
+  DAYS_OF_YEAR,
+  islandTotals,
+  pressureByYear,
+  type Service,
+  serviceByMunicipality,
+} from "../lib/population";
 import { segmentedTrend } from "../lib/stats";
 
 /** The municipal register starts in 1996 (there was none in 1997). */
@@ -317,6 +334,72 @@ function DailyCalls({ days }: { days: MobilityDay[] }) {
   return <Chart option={option} label="Pasos programados por día en cada red" height={320} />;
 }
 
+/** Month names for the axis of the days of the year. */
+const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/**
+ * The people present in Mallorca each day (Ibestat IPH), the last three years laid over each other, against the
+ * residents of the latest register: how far the summer pushes the island above its population.
+ */
+function HumanPressure({ days }: { days: HumanPressureDay[] }) {
+  const option = useCallback(
+    (c: ChartColors) => {
+      const years = pressureByYear(days).slice(0, 3);
+      const residents = days.at(-1)?.residents ?? null;
+      const colors = ["#15803d", "#2563eb", c.muted];
+      const narrow = window.innerWidth < 640; // twelve month names do not fit a phone: their initials do
+      return {
+        xAxis: {
+          type: "category",
+          data: DAYS_OF_YEAR,
+          boundaryGap: false,
+          axisLabel: {
+            interval: (_: number, day: string) => day.endsWith("-01"),
+            formatter: (day: string) => {
+              const month = MONTH_LABELS[Number(day.slice(0, 2)) - 1] ?? "";
+              return narrow ? month.charAt(0).toUpperCase() : month;
+            },
+          },
+        },
+        yAxis: { type: "value", min: (v: { min: number }) => Math.floor(v.min / 100_000) * 100_000, axisLabel: { formatter: compact } },
+        tooltip: {
+          valueFormatter: orDash((v) => number(v)),
+          axisPointer: { label: { formatter: (p: { value: string }) => dayShort(`2024-${p.value}`) } },
+        },
+        series: years.map((y, i) => ({
+          name: String(y.year), type: "line", symbol: "none", data: y.values, color: colors[i],
+          lineStyle: { width: i === 0 ? 2.5 : 1.5, opacity: i === 0 ? 1 : 0.7 },
+          z: 3 - i,
+          ...(i === 0 && residents !== null
+            ? {
+                markLine: {
+                  symbol: "none", silent: true,
+                  lineStyle: { color: c.text, type: "dashed", opacity: 0.6 },
+                  label: { formatter: `Empadronados: ${compact(residents)}`, position: "insideMiddleBottom", color: c.muted },
+                  data: [{ yAxis: residents }],
+                },
+              }
+            : {}),
+        })),
+      };
+    },
+    [days],
+  );
+  return <Chart option={option} label="Personas presentes en Mallorca cada día, por año, frente a los empadronados" height={340} />;
+}
+
+/** "Datos hasta el 31 de agosto de 2026; máximo del año: 1.517.631 personas el 11 de agosto (1,58 por residente)." */
+function pressureSubtitle(days: HumanPressureDay[] | null): string {
+  const intro = "Residentes más visitantes en la isla cada día (Indicador de Presión Humana del Ibestat), los últimos tres años.";
+  const last = days?.at(-1);
+  if (!days || !last) return intro;
+  const year = last.local_date.slice(0, 4);
+  const peak = busiestDay(days.filter((d) => d.local_date.startsWith(year)));
+  const ratio = peak?.pressure_ratio ? ` (${number(peak.pressure_ratio, 2)} por residente)` : "";
+  const top = peak ? ` Máximo de ${year}: ${number(peak.people_present)} personas el ${dayShort(peak.local_date)}${ratio}.` : "";
+  return `${intro} Datos hasta el ${dayName(last.local_date)}: el Ibestat publica con unos dos meses de retraso.${top}`;
+}
+
 function stopLayers(stops: StopService[]): MapLayer[] {
   return (Object.keys(NETWORKS) as (keyof typeof NETWORKS)[]).map((network) => {
     const own = stops.filter((s) => s.network === network);
@@ -327,7 +410,7 @@ function stopLayers(stops: StopService[]): MapLayer[] {
         lat: s.lat, lon: s.lon,
         // Area proportional to the departures: the radius grows with their square root.
         size: 0.5 + 2 * Math.sqrt((s.departures ?? 0) / busiest),
-        popup: [s.stop, NETWORKS[network].label, `${number(s.departures ?? 0)} pasos · ${number(s.lines ?? 0)} líneas`],
+        popup: [s.name ?? s.stop, NETWORKS[network].label, `${number(s.departures ?? 0)} pasos · ${number(s.lines ?? 0)} líneas`],
       })),
     };
   });
@@ -338,6 +421,7 @@ export function Mobility() {
   const stops = useLoad(api.stops);
   const population = useLoad(() => api.population(FIRST_YEAR));
   const places = useLoad(api.municipalities);
+  const pressure = useLoad(() => api.humanPressure(daysAgo(3 * 366 + 120)));
   // The municipality chosen on the map, the table or the chart: the three follow it.
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -386,7 +470,7 @@ export function Mobility() {
               <Table
                 rows={rows.slice(0, 10)}
                 columns={[
-                  { label: "Parada", value: (s) => s.stop },
+                  { label: "Parada", value: (s) => s.name ?? s.stop },
                   { label: "Red", value: (s) => NETWORKS[s.network].label },
                   { label: "Pasos", value: (s) => number(s.departures ?? 0), numeric: true },
                   { label: "Líneas", value: (s) => number(s.lines ?? 0), numeric: true },
@@ -429,6 +513,9 @@ export function Mobility() {
               ) : null
             }
           </Async>
+        </Panel>
+        <Panel title="Población real presente" subtitle={pressureSubtitle(ready(pressure))} full>
+          <Async state={pressure} height={340}>{(rows) => <HumanPressure days={rows} />}</Async>
         </Panel>
         <Panel title="Pasos programados por día" subtitle="Suma de los vehículos que pasan por cada parada, según los horarios GTFS." full>
           <Async state={daily} height={320}>{(rows) => <DailyCalls days={rows} />}</Async>

@@ -121,7 +121,7 @@ export function Tourism() {
             )}
           </Async>
         </Panel>
-        <Panel title="Turistas y demanda eléctrica" subtitle="La demanda de la isla sube con los visitantes; en discontinua, la tendencia de cada una." wide>
+        <Panel title="Turistas y demanda eléctrica" subtitle="La demanda de la isla sube con los visitantes; en discontinua, la tendencia de cada una." full>
           <Async state={resources} height={320}>
             {(rows) => (
               <PairChart
@@ -132,14 +132,6 @@ export function Tourism() {
               />
             )}
           </Async>
-        </Panel>
-        <Panel title="Cómo leer la correlación" subtitle="r va de −1 a +1.">
-          <ul className="explain">
-            <li><strong>+1</strong>: las dos series suben y bajan a la vez; <strong>−1</strong>: cuando una sube, la otra baja.</li>
-            <li>Los turistas, las reservas y la demanda tienen un ciclo anual muy marcado: buena parte de su correlación sale solo de la estación del año.</li>
-            <li><strong>Sin el ciclo anual</strong> compara cada mes con la media de ese mes en todos los años. Si la relación sigue ahí, un año con más turistas que lo normal trae también más (o menos) de la otra serie.</li>
-            <li>Correlación no es causa: dos series pueden moverse juntas por una tercera, como el calor del verano.</li>
-          </ul>
         </Panel>
         <Panel title="Hoteles y gasto" subtitle="Ocupación de plazas hoteleras y gasto medio de cada turista internacional; en discontinua, la tendencia." full>
           <Async state={tourism} height={320}>

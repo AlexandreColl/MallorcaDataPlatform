@@ -67,3 +67,13 @@ export function age(hours: number): string {
   if (months < 24) return `hace ${months} meses`;
   return `hace ${Math.round(days / 365)} años`;
 }
+
+/**
+ * The name of a stop or station: the one its source publishes or, for identifiers that already read as a name
+ * (`sa_pobla`, `palma`), the identifier with spaces and a capital.
+ */
+export function placeName(id: string, name?: string | null): string {
+  if (name) return name;
+  const text = id.replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

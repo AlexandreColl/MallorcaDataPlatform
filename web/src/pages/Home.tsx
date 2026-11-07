@@ -27,7 +27,7 @@ function placeLayers(locations: Location[]): MapLayer[] {
       .map((l) => ({
         lat: l.lat,
         lon: l.lon,
-        popup: [l.entity, l.label ?? l.source, `${number(l.n_metrics)} ${l.n_metrics === 1 ? "métrica" : "métricas"}`],
+        popup: [l.name ?? l.entity, l.label ?? l.source, `${number(l.n_metrics)} ${l.n_metrics === 1 ? "métrica" : "métricas"}`],
       }));
   return [
     { id: "observation", label: "Estaciones oficiales", color: "#15803d", radius: 6, points: of("observation") },

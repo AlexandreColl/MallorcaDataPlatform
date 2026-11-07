@@ -30,7 +30,7 @@ ORDER BY source
 """
 
 _LOCATIONS = """
-SELECT l.source, s.label, s.kind, l.entity, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
+SELECT l.source, s.label, s.kind, l.entity, l.name, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
 FROM gold.dim_locations AS l
 JOIN gold.dim_sources AS s ON s.source = l.source
 WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
@@ -40,7 +40,7 @@ ORDER BY l.source, l.entity
 
 _MOBILITY_DAILY = """
 SELECT network, local_date, is_weekend, stops, stops_with_service, scheduled_stop_calls, avg_lines_per_served_stop,
-       busiest_stop, busiest_stop_departures
+       busiest_stop, busiest_stop_name, busiest_stop_departures
 FROM (
     SELECT 'emt_palma' AS network, * FROM gold.fct_bus_network_daily
     UNION ALL
@@ -58,14 +58,15 @@ WITH latest AS (
     WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_departures'
     GROUP BY source
 )
-SELECT o.source AS network, o.entity AS stop, l.lat, l.lon, (o.ts AT TIME ZONE 'Europe/Madrid')::date AS local_date,
+SELECT o.source AS network, o.entity AS stop, l.name, l.lat, l.lon,
+       (o.ts AT TIME ZONE 'Europe/Madrid')::date AS local_date,
        max(o.value) FILTER (WHERE o.metric = 'scheduled_departures') AS departures,
        max(o.value) FILTER (WHERE o.metric = 'lines_served') AS lines
 FROM gold.fct_observations AS o
 JOIN latest USING (source, ts)
 JOIN gold.dim_locations AS l ON l.source = o.source AND l.entity = o.entity
 WHERE (%(network)s::text IS NULL OR o.source = %(network)s) AND l.lat IS NOT NULL
-GROUP BY o.source, o.entity, l.lat, l.lon, o.ts
+GROUP BY o.source, o.entity, l.name, l.lat, l.lon, o.ts
 ORDER BY departures DESC NULLS LAST, o.entity
 """
 
@@ -81,17 +82,18 @@ GROUP BY source, source_label, source_kind, local_date
 ORDER BY local_date, source
 """
 
-# The latest day of one source with temperatures, for every station or point of that source.
+# One day of one source (by default its latest with temperatures), for every station or point of that source.
 _WEATHER_STATIONS = """
 WITH latest AS (
-    SELECT max(local_date) AS local_date
+    SELECT coalesce(%(day)s::date, max(local_date)) AS local_date
     FROM gold.fct_weather_daily
     WHERE source = %(source)s AND temperature_mean IS NOT NULL
 )
-SELECT w.source, w.entity, w.lat, w.lon, w.local_date, w.temperature_mean, w.temperature_max, w.temperature_min,
-       w.precipitation_sum, w.wind_gust_max
+SELECT w.source, w.entity, l.name, w.lat, w.lon, w.local_date, w.temperature_mean, w.temperature_max,
+       w.temperature_min, w.precipitation_sum, w.wind_gust_max
 FROM gold.fct_weather_daily AS w
 JOIN latest USING (local_date)
+LEFT JOIN gold.dim_locations AS l ON l.source = w.source AND l.entity = w.entity
 WHERE w.source = %(source)s AND w.lat IS NOT NULL AND w.temperature_mean IS NOT NULL
 ORDER BY w.temperature_mean DESC
 """
@@ -117,6 +119,14 @@ WHERE year BETWEEN %(from_year)s AND %(to_year)s
 ORDER BY year, municipality
 """
 
+# People present in Mallorca each day (Ibestat IPH) against its registered residents.
+_HUMAN_PRESSURE = """
+SELECT local_date, is_weekend, people_present, residents, register_year, people_over_residents, pressure_ratio
+FROM gold.fct_human_pressure_daily
+WHERE local_date BETWEEN %(start)s AND %(end)s
+ORDER BY local_date
+"""
+
 _MUNICIPALITIES = """
 SELECT municipality, name, lat, lon, area_km2, polygon FROM gold.dim_municipalities ORDER BY municipality
 """
@@ -130,16 +140,18 @@ ORDER BY start_date DESC
 """
 
 _MODEL_BIAS = """
-SELECT station_source, station, model_point, distance_km, days_compared, temperature_bias_c, temperature_mae_c,
-       temperature_rmse_c, precipitation_bias_total_mm, rain_day_agreement, wind_speed_bias_kmh, first_day, last_day
-FROM gold.agg_model_bias_by_station
-ORDER BY temperature_mae_c DESC NULLS LAST, station
+SELECT b.station_source, b.station, l.name AS station_name, b.model_point, b.distance_km, b.days_compared,
+       b.temperature_bias_c, b.temperature_mae_c, b.temperature_rmse_c, b.precipitation_bias_total_mm,
+       b.rain_day_agreement, b.wind_speed_bias_kmh, b.first_day, b.last_day
+FROM gold.agg_model_bias_by_station AS b
+LEFT JOIN gold.dim_locations AS l ON l.source = b.station_source AND l.entity = b.station
+ORDER BY b.temperature_mae_c DESC NULLS LAST, b.station
 """
 
 # The latest hour of each air quality station or model point in the last two days, with its European AQI band.
 _AIR_QUALITY_LATEST = """
 SELECT DISTINCT ON (a.source, a.entity)
-       a.source, a.entity, l.lat, l.lon, a.ts, a.pm2_5, a.pm10, a.no2, a.o3, a.eaqi_band, a.eaqi_label
+       a.source, a.entity, l.name, l.lat, l.lon, a.ts, a.pm2_5, a.pm10, a.no2, a.o3, a.eaqi_band, a.eaqi_label
 FROM gold.air_quality_hourly AS a
 LEFT JOIN gold.dim_locations AS l ON l.source = a.source AND l.entity = a.entity
 WHERE a.ts >= now() - interval '2 days' AND a.eaqi_band IS NOT NULL
@@ -197,15 +209,16 @@ LIMIT %(limit)s OFFSET %(offset)s
 """
 
 _CORRECTIONS = """
-SELECT source, entity, metric, ts, unit, original_quality, original_value, corrected_value,
-       correction_method AS method, support_source, support_entity, support_bias AS bias, confidence
-FROM gold.fct_observations_corrected
-WHERE is_corrected
-  AND (%(source)s::text IS NULL OR source = %(source)s)
-  AND (%(entity)s::text IS NULL OR entity = %(entity)s)
-  AND (%(method)s::text IS NULL OR correction_method = %(method)s)
-  AND ts >= %(start)s AND ts < %(end)s
-ORDER BY ts DESC, source, entity, metric
+SELECT c.source, c.entity, l.name, c.metric, c.ts, c.unit, c.original_quality, c.original_value, c.corrected_value,
+       c.correction_method AS method, c.support_source, c.support_entity, c.support_bias AS bias, c.confidence
+FROM gold.fct_observations_corrected AS c
+LEFT JOIN gold.dim_locations AS l ON l.source = c.source AND l.entity = c.entity
+WHERE c.is_corrected
+  AND (%(source)s::text IS NULL OR c.source = %(source)s)
+  AND (%(entity)s::text IS NULL OR c.entity = %(entity)s)
+  AND (%(method)s::text IS NULL OR c.correction_method = %(method)s)
+  AND c.ts >= %(start)s AND c.ts < %(end)s
+ORDER BY c.ts DESC, c.source, c.entity, c.metric
 LIMIT %(limit)s OFFSET %(offset)s
 """
 
@@ -318,9 +331,9 @@ class Warehouse:
         """Island-wide daily weather per source, oldest first."""
         return self.db.fetch_all(_WEATHER_DAILY, {"start": start, "end": end})
 
-    def weather_stations(self, source: str) -> list[Row]:
-        """Every station or point of ``source`` on its latest day with temperatures, warmest first."""
-        return self.db.fetch_all(_WEATHER_STATIONS, {"source": source})
+    def weather_stations(self, source: str, day: date | None = None) -> list[Row]:
+        """Every station or point of ``source`` on ``day`` (by default its latest with temperatures), warmest first."""
+        return self.db.fetch_all(_WEATHER_STATIONS, {"source": source, "day": day})
 
     def warnings(self, start: datetime, end: datetime) -> list[Row]:
         """AEMET warning periods that overlap ``[start, end)``, earliest first."""
@@ -333,6 +346,10 @@ class Warehouse:
     def population(self, from_year: int, to_year: int) -> list[Row]:
         """Population of every municipality per year in ``[from_year, to_year]``, oldest first."""
         return self.db.fetch_all(_POPULATION, {"from_year": from_year, "to_year": to_year})
+
+    def human_pressure(self, start: date, end: date) -> list[Row]:
+        """People present in Mallorca per day in ``[start, end]``, oldest first."""
+        return self.db.fetch_all(_HUMAN_PRESSURE, {"start": start, "end": end})
 
     def municipalities(self) -> list[Row]:
         """The municipalities of Mallorca with their boundaries."""

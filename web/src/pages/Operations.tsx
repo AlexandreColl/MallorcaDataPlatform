@@ -6,7 +6,7 @@ import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
-import { age, compact, dayShort, number } from "../lib/format";
+import { age, compact, dayShort, number, placeName } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
 import { sourceState, STATE_LABELS } from "../lib/sources";
 
@@ -144,7 +144,7 @@ export function Operations() {
                 rows={rows}
                 empty="Ninguna corrección en los últimos 30 días"
                 columns={[
-                  { label: "Estación", value: (c) => `${c.entity} · ${c.metric}` },
+                  { label: "Estación", value: (c) => `${placeName(c.entity, c.name)} · ${c.metric}` },
                   { label: "Hora", value: (c) => `${dayShort(c.ts)} ${c.ts.slice(11, 16)}` },
                   { label: "Original", value: (c) => (c.original_value === null ? (QUALITY[c.original_quality] ?? c.original_quality) : number(c.original_value, 1)), numeric: true },
                   { label: "Corregido", value: (c) => `${number(c.corrected_value, 1)} ${c.unit ?? ""}`, numeric: true },

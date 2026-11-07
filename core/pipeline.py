@@ -25,7 +25,7 @@ from core.storage import BronzeStore, ensure_bucket
 from core.warehouse import RunStats, Warehouse
 
 if TYPE_CHECKING:
-    from core.models import Observation, Region, TimeWindow
+    from core.models import Entity, Observation, Region, TimeWindow
 
 log = logging.getLogger(__name__)
 
@@ -64,11 +64,17 @@ def extract_to_bronze(connector: BaseConnector, window: TimeWindow, region: Regi
     return [store.put(p) for p in payloads]
 
 
-def bronze_to_observations(
+def bronze_to_silver(
     connector: BaseConnector, keys: list[str], region: Region, store: BronzeStore
-) -> list[Observation]:
-    """Read raw payloads back from bronze and normalise them to the common schema."""
-    return [obs for key in keys for obs in connector.normalize(store.get(key), region)]
+) -> tuple[list[Observation], list[Entity]]:
+    """Read raw payloads back from bronze (once each) and normalise them: the observations and the entity names."""
+    observations: list[Observation] = []
+    names: dict[str, Entity] = {}  # one name per entity: the same station is in several payloads
+    for key in keys:
+        payload = store.get(key)
+        observations.extend(connector.normalize(payload, region))
+        names.update((e.entity, e) for e in connector.describe(payload, region))
+    return observations, list(names.values())
 
 
 def to_dataframe(spark: SparkSession, observations: list[Observation], run_id: str) -> DataFrame:
@@ -110,13 +116,13 @@ def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:
 
 def _load_observations(
     connector: BaseConnector, window: TimeWindow, region: Region, store: BronzeStore
-) -> tuple[list[str], list[Observation]]:
+) -> tuple[list[str], list[Observation], list[Entity]]:
     keys = extract_to_bronze(connector, window, region, store)
-    observations = bronze_to_observations(connector, keys, region, store)
+    observations, entities = bronze_to_silver(connector, keys, region, store)
     if not observations and not connector.config.is_event_source:
         msg = f"connector '{connector.name}' returned no observations for {window}"
         raise NoObservationsError(msg)
-    return keys, observations
+    return keys, observations, entities
 
 
 def _load_silver(
@@ -173,7 +179,10 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     try:
         store = BronzeStore(settings)
         store.ensure()
-        keys, observations = _load_observations(connector, window, region, store)
+        keys, observations, entities = _load_observations(connector, window, region, store)
+        if entities:
+            named = warehouse.merge_entities(entities, run_id)
+            log.info("run %s: %d of %d %s names new or changed", run_id, named, len(entities), name)
         if observations:
             ensure_bucket(store.client, settings.silver_bucket)
             rows_silver, upserted, results = _load_silver(connector, observations, window, run_id, warehouse)

@@ -26,6 +26,8 @@ export interface Location {
   label: string | null;
   kind: string | null;
   entity: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number;
   lon: number;
   first_seen: string | null;
@@ -97,12 +99,15 @@ export interface MobilityDay {
   stops_with_service: number;
   scheduled_stop_calls: number | null;
   busiest_stop: string | null;
+  busiest_stop_name: string | null;
   busiest_stop_departures: number | null;
 }
 
 export interface StopService {
   network: "emt_palma" | "ctm";
   stop: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number;
   lon: number;
   local_date: string;
@@ -125,6 +130,8 @@ export interface WeatherSourceDay {
 export interface StationDay {
   source: string;
   entity: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number;
   lon: number;
   local_date: string;
@@ -164,6 +171,16 @@ export interface PopulationYear {
   population_change_pct: number | null;
 }
 
+export interface HumanPressureDay {
+  local_date: string;
+  is_weekend: boolean | null;
+  people_present: number;
+  residents: number | null;
+  register_year: number | null;
+  people_over_residents: number | null;
+  pressure_ratio: number | null;
+}
+
 export interface Municipality {
   municipality: string;
   name: string;
@@ -189,6 +206,7 @@ export interface WeatherEpisode {
 export interface ModelBias {
   station_source: string;
   station: string;
+  station_name: string | null;
   model_point: string;
   days_compared: number;
   temperature_bias_c: number | null;
@@ -199,6 +217,8 @@ export interface ModelBias {
 export interface AirQualityNow {
   source: string;
   entity: string;
+  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
+  name: string | null;
   lat: number | null;
   lon: number | null;
   ts: string;
@@ -246,6 +266,7 @@ export interface AnomaliesDay {
 export interface Correction {
   source: string;
   entity: string;
+  name: string | null;
   metric: string;
   ts: string;
   unit: string | null;
@@ -271,6 +292,22 @@ async function get<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+const answers = new Map<string, Promise<unknown>>();
+
+/**
+ * The answer to `path`, asked for once per page load: a past day does not change, so playing the days again or
+ * going back to one is instant. A failed request is forgotten, so the next attempt asks again.
+ */
+function remembered<T>(path: string, load: (path: string) => Promise<T>): Promise<T> {
+  let answer = answers.get(path) as Promise<T> | undefined;
+  if (!answer) {
+    answer = load(path);
+    answers.set(path, answer);
+    answer.catch(() => answers.delete(path));
+  }
+  return answer;
+}
+
 /** An ISO day `days` before today, for the `from` and `start` parameters. */
 export function daysAgo(days: number): string {
   const date = new Date();
@@ -290,10 +327,12 @@ export const api = {
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
-  stations: (source: "aemet" | "socib" | "open_meteo") => get<StationDay[]>(`/weather/stations?source=${source}`),
+  stations: (source: "aemet" | "socib" | "open_meteo", day?: string | null) =>
+    remembered(`/weather/stations?source=${source}${day ? `&date=${day}` : ""}`, get<StationDay[]>),
   warnings: () => get<WeatherWarning[]>("/warnings"),
   warningZones: () => get<WarningZone[]>("/warnings/zones"),
   population: (from: number) => get<PopulationYear[]>(`/population?from=${from}`),
+  humanPressure: (from: string) => get<HumanPressureDay[]>(`/population/pressure?from=${from}`),
   municipalities: () => get<Municipality[]>("/municipalities"),
   episodes: (from: string) => get<WeatherEpisode[]>(`/weather/episodes?from=${from}`),
   modelBias: () => get<ModelBias[]>("/weather/model-bias"),

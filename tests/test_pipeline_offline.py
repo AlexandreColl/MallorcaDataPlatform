@@ -9,7 +9,7 @@ import pytest
 
 from core.connectors import registry
 from core.models import Location, Region, TimeWindow
-from core.pipeline import NoObservationsError, _load_observations, bronze_to_observations, extract_to_bronze
+from core.pipeline import NoObservationsError, _load_observations, bronze_to_silver, extract_to_bronze
 from core.storage import BronzeStore
 
 FIXTURES = Path(__file__).parent.parent / "connectors" / "open_meteo" / "tests" / "fixtures"
@@ -60,8 +60,9 @@ def test_bronze_roundtrip_and_idempotent_keys(store):
 
     assert keys_first == keys_second  # same window -> same objects (overwritten, versioned)
     assert len(store.client.objects) == 2
-    observations = bronze_to_observations(connector, keys_first, REGION, store)
+    observations, entities = bronze_to_silver(connector, keys_first, REGION, store)
     assert len(observations) == 2 * 24 * 10
+    assert entities == []  # Open-Meteo points are named by their identifiers (palma, inca)
 
 
 class EmptyHttp:
@@ -74,7 +75,7 @@ class EmptyHttp:
 def test_event_source_without_events_lands_bronze_and_loads_nothing(store):
     connector = registry.load("ign", http=EmptyHttp())
 
-    keys, observations = _load_observations(connector, WINDOW, REGION, store)
+    keys, observations, _ = _load_observations(connector, WINDOW, REGION, store)
 
     assert len(keys) == 1  # the empty response is kept in bronze
     assert observations == []

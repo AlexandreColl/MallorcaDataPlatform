@@ -5,6 +5,42 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-07
+
+### Added
+
+- Names of the stops and stations in silver (`silver.entities`). Connectors may describe the entities of a payload:
+  the GTFS `stop_name` (EMT Palma, CTM), the AEMET inventory (`PALMA, PUERTO` as `Palma, Puerto`) and the station
+  lists of `connector.yaml` (EEA and GOIB air quality, SOCIB). Every run upserts them, so a renamed stop is renamed.
+  `dim_locations` has a `name` column and the transit marts the `busiest_stop_name`.
+- API: `name` in `/v1/locations`, `/v1/mobility/stops`, `/v1/weather/stations`, `/v1/air-quality/latest` and
+  `/v1/corrections`, `station_name` in `/v1/weather/model-bias` and `busiest_stop_name` in `/v1/mobility/daily`.
+- Web: the stops and stations show their name instead of the identifier (`stop_452`, `B228`) in the maps and tables.
+- API: `date` in `/v1/weather/stations` returns the stations of any day; without it, still the latest with data.
+- Web, Tiempo y entorno: a day slider on the temperature by zone, over every day AEMET has published in the last 30
+  days. The day under the thumb shows at once and is loaded when the thumb rests (one request per drag, also with
+  the arrow keys); the map keeps the previous day until the new one arrives.
+- Web, Tiempo y entorno: a play button next to the day slider walks through the days, one a second. It fetches
+  every day at once when it starts and moves on only once the day on the map has arrived.
+- Connector `ibestat_iph`: the Ibestat Human Pressure Indicator, the people actually present in Mallorca each day
+  (residents plus visitors) since 1997, from the eDatos API. Windows end 95 days before yesterday (a month comes out
+  at the start of the third month after it) and every run re-reads 120 days, because recent days are estimates.
+- dbt: `fct_human_pressure_daily`, the people present against the residents of the INE register of that year.
+- API: `/v1/population/pressure`, the people present each day (default: the last two years).
+- Web, Movilidad: the people present each day, the last three years laid over each other, against the residents.
+
+### Changed
+
+- Web: the maps update in place. New data of the same layers (another day, another colouring) goes into the
+  existing map instead of building a new one, so it no longer flashes grey or loses its zoom.
+- Web: the temperature surface draws about seven times faster (about 200 ms a day instead of 1.4 s): the
+  interpolation, the blur and the isotherms no longer allocate per pixel, and the isotherms are traced in one pass.
+
+### Removed
+
+- Web, Turismo y recursos: the "Cómo leer la correlación" panel. It explained what a correlation is to readers who
+  already know; the electricity chart takes the full width instead.
+
 ## [0.11.0] - 2026-11-06
 
 ### Changed
@@ -552,7 +588,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.9.0...v0.10.0

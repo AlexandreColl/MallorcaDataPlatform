@@ -6,13 +6,15 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
+NAME = "The name the source publishes (silver.entities); null when the identifier already reads as a name."
+
 
 class Health(BaseModel):
     """Liveness of the API and of its warehouse connection."""
 
     status: str = Field(examples=["ok"])
     database: str = Field(examples=["ok"], description="`ok` or `unavailable`")
-    version: str = Field(examples=["0.11.0"])
+    version: str = Field(examples=["0.12.0"])
 
 
 class Source(BaseModel):
@@ -39,6 +41,7 @@ class Location(BaseModel):
     label: str | None = Field(examples=["AEMET (estaciones oficiales)"])
     kind: str | None = Field(examples=["observation"], description="`observation`, `model`, `schedule`...")
     entity: str = Field(examples=["B278"])
+    name: str | None = Field(default=None, examples=["Palma de Mallorca, Aeropuerto"], description=NAME)
     lat: float
     lon: float
     first_seen: datetime | None
@@ -82,6 +85,7 @@ class Correction(BaseModel):
 
     source: str = Field(examples=["socib"])
     entity: str = Field(examples=["parcbit"])
+    name: str | None = Field(default=None, examples=["Parc Bit (Palma)"], description=NAME)
     metric: str = Field(examples=["temperature_2m"])
     ts: datetime
     unit: str | None = Field(examples=["degC"])
@@ -205,6 +209,7 @@ class MobilityDay(BaseModel):
     scheduled_stop_calls: float | None = Field(description="Vehicles calling at a stop, summed over every stop.")
     avg_lines_per_served_stop: float | None
     busiest_stop: str | None
+    busiest_stop_name: str | None = None
     busiest_stop_departures: float | None
 
 
@@ -212,7 +217,8 @@ class StopService(BaseModel):
     """The scheduled service of one stop on the latest day of its network."""
 
     network: str = Field(examples=["ctm"])
-    stop: str = Field(examples=["stop_452"])
+    stop: str = Field(examples=["stop_1024"])
+    name: str | None = Field(default=None, examples=["Jacint Verdaguer Estació (302)"], description=NAME)
     lat: float
     lon: float
     local_date: date
@@ -240,6 +246,7 @@ class StationDay(BaseModel):
 
     source: str = Field(examples=["aemet"])
     entity: str = Field(examples=["B228"])
+    name: str | None = Field(default=None, examples=["Palma, Puerto"], description=NAME)
     lat: float
     lon: float
     local_date: date
@@ -286,6 +293,18 @@ class PopulationYear(BaseModel):
     population_change_pct: float | None = Field(description="Relative change (0.01 = +1 %).")
 
 
+class HumanPressureDay(BaseModel):
+    """People actually present in Mallorca on one day (gold.fct_human_pressure_daily, Ibestat IPH)."""
+
+    local_date: date
+    is_weekend: bool | None
+    people_present: int = Field(examples=[1401167], description="Human Pressure Indicator: residents plus visitors.")
+    residents: int | None = Field(examples=[960270], description="Population in the INE register of that year.")
+    register_year: int | None = Field(examples=[2026], description="Year of the register (or the latest before).")
+    people_over_residents: int | None = Field(description="People present minus residents.")
+    pressure_ratio: float | None = Field(examples=[1.459], description="People present over residents.")
+
+
 class Municipality(BaseModel):
     """A municipality of Mallorca with its boundary (gold.dim_municipalities, IGN)."""
 
@@ -318,6 +337,7 @@ class ModelBias(BaseModel):
 
     station_source: str
     station: str
+    station_name: str | None = Field(default=None, examples=["Escorca, Son Torrella"], description=NAME)
     model_point: str
     distance_km: float | None
     days_compared: int
@@ -336,6 +356,7 @@ class AirQualityNow(BaseModel):
 
     source: str = Field(examples=["eea_air_quality"])
     entity: str = Field(examples=["bellver"])
+    name: str | None = Field(default=None, examples=["Bellver (Palma)"], description=NAME)
     lat: float | None
     lon: float | None
     ts: datetime

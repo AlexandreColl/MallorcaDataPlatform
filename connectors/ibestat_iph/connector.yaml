@@ -1,0 +1,32 @@
+name: ibestat_iph
+description: Ibestat Human Pressure Indicator (IPH) - people actually present in Mallorca each day, residents plus visitors, no API key
+entrypoint: connectors.ibestat_iph.extractor:IbestatIphConnector
+enabled: true
+frequency: 1d          # one value per local day
+# Ibestat publishes a month of days at the start of the third month after it (August on 4 November, September on
+# 2 December), so the newest day can be up to about 92 days old. Windows end 95 days before yesterday: every day in
+# them is normally published, and the gaps rule never reports a day that simply is not out yet.
+lag_days: 95
+# Every run re-reads the last 120 days: recent days are estimates (status E) and are revised in later releases.
+min_days: 120
+max_days: 11000        # backfills: the series starts on 1 January 1997
+secrets: []
+
+options:
+  base_url: https://ibestat.es/edatos/apis/statistical-resources/v1.0/datasets/IBESTAT
+  timezone: Europe/Madrid
+  max_days_per_request: 366   # every day of the window goes in the URL: one request per year keeps it short
+  # The islands of the dataset by their territory code (TERRITORIO); a territory is kept when its centre is inside
+  # the region. The dataset also has the Balearic total (ES53), Eivissa and Formentera, left out.
+  territories:
+    ES532: {entity: mallorca, name: Mallorca, lat: 39.6157, lon: 2.9882}
+  # SDMX observation status (ESTADO_OBSERVACION): A normal, P provisional, E estimated, O missing. A blank status
+  # with a blank value is a day not published yet: it is skipped, not stored as missing.
+  missing_status: [O]
+
+datasets:
+  pressure:
+    path: 000011A_000002   # "Indicador de Presión Humana (IPH). Illes Balears, islas y día"
+
+metrics:
+  human_pressure: {dataset: pressure, unit: people, min: 300000, max: 2500000}

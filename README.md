@@ -26,7 +26,7 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Arquitectura: 14 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+  <img alt="Arquitectura: 15 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
 </picture>
 
 El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
@@ -50,7 +50,7 @@ su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se
 la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). En
 resumen:
 
-- **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()`.
+- **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()` (y el opcional `describe()`, que pone nombre a las paradas y estaciones).
   Un conector es una carpeta con su YAML, su extractor y sus tests con respuestas grabadas.
 - **Idempotencia en todas las capas**: ventanas de días completos (siempre la misma petición), claves
   deterministas en bronze, `MERGE` en la tabla Delta de silver y `INSERT … ON CONFLICT … WHERE IS DISTINCT FROM`
@@ -107,6 +107,7 @@ Otros comandos: `make help`.
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
 | [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | Avisos meteorológicos de AEMET (lluvias, tormentas, viento, costeros…) por zona de Mallorca y hora, del nivel 0 al 3 | Sí |
 | [ine_population](connectors/ine_population/README.md) | ✅ | Población de los 53 municipios de Mallorca a 1 de enero, por sexo, del padrón del INE (desde 1996) | No |
+| [ibestat_iph](connectors/ibestat_iph/README.md) | ✅ | Personas presentes en Mallorca cada día, residentes más visitantes (Indicador de Presión Humana del Ibestat, desde 1997) | No |
 
 ### Open-Meteo
 
@@ -150,6 +151,18 @@ densidad y el cambio frente al padrón anterior; el total de la isla es la suma 
 dashboard de Movilidad cruza la población con las paradas de cada municipio: Palma tiene 186 pasos programados por
 cada 1.000 habitantes en un día laborable y Manacor, 27.
 [Detalle y pruebas reales](connectors/ine_population/README.md).
+
+### Ibestat (presión humana)
+
+Las personas presentes en Mallorca cada día: los empadronados, más los visitantes que llegan por puerto o aeropuerto,
+menos los residentes que están fuera (Indicador de Presión Humana, conjunto `000011A_000002` de la API eDatos del
+Ibestat, desde 1997). La API devuelve un cubo plano. El conector pide solo Mallorca y los días de la ventana, sin
+metadatos, en peticiones de un año como máximo. Los días recientes son estimaciones y se revisan, así que cada
+ejecución relee 120 días. La ventana acaba 95 días antes de ayer, porque un mes sale a principios del tercer mes
+siguiente. En gold, `fct_human_pressure_daily` lo compara con el padrón: el 11 de agosto de 2026 había 1.517.631
+personas en la isla, 1,58 por residente. En la web, Movilidad superpone los tres últimos años frente a los
+empadronados.
+[Detalle y pruebas reales](connectors/ibestat_iph/README.md).
 
 ### REData
 
