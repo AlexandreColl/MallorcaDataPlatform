@@ -372,6 +372,7 @@ class SeaHour(BaseModel):
     """Sea conditions at one coastal point in one hour (gold.fct_sea_conditions_hourly)."""
 
     point: str
+    name: str | None = Field(default=None, examples=["Bahía de Palma"], description=NAME)
     lat: float | None
     lon: float | None
     ts: datetime

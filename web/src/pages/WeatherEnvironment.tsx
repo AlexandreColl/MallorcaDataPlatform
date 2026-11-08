@@ -97,6 +97,8 @@ function DailyTemperature({ days }: { days: WeatherSourceDay[] }) {
       xAxis: { type: "category", data: dates.map(dayShort) },
       yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value} °C" } },
       tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} °C`) },
+      // The three source names take two lines in the narrow panel: room for both above the plot.
+      grid: { top: 60 },
       series: sources.map((source) => ({
         name: days.find((d) => d.source === source)?.source_label ?? source,
         type: "line", smooth: true, symbol: "none", connectNulls: true,
@@ -116,7 +118,8 @@ function Waves({ hours }: { hours: SeaHour[] }) {
       tooltip: { valueFormatter: orDash((v) => `${number(v, 2)} m`) },
       legend: { type: "scroll", top: 0, left: 0, right: 0 },
       series: points.map((point, i) => ({
-        name: placeName(point), type: "line", symbol: "none", color: SERIES[i % SERIES.length],
+        name: placeName(point, hours.find((h) => h.point === point)?.name), type: "line", symbol: "none",
+        color: SERIES[i % SERIES.length],
         data: hours.filter((h) => h.point === point).map((h) => [h.ts, h.wave_height_m]),
       })),
     };
