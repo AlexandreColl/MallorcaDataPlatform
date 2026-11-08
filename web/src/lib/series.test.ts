@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Series, SeriesDay } from "../api";
-import { entitiesOf, longest, metricLabel, metricsOf, rangeStart, summarize, unitLabel } from "./series";
+import { axisDate, entitiesOf, longest, metricLabel, metricsOf, rangeStart, summarize, unitLabel } from "./series";
 
 const series = (entity: string, metric: string, days: number, name: string | null = null): Series => ({
   source: "aemet", entity, name, metric, unit: "degC", first_day: "2020-01-01", last_day: "2026-11-03", days,
@@ -65,5 +65,15 @@ describe("summarize", () => {
 
   it("has no figures without days", () => {
     expect(summarize([])).toEqual({ days: 0, completeness: null, suspect: 0, anomalies: 0, min: null, mean: null, max: null });
+  });
+});
+
+describe("axisDate", () => {
+  const ms = Date.parse("2024-03-15T00:00:00Z");
+
+  it("labels days for a few months, months for a few years and years beyond", () => {
+    expect(axisDate(ms, 30)).toBe("15 mar");
+    expect(axisDate(ms, 365)).toBe("mar 24");
+    expect(axisDate(ms, 5 * 365)).toBe("2024");
   });
 });

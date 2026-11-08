@@ -5,8 +5,9 @@ import { Async } from "../components/Async";
 import { Chart, type ChartColors } from "../components/Chart";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
-import { dayName, dayShort, number, orDash, placeName } from "../lib/format";
+import { dayName, number, orDash, placeName } from "../lib/format";
 import {
+  axisDate,
   entitiesOf,
   longest,
   metricLabel,
@@ -14,6 +15,7 @@ import {
   type Range,
   RANGES,
   rangeStart,
+  spanOf,
   summarize,
   unitLabel,
 } from "../lib/series";
@@ -53,8 +55,9 @@ function SeriesChart({ days, unit }: { days: SeriesDay[]; unit: string }) {
       const byDate = new Map(days.map((d) => [d.local_date, d]));
       const suffix = unit ? ` ${unit}` : "";
       const value = orDash((v) => `${number(v, 1)}${suffix}`);
+      const span = spanOf(days);
       return {
-        xAxis: { type: "time", axisLabel: { formatter: (v: number) => dayShort(new Date(v).toISOString()) } },
+        xAxis: { type: "time", axisLabel: { formatter: (v: number) => axisDate(v, span) } },
         yAxis: { type: "value", scale: true, axisLabel: { formatter: (v: number) => `${number(v, 1)}${suffix}` } },
         legend: { data: ["Media", "Mínimo y máximo", "Anomalías"] },
         tooltip: {
@@ -97,10 +100,11 @@ function SeriesChart({ days, unit }: { days: SeriesDay[]; unit: string }) {
 function CompletenessChart({ days }: { days: SeriesDay[] }) {
   const option = useCallback(
     () => ({
-      xAxis: { type: "time", axisLabel: { formatter: (v: number) => dayShort(new Date(v).toISOString()) } },
+      xAxis: { type: "time", axisLabel: { formatter: (v: number) => axisDate(v, spanOf(days)) } },
       yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value} %" } },
       tooltip: { valueFormatter: orDash((v) => `${number(v)} %`) },
-      grid: { top: 16 },
+      legend: { show: false },
+      grid: { top: 12 },
       series: [
         {
           name: "Completitud", type: "bar", barMaxWidth: 6, color: "#2563eb",
@@ -236,7 +240,7 @@ export function Explorer() {
 
   return (
     <div className="grid">
-      <Panel title="Explorador de series" subtitle={subtitle} full>
+      <Panel title={series ? `${metricLabel(series.metric)} · ${placeName(series.entity, series.name)}` : "Serie"} subtitle={subtitle} full>
         <Async state={sources} height={40}>
           {(list) => (
             <Async state={catalog} height={40}>

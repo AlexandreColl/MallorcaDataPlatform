@@ -1,5 +1,5 @@
 import type { Series, SeriesDay } from "../api";
-import { placeName } from "./format";
+import { dayShort, monthShort, placeName } from "./format";
 
 /** Spanish names of the metrics; any other metric is shown by its identifier. */
 const METRICS: Record<string, string> = {
@@ -111,6 +111,22 @@ export function rangeStart(series: Series, range: Range): string {
   last.setUTCDate(last.getUTCDate() - (days - 1));
   const start = last.toISOString().slice(0, 10);
   return start < series.first_day ? series.first_day : start;
+}
+
+/** A date axis label for a range of `spanDays`: the day for a few months, then the month, then the year. */
+export function axisDate(ms: number, spanDays: number): string {
+  const iso = new Date(ms).toISOString();
+  if (spanDays > 3 * 365) return iso.slice(0, 4);
+  if (spanDays > 120) return monthShort(iso.slice(0, 7));
+  return dayShort(iso);
+}
+
+/** Days from the first to the last day shown, both included. */
+export function spanOf(days: SeriesDay[]): number {
+  const first = days[0]?.local_date;
+  const last = days.at(-1)?.local_date;
+  if (!first || !last) return 0;
+  return (Date.parse(last) - Date.parse(first)) / 86_400_000 + 1;
 }
 
 export interface SeriesSummary {
