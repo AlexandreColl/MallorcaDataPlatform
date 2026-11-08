@@ -87,8 +87,8 @@
           "type": "grafana-postgresql-datasource",
           "uid": "warehouse"
         },
-        "query": "SELECT DISTINCT entity FROM gold.agg_daily_metrics WHERE source IN ($source) AND metric = '$metric' ORDER BY 1",
-        "definition": "SELECT DISTINCT entity FROM gold.agg_daily_metrics WHERE source IN ($source) AND metric = '$metric' ORDER BY 1",
+        "query": "SELECT DISTINCT coalesce(l.name, a.entity) AS __text, a.entity AS __value FROM gold.agg_daily_metrics a LEFT JOIN gold.dim_locations l USING (source, entity) WHERE source IN ($source) AND a.metric = '$metric' ORDER BY 1",
+        "definition": "SELECT DISTINCT coalesce(l.name, a.entity) AS __text, a.entity AS __value FROM gold.agg_daily_metrics a LEFT JOIN gold.dim_locations l USING (source, entity) WHERE source IN ($source) AND a.metric = '$metric' ORDER BY 1",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
@@ -131,7 +131,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(entity, ' · ', metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts)) AS a GROUP BY source, entity, metric, run ORDER BY 1"
+          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(coalesce(l.name, a.entity), ' · ', a.metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts)) AS a LEFT JOIN gold.dim_locations l USING (source, entity) GROUP BY source, a.entity, l.name, a.metric, run ORDER BY 1"
         }
       },
       {
@@ -157,7 +157,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(entity, ' · ', metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE source = 'eea_air_quality' AND metric = 'nitrogen_dioxide' AND $__timeFilter(ts)) AS a GROUP BY source, entity, metric, run ORDER BY 1"
+          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(coalesce(l.name, a.entity), ' · ', a.metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE source = 'eea_air_quality' AND metric = 'nitrogen_dioxide' AND $__timeFilter(ts)) AS a LEFT JOIN gold.dim_locations l USING (source, entity) GROUP BY source, a.entity, l.name, a.metric, run ORDER BY 1"
         }
       }
     ]
@@ -239,7 +239,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT o.ts AS time, coalesce(l.name, entity) AS metric, o.value FROM gold.fct_observations o LEFT JOIN gold.dim_locations l USING (source, entity) WHERE o.metric = '$metric' AND source IN ($source) AND entity IN ($entity) AND $__timeFilter(o.ts) ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -416,7 +416,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT concat(b.station, ' → ', b.model_point, ' (', round(b.distance_km::numeric, 1), ' km)') AS \"Estación\", avg(b.temperature_mean_bias) AS \"Sesgo medio\", avg(abs(b.temperature_mean_bias)) AS \"Error absoluto medio\" FROM gold.fct_model_bias_daily b WHERE (b.station_source IN ($source) OR 'open_meteo' IN ($source)) AND b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY b.station, b.model_point, b.distance_km ORDER BY 3 DESC LIMIT 15"
+          "rawSql": "SELECT concat(coalesce(l.name, b.station), ' → ', b.model_point, ' (', round(b.distance_km::numeric, 1), ' km)') AS \"Estación\", avg(b.temperature_mean_bias) AS \"Sesgo medio\", avg(abs(b.temperature_mean_bias)) AS \"Error absoluto medio\" FROM gold.fct_model_bias_daily b LEFT JOIN gold.dim_locations l ON l.source = b.station_source AND l.entity = b.station WHERE (b.station_source IN ($source) OR 'open_meteo' IN ($source)) AND b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY b.station, l.name, b.model_point, b.distance_km ORDER BY 3 DESC LIMIT 15"
         }
       ],
       "fieldConfig": {
@@ -504,7 +504,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT concat(to_char(start_date, 'DD/MM/YY'), CASE WHEN end_date > start_date THEN to_char(end_date, ' – DD/MM') END) AS \"Fechas\", replace(replace(replace(episode_type, 'rain', 'lluvia'), 'wind', 'viento'), 'sea', 'mar') AS \"Tipo\", peak_rain_mm AS \"Lluvia (mm)\", peak_rain_station AS \"Estación\", max_stations_over_rain_threshold AS \"Est. ≥ 30 mm\", peak_gust_kmh AS \"Racha (km/h)\", peak_wave_m AS \"Ola (m)\" FROM gold.fct_weather_episodes ORDER BY start_date DESC LIMIT 20"
+          "rawSql": "SELECT concat(to_char(start_date, 'DD/MM/YY'), CASE WHEN end_date > start_date THEN to_char(end_date, ' – DD/MM') END) AS \"Fechas\", replace(replace(replace(episode_type, 'rain', 'lluvia'), 'wind', 'viento'), 'sea', 'mar') AS \"Tipo\", peak_rain_mm AS \"Lluvia (mm)\", coalesce(l.name, e.peak_rain_station) AS \"Estación\", max_stations_over_rain_threshold AS \"Est. ≥ 30 mm\", peak_gust_kmh AS \"Racha (km/h)\", peak_wave_m AS \"Ola (m)\" FROM gold.fct_weather_episodes e LEFT JOIN gold.dim_locations l ON l.source = 'aemet' AND l.entity = e.peak_rain_station ORDER BY start_date DESC LIMIT 20"
         }
       ],
       "fieldConfig": {
@@ -663,7 +663,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT station AS \"Estación\", avg(bias_ugm3) FILTER (WHERE metric = 'nitrogen_dioxide') AS \"NO2\", avg(bias_ugm3) FILTER (WHERE metric = 'ozone') AS \"O3\", avg(bias_ugm3) FILTER (WHERE metric = 'pm10') AS \"PM10\", avg(bias_ugm3) FILTER (WHERE metric = 'pm2_5') AS \"PM2.5\" FROM gold.fct_air_quality_model_bias_daily WHERE local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY station ORDER BY station"
+          "rawSql": "SELECT coalesce(l.name, b.station) AS \"Estación\", avg(bias_ugm3) FILTER (WHERE metric = 'nitrogen_dioxide') AS \"NO2\", avg(bias_ugm3) FILTER (WHERE metric = 'ozone') AS \"O3\", avg(bias_ugm3) FILTER (WHERE metric = 'pm10') AS \"PM10\", avg(bias_ugm3) FILTER (WHERE metric = 'pm2_5') AS \"PM2.5\" FROM gold.fct_air_quality_model_bias_daily b LEFT JOIN gold.dim_locations l ON l.source = 'eea_air_quality' AND l.entity = b.station WHERE b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY 1 ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -781,7 +781,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, entity AS metric, value FROM gold.fct_observations WHERE source = 'eea_air_quality' AND metric = 'nitrogen_dioxide' AND NOT is_missing AND $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT o.ts AS time, coalesce(l.name, entity) AS metric, o.value FROM gold.fct_observations o LEFT JOIN gold.dim_locations l USING (source, entity) WHERE source = 'eea_air_quality' AND o.metric = 'nitrogen_dioxide' AND NOT o.is_missing AND $__timeFilter(o.ts) ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -834,7 +834,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT month::timestamp AS time, station AS metric, mean_ugm3 AS value FROM gold.fct_air_quality_monthly WHERE metric = 'nitrogen_dioxide' AND is_representative AND $__timeFilter(month::timestamp) ORDER BY 1"
+          "rawSql": "SELECT m.month::timestamp AS time, coalesce(e.name, g.name, m.station) AS metric, m.mean_ugm3 AS value FROM gold.fct_air_quality_monthly m LEFT JOIN gold.dim_locations e ON e.source = 'eea_air_quality' AND e.entity = m.station LEFT JOIN gold.dim_locations g ON g.source = 'goib_air_quality' AND g.entity = m.station WHERE m.metric = 'nitrogen_dioxide' AND m.is_representative AND $__timeFilter(m.month::timestamp) ORDER BY 1"
         }
       ],
       "fieldConfig": {

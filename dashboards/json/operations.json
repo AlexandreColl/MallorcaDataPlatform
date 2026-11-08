@@ -70,8 +70,8 @@
         "multi": false,
         "includeAll": false,
         "sort": 1,
-        "query": "SELECT DISTINCT concat(source, '/', entity, '/', metric) FROM silver.corrections WHERE $__timeFilter(ts)",
-        "definition": "SELECT DISTINCT concat(source, '/', entity, '/', metric) FROM silver.corrections WHERE $__timeFilter(ts)"
+        "query": "SELECT DISTINCT concat(c.source, ' · ', coalesce(l.name, c.entity), ' · ', c.metric) AS __text, concat(c.source, '/', c.entity, '/', c.metric) AS __value FROM silver.corrections c LEFT JOIN gold.dim_locations l USING (source, entity) WHERE $__timeFilter(c.ts)",
+        "definition": "SELECT DISTINCT concat(c.source, ' · ', coalesce(l.name, c.entity), ' · ', c.metric) AS __text, concat(c.source, '/', c.entity, '/', c.metric) AS __value FROM silver.corrections c LEFT JOIN gold.dim_locations l USING (source, entity) WHERE $__timeFilter(c.ts)"
       }
     ]
   },
@@ -100,7 +100,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(entity, ' · ', metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE concat(source, '/', entity, '/', metric) = '$serie' AND $__timeFilter(ts)) AS a GROUP BY source, entity, metric, run ORDER BY 1"
+          "rawSql": "SELECT min(ts) AS time, max(ts) + interval '1 hour' AS timeend, concat(coalesce(l.name, a.entity), ' · ', a.metric, ': ', count(DISTINCT ts), CASE WHEN count(DISTINCT ts) = 1 THEN ' valor anómalo' ELSE ' valores anómalos' END, ', de ', round(min(value)::numeric, 1), ' a ', round(max(value)::numeric, 1), ' (esperado ~', round(avg(expected)::numeric, 1), ')') AS text, string_agg(DISTINCT CASE detector WHEN 'robust_zscore' THEN 'z-score' ELSE 'isolation forest' END, ',') AS tags FROM (SELECT *, ts - dense_rank() OVER (PARTITION BY source, entity, metric ORDER BY ts) * interval '1 hour' AS run FROM silver.anomalies WHERE concat(source, '/', entity, '/', metric) = '$serie' AND $__timeFilter(ts)) AS a LEFT JOIN gold.dim_locations l USING (source, entity) GROUP BY source, a.entity, l.name, a.metric, run ORDER BY 1"
         }
       }
     ]
@@ -602,7 +602,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS \"Hora\", source AS \"Fuente\", entity AS \"Entidad\", metric AS \"Métrica\", detector AS \"Detector\", value AS \"Valor\", expected AS \"Esperado\", score AS \"Puntuación\" FROM silver.anomalies WHERE source IN ($source) AND $__timeFilter(ts) ORDER BY ts DESC LIMIT 50"
+          "rawSql": "SELECT ts AS \"Hora\", source AS \"Fuente\", coalesce(l.name, entity) AS \"Entidad\", metric AS \"Métrica\", detector AS \"Detector\", value AS \"Valor\", expected AS \"Esperado\", score AS \"Puntuación\" FROM silver.anomalies LEFT JOIN gold.dim_locations l USING (source, entity) WHERE source IN ($source) AND $__timeFilter(ts) ORDER BY ts DESC LIMIT 50"
         }
       ],
       "fieldConfig": {
@@ -766,7 +766,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH daily AS (SELECT * FROM gold.agg_daily_metrics WHERE source IN ($source) AND local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date), sizes AS (SELECT source, count(DISTINCT entity) AS n FROM daily GROUP BY source), series AS (SELECT d.source, CASE WHEN z.n > 50 THEN concat('media de ', z.n, ' entidades') ELSE d.entity END AS entity, d.metric, max(d.unit) AS unit, d.local_date, avg(d.completeness) AS completeness, sum(d.n_suspect) AS n_suspect, sum(d.n_valid) AS n_valid, min(d.min_value) AS min_value, avg(d.avg_value) AS avg_value, max(d.max_value) AS max_value FROM daily d JOIN sizes z USING (source) GROUP BY 1, 2, 3, 5) SELECT s.label AS \"Fuente\", r.entity AS \"Entidad\", r.metric AS \"Métrica\", max(r.unit) AS \"Unidad\", count(*) AS \"Días\", 100 * avg(r.completeness) AS \"Completitud\", 100.0 * sum(r.n_suspect) / nullif(sum(r.n_valid), 0) AS \"Sospechosos\", min(r.min_value) AS \"Mínimo\", avg(r.avg_value) AS \"Media\", max(r.max_value) AS \"Máximo\", (array_agg(r.avg_value ORDER BY r.local_date DESC))[1] AS \"Último día (media)\", max(r.local_date)::text AS \"Último día\" FROM series r JOIN gold.dim_sources s USING (source) GROUP BY s.label, r.entity, r.metric ORDER BY 1, 3, 2"
+          "rawSql": "WITH daily AS (SELECT * FROM gold.agg_daily_metrics WHERE source IN ($source) AND local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date), sizes AS (SELECT source, count(DISTINCT entity) AS n FROM daily GROUP BY source), series AS (SELECT d.source, CASE WHEN z.n > 50 THEN concat('media de ', z.n, ' entidades') ELSE coalesce(l.name, d.entity) END AS entity, d.metric, max(d.unit) AS unit, d.local_date, avg(d.completeness) AS completeness, sum(d.n_suspect) AS n_suspect, sum(d.n_valid) AS n_valid, min(d.min_value) AS min_value, avg(d.avg_value) AS avg_value, max(d.max_value) AS max_value FROM daily d JOIN sizes z USING (source) LEFT JOIN gold.dim_locations l ON l.source = d.source AND l.entity = d.entity GROUP BY 1, 2, 3, 5) SELECT s.label AS \"Fuente\", r.entity AS \"Entidad\", r.metric AS \"Métrica\", max(r.unit) AS \"Unidad\", count(*) AS \"Días\", 100 * avg(r.completeness) AS \"Completitud\", 100.0 * sum(r.n_suspect) / nullif(sum(r.n_valid), 0) AS \"Sospechosos\", min(r.min_value) AS \"Mínimo\", avg(r.avg_value) AS \"Media\", max(r.max_value) AS \"Máximo\", (array_agg(r.avg_value ORDER BY r.local_date DESC))[1] AS \"Último día (media)\", max(r.local_date)::text AS \"Último día\" FROM series r JOIN gold.dim_sources s USING (source) GROUP BY s.label, r.entity, r.metric ORDER BY 1, 3, 2"
         }
       ],
       "fieldConfig": {
@@ -947,7 +947,7 @@
     {
       "id": 14,
       "type": "timeseries",
-      "title": "Antes y después: $serie",
+      "title": "Antes y después: ${serie:text}",
       "description": "La serie elegida arriba (Serie corregida): el valor original de la estación y el corregido en las horas sin valor válido. Los huecos del original son las horas que faltaban.",
       "gridPos": {
         "h": 9,
@@ -1059,7 +1059,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS \"Hora\", source AS \"Fuente\", entity AS \"Entidad\", metric AS \"Métrica\", original_quality AS \"Original\", original_value AS \"Valor original\", corrected_value AS \"Corregido\", method AS \"Método\", concat_ws('/', support_source, support_entity) AS \"Apoyo\", bias AS \"Sesgo\", confidence AS \"Confianza\" FROM silver.corrections WHERE source IN ($source) AND $__timeFilter(ts) ORDER BY ts DESC LIMIT 50"
+          "rawSql": "SELECT c.ts AS \"Hora\", c.source AS \"Fuente\", coalesce(l.name, c.entity) AS \"Entidad\", c.metric AS \"Métrica\", original_quality AS \"Original\", original_value AS \"Valor original\", corrected_value AS \"Corregido\", method AS \"Método\", concat_ws(' · ', c.support_source, coalesce(s.name, c.support_entity)) AS \"Apoyo\", bias AS \"Sesgo\", confidence AS \"Confianza\" FROM silver.corrections c LEFT JOIN gold.dim_locations l ON l.source = c.source AND l.entity = c.entity LEFT JOIN gold.dim_locations s ON s.source = c.support_source AND s.entity = c.support_entity WHERE c.source IN ($source) AND $__timeFilter(c.ts) ORDER BY c.ts DESC LIMIT 50"
         }
       ],
       "fieldConfig": {
