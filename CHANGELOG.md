@@ -12,9 +12,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Names of the Open-Meteo points: the region's locations and the marine points have a `label` in their YAML
   (`pollenca` is `Pollença`) and the connector describes them.
 - API: `name` in `/v1/sea/hourly`.
+- Lines of the EMT Palma and CTM networks with their path (`silver.routes`, `dim_routes`):
+  - **Path**: GTFS connectors may return the `routes` of a payload, with the shape most trips follow in each
+    direction (`shapes.txt`), simplified to about 10 m.
+  - **Departures**: a new `scheduled_trips` series per line and day (entity `route_<route_id>`).
+  - **Names**: the lines are named like the stops (`1 · Portopí - Sindicat`).
+- API: `/v1/mobility/routes`, every line with its path (GeoJSON) and its departures on the latest day.
+- Web, Movilidad: map of the bus, train and metro lines in their operator's colour, wider the more departures, filtered
+  by network, plus the ten lines with the most departures.
 
 ### Fixed
 
+- The transit marts count only the stops (`fct_bus_network_daily`, `fct_island_transit_daily`), not the new line series.
 - Web: the legend of *Temperatura de los últimos 30 días* no longer covers the top of the chart, and the wave chart
   shows one label per day.
 

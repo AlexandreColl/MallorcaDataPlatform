@@ -10,9 +10,15 @@
 |---|---|---|
 | `scheduled_departures` | vehicles | autobuses, trenes o metros programados que pasan por la parada ese día |
 | `lines_served` | lines | líneas distintas que pasan por la parada ese día |
+| `scheduled_trips` | trips | salidas de la línea ese día (entidad `route_<route_id>`, sin coordenadas) |
 
 Cada parada es una `entity` (`stop_<stop_id>`) con su posición; `ts` es la medianoche local (Europe/Madrid) del día
 de servicio. Las estaciones (`location_type` 1) y sus accesos no son paradas: los trenes paran en sus andenes.
+
+Cada línea es otra `entity` (`route_<route_id>`) con sus salidas por día. Su nombre es `101 · Port d'Andratx - Palma`, y su
+recorrido está en `silver.routes`: la forma más usada de cada sentido, simplificada a unos 10 m. Los 265.000 puntos
+de `shapes.txt` quedan en unos 19.500, unos 180 kB. El tipo sale del `route_type`, extendido incluido: el 715 es un
+bus a demanda. Ver el README de EMT Palma.
 
 ## Cómo funciona
 
