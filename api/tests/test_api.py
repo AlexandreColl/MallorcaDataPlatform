@@ -210,6 +210,7 @@ def test_openapi_documents_every_endpoint(db):
 
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
+        "/v1/series", "/v1/series/daily",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/mobility/routes",
         "/v1/weather/daily",
@@ -335,3 +336,19 @@ def test_station_temperatures_of_the_latest_day_or_a_chosen_one():
     api.get("/v1/weather/stations", params={"date": "2026-10-30", "source": "socib"})
     assert db.calls[-1][1] == {"source": "socib", "day": date(2026, 10, 30)}
     assert api.get("/v1/weather/stations", params={"date": "yesterday"}).status_code == 422
+
+
+def test_series_lists_a_source_and_returns_one_day_per_row(db):
+    day = {"local_date": "2026-11-06", "samples": 24, "valid": 23, "suspect": 1, "min_value": 12.0,
+           "avg_value": 15.5, "max_value": 19.0, "completeness": 0.9583, "anomalies": 2}  # fmt: skip
+    db.rows = {"silver.anomalies": [day], **db.rows}  # the daily query reads agg_daily_metrics and the anomalies
+    api = client(db)
+
+    params = {"source": "aemet", "entity": "B228", "metric": "t", "from": "2026-11-01"}
+    response = api.get("/v1/series/daily", params=params)
+
+    assert response.json() == [day]
+    query = db.calls[-1][1]
+    assert (query["entity"], query["metric"], str(query["start"])) == ("B228", "t", "2026-11-01")
+    assert client(FakeDatabase()).get("/v1/series", params={"source": "nope"}).status_code == 404  # no such source
+    assert api.get("/v1/series/daily", params={"source": "aemet"}).status_code == 422  # entity and metric required

@@ -18,12 +18,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   - **Departures**: a new `scheduled_trips` series per line and day (entity `route_<route_id>`).
   - **Names**: the lines are named like the stops (`1 · Portopí - Sindicat`).
 - API: `/v1/mobility/routes`, every line with its path (GeoJSON) and its departures on the latest day.
+- API: `/v1/series` lists the daily series of a source (entity, name, metric, unit, days covered) and
+  `/v1/series/daily` returns one series day by day: minimum, mean and maximum, completeness, suspect values and the
+  instants the anomaly detectors flagged.
+- Web: a series explorer (*Explorador*) for any series of the platform:
+  - **Selection**: source, metric and entity, over 30 days, a year, five years or the whole history. It stays in the
+    address, so a view can be shared.
+  - **Figures**: days, completeness, suspect values, anomalies, minimum, mean and maximum.
+  - **Charts**: the daily mean over its minimum-maximum band with the flagged days, and the daily completeness.
 - Web, Movilidad: map of the bus, train and metro lines in their operator's colour, wider the more departures, filtered
   by network, plus the ten lines with the most departures.
 
 ### Fixed
 
 - The transit marts count only the stops (`fct_bus_network_daily`, `fct_island_transit_daily`), not the new line series.
+- Web: the home page said fourteen sources; there are fifteen since the Ibestat IPH.
 - Web: the legend of *Temperatura de los últimos 30 días* no longer covers the top of the chart, and the wave chart
   shows one label per day.
 

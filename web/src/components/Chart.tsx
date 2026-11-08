@@ -1,4 +1,4 @@
-import { BarChart, LineChart } from "echarts/charts";
+import { BarChart, LineChart, ScatterChart } from "echarts/charts";
 import { GridComponent, LegendComponent, MarkLineComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 
 import { themeColors, useTheme } from "../theme";
 
-echarts.use([LineChart, BarChart, GridComponent, LegendComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([LineChart, BarChart, ScatterChart, GridComponent, LegendComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
 
 export type ChartColors = ReturnType<typeof themeColors>;
 
