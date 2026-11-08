@@ -60,9 +60,10 @@ def test_bronze_roundtrip_and_idempotent_keys(store):
 
     assert keys_first == keys_second  # same window -> same objects (overwritten, versioned)
     assert len(store.client.objects) == 2
-    observations, entities = bronze_to_silver(connector, keys_first, REGION, store)
-    assert len(observations) == 2 * 24 * 10
-    assert entities == []  # Open-Meteo points are named by their identifiers (palma, inca)
+    normalized = bronze_to_silver(connector, keys_first, REGION, store)
+    assert len(normalized.observations) == 2 * 24 * 10
+    assert normalized.entities == []  # these test points have no label
+    assert normalized.routes == []  # not a transit feed
 
 
 class EmptyHttp:
@@ -75,10 +76,10 @@ class EmptyHttp:
 def test_event_source_without_events_lands_bronze_and_loads_nothing(store):
     connector = registry.load("ign", http=EmptyHttp())
 
-    keys, observations, _ = _load_observations(connector, WINDOW, REGION, store)
+    keys, normalized = _load_observations(connector, WINDOW, REGION, store)
 
     assert len(keys) == 1  # the empty response is kept in bronze
-    assert observations == []
+    assert normalized.observations == []
 
 
 def test_time_series_source_without_data_fails(store, monkeypatch):

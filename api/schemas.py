@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -224,6 +225,27 @@ class StopService(BaseModel):
     local_date: date
     departures: float | None
     lines: float | None
+
+
+class RouteGeometry(BaseModel):
+    """The path of a line as a GeoJSON MultiLineString of [lon, lat] points: one polyline per direction."""
+
+    type: Literal["MultiLineString"]
+    coordinates: list[list[list[float]]]
+
+
+class TransitRoute(BaseModel):
+    """One line of a transit network with its path and its departures on the latest day of the network."""
+
+    network: str = Field(examples=["ctm"])
+    route: str = Field(examples=["route_234"], description="Entity of the line's `scheduled_trips` series.")
+    short_name: str = Field(examples=["101"])
+    name: str = Field(examples=["101 · Port d'Andratx - Palma"])
+    kind: str = Field(examples=["bus"], description="bus, train, metro or tram.")
+    color: str | None = Field(default=None, examples=["#ea2423"], description="The colour the operator gives the line.")
+    local_date: date | None
+    trips: float | None = Field(description="Departures of the line that day.")
+    geometry: RouteGeometry
 
 
 class WeatherSourceDay(BaseModel):

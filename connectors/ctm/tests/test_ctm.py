@@ -6,10 +6,12 @@ from core.connectors import registry
 from core.models import Quality, Region, TimeWindow
 
 # Real CTM GTFS (feed_version 2026.10.27) reduced to five lines, values kept verbatim: train T1, metro M1, bus 313
-# (with the 8 and 25 December exceptions), summer bus 325 (until 31 October) and on-demand 343d. 240 trips, 82 stops.
+# (with the 8 and 25 December exceptions), summer bus 325 (until 31 October) and on-demand 343d. 240 trips, 82 stops,
+# plus the shapes.txt rows of their shapes in the 2026-11-08 feed (which no longer has those of bus 325).
 FIXTURE = Path(__file__).parent / "fixtures" / "gtfs_t1_m1_313_325_343d.zip"
 MALLORCA = Region("mallorca", 39.25, 2.30, 39.97, 3.50)
 STOPS = 82
+LINES = 5
 
 
 class RecordedFeed:
@@ -78,7 +80,7 @@ def test_summer_lines_stop_at_the_end_of_their_season():
 def test_every_stop_gets_a_value_each_day_and_its_location():
     observations = _normalize(TimeWindow(date(2026, 11, 1), date(2026, 11, 2)))
 
-    assert len(observations) == STOPS * 2 * 2  # stops x metrics x days, zero included
+    assert len(observations) == (STOPS * 2 + LINES) * 2  # (stops x metrics + lines) x days, zero included
     assert _value(observations, "stop_1025", "scheduled_departures", date(2026, 11, 1)) == 0
     stop = next(o for o in observations if o.entity == "stop_1386")
     assert MALLORCA.contains(stop.lat, stop.lon)
@@ -90,8 +92,30 @@ def test_every_stop_is_named_as_the_feed_publishes_it():
     window = TimeWindow(date(2026, 10, 30), date(2026, 10, 30))
     (payload,) = connector.extract(window, MALLORCA)
 
-    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA)}
+    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA) if e.entity.startswith("stop_")}
 
     assert len(names) == STOPS  # the same stops as the observations
     assert names["stop_1024"] == "Jacint Verdaguer Estació (302)"
     assert {e.source for e in connector.describe(payload, MALLORCA)} == {"ctm"}
+
+
+def test_every_line_counts_its_departures_each_day():
+    observations = _normalize(TimeWindow(date(2026, 10, 30), date(2026, 10, 30)))
+
+    # Friday: the 162 trips of stop 1025 are the M1 metro (98) and the T1 train (64).
+    assert _value(observations, "route_216", "scheduled_trips", date(2026, 10, 30)) == 98
+    assert _value(observations, "route_218", "scheduled_trips", date(2026, 10, 30)) == 64
+
+
+def test_lines_are_drawn_by_kind_and_colour_and_a_line_without_shapes_is_not():
+    connector = registry.load("ctm", http=RecordedFeed())
+    (payload,) = connector.extract(TimeWindow(date(2026, 10, 30), date(2026, 10, 30)), MALLORCA)
+
+    routes = {r.short_name: r for r in connector.routes(payload, MALLORCA)}
+
+    assert set(routes) == {"313", "343d", "M1", "T1"}  # bus 325 has no shapes left in the feed
+    assert (routes["M1"].kind, routes["M1"].color) == ("metro", "#ffdd00")
+    assert (routes["T1"].kind, routes["T1"].name) == ("train", "T1 · Palma - Inca")
+    assert routes["343d"].kind == "bus"  # extended route type 715, an on-demand bus
+    assert len(routes["313"].lines) == 1  # its trips have no direction_id: one group
+    assert routes["T1"].geometry().startswith('{"type": "MultiLineString", "coordinates": [[[2.65464, 39.57676]')

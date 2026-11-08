@@ -8,10 +8,12 @@ import pytest
 from core.connectors import registry
 from core.models import Quality, Region, TimeWindow
 
-# Real EMT Palma GTFS reduced to lines 1 and CC (rows kept verbatim): 8 trips, 44 stops, valid 2026-09-08..12-31.
+# Real EMT Palma GTFS reduced to lines 1 and CC (rows kept verbatim): 8 trips, 44 stops, valid 2026-09-08..12-31, plus
+# the shapes.txt rows of their four shapes (from the 2026-11-08 feed).
 FIXTURE = Path(__file__).parent / "fixtures" / "gtfs_l001_l002.zip"
 MALLORCA = Region("mallorca", 39.25, 2.30, 39.97, 3.50)
 STOPS = 44
+LINES = 2
 
 
 class RecordedFeed:
@@ -72,7 +74,7 @@ def test_holidays_use_the_calendar_exceptions():
 def test_every_stop_gets_a_value_each_day_and_its_location():
     observations = _normalize(TimeWindow(date(2026, 10, 24), date(2026, 10, 25)))
 
-    assert len(observations) == STOPS * 2 * 2  # stops x metrics x days
+    assert len(observations) == (STOPS * 2 + LINES) * 2  # (stops x metrics + lines) x days
     stop = next(o for o in observations if o.entity == "stop_19")
     assert (stop.lat, stop.lon) == (pytest.approx(39.574996), pytest.approx(2.644334))
     assert stop.ts == datetime(2026, 10, 23, 22, tzinfo=UTC)  # local midnight (CEST) of 2026-10-24
@@ -90,9 +92,10 @@ def test_stops_outside_the_region_are_skipped():
 
     observations = _normalize(TimeWindow(date(2026, 10, 23), date(2026, 10, 23)), palma_east)
 
-    assert observations
-    assert all(palma_east.contains(o.lat, o.lon) for o in observations)
-    assert len({o.entity for o in observations}) < STOPS
+    stops = [o for o in observations if o.entity.startswith("stop_")]
+    assert stops
+    assert all(palma_east.contains(o.lat, o.lon) for o in stops)
+    assert len({o.entity for o in stops}) < STOPS
 
 
 def test_stops_are_named_only_inside_the_region():
@@ -100,9 +103,37 @@ def test_stops_are_named_only_inside_the_region():
     connector = registry.load("emt_palma", http=RecordedFeed())
     (payload,) = connector.extract(TimeWindow(date(2026, 10, 23), date(2026, 10, 23)), MALLORCA)
 
-    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA)}
-    east = {e.entity for e in connector.describe(payload, palma_east)}
+    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA) if e.entity.startswith("stop_")}
+    east = {e.entity for e in connector.describe(payload, palma_east) if e.entity.startswith("stop_")}
 
     assert len(names) == STOPS
     assert names["stop_6"] == "6-Sindicat - Àrea d'intercanvi Sindicat"
     assert east < set(names)
+
+
+def test_every_line_counts_its_departures_each_day():
+    observations = _normalize(TimeWindow(date(2026, 10, 23), date(2026, 10, 24)))
+
+    # Friday: line 1 runs 99 buses (both directions, headways of frequencies.txt) and CC 48; on Saturday, no CC.
+    assert _value(observations, "route_L001", "scheduled_trips", date(2026, 10, 23)) == 99
+    assert _value(observations, "route_L002", "scheduled_trips", date(2026, 10, 23)) == 48
+    assert _value(observations, "route_L001", "scheduled_trips", date(2026, 10, 24)) == 81
+    assert _value(observations, "route_L002", "scheduled_trips", date(2026, 10, 24)) == 0
+    line = next(o for o in observations if o.metric == "scheduled_trips")
+    assert (line.unit, line.lat, line.lon) == ("trips", None, None)
+
+
+def test_every_line_is_drawn_with_its_main_shape_in_each_direction():
+    connector = registry.load("emt_palma", http=RecordedFeed())
+    (payload,) = connector.extract(TimeWindow(date(2026, 10, 23), date(2026, 10, 23)), MALLORCA)
+
+    routes = {r.route: r for r in connector.routes(payload, MALLORCA)}
+    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA)}
+
+    assert set(routes) == {"route_L001", "route_L002"}
+    line = routes["route_L001"]
+    assert (line.short_name, line.name, line.kind, line.color) == ("1", "1 · Portopí - Sindicat", "bus", "#44743f")
+    assert len(line.lines) == 2  # outbound and return
+    assert line.lines[0][0] == (2.65602, 39.57135)  # (lon, lat), rounded to ~1 m
+    assert all(len(path) < 100 for path in line.lines)  # simplified from hundreds of shape points
+    assert names["route_L002"] == "CC · Circular Centre Ciutat"

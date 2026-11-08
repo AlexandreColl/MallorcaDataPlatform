@@ -25,7 +25,7 @@ from core.storage import BronzeStore, ensure_bucket
 from core.warehouse import RunStats, Warehouse
 
 if TYPE_CHECKING:
-    from core.models import Entity, Observation, Region, TimeWindow
+    from core.models import Entity, Observation, Region, Route, TimeWindow
 
 log = logging.getLogger(__name__)
 
@@ -64,17 +64,26 @@ def extract_to_bronze(connector: BaseConnector, window: TimeWindow, region: Regi
     return [store.put(p) for p in payloads]
 
 
-def bronze_to_silver(
-    connector: BaseConnector, keys: list[str], region: Region, store: BronzeStore
-) -> tuple[list[Observation], list[Entity]]:
-    """Read raw payloads back from bronze (once each) and normalise them: the observations and the entity names."""
+@dataclass
+class Normalized:
+    """What the payloads of a run hold: the observations, the names of their entities and the transit lines."""
+
+    observations: list[Observation]
+    entities: list[Entity]
+    routes: list[Route]
+
+
+def bronze_to_silver(connector: BaseConnector, keys: list[str], region: Region, store: BronzeStore) -> Normalized:
+    """Read raw payloads back from bronze (once each) and normalise them: observations, entity names and routes."""
     observations: list[Observation] = []
     names: dict[str, Entity] = {}  # one name per entity: the same station is in several payloads
+    routes: dict[str, Route] = {}  # one path per line: the latest payload wins
     for key in keys:
         payload = store.get(key)
         observations.extend(connector.normalize(payload, region))
         names.update((e.entity, e) for e in connector.describe(payload, region))
-    return observations, list(names.values())
+        routes.update((r.route, r) for r in connector.routes(payload, region))
+    return Normalized(observations, list(names.values()), list(routes.values()))
 
 
 def to_dataframe(spark: SparkSession, observations: list[Observation], run_id: str) -> DataFrame:
@@ -116,13 +125,13 @@ def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:
 
 def _load_observations(
     connector: BaseConnector, window: TimeWindow, region: Region, store: BronzeStore
-) -> tuple[list[str], list[Observation], list[Entity]]:
+) -> tuple[list[str], Normalized]:
     keys = extract_to_bronze(connector, window, region, store)
-    observations, entities = bronze_to_silver(connector, keys, region, store)
-    if not observations and not connector.config.is_event_source:
+    normalized = bronze_to_silver(connector, keys, region, store)
+    if not normalized.observations and not connector.config.is_event_source:
         msg = f"connector '{connector.name}' returned no observations for {window}"
         raise NoObservationsError(msg)
-    return keys, observations, entities
+    return keys, normalized
 
 
 def _load_silver(
@@ -179,10 +188,14 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     try:
         store = BronzeStore(settings)
         store.ensure()
-        keys, observations, entities = _load_observations(connector, window, region, store)
-        if entities:
-            named = warehouse.merge_entities(entities, run_id)
-            log.info("run %s: %d of %d %s names new or changed", run_id, named, len(entities), name)
+        keys, normalized = _load_observations(connector, window, region, store)
+        observations = normalized.observations
+        if normalized.entities:
+            named = warehouse.merge_entities(normalized.entities, run_id)
+            log.info("run %s: %d of %d %s names new or changed", run_id, named, len(normalized.entities), name)
+        if normalized.routes:
+            changed = warehouse.replace_routes(name, normalized.routes, run_id)
+            log.info("run %s: %d of %d %s routes new, changed or gone", run_id, changed, len(normalized.routes), name)
         if observations:
             ensure_bucket(store.client, settings.silver_bucket)
             rows_silver, upserted, results = _load_silver(connector, observations, window, run_id, warehouse)

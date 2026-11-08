@@ -42,6 +42,7 @@ def test_health(api):
         "/v1/corrections?start=2016-01-01T00:00:00Z&limit=5",
         "/v1/mobility/daily?from=2016-01-01",
         "/v1/mobility/stops",
+        "/v1/mobility/routes",
         "/v1/weather/daily?from=2016-01-01",
         "/v1/weather/episodes?from=2016-01-01",
         "/v1/weather/model-bias",
