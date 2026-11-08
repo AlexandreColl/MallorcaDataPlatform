@@ -35,6 +35,7 @@ from api.schemas import (
     StationDay,
     StopService,
     TourismMonth,
+    TransitRoute,
     WarningZone,
     WaterReservesMonth,
     WeatherEpisode,
@@ -240,6 +241,15 @@ def mobility_stops(
 ) -> list[StopService]:
     """Every stop with its scheduled departures and lines on the latest day of its network, busiest first."""
     return [StopService(**row) for row in warehouse.mobility_stops(network)]
+
+
+@router.get("/mobility/routes", tags=["mobility"])
+def mobility_routes(
+    warehouse: WarehouseDep,
+    network: Annotated[Literal["emt_palma", "ctm"] | None, Query(description="Only this network.")] = None,
+) -> list[TransitRoute]:
+    """Every bus, train and metro line with its path and its departures on the latest day of its network."""
+    return [TransitRoute(**row) for row in warehouse.mobility_routes(network)]
 
 
 @router.get("/weather/daily", tags=["environment"])

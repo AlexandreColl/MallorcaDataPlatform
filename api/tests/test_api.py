@@ -211,7 +211,8 @@ def test_openapi_documents_every_endpoint(db):
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
-        "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/weather/daily",
+        "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/mobility/routes",
+        "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
         "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones", "/v1/population",
         "/v1/population/pressure",
@@ -239,6 +240,7 @@ def test_settings_from_environment():
     [
         ("/v1/mobility/daily", "gold.fct_island_transit_daily"),
         ("/v1/mobility/stops", "gold.fct_observations"),
+        ("/v1/mobility/routes", "gold.dim_routes"),
         ("/v1/weather/daily", "gold.fct_weather_daily"),
         ("/v1/weather/stations", "gold.fct_weather_daily"),
         ("/v1/warnings", "gold.fct_weather_warnings"),

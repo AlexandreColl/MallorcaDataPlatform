@@ -247,3 +247,24 @@ class Entity:
     source: str
     entity: str
     name: str
+
+
+@dataclass(frozen=True)
+class Route:
+    """One line of a transit network (a bus, train or metro line) with the path it draws on the map.
+
+    ``route`` is the entity of its daily series (``route_L001``). ``lines`` are polylines of (lon, lat) points:
+    the main path of each direction, simplified.
+    """
+
+    source: str
+    route: str
+    short_name: str
+    name: str
+    kind: str
+    color: str | None
+    lines: tuple[tuple[tuple[float, float], ...], ...]
+
+    def geometry(self) -> str:
+        """The path as a GeoJSON MultiLineString."""
+        return json.dumps({"type": "MultiLineString", "coordinates": [[list(p) for p in line] for line in self.lines]})

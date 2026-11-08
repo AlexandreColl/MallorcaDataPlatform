@@ -17,3 +17,4 @@ datasets:
 metrics:
   scheduled_departures: {dataset: schedule, unit: vehicles, min: 0, max: 2000}  # buses, trains or metros calling that day
   lines_served:         {dataset: schedule, unit: lines, min: 0, max: 40}       # distinct lines calling at the stop
+  scheduled_trips:      {dataset: schedule, unit: trips, min: 0, max: 1000}      # departures of the line that day (entity route_<id>)

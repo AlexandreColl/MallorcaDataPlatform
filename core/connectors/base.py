@@ -7,7 +7,7 @@ A connector lives in ``connectors/<name>/`` and consists of:
 * ``tests/``          - unit tests running against recorded API responses (``tests/fixtures``).
 
 The core never knows anything source-specific: it only calls these two methods, plus the optional ``describe``
-that names the entities (stops, stations).
+that names the entities (stops, stations) and ``routes``, the lines of a transit network with their path.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
     from pathlib import Path
 
-    from core.models import Entity, Observation, RawPayload, Region
+    from core.models import Entity, Observation, RawPayload, Region, Route
 
 
 class ConnectorError(Exception):
@@ -256,5 +256,13 @@ class BaseConnector(ABC):
         """The names of the entities in one raw payload (a stop's ``stop_name``, a station's ``nombre``).
 
         Optional: sources whose identifiers already read as names (``demand``) keep the default, none.
+        """
+        return ()
+
+    def routes(self, payload: RawPayload, region: Region) -> Iterable[Route]:  # noqa: ARG002 - for overrides
+        """The lines of a transit network in one raw payload, with their path (GTFS ``shapes.txt``).
+
+        Optional: only the transit feeds have them. A payload with routes holds the whole network of the region, so
+        a line missing from it is a line that no longer runs.
         """
         return ()

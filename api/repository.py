@@ -70,6 +70,25 @@ GROUP BY o.source, o.entity, l.name, l.lat, l.lon, o.ts
 ORDER BY departures DESC NULLS LAST, o.entity
 """
 
+# Every line with its path and its departures on the latest day of its network, busiest first.
+_MOBILITY_ROUTES = """
+WITH latest AS (
+    SELECT source, max(local_date) AS local_date
+    FROM gold.agg_daily_metrics
+    WHERE source IN ('emt_palma', 'ctm') AND metric = 'scheduled_trips'
+    GROUP BY source
+)
+SELECT r.source AS network, r.route, r.short_name, r.name, r.kind, r.color, latest.local_date, a.avg_value AS trips,
+       r.geometry
+FROM gold.dim_routes AS r
+LEFT JOIN latest ON r.source = latest.source
+LEFT JOIN gold.agg_daily_metrics AS a
+       ON a.source = r.source AND a.entity = r.route AND a.metric = 'scheduled_trips'
+      AND a.local_date = latest.local_date
+WHERE %(network)s::text IS NULL OR r.source = %(network)s
+ORDER BY trips DESC NULLS LAST, r.source, r.route
+"""
+
 # Island-wide daily weather per source: the mean of its stations or model points.
 _WEATHER_DAILY = """
 SELECT source, source_label, source_kind, local_date, count(*) AS entities,
@@ -327,6 +346,10 @@ class Warehouse:
     def mobility_stops(self, network: str | None) -> list[Row]:
         """The service of every stop on the latest day of its network, busiest first."""
         return self.db.fetch_all(_MOBILITY_STOPS, {"network": network})
+
+    def mobility_routes(self, network: str | None) -> list[Row]:
+        """Every line with its path and its departures on the latest day of its network, busiest first."""
+        return self.db.fetch_all(_MOBILITY_ROUTES, {"network": network})
 
     def weather_daily(self, start: date, end: date) -> list[Row]:
         """Island-wide daily weather per source, oldest first."""

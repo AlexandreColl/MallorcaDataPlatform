@@ -9,7 +9,7 @@ with per_stop as (
         max(value) filter (where metric = 'scheduled_departures') as departures,
         max(value) filter (where metric = 'lines_served') as lines
     from {{ ref(staging_model) }}
-    where not is_missing
+    where not is_missing and metric in ('scheduled_departures', 'lines_served')  -- the stops, not the lines
     group by source, entity, local_date
 ),
 
