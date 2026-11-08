@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from core.config import Settings
-from core.models import Entity, TimeWindow
+from core.models import Entity, Route, TimeWindow
 from core.warehouse import Warehouse
 
 pytestmark = [
@@ -38,6 +38,7 @@ def warehouse():
         for table in (
             "silver.observations",
             "silver.entities",
+            "silver.routes",
             "silver.anomalies",
             "ops.ingestion_runs",
             "quality.check_results",
@@ -171,3 +172,28 @@ def test_entity_names_are_upserted_and_only_a_rename_counts(warehouse):
     renamed = [Entity(SOURCE, "stop_1", "Plaça d'Espanya"), Entity(SOURCE, "stop_2", "Sindicat - intercanvi")]
     assert warehouse.merge_entities(renamed, "run2") == 1
     assert names(warehouse) == {"stop_1": ("Plaça d'Espanya", "run1"), "stop_2": ("Sindicat - intercanvi", "run2")}
+
+
+def route(name, path=((2.65, 39.57), (2.66, 39.58)), color="#44743f"):
+    return Route(SOURCE, f"route_{name}", name, f"{name} · Portopí - Sindicat", "bus", color, (path,))
+
+
+def routes(warehouse):
+    with warehouse.connect() as conn:
+        rows = conn.execute(
+            "SELECT route, color, geometry, run_id FROM silver.routes WHERE source = %s ORDER BY route", (SOURCE,)
+        ).fetchall()
+    return {r: (color, geometry["coordinates"], run_id) for r, color, geometry, run_id in rows}
+
+
+def test_routes_are_replaced_and_only_a_change_counts(warehouse):
+    assert warehouse.replace_routes(SOURCE, [route("1"), route("2")], "run1") == 2
+
+    # Line 1 unchanged, line 2 recoloured, line 3 new: two changes.
+    assert warehouse.replace_routes(SOURCE, [route("1"), route("2", color="#b78dba"), route("3")], "run2") == 2
+    assert routes(warehouse)["route_1"] == ("#44743f", [[[2.65, 39.57], [2.66, 39.58]]], "run1")
+    assert routes(warehouse)["route_2"][0::2] == ("#b78dba", "run2")
+
+    # Line 3 no longer runs: the next feed without it removes it.
+    assert warehouse.replace_routes(SOURCE, [route("1"), route("2", color="#b78dba")], "run3") == 1
+    assert set(routes(warehouse)) == {"route_1", "route_2"}

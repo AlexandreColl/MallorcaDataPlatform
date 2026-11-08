@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from datetime import date
 
     from core.config import Settings
-    from core.models import Entity, TimeWindow
+    from core.models import Entity, Route, TimeWindow
     from core.quality.rules import RuleResult
 
 DDL_PATH = Path(__file__).parent / "sql" / "warehouse.sql"
@@ -124,6 +124,30 @@ class Warehouse:
         with self.connect() as conn, conn.cursor() as cur:
             cur.executemany(query, [(e.source, e.entity, e.name, run_id) for e in entities])
             return cur.rowcount
+
+    def replace_routes(self, source: str, routes: list[Route], run_id: str) -> int:
+        """Make silver.routes hold exactly these lines of ``source``: upsert them and drop the ones that are gone.
+
+        An unchanged line keeps its run and ``updated_at``. Returns the number of new, changed or removed lines.
+        """
+        upsert = """
+            INSERT INTO silver.routes AS t (source, route, short_name, name, kind, color, geometry, run_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+            ON CONFLICT (source, route) DO UPDATE
+               SET short_name = EXCLUDED.short_name, name = EXCLUDED.name, kind = EXCLUDED.kind,
+                   color = EXCLUDED.color, geometry = EXCLUDED.geometry, run_id = EXCLUDED.run_id, updated_at = now()
+             WHERE (t.short_name, t.name, t.kind, t.color, t.geometry) IS DISTINCT FROM
+                   (EXCLUDED.short_name, EXCLUDED.name, EXCLUDED.kind, EXCLUDED.color, EXCLUDED.geometry)
+        """
+        rows = [(r.source, r.route, r.short_name, r.name, r.kind, r.color, r.geometry(), run_id) for r in routes]
+        with self.connect() as conn, conn.cursor() as cur:
+            cur.executemany(upsert, rows)
+            changed = cur.rowcount
+            cur.execute(
+                "DELETE FROM silver.routes WHERE source = %s AND NOT (route = ANY(%s))",
+                (source, [r.route for r in routes]),
+            )
+            return changed + cur.rowcount
 
     def record_quality(self, run_id: str, source: str, window: TimeWindow, results: list[RuleResult]) -> None:
         """Store the result of every quality check of a run (re-runs overwrite)."""

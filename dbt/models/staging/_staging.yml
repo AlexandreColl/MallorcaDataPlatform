@@ -14,6 +14,12 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [source, entity]
+  - name: stg_silver__routes
+    description: Lines of the transit networks with their path, one per source and route.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [source, route]
   - name: stg_silver__corrections
     description: Proposed corrections of station values, with the local day.
     columns:

@@ -19,6 +19,7 @@ DASHBOARDS = {
     "/clima-y-agua": "clima-y-agua",
     "/movilidad": "movilidad",
     "/tiempo-y-entorno": "tiempo-y-entorno",
+    "/explorador?source=aemet&metric=temperature_2m_mean&entity=B228&range=five": "explorador",
     "/operacion": "operacion",
 }
 # Every panel has finished loading: no skeleton or spinner is left.

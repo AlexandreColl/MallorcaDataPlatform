@@ -39,6 +39,22 @@ CREATE TABLE IF NOT EXISTS silver.entities (
     PRIMARY KEY (source, entity)
 );
 
+-- Lines of the transit networks (GTFS routes) with the path each one draws: the main shape of each direction,
+-- simplified, as a GeoJSON MultiLineString. Each run replaces the lines of its source (core/connectors: routes); its
+-- daily trips are the `scheduled_trips` series of silver.observations, whose entity is `route`.
+CREATE TABLE IF NOT EXISTS silver.routes (
+    source      text        NOT NULL,
+    route       text        NOT NULL,
+    short_name  text        NOT NULL,
+    name        text        NOT NULL,
+    kind        text        NOT NULL,
+    color       text,
+    geometry    jsonb       NOT NULL,
+    run_id      text        NOT NULL,
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (source, route)
+);
+
 -- Values flagged by the anomaly detectors (core/anomaly). Flags only: silver.observations is never changed.
 -- Each run replaces the rows of its detector, sources and window, so re-scoring is idempotent.
 CREATE TABLE IF NOT EXISTS silver.anomalies (

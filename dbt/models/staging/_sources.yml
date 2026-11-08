@@ -47,6 +47,14 @@ sources:
         columns:
           - name: name
             data_tests: [not_null]
+      - name: routes
+        description: >-
+          Lines of the transit networks (GTFS routes of EMT Palma and CTM) with the path each one draws, as a GeoJSON
+          MultiLineString. Each run replaces the lines of its source.
+        freshness: null  # an unchanged line keeps its updated_at
+        columns:
+          - name: geometry
+            data_tests: [not_null]
       - name: corrections
         description: >-
           Proposed corrections of station values (core/corrections): interpolation of short gaps or a nearby support

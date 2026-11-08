@@ -42,6 +42,8 @@ connectors/<nombre>/
    - Opcional: `describe(payload, region) -> Iterable[Entity]` da el nombre de las entidades del payload (el
      `stop_name` de un GTFS, el `nombre` de un inventario, el `name` de las estaciones de `connector.yaml`). El
      pipeline lo guarda en `silver.entities` y la API lo devuelve como `name`. Sin él, la web enseña el identificador.
+   - Opcional, solo para redes de transporte: `routes(payload, region) -> Iterable[Route]` da las líneas con su
+     recorrido. El pipeline sustituye con ellas las de la fuente en `silver.routes` (ver `core/connectors/gtfs.py`).
 6. Tests contra las fixtures (sin red). Ver `connectors/open_meteo/tests/` como plantilla.
 7. Añadir una fila a `dbt/seeds/dim_sources.csv` (nombre visible en el selector de fuentes de Grafana y tipo de
    datos); un test de dbt falla si una fuente de silver no la tiene.

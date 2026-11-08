@@ -5,6 +5,40 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-08
+
+### Added
+
+- Grafana shows the names of the stations, stops and points instead of their identifiers: maps, tables, series
+  legends, the anomaly annotations and the selectors (Entidad, Serie corregida), through `gold.dim_locations`.
+- Names of the Open-Meteo points: the region's locations and the marine points have a `label` in their YAML
+  (`pollenca` is `Pollença`) and the connector describes them.
+- API: `name` in `/v1/sea/hourly`.
+- Lines of the EMT Palma and CTM networks with their path (`silver.routes`, `dim_routes`):
+  - **Path**: GTFS connectors may return the `routes` of a payload, with the shape most trips follow in each
+    direction (`shapes.txt`), simplified to about 10 m.
+  - **Departures**: a new `scheduled_trips` series per line and day (entity `route_<route_id>`).
+  - **Names**: the lines are named like the stops (`1 · Portopí - Sindicat`).
+- API: `/v1/mobility/routes`, every line with its path (GeoJSON) and its departures on the latest day.
+- API: `/v1/series` lists the daily series of a source (entity, name, metric, unit, days covered) and
+  `/v1/series/daily` returns one series day by day: minimum, mean and maximum, completeness, suspect values and the
+  instants the anomaly detectors flagged.
+- Web: a series explorer (*Explorador*) for any series of the platform:
+  - **Selection**: source, metric and entity, over 30 days, a year, five years or the whole history. It stays in the
+    address, so a view can be shared.
+  - **Figures**: days, completeness, suspect values, anomalies, minimum, mean and maximum.
+  - **Charts**: the daily mean over its minimum-maximum band with the flagged days, and the daily completeness.
+- Web, Movilidad: map of the bus, train and metro lines in their operator's colour, wider the more departures, filtered
+  by network, plus the ten lines with the most departures.
+
+### Fixed
+
+- The transit marts count only the stops (`fct_bus_network_daily`, `fct_island_transit_daily`), not the new line series.
+- Web: the home page said fourteen sources; there are fifteen since the Ibestat IPH.
+- CI: the API and web exposures list `agg_daily_metrics`, so the API integration tests build it on the empty warehouse.
+- Web: the legend of *Temperatura de los últimos 30 días* no longer covers the top of the chart, and the wave chart
+  shows one label per day.
+
 ## [0.12.0] - 2026-11-07
 
 ### Added
@@ -588,7 +622,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...v0.10.1

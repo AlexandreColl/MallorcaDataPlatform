@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +15,7 @@ class Health(BaseModel):
 
     status: str = Field(examples=["ok"])
     database: str = Field(examples=["ok"], description="`ok` or `unavailable`")
-    version: str = Field(examples=["0.12.0"])
+    version: str = Field(examples=["0.13.0"])
 
 
 class Source(BaseModel):
@@ -61,6 +62,33 @@ class Observation(BaseModel):
     quality: str = Field(examples=["ok"], description="`ok`, `suspect` or `missing`")
     lat: float | None = None
     lon: float | None = None
+
+
+class Series(BaseModel):
+    """One daily series of a source: its entity, metric and coverage (gold.agg_daily_metrics)."""
+
+    source: str = Field(examples=["aemet"])
+    entity: str = Field(examples=["B278"])
+    name: str | None = Field(default=None, examples=["Palma, Puerto"], description=NAME)
+    metric: str = Field(examples=["temperature_2m_mean"])
+    unit: str | None = Field(examples=["degC"])
+    first_day: date
+    last_day: date
+    days: int = Field(description="Local days with at least one sample.")
+
+
+class SeriesDay(BaseModel):
+    """One local day of a series: its statistics, completeness and flagged values (gold.agg_daily_metrics)."""
+
+    local_date: date
+    samples: int = Field(description="Samples of the day, missing included.")
+    valid: int = Field(description="Samples with a value.")
+    suspect: int = Field(description="Samples a quality rule labelled suspect.")
+    min_value: float | None = Field(description="Of the samples labelled ok.")
+    avg_value: float | None
+    max_value: float | None
+    completeness: float | None = Field(description="Share of samples with a value (0-1).")
+    anomalies: int = Field(description="Instants of the day flagged by an anomaly detector (silver.anomalies).")
 
 
 class Anomaly(BaseModel):
@@ -226,6 +254,27 @@ class StopService(BaseModel):
     lines: float | None
 
 
+class RouteGeometry(BaseModel):
+    """The path of a line as a GeoJSON MultiLineString of [lon, lat] points: one polyline per direction."""
+
+    type: Literal["MultiLineString"]
+    coordinates: list[list[list[float]]]
+
+
+class TransitRoute(BaseModel):
+    """One line of a transit network with its path and its departures on the latest day of the network."""
+
+    network: str = Field(examples=["ctm"])
+    route: str = Field(examples=["route_234"], description="Entity of the line's `scheduled_trips` series.")
+    short_name: str = Field(examples=["101"])
+    name: str = Field(examples=["101 · Port d'Andratx - Palma"])
+    kind: str = Field(examples=["bus"], description="bus, train, metro or tram.")
+    color: str | None = Field(default=None, examples=["#ea2423"], description="The colour the operator gives the line.")
+    local_date: date | None
+    trips: float | None = Field(description="Departures of the line that day.")
+    geometry: RouteGeometry
+
+
 class WeatherSourceDay(BaseModel):
     """Island-wide weather of one source in one day: the mean of its stations or points (gold.fct_weather_daily)."""
 
@@ -372,6 +421,7 @@ class SeaHour(BaseModel):
     """Sea conditions at one coastal point in one hour (gold.fct_sea_conditions_hourly)."""
 
     point: str
+    name: str | None = Field(default=None, examples=["Bahía de Palma"], description=NAME)
     lat: float | None
     lon: float | None
     ts: datetime

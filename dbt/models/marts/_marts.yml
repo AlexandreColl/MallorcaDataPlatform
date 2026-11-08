@@ -235,6 +235,32 @@ models:
       - {name: busiest_stop_name, data_type: text}
       - {name: busiest_stop_departures, data_type: double precision}
 
+  - name: dim_routes
+    description: >-
+      One row per line of the EMT Palma and CTM networks: its short and long name, kind (bus, train, metro, tram),
+      colour and path (the main shape of each direction, simplified, as a GeoJSON MultiLineString). The daily
+      departures of a line are the `scheduled_trips` series of the same entity.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [source, route]
+    columns:
+      - {name: source, data_type: text, constraints: [{type: not_null}]}
+      - {name: route, data_type: text, constraints: [{type: not_null}]}
+      - {name: short_name, data_type: text, constraints: [{type: not_null}]}
+      - {name: name, data_type: text, constraints: [{type: not_null}]}
+      - name: kind
+        data_type: text
+        constraints: [{type: not_null}]
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["bus", "train", "metro", "tram"]
+              config: {severity: warn}
+      - {name: color, data_type: text}
+      - {name: geometry, data_type: jsonb, constraints: [{type: not_null}]}
+
   - name: fct_island_transit_daily
     description: >-
       CTM island network (TIB buses, SFM trains, metro) per local day: stops with service, scheduled stop calls,

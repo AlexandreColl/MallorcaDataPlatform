@@ -91,3 +91,13 @@ def test_normalize_handles_single_location_and_nulls(connector):
     assert len(missing) == 1
     assert missing[0].metric == "pm10"
     assert missing[0].value is None
+
+
+def test_describe_names_the_points_that_have_a_label():
+    pollenca = Location("pollenca", 39.877, 3.016, "Pollença")
+    region = Region("test", 39.25, 2.30, 39.97, 3.50, (pollenca, *REGION.locations))
+    connector = registry.load("open_meteo", http=RecordedHttp())
+    payload = connector.extract(WINDOW, REGION)[0]
+    payload.request["locations"] = ["pollenca", "palma"]
+
+    assert [(e.entity, e.name) for e in connector.describe(payload, region)] == [("pollenca", "Pollença")]
