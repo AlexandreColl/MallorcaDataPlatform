@@ -64,6 +64,33 @@ class Observation(BaseModel):
     lon: float | None = None
 
 
+class Series(BaseModel):
+    """One daily series of a source: its entity, metric and coverage (gold.agg_daily_metrics)."""
+
+    source: str = Field(examples=["aemet"])
+    entity: str = Field(examples=["B278"])
+    name: str | None = Field(default=None, examples=["Palma, Puerto"], description=NAME)
+    metric: str = Field(examples=["temperature_2m_mean"])
+    unit: str | None = Field(examples=["degC"])
+    first_day: date
+    last_day: date
+    days: int = Field(description="Local days with at least one sample.")
+
+
+class SeriesDay(BaseModel):
+    """One local day of a series: its statistics, completeness and flagged values (gold.agg_daily_metrics)."""
+
+    local_date: date
+    samples: int = Field(description="Samples of the day, missing included.")
+    valid: int = Field(description="Samples with a value.")
+    suspect: int = Field(description="Samples a quality rule labelled suspect.")
+    min_value: float | None = Field(description="Of the samples labelled ok.")
+    avg_value: float | None
+    max_value: float | None
+    completeness: float | None = Field(description="Share of samples with a value (0-1).")
+    anomalies: int = Field(description="Instants of the day flagged by an anomaly detector (silver.anomalies).")
+
+
 class Anomaly(BaseModel):
     """A value flagged by an anomaly detector (silver.anomalies). Flags never change the observation."""
 

@@ -914,3 +914,37 @@ tr.selectable:focus-visible {
 .day-slider .play:hover {
   border-color: var(--brand);
 }
+
+/* The figures of the days shown in the series explorer, in a row that wraps on a phone. */
+.series-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+
+.series-stats div {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.series-stats dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.series-stats dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A small heading between two charts of one panel. */
+.chart-title {
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}

@@ -103,6 +103,31 @@ export interface MobilityDay {
   busiest_stop_departures: number | null;
 }
 
+/** One daily series of a source and the days it covers. */
+export interface Series {
+  source: string;
+  entity: string;
+  name: string | null;
+  metric: string;
+  unit: string | null;
+  first_day: string;
+  last_day: string;
+  days: number;
+}
+
+/** One local day of a series: its statistics, completeness and flagged values. */
+export interface SeriesDay {
+  local_date: string;
+  samples: number;
+  valid: number;
+  suspect: number;
+  min_value: number | null;
+  avg_value: number | null;
+  max_value: number | null;
+  completeness: number | null;
+  anomalies: number;
+}
+
 /** A bus, train or metro line with its path and its departures on the latest day of its network. */
 export interface TransitRoute {
   network: "emt_palma" | "ctm";
@@ -341,6 +366,11 @@ export const api = {
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   routes: () => get<TransitRoute[]>("/mobility/routes"),
+  series: (source: string) => get<Series[]>(`/series?source=${encodeURIComponent(source)}`),
+  seriesDaily: (series: Pick<Series, "source" | "entity" | "metric">, from: string) =>
+    get<SeriesDay[]>(
+      `/series/daily?${new URLSearchParams({ source: series.source, entity: series.entity, metric: series.metric, from })}`,
+    ),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
   stations: (source: "aemet" | "socib" | "open_meteo", day?: string | null) =>
     remembered(`/weather/stations?source=${source}${day ? `&date=${day}` : ""}`, get<StationDay[]>),

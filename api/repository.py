@@ -70,6 +70,36 @@ GROUP BY o.source, o.entity, l.name, l.lat, l.lon, o.ts
 ORDER BY departures DESC NULLS LAST, o.entity
 """
 
+# The daily series of one source with their names and coverage.
+_SERIES = """
+SELECT a.source, a.entity, l.name, a.metric, max(a.unit) AS unit,
+       min(a.local_date) AS first_day, max(a.local_date) AS last_day, count(*) AS days
+FROM gold.agg_daily_metrics AS a
+LEFT JOIN gold.dim_locations AS l ON l.source = a.source AND l.entity = a.entity
+WHERE a.source = %(source)s
+GROUP BY a.source, a.entity, l.name, a.metric
+ORDER BY a.metric, coalesce(l.name, a.entity)
+"""
+
+# One series per local day, with the instants the detectors flagged that day.
+_SERIES_DAILY = """
+WITH flagged AS (
+    SELECT (ts AT TIME ZONE 'Europe/Madrid')::date AS local_date, count(DISTINCT ts) AS anomalies
+    FROM silver.anomalies
+    WHERE source = %(source)s AND entity = %(entity)s AND metric = %(metric)s
+      AND ts >= %(start)s::timestamp - interval '1 day' AND ts < %(end)s::timestamp + interval '2 days'
+    GROUP BY 1
+)
+SELECT a.local_date, a.n_samples AS samples, a.n_valid AS valid, a.n_suspect AS suspect,
+       a.min_value, a.avg_value, a.max_value, a.completeness::double precision AS completeness,
+       coalesce(f.anomalies, 0) AS anomalies
+FROM gold.agg_daily_metrics AS a
+LEFT JOIN flagged AS f ON a.local_date = f.local_date
+WHERE a.source = %(source)s AND a.entity = %(entity)s AND a.metric = %(metric)s
+  AND a.local_date BETWEEN %(start)s AND %(end)s
+ORDER BY a.local_date
+"""
+
 # Every line with its path and its departures on the latest day of its network, busiest first.
 _MOBILITY_ROUTES = """
 WITH latest AS (
@@ -346,6 +376,15 @@ class Warehouse:
     def mobility_stops(self, network: str | None) -> list[Row]:
         """The service of every stop on the latest day of its network, busiest first."""
         return self.db.fetch_all(_MOBILITY_STOPS, {"network": network})
+
+    def series(self, source: str) -> list[Row]:
+        """The daily series of a source with their names and coverage, by metric and name."""
+        return self.db.fetch_all(_SERIES, {"source": source})
+
+    def series_daily(self, source: str, entity: str, metric: str, start: date, end: date) -> list[Row]:
+        """One series per local day, oldest first, with its flagged instants."""
+        params = {"source": source, "entity": entity, "metric": metric, "start": start, "end": end}
+        return self.db.fetch_all(_SERIES_DAILY, params)
 
     def mobility_routes(self, network: str | None) -> list[Row]:
         """Every line with its path and its departures on the latest day of its network, busiest first."""

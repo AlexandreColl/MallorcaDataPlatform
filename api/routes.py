@@ -31,6 +31,8 @@ from api.schemas import (
     QualityRule,
     ResourcesMonth,
     SeaHour,
+    Series,
+    SeriesDay,
     Source,
     StationDay,
     StopService,
@@ -156,6 +158,33 @@ def observations(  # noqa: PLR0913 - one query parameter per filter
         source=source, metric=metric, entity=entity, start=start, end=end, limit=limit + 1, offset=offset
     )
     return _page([Observation(**row) for row in rows], limit, offset)
+
+
+@router.get("/series", tags=["series"], responses={404: {"model": ErrorResponse}})
+def series(
+    warehouse: WarehouseDep,
+    source: Annotated[str, Query(description="Source, e.g. `aemet` (see /v1/sources).")],
+) -> list[Series]:
+    """Every daily series of a source: entity with its name, metric, unit and the days it covers."""
+    if not warehouse.source_exists(source):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown source '{source}'")
+    return [Series(**row) for row in warehouse.series(source)]
+
+
+@router.get("/series/daily", tags=["series"], responses={404: {"model": ErrorResponse}})
+def series_daily(  # noqa: PLR0913 - one query parameter per filter
+    warehouse: WarehouseDep,
+    source: Annotated[str, Query(description="Source, e.g. `aemet`.")],
+    entity: Annotated[str, Query(description="Station, point, stop or line (see /v1/series).")],
+    metric: Annotated[str, Query(description="Metric, e.g. `temperature_2m_mean`.")],
+    from_: FromDay = None,
+    to: ToDay = None,
+) -> list[SeriesDay]:
+    """One series per local day: min, mean and max, completeness, suspect and flagged values (default: a year)."""
+    start, end = _days(from_, to, 365)
+    if not warehouse.source_exists(source):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown source '{source}'")
+    return [SeriesDay(**row) for row in warehouse.series_daily(source, entity, metric, start, end)]
 
 
 @router.get("/anomalies", tags=["series"])

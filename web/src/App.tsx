@@ -4,6 +4,7 @@ import { api } from "./api";
 import { type Dashboard, Layout } from "./components/Layout";
 import { ready, useLoad } from "./hooks";
 import { ClimateWater } from "./pages/ClimateWater";
+import { Explorer } from "./pages/Explorer";
 import { Home } from "./pages/Home";
 import { Mobility } from "./pages/Mobility";
 import { Operations } from "./pages/Operations";
@@ -15,7 +16,7 @@ import { usePath } from "./router";
 const DASHBOARDS: Dashboard[] = [
   {
     path: "/", label: "Inicio", icon: "home", title: "Mallorca en datos",
-    description: "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Catorce fuentes abiertas, con la calidad comprobada en cada carga.",
+    description: "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Quince fuentes abiertas, con la calidad comprobada en cada carga.",
   },
   {
     path: "/turismo-y-recursos", label: "Turismo y recursos", icon: "tourism", title: "Turismo y recursos",
@@ -34,6 +35,10 @@ const DASHBOARDS: Dashboard[] = [
     description: "Temperatura, calidad del aire, oleaje, episodios meteorológicos y sismos.",
   },
   {
+    path: "/explorador", label: "Explorador", icon: "explore", title: "Explorador de series",
+    description: "Cualquier serie de la plataforma día a día: fuente, métrica y estación, con su calidad y sus anomalías.",
+  },
+  {
     path: "/operacion", label: "Operación", icon: "operations", title: "Operación de la plataforma",
     description: "Estado de cada fuente, reglas de calidad, anomalías detectadas y correcciones propuestas.",
   },
@@ -49,6 +54,8 @@ function Page({ path }: { path: string }) {
       return <Mobility />;
     case "/tiempo-y-entorno":
       return <WeatherEnvironment />;
+    case "/explorador":
+      return <Explorer />;
     case "/operacion":
       return <Operations />;
     default:
