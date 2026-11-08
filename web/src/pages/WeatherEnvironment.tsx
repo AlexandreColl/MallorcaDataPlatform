@@ -113,7 +113,10 @@ function Waves({ hours }: { hours: SeaHour[] }) {
   const option = useCallback(() => {
     const points = [...new Set(hours.map((h) => h.point))];
     return {
-      xAxis: { type: "time", axisLabel: { formatter: (v: number) => dayShort(new Date(v).toISOString()) } },
+      xAxis: {
+        type: "time", minInterval: 86_400_000, // one label per day, never two of the same day
+        axisLabel: { formatter: (v: number) => dayShort(new Date(v).toISOString()) },
+      },
       yAxis: { type: "value", axisLabel: { formatter: "{value} m" } },
       tooltip: { valueFormatter: orDash((v) => `${number(v, 2)} m`) },
       legend: { type: "scroll", top: 0, left: 0, right: 0 },
