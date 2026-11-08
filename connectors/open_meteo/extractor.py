@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from core.connectors import BaseConnector, ConnectorError
-from core.models import Location, Observation, Quality, RawPayload, Region, TimeWindow
+from core.models import Entity, Location, Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -58,6 +58,14 @@ class OpenMeteoConnector(BaseConnector):
                 )
             )
         return payloads
+
+    def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:
+        """The display name (``label``) of every requested point that has one."""
+        by_name = {loc.name: loc for loc in self.locations(region)}
+        for name in payload.request["locations"]:
+            location = by_name.get(name)
+            if location is not None and location.label:
+                yield Entity(source=self.name, entity=location.name, name=location.label)
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:
         """Yield one observation per location, metric and hour.

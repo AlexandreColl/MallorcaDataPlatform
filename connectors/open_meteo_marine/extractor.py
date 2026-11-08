@@ -22,7 +22,7 @@ class OpenMeteoMarineConnector(OpenMeteoConnector):
             ConnectorError: if no point lies inside the region.
         """
         points = tuple(
-            Location(str(p["name"]), float(p["lat"]), float(p["lon"]))
+            Location(str(p["name"]), float(p["lat"]), float(p["lon"]), p.get("label"))
             for p in self.config.options["points"]
             if region.contains(float(p["lat"]), float(p["lon"]))
         )

@@ -10,14 +10,14 @@ options:
   # Sea points around Mallorca (the region's locations are inland towns, where wave models have no data).
   # Only the points inside the region bbox are queried. The API answers with the nearest model cell (~5 km).
   points:
-    - {name: bahia_de_palma, lat: 39.50, lon: 2.68}       # next to the SOCIB Bahía de Palma buoy
-    - {name: dragonera, lat: 39.58, lon: 2.30}
-    - {name: soller, lat: 39.80, lon: 2.68}
-    - {name: pollenca, lat: 39.90, lon: 3.12}
-    - {name: alcudia, lat: 39.82, lon: 3.17}
-    - {name: cala_millor, lat: 39.60, lon: 3.42}
-    - {name: portocolom, lat: 39.41, lon: 3.28}
-    - {name: colonia_sant_jordi, lat: 39.30, lon: 3.00}
+    - {name: bahia_de_palma, label: Bahía de Palma, lat: 39.50, lon: 2.68}       # next to the SOCIB Bahía de Palma buoy
+    - {name: dragonera, label: Sa Dragonera, lat: 39.58, lon: 2.30}
+    - {name: soller, label: Sóller, lat: 39.80, lon: 2.68}
+    - {name: pollenca, label: Pollença, lat: 39.90, lon: 3.12}
+    - {name: alcudia, label: Alcúdia, lat: 39.82, lon: 3.17}
+    - {name: cala_millor, label: Cala Millor, lat: 39.60, lon: 3.42}
+    - {name: portocolom, label: Portocolom, lat: 39.41, lon: 3.28}
+    - {name: colonia_sant_jordi, label: Colònia de Sant Jordi, lat: 39.30, lon: 3.00}
 
 datasets:
   marine:

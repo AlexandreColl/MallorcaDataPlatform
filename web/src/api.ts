@@ -232,6 +232,7 @@ export interface AirQualityNow {
 
 export interface SeaHour {
   point: string;
+  name?: string | null;
   ts: string;
   wave_height_m: number | null;
   sea_temperature_c: number | null;

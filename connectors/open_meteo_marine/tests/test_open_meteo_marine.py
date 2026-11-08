@@ -79,3 +79,14 @@ def test_region_without_sea_points_is_rejected():
 
     with pytest.raises(ConnectorError, match="no Open-Meteo Marine point"):
         _connector().extract(WINDOW, inland)
+
+
+def test_the_sea_points_are_named_from_the_config():
+    connector = _connector()
+    (payload,) = connector.extract(WINDOW, MALLORCA)
+
+    names = {e.entity: e.name for e in connector.describe(payload, MALLORCA)}
+
+    assert len(names) == 8
+    assert names["bahia_de_palma"] == "Bahía de Palma"
+    assert names["colonia_sant_jordi"] == "Colònia de Sant Jordi"

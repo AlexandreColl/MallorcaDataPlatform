@@ -159,10 +159,11 @@ ORDER BY a.source, a.entity, a.ts DESC
 """
 
 _SEA_HOURLY = """
-SELECT point, lat, lon, ts, wave_height_m, wave_period_s, swell_height_m, sea_temperature_c
-FROM gold.fct_sea_conditions_hourly
-WHERE ts >= %(start)s AND ts < %(end)s
-ORDER BY ts, point
+SELECT s.point, l.name, s.lat, s.lon, s.ts, s.wave_height_m, s.wave_period_s, s.swell_height_m, s.sea_temperature_c
+FROM gold.fct_sea_conditions_hourly AS s
+LEFT JOIN gold.dim_locations AS l ON l.source = 'open_meteo_marine' AND l.entity = s.point
+WHERE s.ts >= %(start)s AND s.ts < %(end)s
+ORDER BY s.ts, s.point
 """
 
 _EARTHQUAKES = """
