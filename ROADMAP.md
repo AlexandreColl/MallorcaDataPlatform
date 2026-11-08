@@ -167,8 +167,9 @@ despliegue real con su coste medido.
 | ✅ | Tiempo y entorno: elegir el día de la temperatura por zonas (`date` en `/v1/weather/stations`) |
 | ✅ | Movilidad: recorridos de las líneas desde `shapes.txt` del GTFS, en su propia tabla (`silver.routes`, `dim_routes`), con las salidas por línea y día (`scheduled_trips`) |
 | ✅ | Conector del **Indicador de Presión Humana** del Ibestat (`ibestat_iph`, personas presentes en Mallorca cada día desde 1997) y su gráfico en Movilidad |
-| ⬜ | Explorador de series en la web: elegir fuente, ubicación y métrica, con sus anomalías y correcciones |
+| ✅ | Explorador de series en la web: fuente, entidad y métrica día a día, con su completitud, sus valores sospechosos y sus anomalías (`/v1/series`, `/v1/series/daily`); las correcciones siguen en Operación |
 | ✅ | Nombres de las paradas y estaciones en silver (`silver.entities`): la web ya no enseña `stop_452` ni `B228` |
+| ✅ | Nombres en Grafana (mapas, tablas, leyendas, anotaciones y selectores) y en los puntos de Open-Meteo (`label` en el YAML) |
 | ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |
 | ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
 | ⬜ | Gold en Athena con `dbt-athena` (quita la copia de silver en Postgres) |

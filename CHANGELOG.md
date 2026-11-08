@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-08
+
 ### Added
 
 - Grafana shows the names of the stations, stops and points instead of their identifiers: maps, tables, series
@@ -33,6 +35,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 - The transit marts count only the stops (`fct_bus_network_daily`, `fct_island_transit_daily`), not the new line series.
 - Web: the home page said fourteen sources; there are fifteen since the Ibestat IPH.
+- CI: the API and web exposures list `agg_daily_metrics`, so the API integration tests build it on the empty warehouse.
 - Web: the legend of *Temperatura de los últimos 30 días* no longer covers the top of the chart, and the wave chart
   shows one label per day.
 
@@ -619,7 +622,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.0...v0.10.1
