@@ -107,6 +107,17 @@ export interface MapLines {
   color: string;
 }
 
+/** A transit line drawn over the areas and under the points, in its own colour and width, with a popup. */
+export interface MapRoute {
+  /** Polylines of [lon, lat] points (one per direction). */
+  lines: number[][][];
+  color: string;
+  /** Width in pixels at the island's zoom; it doubles when zooming in. */
+  width: number;
+  /** Lines of the popup, as for a point. */
+  popup: string[];
+}
+
 /** A picture stretched over a box of the map, under the areas and points (an interpolated surface). */
 export interface MapImage {
   url: string;
@@ -126,6 +137,8 @@ interface PointMapProps {
   /** Draws the border of each area. */
   outline?: boolean;
   lines?: MapLines;
+  /** Transit lines; the busiest is drawn on top. */
+  routes?: MapRoute[];
   /** Text of a small label that follows the cursor (e.g. the value of the image under it), or null for none. */
   describe?: (lon: number, lat: number) => string | null;
   /** The area to highlight and zoom to, by its id. */
@@ -159,6 +172,20 @@ function linesGeoJson(lines: MapLines | undefined): FeatureCollection {
   };
 }
 
+function routesGeoJson(routes: MapRoute[]): FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    // Thinnest first: maplibre draws later features on top, so the busiest lines are not hidden under the others.
+    features: [...routes]
+      .sort((a, b) => a.width - b.width)
+      .map((r) => ({
+        type: "Feature" as const,
+        geometry: { type: "MultiLineString" as const, coordinates: r.lines },
+        properties: { color: r.color, width: r.width, popup: JSON.stringify(r.popup) },
+      })),
+  };
+}
+
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /** The polygons of an area by its id, to highlight it. */
@@ -175,6 +202,7 @@ export function PointMap({
   areaOpacity,
   outline = false,
   lines,
+  routes,
   describe,
   focus,
   onAreaSelect,
@@ -187,6 +215,7 @@ export function PointMap({
   const data = useMemo(() => toGeoJson(layers), [layers]);
   const areaData = useMemo(() => areasGeoJson(areas), [areas]);
   const lineData = useMemo(() => linesGeoJson(lines), [lines]);
+  const routeData = useMemo(() => routesGeoJson(routes ?? []), [routes]);
   const focusData = useMemo(() => focusGeoJson(areas, focus), [areas, focus]);
   // Read by the map's own handlers, which are bound once per map: changing them must not rebuild the map.
   const handlers = useRef({ describe, onAreaSelect, focusData });
@@ -194,12 +223,13 @@ export function PointMap({
   // The data the map is built with. Only a change of structure (the theme, which layers exist, their style) builds
   // a new map; new data of the same layers (another day, another colouring) is swapped into the sources below, so
   // the map neither flashes nor loses its zoom.
-  const latest = useRef({ data, areaData, lineData, image });
-  latest.current = { data, areaData, lineData, image };
+  const latest = useRef({ data, areaData, lineData, routeData, image });
+  latest.current = { data, areaData, lineData, routeData, image };
   const structure = [
     layers.map((l) => `${l.id}:${l.color}:${l.radius}`).join(","),
     image ? "image" : "",
     lines ? `lines:${lines.color}` : "",
+    routes ? "routes" : "",
     areaData.features.length > 0 ? "areas" : "",
     areas.some((a) => a.popup) ? "popups" : "",
   ].join("|");
@@ -219,7 +249,7 @@ export function PointMap({
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     const pointLayers = layers.map((layer) => `points-${layer.id}`);
     const setup = () => {
-      const { data, areaData, lineData, image } = latest.current;
+      const { data, areaData, lineData, routeData, image } = latest.current;
       if (image) {
         instance.addSource("image", {
           type: "image",
@@ -291,6 +321,44 @@ export function PointMap({
           instance.on("mouseenter", "areas", () => (instance.getCanvas().style.cursor = "pointer"));
           instance.on("mouseleave", "areas", () => (instance.getCanvas().style.cursor = ""));
         }
+      }
+      if (routes) {
+        instance.addSource("routes", { type: "geojson", data: routeData });
+        // A halo in the basemap's colour under each line keeps the crossings and the shared streets readable.
+        instance.addLayer({
+          id: "routes-halo",
+          type: "line",
+          source: "routes",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-color": dark ? "#0a120d" : "#ffffff",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 8, ["+", ["get", "width"], 1.5], 13, ["+", ["*", ["get", "width"], 2], 2]],
+            "line-opacity": 0.8,
+          },
+        });
+        instance.addLayer({
+          id: "routes",
+          type: "line",
+          source: "routes",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["interpolate", ["linear"], ["zoom"], 8, ["get", "width"], 13, ["*", ["get", "width"], 2]],
+            "line-opacity": 0.9,
+          },
+        });
+        instance.on("click", "routes", (event) => {
+          const feature = event.features?.[0];
+          if (!feature) return;
+          const visible = pointLayers.filter((id) => instance.getLayer(id));
+          if (instance.queryRenderedFeatures(event.point, { layers: visible }).length > 0) return;
+          new maplibregl.Popup({ closeButton: false })
+            .setLngLat(event.lngLat)
+            .setHTML(popupHtml(feature.properties.popup))
+            .addTo(instance);
+        });
+        instance.on("mouseenter", "routes", () => (instance.getCanvas().style.cursor = "pointer"));
+        instance.on("mouseleave", "routes", () => (instance.getCanvas().style.cursor = ""));
       }
       instance.addSource("points", { type: "geojson", data });
       // The first layer is drawn last, on top of the others.
@@ -371,7 +439,8 @@ export function PointMap({
     }
     (instance.getSource("lines") as GeoJSONSource | undefined)?.setData(lineData);
     (instance.getSource("areas") as GeoJSONSource | undefined)?.setData(areaData);
-  }, [image, lineData, areaData]);
+    (instance.getSource("routes") as GeoJSONSource | undefined)?.setData(routeData);
+  }, [image, lineData, areaData, routeData]);
 
   // The highlighted area changes without rebuilding the map, and the map flies to it (and back to the island).
   const zoomed = useRef(false);

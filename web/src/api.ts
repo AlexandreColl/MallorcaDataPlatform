@@ -103,6 +103,19 @@ export interface MobilityDay {
   busiest_stop_departures: number | null;
 }
 
+/** A bus, train or metro line with its path and its departures on the latest day of its network. */
+export interface TransitRoute {
+  network: "emt_palma" | "ctm";
+  route: string;
+  short_name: string;
+  name: string;
+  kind: string;
+  color: string | null;
+  local_date: string | null;
+  trips: number | null;
+  geometry: { type: "MultiLineString"; coordinates: number[][][] };
+}
+
 export interface StopService {
   network: "emt_palma" | "ctm";
   stop: string;
@@ -327,6 +340,7 @@ export const api = {
   aquifers: () => get<Aquifer[]>("/water/aquifers"),
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
+  routes: () => get<TransitRoute[]>("/mobility/routes"),
   weatherDaily: (from: string) => get<WeatherSourceDay[]>(`/weather/daily?from=${from}`),
   stations: (source: "aemet" | "socib" | "open_meteo", day?: string | null) =>
     remembered(`/weather/stations?source=${source}${day ? `&date=${day}` : ""}`, get<StationDay[]>),

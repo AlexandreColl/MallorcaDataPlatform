@@ -8,12 +8,13 @@ import {
   type Municipality,
   type PopulationYear,
   type StopService,
+  type TransitRoute,
 } from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart, type ChartColors } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
-import { type MapArea, type MapLayer, PointMap } from "../components/PointMap";
+import { type MapArea, type MapLayer, type MapRoute, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { compact, dayName, dayShort, number, orDash, signed } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
@@ -28,6 +29,7 @@ import {
   serviceByMunicipality,
 } from "../lib/population";
 import { segmentedTrend } from "../lib/stats";
+import { KINDS, routePopup, routeWidth } from "../lib/transit";
 
 /** The municipal register starts in 1996 (there was none in 1997). */
 const FIRST_YEAR = 1996;
@@ -400,6 +402,44 @@ function pressureSubtitle(days: HumanPressureDay[] | null): string {
   return `${intro} Datos hasta el ${dayName(last.local_date)}: el Ibestat publica con unos dos meses de retraso.${top}`;
 }
 
+type NetworkFilter = "all" | keyof typeof NETWORKS;
+
+/** Every line of both networks in its operator's colour, wider the more departures it has; filtered by network. */
+function TransitMap({ routes }: { routes: TransitRoute[] }) {
+  const [network, setNetwork] = useState<NetworkFilter>("all");
+  const lines = useMemo((): MapRoute[] => {
+    const shown = routes.filter((r) => network === "all" || r.network === network);
+    const busiest = Math.max(0, ...shown.map((r) => r.trips ?? 0));
+    return shown.map((r) => ({
+      lines: r.geometry.coordinates,
+      color: r.color ?? NETWORKS[r.network].color,
+      width: routeWidth(r.trips, busiest),
+      popup: routePopup(r, NETWORKS[r.network].label),
+    }));
+  }, [routes, network]);
+  const filters: [NetworkFilter, string][] = [["all", "Las dos redes"], ["emt_palma", NETWORKS.emt_palma.label], ["ctm", NETWORKS.ctm.label]];
+
+  return (
+    <>
+      <div className="segmented" role="group" aria-label="Red de transporte">
+        {filters.map(([value, label]) => (
+          <button key={value} type="button" aria-pressed={value === network} onClick={() => setNetwork(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <PointMap layers={[]} routes={lines} height={560} />
+    </>
+  );
+}
+
+/** Subtitle of the lines map: the day of the timetables. */
+function routesSubtitle(routes: TransitRoute[] | null): string {
+  const day = routes?.find((r) => r.local_date)?.local_date;
+  const when = day ? `el ${dayName(day)}` : "el último día";
+  return `Recorrido de cada línea con el color de su operador; cuanto más gruesa, más salidas tiene ${when}. Pulsa una línea para ver sus cifras.`;
+}
+
 function stopLayers(stops: StopService[]): MapLayer[] {
   return (Object.keys(NETWORKS) as (keyof typeof NETWORKS)[]).map((network) => {
     const own = stops.filter((s) => s.network === network);
@@ -422,6 +462,7 @@ export function Mobility() {
   const population = useLoad(() => api.population(FIRST_YEAR));
   const places = useLoad(api.municipalities);
   const pressure = useLoad(() => api.humanPressure(daysAgo(3 * 366 + 120)));
+  const routes = useLoad(api.routes);
   // The municipality chosen on the map, the table or the chart: the three follow it.
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -474,6 +515,23 @@ export function Mobility() {
                   { label: "Red", value: (s) => NETWORKS[s.network].label },
                   { label: "Pasos", value: (s) => number(s.departures ?? 0), numeric: true },
                   { label: "Líneas", value: (s) => number(s.lines ?? 0), numeric: true },
+                ]}
+              />
+            )}
+          </Async>
+        </Panel>
+        <Panel title="Líneas de autobús, tren y metro" subtitle={routesSubtitle(ready(routes))} wide>
+          <Async state={routes} height={600}>{(rows) => <TransitMap routes={rows} />}</Async>
+        </Panel>
+        <Panel title="Líneas con más salidas" subtitle="Las diez con más salidas programadas de las dos redes.">
+          <Async state={routes}>
+            {(rows) => (
+              <Table
+                rows={rows.slice(0, 10)}
+                columns={[
+                  { label: "Línea", value: (r) => r.name },
+                  { label: "Red", value: (r) => `${NETWORKS[r.network].label} · ${KINDS[r.kind] ?? r.kind}` },
+                  { label: "Salidas", value: (r) => (r.trips === null ? "—" : number(r.trips)), numeric: true },
                 ]}
               />
             )}
