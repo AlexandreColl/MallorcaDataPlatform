@@ -289,7 +289,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, entity AS metric, european_aqi_model AS value FROM gold.air_quality_hourly WHERE $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT a.ts AS time, coalesce(l.name, entity) AS metric, a.european_aqi_model AS value FROM gold.air_quality_hourly a LEFT JOIN gold.dim_locations l USING (source, entity) WHERE $__timeFilter(a.ts) ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -364,7 +364,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT ts AS time, point AS metric, wave_height_m AS value FROM gold.fct_sea_conditions_hourly WHERE $__timeFilter(ts) ORDER BY 1"
+          "rawSql": "SELECT s.ts AS time, coalesce(l.name, s.point) AS metric, s.wave_height_m AS value FROM gold.fct_sea_conditions_hourly s LEFT JOIN gold.dim_locations l ON l.source = 'open_meteo_marine' AND l.entity = s.point WHERE $__timeFilter(s.ts) ORDER BY 1"
         }
       ],
       "fieldConfig": {

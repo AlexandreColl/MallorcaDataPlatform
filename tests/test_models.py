@@ -108,6 +108,7 @@ def test_mallorca_region_is_available():
     assert "mallorca" in available_regions()
     region = load_region("mallorca")
     assert len(region.locations) >= 1
+    assert region.location("pollenca").label == "Pollença"
     assert all(region.contains(loc.lat, loc.lon) for loc in region.locations)
     assert not region.contains(41.38, 2.17)  # Barcelona
 

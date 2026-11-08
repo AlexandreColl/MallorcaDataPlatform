@@ -113,7 +113,7 @@ def load_region(name: str, regions_dir: Path | None = None) -> Region:
         max_lat=float(bbox["max_lat"]),
         max_lon=float(bbox["max_lon"]),
         locations=tuple(
-            Location(name=loc["name"], lat=float(loc["lat"]), lon=float(loc["lon"]))
+            Location(name=loc["name"], lat=float(loc["lat"]), lon=float(loc["lon"]), label=loc.get("label"))
             for loc in data.get("locations", [])
         ),
     )

@@ -110,11 +110,15 @@ class TimeWindow:
 
 @dataclass(frozen=True)
 class Location:
-    """Named point queried on gridded sources."""
+    """Named point queried on gridded sources.
+
+    ``name`` is the entity identifier (``pollenca``) and ``label`` its display name (``Pollença``), if any.
+    """
 
     name: str
     lat: float
     lon: float
+    label: str | None = None
 
 
 @dataclass(frozen=True)

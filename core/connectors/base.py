@@ -255,6 +255,6 @@ class BaseConnector(ABC):
     def describe(self, payload: RawPayload, region: Region) -> Iterable[Entity]:  # noqa: ARG002 - for overrides
         """The names of the entities in one raw payload (a stop's ``stop_name``, a station's ``nombre``).
 
-        Optional: sources whose identifiers already read as names (``palma``, ``demand``) keep the default, none.
+        Optional: sources whose identifiers already read as names (``demand``) keep the default, none.
         """
         return ()
