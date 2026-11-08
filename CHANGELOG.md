@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Grafana shows the names of the stations, stops and points instead of their identifiers: maps, tables, series
+  legends, the anomaly annotations and the selectors (Entidad, Serie corregida), through `gold.dim_locations`.
+- Names of the Open-Meteo points: the region's locations and the marine points have a `label` in their YAML
+  (`pollenca` is `Pollença`) and the connector describes them.
+- API: `name` in `/v1/sea/hourly`.
+
+### Fixed
+
+- Web: the legend of *Temperatura de los últimos 30 días* no longer covers the top of the chart, and the wave chart
+  shows one label per day.
+
 ## [0.12.0] - 2026-11-07
 
 ### Added
