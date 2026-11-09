@@ -158,7 +158,7 @@ export function Operations() {
                   },
                   { label: "Acceso", value: (s) => ACCESS_LABELS[s.governance.access] },
                   { label: "Datos personales", value: (s) => (s.governance.personal_data ? "Sí" : "No") },
-                  { label: "SLA", value: (s) => (s.governance.lifecycle === "history" ? "Histórico cerrado" : slaText(s)) },
+                  { label: "SLA (dato · cargas)", value: (s) => (s.governance.lifecycle === "history" ? "Histórico" : slaText(s)) },
                 ]}
               />
             )}

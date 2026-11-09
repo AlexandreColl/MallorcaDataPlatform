@@ -51,11 +51,11 @@ describe("sourceState", () => {
 
 describe("slaText", () => {
   it("gives the age in hours or days and the share of good runs", () => {
-    expect(slaText(source({}, { data_age_hours: 48 }))).toBe("dato de < 48 h · 90 % de cargas correctas");
-    expect(slaText(source({}, { data_age_hours: 2400, success_rate: 0.8 }))).toBe("dato de < 100 días · 80 % de cargas correctas");
+    expect(slaText(source({}, { data_age_hours: 48 }))).toBe("< 48 h · 90 % ok");
+    expect(slaText(source({}, { data_age_hours: 2400, success_rate: 0.8 }))).toBe("< 100 días · 80 % ok");
   });
 
   it("leaves out the age when the SLA sets none", () => {
-    expect(slaText(source({}, { data_age_hours: null }))).toBe("90 % de cargas correctas");
+    expect(slaText(source({}, { data_age_hours: null }))).toBe("90 % ok");
   });
 });

@@ -33,12 +33,12 @@ export const STATE_LABELS: Record<SourceState, string> = {
   inactive: "Histórico",
 };
 
-/** The SLA of a source in words: the maximum age of its newest value and the minimum share of good runs. */
+/** The SLA of a source, short: the maximum age of its newest value and the minimum share of successful runs. */
 export function slaText(source: Source): string {
   const parts: string[] = [];
   const hours = source.sla.data_age_hours;
-  if (hours !== null) parts.push(hours < 72 ? `dato de < ${hours} h` : `dato de < ${Math.round(hours / 24)} días`);
-  parts.push(`${Math.round(source.sla.success_rate * 100)} % de cargas correctas`);
+  if (hours !== null) parts.push(hours < 72 ? `< ${hours} h` : `< ${Math.round(hours / 24)} días`);
+  parts.push(`${Math.round(source.sla.success_rate * 100)} % ok`);
   return parts.join(" · ");
 }
 

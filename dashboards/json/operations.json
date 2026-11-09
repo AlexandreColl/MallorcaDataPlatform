@@ -402,7 +402,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT label AS \"Fuente\", last_status AS \"Última ejecución\", last_run_at AS \"Cuándo\", last_error_type AS \"Error\", runs_7d AS \"Ejecuciones 7 d\", 100 * failure_rate_7d AS \"% fallos 7 d\", latest_observation_ts AS \"Último dato\", data_age_hours / 24 AS \"Antigüedad (días)\", sla_data_age_hours / 24.0 AS \"SLA antigüedad (días)\", CASE WHEN sla_met THEN 'cumple' WHEN NOT sla_met THEN 'incumple' ELSE '—' END AS \"SLA\", observations AS \"Observaciones\" FROM gold.source_health WHERE source IN ($source) ORDER BY label"
+          "rawSql": "SELECT label AS \"Fuente\", last_status AS \"Última ejecución\", last_run_at AS \"Cuándo\", last_error_type AS \"Error\", runs_7d AS \"Ejecuciones 7 d\", 100 * failure_rate_7d AS \"% fallos 7 d\", latest_observation_ts AS \"Último dato\", data_age_hours / 24 AS \"Antigüedad (días)\", sla_data_age_hours / 24.0 AS \"SLA (días)\", CASE WHEN sla_met THEN 'cumple' WHEN NOT sla_met THEN 'incumple' ELSE '—' END AS \"SLA\", observations AS \"Observaciones\" FROM gold.source_health WHERE source IN ($source) ORDER BY label"
         }
       ],
       "fieldConfig": {
@@ -479,7 +479,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "SLA antigüedad (días)"
+              "options": "SLA (días)"
             },
             "properties": [
               {
