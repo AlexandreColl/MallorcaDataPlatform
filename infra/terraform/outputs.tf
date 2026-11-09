@@ -29,12 +29,16 @@ output "glue_database" {
 }
 
 output "pipeline_env" {
-  description = "Environment of the pipeline on AWS: real S3 instead of MinIO (credentials come from the role)."
+  description = "Environment of the pipeline on AWS: real S3 instead of MinIO, written with the pipeline role."
   value = {
     S3_ENDPOINT_URL  = "https://s3.${data.aws_region.current.region}.amazonaws.com"
     S3_REGION        = data.aws_region.current.region
     S3A_INPUT_STREAM = "analytics"
     BRONZE_BUCKET    = module.bronze.id
     SILVER_BUCKET    = module.silver.id
+    # boto3 and Spark assume the role with temporary credentials (core/credentials.py). The identity that assumes it
+    # is the caller's: its keys in S3_ACCESS_KEY and S3_SECRET_KEY, or the SDK's default chain when they are empty.
+    S3_CREDENTIALS = "role"
+    S3_ROLE_ARN    = aws_iam_role.pipeline.arn
   }
 }

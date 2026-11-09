@@ -18,7 +18,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test screenshots tf-check tf-fmt
+.PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test minio-pipeline-user screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -63,6 +63,10 @@ backfill: ## Load a past date range, one run per year: make backfill CONNECTORS=
 
 api-role: ## Create or update the read-only API role on an existing postgres volume (idempotent)
 	$(COMPOSE) exec -T postgres bash /docker-entrypoint-initdb.d/02-api-reader.sh
+
+minio-pipeline-user: ## Create the local twin of the AWS pipeline role in MinIO, for S3_CREDENTIALS=role (idempotent)
+	$(COMPOSE) cp docker/minio/pipeline-policy.json minio:/tmp/pipeline-policy.json
+	$(COMPOSE) exec -T minio sh -s < docker/minio/pipeline-user.sh
 
 api-test: ## Unit tests of the REST API (no database needed)
 	$(COMPOSE) run --rm toolbox pytest api

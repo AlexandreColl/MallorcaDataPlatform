@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pyspark.sql import SparkSession
 from pyspark.sql import types as T
 
+from core.credentials import spark_s3a_config
 from core.lake import DELTA_SPARK_CONFIG
 
 if TYPE_CHECKING:
@@ -37,24 +38,18 @@ def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") ->
         .config("spark.driver.extraJavaOptions", "-Duser.timezone=UTC")
         .config("spark.sql.shuffle.partitions", "4")
         .config("spark.ui.enabled", "false")
-        # S3A -> MinIO. On AWS only the endpoint and credentials provider change.
+        # S3A -> MinIO. On AWS only the endpoint and the credentials change (S3_CREDENTIALS, core/credentials.py).
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .config("spark.hadoop.fs.s3a.endpoint", settings.s3_endpoint_url)
         .config("spark.hadoop.fs.s3a.endpoint.region", settings.s3_region)
-        .config("spark.hadoop.fs.s3a.access.key", settings.s3_access_key)
-        .config("spark.hadoop.fs.s3a.secret.key", settings.s3_secret_key)
         .config("spark.hadoop.fs.s3a.path.style.access", "true")
         .config("spark.hadoop.fs.s3a.input.stream.type", settings.s3a_input_stream)
         .config(
             "spark.hadoop.fs.s3a.connection.ssl.enabled",
             str(settings.s3_endpoint_url.startswith("https")).lower(),
         )
-        .config(
-            "spark.hadoop.fs.s3a.aws.credentials.provider",
-            "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
-        )
     )
-    for key, value in DELTA_SPARK_CONFIG.items():
+    for key, value in {**spark_s3a_config(settings, app_name), **DELTA_SPARK_CONFIG}.items():
         builder = builder.config(key, value)
     if settings.spark_extra_jars:
         builder = builder.config("spark.jars", settings.spark_extra_jars)

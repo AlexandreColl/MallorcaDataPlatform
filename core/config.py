@@ -26,6 +26,10 @@ class Settings:
     s3_access_key: str
     s3_secret_key: str
     s3_region: str
+    s3_credentials: str
+    s3_role_arn: str
+    s3_sts_endpoint_url: str
+    s3_role_session_seconds: int
     s3a_input_stream: str
     bronze_bucket: str
     silver_bucket: str
@@ -47,6 +51,11 @@ class Settings:
             s3_access_key=_env("S3_ACCESS_KEY", "minioadmin"),
             s3_secret_key=_env("S3_SECRET_KEY", "minioadmin"),
             s3_region=_env("S3_REGION", "us-east-1"),
+            # static keys, an assumed role or the SDK's default chain (core/credentials.py).
+            s3_credentials=_env("S3_CREDENTIALS", "static"),
+            s3_role_arn=_env("S3_ROLE_ARN", ""),
+            s3_sts_endpoint_url=_env("S3_STS_ENDPOINT_URL", ""),
+            s3_role_session_seconds=int(_env("S3_ROLE_SESSION_SECONDS", "3600")),
             # classic works with any S3-compatible store; `analytics` is tuned for AWS S3.
             s3a_input_stream=_env("S3A_INPUT_STREAM", "classic"),
             bronze_bucket=_env("BRONZE_BUCKET", "bronze"),
