@@ -30,7 +30,9 @@ El objetivo es demostrar el camino a AWS sin pagarlo. Además, la pila tiene que
   tabla sea Delta.
 - **En contra.**
   - Un proveedor simulado no prueba que AWS acepte la configuración.
-  - Spark aún usa claves estáticas en lugar del rol.
+  - Spark usaba claves estáticas en lugar del rol. Resuelto en noviembre de 2026: `S3_CREDENTIALS=role` asume el
+    rol con credenciales temporales en boto3 y en Spark (`core/credentials.py`), y se prueba en local contra el STS de
+    MinIO con un usuario que tiene la misma política que el rol.
   - Athena no hace *time travel* sobre Delta.
 
 ## Cuándo revisarla

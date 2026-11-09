@@ -70,7 +70,8 @@ owner, licence, access and SLA of each source are in [docs/data-governance.md](d
   change the value. Corrections go elsewhere, into `silver.corrections`, and gold shows both values
   ([below](#corrections-with-support-sources)).
 - **Local first, cloud later.** MinIO speaks S3 and Spark uses S3A: moving to AWS means changing the endpoint and
-  the credentials.
+  the credentials. With `S3_CREDENTIALS=role`, bronze and Spark write with temporary credentials of a
+  least-privilege role, locally too against MinIO's STS ([details](infra/terraform/README.md)).
 
 ## Getting started
 

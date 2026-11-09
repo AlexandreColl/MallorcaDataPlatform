@@ -138,7 +138,7 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | Estado | Tarea |
 |---|---|
 | ✅ | **Terraform** para AWS (`infra/terraform`): S3 (bronze, silver y resultados, privados, cifrados, solo TLS, con versionado y ciclo de vida), IAM de mínimo privilegio (roles pipeline y analyst), Glue Catalog con *partition projection* sobre el layout de Spark, Athena con límite por consulta y presupuesto de 2 USD. Sin desplegar: sin coste |
-| 🟡 | Mismo código, otro perfil: `terraform output pipeline_env` da las variables para S3 real. Falta que Spark use las credenciales del rol en lugar de claves estáticas, y llevar el warehouse a Athena (`dbt-athena`) |
+| 🟡 | Mismo código, otro perfil: `terraform output pipeline_env` da las variables para S3 real, con el rol del pipeline. Bronze y Spark escriben con credenciales temporales del rol (`S3_CREDENTIALS=role`, probado en local contra el STS de MinIO con un usuario de la misma política). Falta llevar el warehouse a Athena (`dbt-athena`) |
 | ✅ | Terraform en CI sin coste: `fmt`, `validate`, tflint (ruleset de AWS) y `terraform test` con `mock_provider` (13 tests). LocalStack no hace falta: su edición gratuita no tiene Glue ni Athena |
 | ⬜ | Variante **Databricks**: notebook/job que lee el mismo bronze; Delta Lake en lugar de Parquet 🔬 |
 | ✅ | Silver como tabla **Delta Lake** en MinIO: `MERGE` por la clave, historial de versiones, *time travel* y *Change Data Feed* (`make silver-changes`), una partición por fuente con `OPTIMIZE … ZORDER BY (ts)` y `VACUUM`, conversión y reescritura del lake Parquet (67.000 ficheros → 12) y Glue/Athena leyendo el log. Iceberg aún no tiene runtime para Spark 4.2 |
