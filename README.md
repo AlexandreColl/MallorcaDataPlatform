@@ -477,7 +477,7 @@ Grafana:
 | **Movilidad** | Población de la isla y servicio por cada 1.000 habitantes; mapa de los municipios por densidad, servicio por habitante o crecimiento en 10 años; población desde 1996; servicio programado de EMT y CTM por día, mapa del servicio de cada parada y paradas con más servicio; mapa de las líneas de autobús, tren y metro con su recorrido y sus salidas |
 | **Tiempo y entorno** | Temperatura por zonas (las 33 estaciones de AEMET interpoladas sobre la isla), avisos de AEMET por zona (ahora y en las próximas 72 h), temperatura de cada fuente, calidad del aire ahora (índice europeo) con la tabla de estaciones, oleaje, episodios, sismos y error del modelo |
 | **Explorador** | Cualquier serie de la plataforma día a día (fuente, métrica y entidad): media, mínimo y máximo, completitud, valores sospechosos y días con anomalías; la selección queda en la dirección para compartirla |
-| **Operación** | Estado de cada fuente, reglas de calidad que fallan, anomalías por día y últimas correcciones |
+| **Operación** | Estado de cada fuente frente a su SLA, gobierno del dato (dueño, licencia y acceso), reglas de calidad que fallan, anomalías por día y últimas correcciones |
 
 En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala noticia, junto con la evolución de los
 últimos meses. Los mapas tienen capas que se pueden ocultar, y al pulsar un punto se ve qué es.
@@ -544,14 +544,16 @@ Pearson, pocos años, así que orientativas):
 
 ### Alertas
 
-Tres reglas de alerta provisionadas desde `dashboards/provisioning/alerting/alerting.yml`. Se evalúan cada 5 minutos
-sobre las tablas operativas (`ops.ingestion_runs`, `quality.check_results`), así que avisan aunque dbt no corra,
-y cada fuente (o regla) es una alerta aparte:
+Cuatro reglas de alerta provisionadas desde `dashboards/provisioning/alerting/alerting.yml`. Se evalúan cada 5
+minutos y cada fuente (o regla) es una alerta aparte. Tres leen solo las tablas operativas (`ops.ingestion_runs`,
+`quality.check_results`), así que avisan aunque dbt no corra. La del SLA lee además el catálogo de fuentes y
+`gold.source_health`:
 
 | Alerta | Cuándo salta |
 |---|---|
 | **Ingesta fallida** | La última ejecución de una fuente terminó en `failed` |
 | **Fuente sin ejecución correcta** | Una fuente activa (con datos del último año) lleva más de 36 h sin una ejecución correcta. Un backfill de histórico no cuenta |
+| **Fuente fuera de su SLA** | Una fuente activa no cumple el SLA de su ficha: su último dato es más antiguo de lo acordado o tiene menos cargas correctas en 7 días de las acordadas ([gobierno del dato](docs/data-governance.md)) |
 | **Regla de calidad en rojo** | Una regla pasó en el chequeo anterior y falla en el último. Las que fallan siempre (los huecos de una fuente con cortes conocidos) no avisan |
 
 Las alertas activas aparecen en el panel *Alertas* de Operación. Para recibirlas en **Telegram**, opcional:
@@ -566,8 +568,8 @@ las dos variables existen, y los borra si se quitan. Sin ellas todo funciona igu
 un mensaje por regla y fuente cuando salta una alerta, otro cuando se resuelve, y se repite cada 12 h mientras siga
 activa.
 
-Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
-fila.
+Los nombres de las fuentes salen del seed `dim_sources` de dbt, que es también su ficha de gobierno (dueño, licencia,
+acceso y SLA). Un test comprueba que toda fuente de silver tiene su fila.
 
 ## API REST
 
@@ -578,7 +580,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | Endpoint | Qué devuelve |
 |---|---|
 | `GET /v1/health` | Estado de la API y de su conexión al warehouse (503 si está caído) |
-| `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
+| `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días, antigüedad del último dato, su ficha de gobierno (dueño, licencia, acceso, datos personales) y su SLA con si se cumple |
 | `GET /v1/locations` | Cada estación, punto de modelo y parada con coordenadas, su fuente y su tipo (el mapa de la web) |
 | `GET /v1/mobility/daily`, `/v1/mobility/stops`, `/v1/mobility/routes` | Servicio programado de EMT y CTM por día, el de cada parada en el último día y cada línea con su recorrido (GeoJSON) y sus salidas |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación; `stations`: cada estación en el último día publicado |
@@ -654,4 +656,5 @@ Ramas y releases: [docs/git-workflow.md](docs/git-workflow.md) · Arquitectura y
 
 ## Licencia
 
-MIT. Los datos pertenecen a sus proveedores (Open-Meteo: CC BY 4.0).
+El código, MIT. Los datos pertenecen a sus dueños y se usan con sus licencias: la de cada fuente está en
+[docs/data-governance.md](docs/data-governance.md).
