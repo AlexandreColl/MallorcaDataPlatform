@@ -182,7 +182,7 @@ despliegue real con su coste medido.
 | ⬜ | Streamlit para exploración ad hoc |
 | ⬜ | Agente LLM que responda preguntas sobre el warehouse (solo lectura sobre gold) |
 | ⬜ | MQTT / streaming cuando haya una fuente que emita en continuo (fuera de v1) |
-| ⬜ | Traducción del README al inglés |
+| ✅ | Traducción del README al inglés ([README.en.md](README.en.md)), enlazada desde la cabecera de los dos |
 
 ---
 
