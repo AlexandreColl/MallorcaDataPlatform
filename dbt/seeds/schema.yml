@@ -2,7 +2,15 @@ version: 2
 
 seeds:
   - name: dim_sources
-    description: One row per connector with the label shown in Grafana and the kind of data it provides.
+    description: >-
+      The catalogue of sources: one row per connector with its label, the kind of data it provides and its
+      governance (docs/data-governance.md): who owns the data, under which licence and terms, how it is accessed,
+      whether it holds personal data, its classification, whether it is still published and the SLA agreed for it.
+    config:
+      column_types:
+        sla_data_age_hours: integer
+        sla_success_rate: numeric(3, 2)
+        personal_data: boolean
     columns:
       - name: source
         data_tests: [not_null, unique]
@@ -11,6 +19,66 @@ seeds:
           - accepted_values:
               arguments:
                 values: ["model", "observation", "system", "event", "schedule", "statistic", "warning"]
+      - name: domain
+        description: Subject area of the data, the unit a data owner would answer for.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["weather", "air", "sea", "energy", "seismic", "mobility", "tourism", "water", "population"]
+      - name: owner
+        description: The publisher that owns the data and answers for its content (the platform only copies it).
+        data_tests: [not_null]
+      - name: license
+        description: >-
+          Licence or reuse terms as the publisher states them. Where no licence is published, it says so, and the
+          default terms of Spanish public-sector reuse (Ley 37/2007: cite the source, do not distort it) apply.
+        data_tests: [not_null]
+      - name: terms_url
+        description: The publisher's page with those terms.
+        data_tests: [not_null]
+      - name: access
+        description: "`open` (anonymous) or `api_key` (a free key, kept in .env outside the repository)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["open", "api_key"]
+      - name: personal_data
+        description: >-
+          Whether the source holds data about identifiable people (GDPR). None does: the register comes aggregated
+          by municipality and sex, and the human pressure indicator is a daily island total.
+        data_tests: [not_null]
+      - name: classification
+        description: "`public`, `internal` or `restricted`: who may see the data. Every source is published open data."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["public", "internal", "restricted"]
+      - name: lifecycle
+        description: "`active` (still published and loaded every day) or `history` (a closed series, no SLA on age)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["active", "history"]
+      - name: sla_data_age_hours
+        description: >-
+          Agreed maximum age of the newest value, in hours: the publisher's delay plus its cadence plus a margin
+          (48 for hourly and daily sources, 120 for AEMET, about 100 days for monthly statistics, two years for the
+          register). Empty when age says nothing: earthquakes only exist when they happen, and closed histories.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 1, max_value: 20000}
+      - name: sla_success_rate
+        description: >-
+          Agreed minimum share of successful runs in the last 7 days. 0.8 for SOCIB and REData, whose services
+          have known cuts and 502s; 0.9 for the rest.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0, max_value: 1}
   - name: dim_aquifers
     description: >-
       Groundwater bodies (MAS) of Mallorca in the water reserves spreadsheet of the Govern, with their hydrogeological

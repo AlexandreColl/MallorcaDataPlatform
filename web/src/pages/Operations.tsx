@@ -8,7 +8,7 @@ import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
 import { age, compact, dayShort, number, placeName } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
-import { sourceState, STATE_LABELS } from "../lib/sources";
+import { ACCESS_LABELS, slaText, sourceState, STATE_LABELS } from "../lib/sources";
 
 const DETECTORS: Record<string, { label: string; color: string }> = {
   robust_zscore: { label: "Z-score robusto", color: "#d97706" },
@@ -27,6 +27,21 @@ const RULES: Record<string, string> = {
   source_qc: "Dudoso según la fuente",
 };
 
+/** The domains of the catalogue of sources (dim_sources) in words. */
+const DOMAINS: Record<string, string> = {
+  weather: "Tiempo", air: "Calidad del aire", sea: "Mar", energy: "Energía", seismic: "Sismos",
+  mobility: "Movilidad", tourism: "Turismo", water: "Agua", population: "Población",
+};
+
+/** Whether a source meets its SLA, and which part it misses. */
+function SlaCell({ source }: { source: Source }) {
+  const { met, age_met, success_met } = source.sla;
+  if (met === null) return <span className="state state-inactive">—</span>;
+  if (met) return <span className="sla-met">Cumple</span>;
+  const missed = [age_met === false && "dato antiguo", success_met === false && "fallos"].filter(Boolean).join(" y ");
+  return <span className="sla-breached" title={slaText(source)}>Incumple ({missed})</span>;
+}
+
 function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRules: number): Kpi[] {
   const active = sources.filter((s) => sourceState(s) !== "inactive");
   const ok = active.filter((s) => sourceState(s) === "ok").length;
@@ -35,8 +50,8 @@ function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRul
   const flagged = anomalies.reduce((n, a) => n + a.anomalies, 0);
   return [
     {
-      id: "sources", label: "Fuentes al día", value: `${ok}`, unit: `de ${active.length}`, month: "Con una carga correcta en 36 h",
-      deviation: ok === active.length ? "Todas al día" : `${active.length - ok} atrasadas o con fallos`,
+      id: "sources", label: "Fuentes al día", value: `${ok}`, unit: `de ${active.length}`, month: "Carga correcta en 36 h y dentro de su SLA",
+      deviation: ok === active.length ? "Todas al día" : `${active.length - ok} atrasadas, con fallos o fuera de SLA`,
       tone: ok === active.length ? "good" : "bad", history: [],
     },
     {
@@ -106,7 +121,44 @@ export function Operations() {
                   { label: "Estado", value: (s) => <span className={`state state-${sourceState(s)}`}>{STATE_LABELS[sourceState(s)]}</span> },
                   { label: "Último dato", value: (s) => (s.data_age_hours === null ? "—" : age(s.data_age_hours)) },
                   { label: "Fallos 7 días", value: (s) => `${number((s.failure_rate_7d ?? 0) * 100)} %`, numeric: true },
+                  { label: "SLA", value: (s) => <SlaCell source={s} /> },
                   { label: "Valores", value: (s) => compact(s.observations), numeric: true },
+                ]}
+              />
+            )}
+          </Async>
+        </Panel>
+        <Panel
+          title="Gobierno del dato"
+          subtitle="Dueño, licencia y acceso de cada fuente, y el SLA acordado: antigüedad máxima del último dato y cargas correctas en 7 días."
+          wide
+        >
+          <Async state={sources}>
+            {(rows) => (
+              <Table
+                rows={[...rows].sort((a, b) => a.governance.domain.localeCompare(b.governance.domain) || (a.label ?? a.source).localeCompare(b.label ?? b.source, "es"))}
+                columns={[
+                  {
+                    label: "Fuente",
+                    value: (s) => (
+                      <span className="stacked">
+                        <strong>{s.label ?? s.source}</strong>
+                        <small>{DOMAINS[s.governance.domain] ?? s.governance.domain}</small>
+                      </span>
+                    ),
+                  },
+                  { label: "Dueño", value: (s) => s.governance.owner },
+                  {
+                    label: "Licencia",
+                    value: (s) => (
+                      <a href={s.governance.terms_url} target="_blank" rel="noreferrer">
+                        {s.governance.license}
+                      </a>
+                    ),
+                  },
+                  { label: "Acceso", value: (s) => ACCESS_LABELS[s.governance.access] },
+                  { label: "Datos personales", value: (s) => (s.governance.personal_data ? "Sí" : "No") },
+                  { label: "SLA", value: (s) => (s.governance.lifecycle === "history" ? "Histórico cerrado" : slaText(s)) },
                 ]}
               />
             )}

@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +13,10 @@ SOURCE = {
     "source": "aemet", "label": "AEMET", "kind": "observation", "last_status": "success", "last_run_at": TS,
     "last_success_at": TS, "last_loaded_day": date(2026, 10, 25), "runs_7d": 7, "failure_rate_7d": 0,
     "latest_observation_ts": TS, "data_age_hours": 26.5, "observations": 796474,
+    "domain": "weather", "owner": "AEMET", "license": "Reutilización con cita", "terms_url": "https://www.aemet.es",
+    "access": "api_key", "personal_data": False, "classification": "public", "lifecycle": "active",
+    "sla_data_age_hours": 120, "sla_success_rate": Decimal("0.90"), "sla_age_met": True, "sla_success_met": True,
+    "sla_met": True,
 }  # fmt: skip
 WATER = {
     "month": date(2026, 8, 1), "hydrological_year": 2026, "reserves_pct": 38.0, "change_1m_pts": -1.0,
@@ -76,7 +81,14 @@ def test_sources_and_one_source(db):
     api = client(db)
 
     assert api.get("/v1/sources").json()[0]["source"] == "aemet"
-    assert api.get("/v1/sources/aemet").json()["observations"] == 796474
+    one = api.get("/v1/sources/aemet").json()
+    assert one["observations"] == 796474
+    assert one["governance"] == {
+        "domain": "weather", "owner": "AEMET", "license": "Reutilización con cita", "terms_url": "https://www.aemet.es",
+        "access": "api_key", "personal_data": False, "classification": "public", "lifecycle": "active",
+    }  # fmt: skip
+    assert one["sla"] == {"data_age_hours": 120, "success_rate": 0.9, "age_met": True, "success_met": True, "met": True}
+    assert "sla_met" not in one
     missing = api.get("/v1/sources/nope")
     assert missing.status_code == 404
     assert missing.json()["error"] == {"code": "not_found", "message": "unknown source 'nope'"}

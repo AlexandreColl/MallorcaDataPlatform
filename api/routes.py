@@ -115,17 +115,17 @@ def health(request: Request) -> Health:
 
 @router.get("/sources", tags=["platform"])
 def sources(warehouse: WarehouseDep) -> list[Source]:
-    """Every data source with its last run, failure rate in the last 7 days and the age of its latest value."""
-    return [Source(**row) for row in warehouse.sources()]
+    """Every data source with its health (last run, failures in 7 days, age of its latest value), owner, licence and SLA."""
+    return [Source.from_row(row) for row in warehouse.sources()]
 
 
 @router.get("/sources/{source}", tags=["platform"], responses={404: {"model": ErrorResponse}})
 def source(source: str, warehouse: WarehouseDep) -> Source:
-    """One data source and its health."""
+    """One data source with its health, its governance and its SLA."""
     rows = warehouse.sources(source)
     if not rows:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown source '{source}'")
-    return Source(**rows[0])
+    return Source.from_row(rows[0])
 
 
 @router.get("/locations", tags=["platform"])

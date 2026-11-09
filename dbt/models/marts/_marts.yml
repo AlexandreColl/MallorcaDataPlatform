@@ -306,10 +306,17 @@ models:
   - name: source_health
     description: >
       One row per source in `dim_sources`: last run and its error type, last successful load, failures in the
-      last 7 days and the age of its newest observation.
+      last 7 days and the age of its newest observation, with the governance of the source (owner, licence,
+      access, personal data, classification, lifecycle) and whether it meets its agreed SLA.
     columns:
       - name: source
         data_tests: [not_null, unique]
+      - name: sla_age_met
+        description: Newest value no older than `sla_data_age_hours`. Null when the SLA sets no age or there is no value.
+      - name: sla_success_met
+        description: Share of successful runs in 7 days at least `sla_success_rate`. Null when the source did not run.
+      - name: sla_met
+        description: False if either part is breached, true if a known part is met and none is breached, else null.
       - name: failure_rate_7d
         data_tests:
           - value_between:
