@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - run: pip install ruff==0.17.3
+      - run: scripts/ci/retry.sh pip install ruff==0.17.3
       - run: ruff check --no-fix --output-format=github .
       - run: ruff format --check .
 
@@ -50,22 +50,38 @@ jobs:
     defaults:
       run:
         working-directory: infra/terraform
+    env:
+      TFLINT_IMAGE: ghcr.io/terraform-linters/tflint:v0.64.0  # same version as the Makefile
+      TF_PLUGIN_CACHE_DIR: /home/runner/.terraform.d/plugin-cache
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.16.6
           terraform_wrapper: false
-      - uses: terraform-linters/setup-tflint@v6
+      # Providers (registry) and tflint plugins (GitHub releases) are cached, and every download is retried: a
+      # 502/504 of a few minutes no longer fails the job. tflint runs in its image from ghcr.io, as `make tf-check`
+      # does, instead of the setup action that downloads the binary from a GitHub release.
+      - uses: actions/cache@v5
         with:
-          tflint_version: v0.64.0
+          path: |
+            ~/.terraform.d/plugin-cache
+            ~/.tflint.d/plugins
+          key: terraform-${{ hashFiles('infra/terraform/.terraform.lock.hcl', 'infra/terraform/.tflint.hcl') }}
+      - run: mkdir -p "$TF_PLUGIN_CACHE_DIR" ~/.tflint.d/plugins
       - run: terraform fmt -check -recursive
-      - run: terraform init -backend=false -input=false
+      - run: ../../scripts/ci/retry.sh terraform init -backend=false -input=false
       - run: terraform validate
-      - run: tflint --init
+      - run: ../../scripts/ci/retry.sh docker pull --quiet "$TFLINT_IMAGE"
+      - name: tflint --init
         env:
           GITHUB_TOKEN: ${{ github.token }}  # plugin download without the anonymous rate limit
-      - run: tflint --recursive --format compact
+        run: >-
+          ../../scripts/ci/retry.sh docker run --rm -v "$PWD:/data" -w /data -v "$HOME/.tflint.d/plugins:/plugins"
+          -e TFLINT_PLUGIN_DIR=/plugins -e GITHUB_TOKEN "$TFLINT_IMAGE" --init
+      - run: >-
+          docker run --rm -v "$PWD:/data" -w /data -v "$HOME/.tflint.d/plugins:/plugins"
+          -e TFLINT_PLUGIN_DIR=/plugins "$TFLINT_IMAGE" --recursive --format compact
       # The tests run against mock_provider "aws": no AWS account, credentials or cost, and nothing is applied.
       - run: terraform test
 
@@ -89,12 +105,13 @@ jobs:
         run: |
           version=$(sed -n 's/^ARG DELTA_VERSION=//p' docker/airflow/Dockerfile)
           mkdir -p ~/spark-jars
-          curl -fsSL -o ~/spark-jars/delta-spark.jar \
+          get="curl -fsSL --retry 5 --retry-all-errors --retry-delay 10"
+          $get -o ~/spark-jars/delta-spark.jar \
             "https://repo1.maven.org/maven2/io/delta/delta-spark_4.2_2.13/${version}/delta-spark_4.2_2.13-${version}.jar"
-          curl -fsSL -o ~/spark-jars/delta-storage.jar \
+          $get -o ~/spark-jars/delta-storage.jar \
             "https://repo1.maven.org/maven2/io/delta/delta-storage/${version}/delta-storage-${version}.jar"
           echo "SPARK_EXTRA_JARS=$HOME/spark-jars/delta-spark.jar,$HOME/spark-jars/delta-storage.jar" >> "$GITHUB_ENV"
-      - run: pip install -r requirements/dev.txt
+      - run: scripts/ci/retry.sh pip install -r requirements/dev.txt
       - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
       # The core (the platform without the source-specific connectors) keeps at least 80 % coverage, branches
       # included. dbt-docs.yml publishes the report and the README badge from this artifact.
@@ -141,9 +158,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - run: >-
-          pip install dbt-core==1.12.6 dbt-postgres==1.11.0
-          sqlfluff==4.4.0 sqlfluff-templater-dbt==4.4.0
+          cache: pip
+          cache-dependency-path: requirements/dbt.txt
+      # dbt-core's parser is an sdist whose build downloads a wheel from a GitHub release: the pip cache keeps the
+      # built wheel, and the retry covers a cold cache during a GitHub outage.
+      - run: scripts/ci/retry.sh pip install -r requirements/dbt.txt
       - name: Apply warehouse DDL
         run: psql -h localhost -U warehouse -d warehouse -v ON_ERROR_STOP=1 -f core/sql/warehouse.sql
       - name: dbt deps
@@ -187,7 +206,7 @@ jobs:
           API_DB_PASSWORD: warehouse
         run: |
           (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api --indirect-selection cautious)
-          pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
+          scripts/ci/retry.sh pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
           pytest -q api/tests/test_integration.py
       # The pipeline's writes (the upsert behind idempotent reruns, run tracking) against the same Postgres.
       - name: Warehouse writes against Postgres
