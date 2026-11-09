@@ -9,9 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def _requirements(path: Path) -> dict[str, str]:
     pins = {}
     for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.split("#", 1)[0].strip()
-        if "==" in line:
-            name, version = line.split("==", 1)
+        requirement = line.split("#", 1)[0].strip()
+        if "==" in requirement:
+            name, version = requirement.split("==", 1)
             pins[name.strip().lower()] = version.strip()
     return pins
 
@@ -33,4 +33,5 @@ def test_ci_tflint_matches_the_makefile():
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     image = re.search(r"ghcr\.io/terraform-linters/tflint:\S+", makefile)
-    assert image and image.group(0) in workflow
+    assert image
+    assert image.group(0) in workflow
