@@ -222,22 +222,30 @@ Hay tres controles, de lo más técnico a lo acordado:
   reciente y la parte mínima de cargas correctas en 7 días. `gold.source_health` lo evalúa (`sla_met`). La web
   marca la fuente como *Fuera de SLA* y Grafana avisa con *Fuente fuera de su SLA*. La tabla de SLAs y cómo se fija
   cada uno están en [data-governance.md](data-governance.md).
-- **`dbt source freshness`**, que corre antes de cada build, mide otra cosa: si las cargas traen filas nuevas
-  (`updated_at`). Cada fuente tiene su umbral en `_sources.yml`, en la tabla de abajo. Si no se cumple, avisa en
-  los logs, pero no para la construcción de gold.
+- **`dbt source freshness`**, que corre antes de cada build, mide si las cargas traen filas nuevas (`updated_at`).
+  Cada fuente tiene dos umbrales en `_sources.yml`, en la tabla de abajo:
+  - `warn_after`, un aviso temprano a la cadencia de la fuente;
+  - `error_after`, que es su SLA del catálogo: sin una fila nueva en ese tiempo, el dato más reciente también es
+    más antiguo que el SLA.
+
+  Un test (`tests/test_freshness_sla.py`) exige que cada fuente del catálogo esté declarada, que `error_after` sea su
+  SLA y que `warn_after` no lo supere. Ni el aviso ni el error paran la construcción de gold: quedan en los logs.
 - **La alerta de Grafana *Fuente sin ejecución correcta*** salta si una fuente activa lleva 36 h sin ninguna carga
   correcta. Lee solo `ops.ingestion_runs`, así que avisa aunque dbt no corra.
 
-| Fuente | Publica | Aviso si no hay datos nuevos en |
-|---|---|---|
-| Open-Meteo, Open-Meteo Marine | Cada hora (modelo) | 36 h |
-| SOCIB, EEA | Cada hora (estación) | 36 h |
-| REData | Cada hora (demanda) y cada día (mix y CO₂) | 36 h |
-| EMT Palma, CTM | Feed GTFS diario | 36 h |
-| AEMET | Valores diarios, con 2-3 días de retraso | 5 días |
-| Dataestur, reservas hídricas | Mensual, con 1-3 meses de retraso | 40 días |
-| IGN | Solo cuando hay sismos | Sin umbral |
-| GOIB (histórico) | Cerrado en junio de 2021 | Sin umbral |
+| Fuente | Publica | Aviso sin datos nuevos en | Error (SLA) |
+|---|---|---|---|
+| Open-Meteo, Open-Meteo Marine | Cada hora (modelo) | 36 h | 48 h |
+| SOCIB, EEA | Cada hora (estación) | 36 h | 48 h |
+| REData | Cada hora (demanda) y cada día (mix y CO₂) | 36 h | 48 h |
+| EMT Palma, CTM | Feed GTFS diario | 36 h | 48 h |
+| AEMET (avisos) | Cada emisión de avisos | 36 h | 48 h |
+| AEMET | Valores diarios, con 2-3 días de retraso | 5 días | 5 días |
+| Dataestur, reservas hídricas | Mensual, con 1-3 meses de retraso | 40 días | 100 días |
+| Ibestat (presión humana) | Mensual, unos dos meses tarde | 40 días | 120 días |
+| INE (padrón) | Anual, en diciembre | 400 días | 2 años |
+| IGN | Solo cuando hay sismos | Sin umbral | Sin SLA |
+| GOIB (histórico) | Cerrado en junio de 2021 | Sin umbral | Sin SLA |
 
 ## 7. Evolución del esquema
 
