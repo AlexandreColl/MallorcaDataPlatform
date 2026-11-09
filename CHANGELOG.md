@@ -17,11 +17,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Web, Operación: a *Fuera de SLA* state with the part that is missed, and a *Gobierno del dato* panel (owner,
   licence, access, personal data, SLA). Grafana: an SLA column in *Salud de las fuentes* and a *Fuente fuera de su
   SLA* alert.
+- An English README (`README.en.md`), linked from the header of both versions. The detailed documentation stays
+  in Spanish.
 
 ### Changed
 
 - A closed history is told by its lifecycle in the catalogue, no longer by the age of its newest value (800 days).
-
 - The CI survives a GitHub download outage. A 504 from GitHub's release assets failed the Terraform and dbt jobs
   three times: tflint now runs in its image from ghcr.io (as `make tf-check` does) with its plugins and the
   Terraform providers cached, dbt is installed from `requirements/dbt.txt` with the pip cache (which keeps the
