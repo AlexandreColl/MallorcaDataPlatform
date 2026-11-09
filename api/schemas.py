@@ -18,8 +18,31 @@ class Health(BaseModel):
     version: str = Field(examples=["0.13.0"])
 
 
+class Governance(BaseModel):
+    """Who owns a source and under which terms it is used (the catalogue of sources, docs/data-governance.md)."""
+
+    domain: str = Field(examples=["weather"], description="Subject area: weather, air, sea, mobility...")
+    owner: str = Field(examples=["AEMET (Agencia Estatal de Meteorología)"], description="Publisher owning the data.")
+    license: str = Field(examples=["CC BY 4.0"], description="Licence or reuse terms as the publisher states them.")
+    terms_url: str = Field(examples=["https://www.aemet.es/es/nota_legal"])
+    access: Literal["open", "api_key"]
+    personal_data: bool = Field(description="Whether the source holds data about identifiable people.")
+    classification: Literal["public", "internal", "restricted"]
+    lifecycle: Literal["active", "history"] = Field(description="`history`: a closed series, no SLA on its age.")
+
+
+class Sla(BaseModel):
+    """The SLA agreed for a source and whether it is met now. Null means unknown (no target or nothing to judge)."""
+
+    data_age_hours: int | None = Field(examples=[120], description="Maximum age of the newest value, in hours.")
+    success_rate: float = Field(examples=[0.9], description="Minimum share of successful runs in 7 days (0-1).")
+    age_met: bool | None
+    success_met: bool | None
+    met: bool | None = Field(description="False if either part is breached, true if a known part is met.")
+
+
 class Source(BaseModel):
-    """One data source and its health (gold.source_health)."""
+    """One data source, its health, its governance and its SLA (gold.source_health)."""
 
     source: str = Field(examples=["aemet"])
     label: str | None = Field(examples=["AEMET (estaciones oficiales)"])
@@ -33,6 +56,22 @@ class Source(BaseModel):
     latest_observation_ts: datetime | None
     data_age_hours: float | None
     observations: int
+    governance: Governance
+    sla: Sla
+
+    @classmethod
+    def from_row(cls, row: dict) -> Source:
+        """Nest the flat columns of gold.source_health into ``governance`` and ``sla``."""
+        governance = {name: row[name] for name in Governance.model_fields}
+        sla = {
+            "data_age_hours": row["sla_data_age_hours"],
+            "success_rate": row["sla_success_rate"],
+            "age_met": row["sla_age_met"],
+            "success_met": row["sla_success_met"],
+            "met": row["sla_met"],
+        }
+        flat = {name: row[name] for name in cls.model_fields if name not in {"governance", "sla"}}
+        return cls(**flat, governance=Governance(**governance), sla=Sla(**sla))
 
 
 class Location(BaseModel):

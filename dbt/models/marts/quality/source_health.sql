@@ -1,4 +1,5 @@
--- One row per source: is it up to date, how often it failed lately and how fresh its data is.
+-- One row per source: is it up to date, how often it failed lately, how fresh its data is, and whether it meets the
+-- SLA agreed in its catalogue entry (dim_sources), next to the rest of its governance.
 with runs as (
     select * from {{ ref('stg_ops__ingestion_runs') }}
     where status <> 'running'
@@ -32,24 +33,55 @@ data as (
         count(*) as observations
     from {{ ref('fct_observations') }}
     group by source
+),
+
+health as (
+    select
+        s.source,
+        s.label,
+        s.kind,
+        s.domain,
+        s.owner,
+        s.license,
+        s.terms_url,
+        s.access,
+        s.personal_data,
+        s.classification,
+        s.lifecycle,
+        s.sla_data_age_hours,
+        s.sla_success_rate,
+        l.last_status,
+        l.last_run_at,
+        l.last_error_type,
+        st.last_success_at,
+        st.last_loaded_day,
+        coalesce(st.runs_7d, 0) as runs_7d,
+        coalesce(st.failed_7d, 0) as failed_7d,
+        round(st.failed_7d::numeric / nullif(st.runs_7d, 0), 3) as failure_rate_7d,
+        d.latest_observation_ts,
+        round((extract(epoch from now() - d.latest_observation_ts) / 3600)::numeric, 1) as data_age_hours,
+        coalesce(d.observations, 0) as observations
+    from {{ ref('dim_sources') }} as s
+    left join last_run as l on s.source = l.source
+    left join stats as st on s.source = st.source
+    left join data as d on s.source = d.source
+),
+
+sla as (
+    select
+        *,
+        -- Unknown (null) when the SLA does not set an age or there is no value yet.
+        data_age_hours <= sla_data_age_hours as sla_age_met,
+        -- Unknown when the source did not run in the last 7 days.
+        case when runs_7d > 0 then 1 - failure_rate_7d >= sla_success_rate end as sla_success_met
+    from health
 )
 
 select
-    s.source,
-    s.label,
-    s.kind,
-    l.last_status,
-    l.last_run_at,
-    l.last_error_type,
-    st.last_success_at,
-    st.last_loaded_day,
-    coalesce(st.runs_7d, 0) as runs_7d,
-    coalesce(st.failed_7d, 0) as failed_7d,
-    round(st.failed_7d::numeric / nullif(st.runs_7d, 0), 3) as failure_rate_7d,
-    d.latest_observation_ts,
-    round((extract(epoch from now() - d.latest_observation_ts) / 3600)::numeric, 1) as data_age_hours,
-    coalesce(d.observations, 0) as observations
-from {{ ref('dim_sources') }} as s
-left join last_run as l on s.source = l.source
-left join stats as st on s.source = st.source
-left join data as d on s.source = d.source
+    *,
+    -- Breached if either part is breached, met if a known part is met and none is breached, unknown otherwise.
+    case
+        when sla_age_met is false or sla_success_met is false then false
+        when sla_age_met or sla_success_met then true
+    end as sla_met
+from sla

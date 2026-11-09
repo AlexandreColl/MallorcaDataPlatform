@@ -45,8 +45,10 @@ connectors/<nombre>/
    - Opcional, solo para redes de transporte: `routes(payload, region) -> Iterable[Route]` da las líneas con su
      recorrido. El pipeline sustituye con ellas las de la fuente en `silver.routes` (ver `core/connectors/gtfs.py`).
 6. Tests contra las fixtures (sin red). Ver `connectors/open_meteo/tests/` como plantilla.
-7. Añadir una fila a `dbt/seeds/dim_sources.csv` (nombre visible en el selector de fuentes de Grafana y tipo de
-   datos); un test de dbt falla si una fuente de silver no la tiene.
+7. Añadir una fila a `dbt/seeds/dim_sources.csv`: nombre visible en el selector de fuentes de Grafana, tipo de
+   datos y la ficha de gobierno, que incluye el dueño, la licencia, el acceso, los datos personales y el SLA
+   ([data-governance.md](data-governance.md) dice cómo fijarlo). Los tests de dbt fallan si una fuente de silver no
+   tiene fila o si a su ficha le falta un campo.
 8. Probar de punta a punta: `make run CONNECTORS=<nombre> DAYS=1` y mirar Grafana.
 9. Sección en el README, entrada en `CHANGELOG.md` → PR `✨ feat(connector): add <nombre>`.
 

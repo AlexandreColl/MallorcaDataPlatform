@@ -5,7 +5,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Data governance (docs/data-governance.md, ADR 0020). The catalogue of sources (`dim_sources`) gives every source
+  its domain, owner, licence with a link to its terms, access (open or a free API key), personal data,
+  classification, lifecycle (active or a closed history) and an agreed SLA: the maximum age of its newest value and
+  the minimum share of successful runs in 7 days. dbt tests make every field required. Where a publisher states no
+  licence (EMT Palma, Dataestur, Ibestat, REData, SOCIB), the entry says so instead of inventing one.
+- `gold.source_health` evaluates the SLA (`sla_age_met`, `sla_success_met`, `sla_met`), and `/v1/sources` serves it
+  with the governance as nested `governance` and `sla` objects.
+- Web, Operación: a *Fuera de SLA* state with the part that is missed, and a *Gobierno del dato* panel (owner,
+  licence, access, personal data, SLA). Grafana: an SLA column in *Salud de las fuentes* and a *Fuente fuera de su
+  SLA* alert.
+
 ### Changed
+
+- A closed history is told by its lifecycle in the catalogue, no longer by the age of its newest value (800 days).
 
 - The CI survives a GitHub download outage. A 504 from GitHub's release assets failed the Terraform and dbt jobs
   three times: tflint now runs in its image from ghcr.io (as `make tf-check` does) with its plugins and the

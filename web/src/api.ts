@@ -19,6 +19,30 @@ export interface Source {
   latest_observation_ts: string | null;
   data_age_hours: number | null;
   observations: number;
+  governance: Governance;
+  sla: Sla;
+}
+
+/** Who owns a source and under which terms it is used (the catalogue of sources, docs/data-governance.md). */
+export interface Governance {
+  domain: string;
+  owner: string;
+  license: string;
+  terms_url: string;
+  access: "open" | "api_key";
+  personal_data: boolean;
+  classification: "public" | "internal" | "restricted";
+  /** `history`: a closed series, with no SLA on its age. */
+  lifecycle: "active" | "history";
+}
+
+/** The SLA agreed for a source and whether it is met; null means it cannot be judged. */
+export interface Sla {
+  data_age_hours: number | null;
+  success_rate: number;
+  age_met: boolean | null;
+  success_met: boolean | null;
+  met: boolean | null;
 }
 
 export interface Location {
