@@ -22,7 +22,7 @@ class Governance(BaseModel):
     """Who owns a source and under which terms it is used (the catalogue of sources, docs/data-governance.md)."""
 
     domain: str = Field(examples=["weather"], description="Subject area: weather, air, sea, mobility...")
-    owner: str = Field(examples=["AEMET (Agencia Estatal de Meteorología)"], description="Publisher that owns the data.")
+    owner: str = Field(examples=["AEMET (Agencia Estatal de Meteorología)"], description="Publisher owning the data.")
     license: str = Field(examples=["CC BY 4.0"], description="Licence or reuse terms as the publisher states them.")
     terms_url: str = Field(examples=["https://www.aemet.es/es/nota_legal"])
     access: Literal["open", "api_key"]

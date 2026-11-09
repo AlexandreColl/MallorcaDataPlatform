@@ -115,7 +115,7 @@ def health(request: Request) -> Health:
 
 @router.get("/sources", tags=["platform"])
 def sources(warehouse: WarehouseDep) -> list[Source]:
-    """Every data source with its health (last run, failures in 7 days, age of its latest value), owner, licence and SLA."""
+    """Every data source with its health (last run, failures, age of its newest value), owner, licence and SLA."""
     return [Source.from_row(row) for row in warehouse.sources()]
 
 
