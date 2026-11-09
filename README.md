@@ -47,7 +47,8 @@ El caso completo, con el contexto, las restricciones, cada decisión con su porq
 [docs/architecture.md](docs/architecture.md). Allí está también qué se rompe primero a 10× y 100× y cuánto costaría
 en AWS ([trade-offs, costes y escalado](docs/architecture.md#5-trade-offs-costes-y-escalado)). Cada decisión tiene
 su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se rechazaron. El modelo de datos (silver,
-la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). En
+la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). El
+dueño, la licencia, el acceso y el SLA de cada fuente están en [docs/data-governance.md](docs/data-governance.md). En
 resumen:
 
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()` (y el opcional `describe()`, que pone nombre a las paradas y estaciones).
