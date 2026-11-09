@@ -5,6 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- The CI survives a GitHub download outage. A 504 from GitHub's release assets failed the Terraform and dbt jobs
+  three times: tflint now runs in its image from ghcr.io (as `make tf-check` does) with its plugins and the
+  Terraform providers cached, dbt is installed from `requirements/dbt.txt` with the pip cache (which keeps the
+  wheel of dbt-core's parser, built from a GitHub release), and every download is retried by `scripts/ci/retry.sh`
+  (pip, `terraform init`, `tflint --init`, the image pull) or by curl itself (the Delta Lake jars). A test keeps the
+  dbt pins of the CI equal to the image's and the tflint image equal to the Makefile's.
+
 ## [0.13.0] - 2026-11-08
 
 ### Added
