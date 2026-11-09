@@ -9,6 +9,8 @@
 ![Spark](https://img.shields.io/badge/pyspark-4.2-E25A1C)
 ![dbt](https://img.shields.io/badge/dbt-1.12-FF694B)
 
+[English](README.en.md) · **Español**
+
 Plataforma de datos **modular y 100 % local** sobre datos abiertos reales de Mallorca.
 Un `docker compose up` levanta Airflow, PySpark, MinIO (S3), PostgreSQL, dbt y Grafana; un DAG con
 parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo listo para analizar.
@@ -47,7 +49,8 @@ El caso completo, con el contexto, las restricciones, cada decisión con su porq
 [docs/architecture.md](docs/architecture.md). Allí está también qué se rompe primero a 10× y 100× y cuánto costaría
 en AWS ([trade-offs, costes y escalado](docs/architecture.md#5-trade-offs-costes-y-escalado)). Cada decisión tiene
 su ADR en [docs/adr](docs/adr/README.md), incluidas las que se sustituyeron o se rechazaron. El modelo de datos (silver,
-la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). En
+la estrella de gold, el grano de cada hecho y los contratos) está en [docs/data-model.md](docs/data-model.md). El
+dueño, la licencia, el acceso y el SLA de cada fuente están en [docs/data-governance.md](docs/data-governance.md). En
 resumen:
 
 - **Núcleo fijo, conectores intercambiables.** El núcleo solo conoce `extract()` y `normalize()` (y el opcional `describe()`, que pone nombre a las paradas y estaciones).
@@ -476,7 +479,7 @@ Grafana:
 | **Movilidad** | Población de la isla y servicio por cada 1.000 habitantes; mapa de los municipios por densidad, servicio por habitante o crecimiento en 10 años; población desde 1996; servicio programado de EMT y CTM por día, mapa del servicio de cada parada y paradas con más servicio; mapa de las líneas de autobús, tren y metro con su recorrido y sus salidas |
 | **Tiempo y entorno** | Temperatura por zonas (las 33 estaciones de AEMET interpoladas sobre la isla), avisos de AEMET por zona (ahora y en las próximas 72 h), temperatura de cada fuente, calidad del aire ahora (índice europeo) con la tabla de estaciones, oleaje, episodios, sismos y error del modelo |
 | **Explorador** | Cualquier serie de la plataforma día a día (fuente, métrica y entidad): media, mínimo y máximo, completitud, valores sospechosos y días con anomalías; la selección queda en la dirección para compartirla |
-| **Operación** | Estado de cada fuente, reglas de calidad que fallan, anomalías por día y últimas correcciones |
+| **Operación** | Estado de cada fuente frente a su SLA, gobierno del dato (dueño, licencia y acceso), reglas de calidad que fallan, anomalías por día y últimas correcciones |
 
 En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala noticia, junto con la evolución de los
 últimos meses. Los mapas tienen capas que se pueden ocultar, y al pulsar un punto se ve qué es.
@@ -543,14 +546,16 @@ Pearson, pocos años, así que orientativas):
 
 ### Alertas
 
-Tres reglas de alerta provisionadas desde `dashboards/provisioning/alerting/alerting.yml`. Se evalúan cada 5 minutos
-sobre las tablas operativas (`ops.ingestion_runs`, `quality.check_results`), así que avisan aunque dbt no corra,
-y cada fuente (o regla) es una alerta aparte:
+Cuatro reglas de alerta provisionadas desde `dashboards/provisioning/alerting/alerting.yml`. Se evalúan cada 5
+minutos y cada fuente (o regla) es una alerta aparte. Tres leen solo las tablas operativas (`ops.ingestion_runs`,
+`quality.check_results`), así que avisan aunque dbt no corra. La del SLA lee además el catálogo de fuentes y
+`gold.source_health`:
 
 | Alerta | Cuándo salta |
 |---|---|
 | **Ingesta fallida** | La última ejecución de una fuente terminó en `failed` |
 | **Fuente sin ejecución correcta** | Una fuente activa (con datos del último año) lleva más de 36 h sin una ejecución correcta. Un backfill de histórico no cuenta |
+| **Fuente fuera de su SLA** | Una fuente activa no cumple el SLA de su ficha: su último dato es más antiguo de lo acordado o tiene menos cargas correctas en 7 días de las acordadas ([gobierno del dato](docs/data-governance.md)) |
 | **Regla de calidad en rojo** | Una regla pasó en el chequeo anterior y falla en el último. Las que fallan siempre (los huecos de una fuente con cortes conocidos) no avisan |
 
 Las alertas activas aparecen en el panel *Alertas* de Operación. Para recibirlas en **Telegram**, opcional:
@@ -565,8 +570,8 @@ las dos variables existen, y los borra si se quitan. Sin ellas todo funciona igu
 un mensaje por regla y fuente cuando salta una alerta, otro cuando se resuelve, y se repite cada 12 h mientras siga
 activa.
 
-Los nombres de las fuentes salen del seed `dim_sources` de dbt; un test comprueba que toda fuente de silver tiene su
-fila.
+Los nombres de las fuentes salen del seed `dim_sources` de dbt, que es también su ficha de gobierno (dueño, licencia,
+acceso y SLA). Un test comprueba que toda fuente de silver tiene su fila.
 
 ## API REST
 
@@ -577,7 +582,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | Endpoint | Qué devuelve |
 |---|---|
 | `GET /v1/health` | Estado de la API y de su conexión al warehouse (503 si está caído) |
-| `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días y antigüedad del último dato |
+| `GET /v1/sources`, `/v1/sources/{source}` | Cada fuente con su última ejecución, % de fallos en 7 días, antigüedad del último dato, su ficha de gobierno (dueño, licencia, acceso, datos personales) y su SLA con si se cumple |
 | `GET /v1/locations` | Cada estación, punto de modelo y parada con coordenadas, su fuente y su tipo (el mapa de la web) |
 | `GET /v1/mobility/daily`, `/v1/mobility/stops`, `/v1/mobility/routes` | Servicio programado de EMT y CTM por día, el de cada parada en el último día y cada línea con su recorrido (GeoJSON) y sus salidas |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación; `stations`: cada estación en el último día publicado |
@@ -642,7 +647,7 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG. Las descargas van con caché y reintentos, así que una caída de GitHub de unos minutos no tumba la ejecución |
 | `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/), el [informe de cobertura](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/) del CI de ese commit con el badge del README, y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |
@@ -653,4 +658,5 @@ Ramas y releases: [docs/git-workflow.md](docs/git-workflow.md) · Arquitectura y
 
 ## Licencia
 
-MIT. Los datos pertenecen a sus proveedores (Open-Meteo: CC BY 4.0).
+El código, MIT. Los datos pertenecen a sus dueños y se usan con sus licencias: la de cada fuente está en
+[docs/data-governance.md](docs/data-governance.md).

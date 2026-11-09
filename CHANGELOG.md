@@ -5,6 +5,33 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-09
+
+### Added
+
+- Data governance (docs/data-governance.md, ADR 0020). The catalogue of sources (`dim_sources`) gives every source
+  its domain, owner, licence with a link to its terms, access (open or a free API key), personal data,
+  classification, lifecycle (active or a closed history) and an agreed SLA: the maximum age of its newest value and
+  the minimum share of successful runs in 7 days. dbt tests make every field required. Where a publisher states no
+  licence (EMT Palma, Dataestur, Ibestat, REData, SOCIB), the entry says so instead of inventing one.
+- `gold.source_health` evaluates the SLA (`sla_age_met`, `sla_success_met`, `sla_met`), and `/v1/sources` serves it
+  with the governance as nested `governance` and `sla` objects.
+- Web, Operación: a *Fuera de SLA* state with the part that is missed, and a *Gobierno del dato* panel (owner,
+  licence, access, personal data, SLA). Grafana: an SLA column in *Salud de las fuentes* and a *Fuente fuera de su
+  SLA* alert.
+- An English README (`README.en.md`), linked from the header of both versions. The detailed documentation stays
+  in Spanish.
+
+### Changed
+
+- A closed history is told by its lifecycle in the catalogue, no longer by the age of its newest value (800 days).
+- The CI survives a GitHub download outage. A 504 from GitHub's release assets failed the Terraform and dbt jobs
+  three times: tflint now runs in its image from ghcr.io (as `make tf-check` does) with its plugins and the
+  Terraform providers cached, dbt is installed from `requirements/dbt.txt` with the pip cache (which keeps the
+  wheel of dbt-core's parser, built from a GitHub release), and every download is retried by `scripts/ci/retry.sh`
+  (pip, `terraform init`, `tflint --init`, the image pull) or by curl itself (the Delta Lake jars). A test keeps the
+  dbt pins of the CI equal to the image's and the tflint image equal to the Makefile's.
+
 ## [0.13.0] - 2026-11-08
 
 ### Added
@@ -622,7 +649,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.10.1...v0.11.0

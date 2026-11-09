@@ -94,7 +94,7 @@ con un grano declarado y dimensiones compartidas entre dominios.
 
 | Dimensión | Clave | Origen | Historia |
 |---|---|---|---|
-| `dim_sources` | `source` | Seed (`dbt/seeds/dim_sources.csv`): etiqueta, tipo de dato y descripción | Se sobrescribe (tipo 1); vive en git |
+| `dim_sources` | `source` | Seed (`dbt/seeds/dim_sources.csv`): etiqueta, tipo de dato, descripción y la ficha de gobierno (dueño, licencia, acceso, datos personales, clasificación, ciclo de vida y SLA; [data-governance.md](data-governance.md)) | Se sobrescribe (tipo 1); vive en git |
 | `dim_locations` | `source, entity` | Derivada de silver: nombre (de `silver.entities`), coordenadas y cobertura temporal | Tipo 1 en la tabla y tipo 2 en el snapshot `snap_locations`: si una estación se reubica, la versión anterior se cierra |
 | `dim_routes` | `source, route` | `silver.routes`: nombre, tipo (bus, tren, metro), color y recorrido en GeoJSON | Tipo 1: cada ejecución sustituye las líneas de la red |
 | `dim_metrics` | `source, metric` | Derivada de silver: unidad, número de entidades y cobertura | Tipo 1. La clave primaria impide que una métrica tenga dos unidades |
@@ -216,9 +216,17 @@ Los exposures dicen qué dashboard o endpoint lee cada mart. Antes de cambiar un
 
 ## 6. Frescura por fuente (SLA)
 
-Cada fuente se declara en dbt con su propio umbral (`dbt source freshness`, que corre antes de cada build). Si no se
-cumple, avisa en los logs y en `gold.source_health`, pero no para la construcción de gold. Por separado, la alerta de
-Grafana salta si una fuente activa lleva 36 h sin ninguna ejecución correcta.
+Hay tres controles, de lo más técnico a lo acordado:
+
+- **El SLA de cada fuente** está en su ficha del catálogo (`dim_sources`). Fija la antigüedad máxima de su dato más
+  reciente y la parte mínima de cargas correctas en 7 días. `gold.source_health` lo evalúa (`sla_met`). La web
+  marca la fuente como *Fuera de SLA* y Grafana avisa con *Fuente fuera de su SLA*. La tabla de SLAs y cómo se fija
+  cada uno están en [data-governance.md](data-governance.md).
+- **`dbt source freshness`**, que corre antes de cada build, mide otra cosa: si las cargas traen filas nuevas
+  (`updated_at`). Cada fuente tiene su umbral en `_sources.yml`, en la tabla de abajo. Si no se cumple, avisa en
+  los logs, pero no para la construcción de gold.
+- **La alerta de Grafana *Fuente sin ejecución correcta*** salta si una fuente activa lleva 36 h sin ninguna carga
+  correcta. Lee solo `ops.ingestion_runs`, así que avisa aunque dbt no corra.
 
 | Fuente | Publica | Aviso si no hay datos nuevos en |
 |---|---|---|
@@ -235,7 +243,7 @@ Grafana salta si una fuente activa lleva 36 h sin ninguna ejecución correcta.
 
 | Cambio | Cómo se hace | ¿Rompe algo? |
 |---|---|---|
-| Fuente nueva | Un conector, una línea en `_sources.yml`, una vista de staging y una fila en `dim_sources` (un test lo exige) | No |
+| Fuente nueva | Un conector, una línea en `_sources.yml`, una vista de staging y una fila en `dim_sources` con su ficha de gobierno completa (los tests lo exigen) | No |
 | Métrica nueva en una fuente | Se añade en su `connector.yaml`; aparece sola en silver, `agg_daily_metrics` y `dim_metrics` | No; un mart ancho la ignora hasta que se le añade una columna |
 | Columna nueva en un mart | `on_schema_change: append_new_columns` en los incrementales; en los de contrato, añadirla al YAML | No para quien lee por nombre |
 | Cambiar la unidad de una métrica | Métrica nueva con otro nombre, o reprocesar el histórico desde bronze | Sí: la clave de `dim_metrics` lo rechaza |

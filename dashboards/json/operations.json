@@ -381,7 +381,7 @@
       "id": 6,
       "type": "table",
       "title": "Salud de las fuentes",
-      "description": "dbt (source_health): última ejecución, fallos de los últimos 7 días y antigüedad del último dato de cada fuente. Las mensuales (turismo, reservas) tienen datos de hace semanas por diseño.",
+      "description": "dbt (source_health): última ejecución, fallos de los últimos 7 días, antigüedad del último dato de cada fuente y si cumple el SLA acordado en su ficha (dim_sources): una antigüedad máxima del último dato, que en las mensuales es de unos 100 días, y un mínimo de ejecuciones correctas.",
       "gridPos": {
         "h": 9,
         "w": 24,
@@ -402,7 +402,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT label AS \"Fuente\", last_status AS \"Última ejecución\", last_run_at AS \"Cuándo\", last_error_type AS \"Error\", runs_7d AS \"Ejecuciones 7 d\", 100 * failure_rate_7d AS \"% fallos 7 d\", latest_observation_ts AS \"Último dato\", data_age_hours / 24 AS \"Antigüedad (días)\", observations AS \"Observaciones\" FROM gold.source_health WHERE source IN ($source) ORDER BY label"
+          "rawSql": "SELECT label AS \"Fuente\", last_status AS \"Última ejecución\", last_run_at AS \"Cuándo\", last_error_type AS \"Error\", runs_7d AS \"Ejecuciones 7 d\", 100 * failure_rate_7d AS \"% fallos 7 d\", latest_observation_ts AS \"Último dato\", data_age_hours / 24 AS \"Antigüedad (días)\", sla_data_age_hours / 24.0 AS \"SLA (días)\", CASE WHEN sla_met THEN 'cumple' WHEN NOT sla_met THEN 'incumple' ELSE '—' END AS \"SLA\", observations AS \"Observaciones\" FROM gold.source_health WHERE source IN ($source) ORDER BY label"
         }
       ],
       "fieldConfig": {
@@ -441,6 +441,50 @@
                     }
                   }
                 ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SLA"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "cumple": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "incumple": {
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SLA (días)"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
               }
             ]
           },

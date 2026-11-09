@@ -41,6 +41,7 @@ cambio.
 | [0017](0017-observabilidad-y-linaje.md) | Observabilidad y linaje | Aceptada | 2026-11-02 |
 | [0018](0018-sin-cache-de-extraccion.md) | Sin caché aparte (Redis) para la extracción | Aceptada | 2026-11-03 |
 | [0019](0019-frontal-web-sobre-la-api.md) | Un frontal web propio que solo lee la API | Aceptada | 2026-11-05 |
+| [0020](0020-gobierno-del-dato-en-el-catalogo-de-fuentes.md) | El gobierno del dato vive en el catálogo de fuentes, con un SLA por fuente | Aceptada | 2026-11-09 |
 
 Las fechas son las del commit que llevó la decisión a `develop`. Las ADR se escribieron a la vez el 3 de
 noviembre de 2026, a partir del historial y de las notas de cada PR.

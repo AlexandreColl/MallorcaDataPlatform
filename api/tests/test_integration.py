@@ -69,6 +69,17 @@ def test_every_endpoint_runs_its_sql(api, path):
     assert response.status_code == 200, response.text
 
 
+def test_every_source_has_its_governance_and_sla(api):
+    sources = api.get("/v1/sources").json()
+
+    assert len(sources) >= 15  # the seed, even on an empty warehouse
+    for source in sources:
+        assert source["governance"]["owner"], source["source"]
+        assert source["governance"]["terms_url"].startswith("https://"), source["source"]
+        if source["governance"]["lifecycle"] == "history":
+            assert source["sla"]["data_age_hours"] is None, source["source"]
+
+
 def test_observations_of_every_source(api):
     for source in api.get("/v1/sources").json():
         response = api.get("/v1/observations", params={"source": source["source"], "limit": 3})

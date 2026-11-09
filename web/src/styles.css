@@ -729,6 +729,11 @@ tr:last-child td {
   background: var(--warn);
 }
 
+.status-breach {
+  background: var(--warn);
+  opacity: 0.6;
+}
+
 .status-inactive {
   background: var(--muted);
   opacity: 0.5;
@@ -748,8 +753,20 @@ tr:last-child td {
   color: var(--warn);
 }
 
+.state-breach {
+  color: var(--warn);
+}
+
 .state-inactive {
   color: var(--muted);
+}
+
+.sla-met {
+  color: var(--good);
+}
+
+.sla-breached {
+  color: var(--bad);
 }
 
 /* Loading and errors */

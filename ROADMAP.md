@@ -152,7 +152,7 @@ despliegue real con su coste medido.
 | Estado | Tarea |
 |---|---|
 | ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
-| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 18 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
+| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 20 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
 | ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
 | ✅ | **Frontal web** (`web/`, http://localhost:3002): portada con cinco cifras clave frente a lo normal de cada mes, mapa de estaciones, puntos de modelo y paradas, y estado de las fuentes. React + Vite + ECharts + MapLibre, solo lee la API ([ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md)) |
 | ✅ | Seis dashboards en la web con un menú lateral (inicio, turismo y recursos, clima y agua, movilidad, tiempo y entorno, operación), modo claro y oscuro con botón, logo con la silueta de la isla y diez endpoints nuevos en la API |
@@ -170,7 +170,7 @@ despliegue real con su coste medido.
 | ✅ | Explorador de series en la web: fuente, entidad y métrica día a día, con su completitud, sus valores sospechosos y sus anomalías (`/v1/series`, `/v1/series/daily`); las correcciones siguen en Operación |
 | ✅ | Nombres de las paradas y estaciones en silver (`silver.entities`): la web ya no enseña `stop_452` ni `B228` |
 | ✅ | Nombres en Grafana (mapas, tablas, leyendas, anotaciones y selectores) y en los puntos de Open-Meteo (`label` en el YAML) |
-| ⬜ | Gobierno del dato: dueño y clasificación de cada fuente (licencia, datos personales) y SLAs acordados en lugar de umbrales fijos |
+| ✅ | **Gobierno del dato** ([docs/data-governance.md](docs/data-governance.md), [ADR 0020](docs/adr/0020-gobierno-del-dato-en-el-catalogo-de-fuentes.md)): cada fuente tiene en el catálogo su dueño, su licencia con el enlace a las condiciones, el acceso, si tiene datos personales, la clasificación, el ciclo de vida y un SLA acordado (antigüedad máxima del último dato y cargas correctas en 7 días). `source_health` lo evalúa y la API, la web y una alerta de Grafana lo enseñan, en lugar de umbrales fijos |
 | ⬜ | **Despliegue real en AWS**, puntual: `terraform apply`, silver en S3 leída por Athena, Spark con el rol IAM, coste real anotado y `terraform destroy` |
 | ⬜ | Gold en Athena con `dbt-athena` (quita la copia de silver en Postgres) |
 | ⬜ | Segundo motor (BigQuery sandbox) solo si las ofertas objetivo lo piden, con su ADR 🔬 |
@@ -182,7 +182,7 @@ despliegue real con su coste medido.
 | ⬜ | Streamlit para exploración ad hoc |
 | ⬜ | Agente LLM que responda preguntas sobre el warehouse (solo lectura sobre gold) |
 | ⬜ | MQTT / streaming cuando haya una fuente que emita en continuo (fuera de v1) |
-| ⬜ | Traducción del README al inglés |
+| ✅ | Traducción del README al inglés ([README.en.md](README.en.md)), enlazada desde la cabecera de los dos |
 
 ---
 

@@ -52,6 +52,58 @@ groups:
               expression: B
               conditions: [{evaluator: {type: gt, params: [0]}}]
 
+      # The one rule that reads a dbt mart: the SLA lives in the catalogue of sources (the dim_sources seed), and
+      # the newest value of each source is in gold.source_health. That value only changes when a load is followed
+      # by a build, so the age is still computed live; the run part comes from ops.ingestion_runs. If dbt stops,
+      # mdp-source-stale (below) is the one that fires.
+      - uid: mdp-source-sla-breached
+        title: Fuente fuera de su SLA
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels: {team: data}
+        annotations:
+          summary: "{{ $labels.source }} no cumple el SLA acordado en su ficha"
+          description: >-
+            Su último dato es más antiguo que sla_data_age_hours o sus ejecuciones correctas de los últimos 7 días
+            no llegan a sla_success_rate (dim_sources, docs/data-governance.md). Solo cuenta las fuentes activas:
+            un histórico cerrado (goib_air_quality) no tiene SLA de antigüedad.
+          __dashboardUid__: mallorca-operations
+          __panelId__: "6"
+        data:
+          - refId: A
+            relativeTimeRange: {from: 604800, to: 0}
+            datasourceUid: warehouse
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              editorMode: code
+              rawSql: >-
+                SELECT h.source, (
+                  (h.sla_data_age_hours IS NOT NULL
+                    AND extract(epoch FROM now() - h.latest_observation_ts) / 3600 > h.sla_data_age_hours)
+                  OR (r.runs > 0 AND 1 - r.failed::numeric / r.runs < h.sla_success_rate)
+                )::int AS breached
+                FROM gold.source_health AS h
+                LEFT JOIN (
+                  SELECT source, count(*) AS runs, count(*) FILTER (WHERE status = 'failed') AS failed
+                  FROM ops.ingestion_runs WHERE status <> 'running' AND started_at > now() - interval '7 days'
+                  GROUP BY source
+                ) AS r USING (source)
+                WHERE h.lifecycle = 'active'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{evaluator: {type: gt, params: [0]}}]
+
       - uid: mdp-source-stale
         title: Fuente sin ejecución correcta
         condition: C

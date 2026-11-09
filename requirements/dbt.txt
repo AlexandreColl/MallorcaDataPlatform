@@ -1,0 +1,6 @@
+# dbt and sqlfluff for the CI jobs (ci.yml, dbt-docs.yml). The image installs the same dbt pins in its own venv
+# (DBT_CORE_VERSION and DBT_POSTGRES_VERSION in docker/airflow/Dockerfile): keep them equal.
+dbt-core==1.12.6
+dbt-postgres==1.11.0
+sqlfluff==4.4.0
+sqlfluff-templater-dbt==4.4.0
