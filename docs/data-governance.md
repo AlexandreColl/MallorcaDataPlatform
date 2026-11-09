@@ -96,6 +96,8 @@ El SLA es lo que se acuerda que la plataforma garantiza de cada fuente. No es lo
   - la columna SLA del panel *Salud de las fuentes*;
   - la alerta *Fuente fuera de su SLA*, que calcula la antigüedad en vivo. La alerta *Fuente sin ejecución correcta*
     sigue cubriendo el caso de que no corran ni el DAG ni dbt.
+- **dbt:** `dbt source freshness` da error en la fuente que pasa su SLA sin una carga nueva (`error_after` es el
+  SLA, y un test lo mantiene igual que el catálogo).
 - **Un histórico cerrado** (`lifecycle: history`) sale como *Histórico* en la web y no avisa. Antes se adivinaba
   por la antigüedad de su último dato, más de 800 días.
 
@@ -104,7 +106,8 @@ El SLA es lo que se acuerda que la plataforma garantiza de cada fuente. No es lo
 La fila del catálogo es parte del PR del conector ([adding-a-connector.md](adding-a-connector.md)):
 
 1. Busca la licencia en la web del dueño. Si no publica ninguna, escríbelo así en la ficha.
-2. Fija el SLA con la regla de arriba, a partir de la cadencia y del retraso de publicación.
+2. Fija el SLA con la regla de arriba, a partir de la cadencia y del retraso de publicación, y pon el mismo valor
+   como `error_after` de la fuente en `dbt/models/staging/_sources.yml` (el test lo comprueba).
 3. Si la fuente tuviera datos personales, `personal_data: true` obliga a decidir antes de cargarla:
    - su clasificación;
    - quién puede leerla (un rol de Postgres aparte, fuera de la API pública);

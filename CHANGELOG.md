@@ -14,6 +14,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   pipeline role, with the same policy (a test compares it with `iam.tf`), so the role flow runs locally against
   MinIO's STS: a real run writes bronze and merges silver, and is denied deletes in bronze and bucket creation.
 
+### Changed
+
+- `dbt source freshness` follows the SLA of the catalogue: each source's `error_after` is its agreed maximum age
+  (`dim_sources.sla_data_age_hours`), next to the earlier `warn_after`. `tests/test_freshness_sla.py` fails if a
+  source of the catalogue is not declared to dbt, if `error_after` differs from its SLA, if `warn_after` exceeds it,
+  or if a source without an age SLA has a check. AEMET's warnings, Ibestat and the register now have their thresholds
+  documented in the data model.
+
 ### Fixed
 
 - The pipeline no longer enables versioning on an existing bucket. The pipeline role has no
