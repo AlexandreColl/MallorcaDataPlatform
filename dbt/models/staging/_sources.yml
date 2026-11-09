@@ -3,9 +3,13 @@ version: 2
 # Tables written by the Python pipeline. dbt only reads them.
 #
 # silver.observations holds every connector. It is declared once per connector (same identifier, a `filter`)
-# so `dbt source freshness` checks each source against its own cadence: hourly APIs are expected every day,
-# AEMET publishes 2-3 days late, Dataestur adds a month about every 30 days and IGN only has rows when there are
-# earthquakes (no freshness check). The GOIB air quality history ends in June 2021 (no freshness check either).
+# so `dbt source freshness` checks each source against its own cadence. Two thresholds on the newest load
+# (updated_at):
+# - warn_after: an early warning, at the cadence of the source (a day for hourly APIs, 40 days for monthly ones);
+# - error_after: the SLA agreed in the catalogue of sources (dim_sources.sla_data_age_hours). Without a new row for
+#   that long, the newest value is older than the SLA as well.
+# Sources without an age SLA have no check: IGN only has rows when there are earthquakes, and the GOIB air quality
+# history ends in June 2021. tests/test_freshness_sla.py keeps this file and the catalogue in step.
 sources:
   - name: silver
     description: Clean observations in the common schema, written by the PySpark pipeline (one row per series and ts).
@@ -21,24 +25,24 @@ sources:
             data_tests: [not_null]
           - name: ts
             data_tests: [not_null]
-      - {name: open_meteo, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'open_meteo'"}}
-      - {name: open_meteo_marine, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'open_meteo_marine'"}}
-      - {name: socib, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'socib'"}}
-      - {name: redata, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'redata'"}}
-      - {name: emt_palma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'emt_palma'"}}
-      - {name: ctm, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'ctm'"}}
-      - {name: aemet, identifier: observations, freshness: {warn_after: {count: 5, period: day}, filter: "source = 'aemet'"}}
-      - {name: dataestur, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'dataestur'"}}
-      - {name: water_reserves, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'water_reserves'"}}
-      - {name: eea_air_quality, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'eea_air_quality'"}}
+      - {name: open_meteo, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'open_meteo'"}}
+      - {name: open_meteo_marine, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'open_meteo_marine'"}}
+      - {name: socib, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'socib'"}}
+      - {name: redata, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'redata'"}}
+      - {name: emt_palma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'emt_palma'"}}
+      - {name: ctm, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'ctm'"}}
+      - {name: aemet, identifier: observations, freshness: {warn_after: {count: 5, period: day}, error_after: {count: 5, period: day}, filter: "source = 'aemet'"}}
+      - {name: dataestur, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 100, period: day}, filter: "source = 'dataestur'"}}
+      - {name: water_reserves, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 100, period: day}, filter: "source = 'water_reserves'"}}
+      - {name: eea_air_quality, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'eea_air_quality'"}}
       - {name: ign, identifier: observations, freshness: null}
       # Every run writes the archive of its window and the warnings announced for the coming days.
-      - {name: aemet_warnings, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, filter: "source = 'aemet_warnings'"}}
+      - {name: aemet_warnings, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'aemet_warnings'"}}
       - {name: goib_air_quality, identifier: observations, freshness: null}  # history only (2002 to June 2021)
       # One value per year, published in December: every run re-reads the last three years.
-      - {name: ine_population, identifier: observations, freshness: {warn_after: {count: 400, period: day}, filter: "source = 'ine_population'"}}
+      - {name: ine_population, identifier: observations, freshness: {warn_after: {count: 400, period: day}, error_after: {count: 730, period: day}, filter: "source = 'ine_population'"}}
       # The IPH comes out once a month, about two months late, and its days only change when a month is added.
-      - {name: ibestat_iph, identifier: observations, freshness: {warn_after: {count: 40, period: day}, filter: "source = 'ibestat_iph'"}}
+      - {name: ibestat_iph, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 120, period: day}, filter: "source = 'ibestat_iph'"}}
       - name: entities
         description: >-
           Names of the stops and stations that silver.observations knows only by identifier (stop_452, B228): the
