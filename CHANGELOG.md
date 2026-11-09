@@ -5,6 +5,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- The pipeline can write the lake with an assumed role (`S3_CREDENTIALS=role`, `core/credentials.py`). Bronze
+  (boto3) and Spark (S3A) assume `S3_ROLE_ARN` through STS with temporary credentials that are renewed before they
+  expire; `default` uses the SDK's default chain with no keys, and `static` (the default) keeps MinIO's keys.
+  `terraform output pipeline_env` gives the role. `make minio-pipeline-user` creates in MinIO the local twin of the
+  pipeline role, with the same policy (a test compares it with `iam.tf`), so the role flow runs locally against
+  MinIO's STS: a real run writes bronze and merges silver, and is denied deletes in bronze and bucket creation.
+
+### Fixed
+
+- The pipeline no longer enables versioning on an existing bucket. The pipeline role has no
+  `s3:PutBucketVersioning`, and on AWS Terraform creates and configures the buckets.
+
 ## [0.14.0] - 2026-11-09
 
 ### Added

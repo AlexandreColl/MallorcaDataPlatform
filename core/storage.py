@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from core.credentials import boto3_session
 from core.models import RawPayload
 
 if TYPE_CHECKING:
@@ -19,27 +19,30 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def s3_client(settings: Settings) -> S3Client:
-    """S3 client with path-style addressing, which MinIO requires."""
-    return boto3.client(
+def s3_client(settings: Settings, name: str = "mdp-bronze") -> S3Client:
+    """S3 client with path-style addressing, which MinIO requires, and the credentials of ``S3_CREDENTIALS``."""
+    return boto3_session(settings, name).client(
         "s3",
         endpoint_url=settings.s3_endpoint_url,
-        aws_access_key_id=settings.s3_access_key,
-        aws_secret_access_key=settings.s3_secret_key,
-        region_name=settings.s3_region,
         config=Config(s3={"addressing_style": "path"}, retries={"max_attempts": 10}),
     )
 
 
 def ensure_bucket(client: S3Client, bucket: str, *, versioned: bool = False) -> None:
-    """Create the bucket if it does not exist and optionally enable versioning."""
+    """Create the bucket if it does not exist, with versioning when asked.
+
+    An existing bucket is left as it is: on AWS Terraform creates and configures it, and the pipeline role may only
+    read and write objects (no ``s3:PutBucketVersioning``, no ``s3:CreateBucket``).
+    """
     try:
         client.head_bucket(Bucket=bucket)
     except ClientError as exc:
         if exc.response.get("Error", {}).get("Code") not in {"404", "NoSuchBucket", "NotFound"}:
             raise
-        log.info("creating bucket %s", bucket)
-        client.create_bucket(Bucket=bucket)
+    else:
+        return
+    log.info("creating bucket %s", bucket)
+    client.create_bucket(Bucket=bucket)
     if versioned:
         client.put_bucket_versioning(Bucket=bucket, VersioningConfiguration={"Status": "Enabled"})
 

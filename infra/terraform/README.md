@@ -66,11 +66,29 @@ flowchart LR
 2. Para guardar el estado en S3, renombra `backend.tf.example` y activa la etiqueta de coste `Project` en
    Billing.
 3. Ejecuta `terraform init` y `terraform apply` con credenciales de AWS. `terraform output pipeline_env` da las
-   variables del pipeline: `S3_ENDPOINT_URL` de S3 real, la región, los buckets y `S3A_INPUT_STREAM=analytics`.
+   variables del pipeline: `S3_ENDPOINT_URL` de S3 real, la región, los buckets, `S3A_INPUT_STREAM=analytics`,
+   `S3_CREDENTIALS=role` y el ARN del rol `pipeline` (`S3_ROLE_ARN`).
+
+**Credenciales del pipeline** (`core/credentials.py`, `S3_CREDENTIALS`). Bronze (boto3) y Spark (S3A) escriben con la
+misma identidad, en uno de tres modos:
+
+| Modo | Qué hace | Cuándo |
+|---|---|---|
+| `static` | Claves fijas (`S3_ACCESS_KEY`, `S3_SECRET_KEY`) | MinIO en local, por defecto |
+| `role` | Asume `S3_ROLE_ARN` por STS y usa credenciales temporales que se renuevan antes de caducar. Quien lo asume es la identidad de las claves o, sin ellas, la cadena por defecto del SDK | Con este Terraform: la cuenta asume `<prefijo>-pipeline` |
+| `default` | La cadena por defecto del SDK (rol de la tarea de ECS, perfil de la instancia EC2...), sin ninguna clave | En una máquina que ya corre con el rol |
+
+El modo `role` se prueba en local sin AWS: `make minio-pipeline-user` crea en MinIO un usuario con la misma política
+que el rol `pipeline` (`docker/minio/pipeline-policy.json`; un test la compara con `iam.tf`), y el pipeline asume el
+rol contra el STS de MinIO. Una ejecución real con ese usuario escribe bronze y hace el MERGE de silver, y se le
+deniega borrar en bronze o crear buckets. Dos detalles que solo se vieron así:
+
+- S3A solo habla con STS por HTTPS. Con el STS local, que es HTTP, Spark recibe la sesión que asumió boto3 (no se
+  renueva, dura `S3_ROLE_SESSION_SECONDS`); en AWS, S3A asume el rol él mismo y lo renueva.
+- El pipeline ya no activa el versionado de un bucket que existe: el rol no tiene `s3:PutBucketVersioning`, y en
+  AWS los buckets los crea y configura Terraform.
 
 **Pendiente** para que el pipeline corra en AWS de punta a punta:
-- **Credenciales de Spark**: `core/spark.py` usa claves estáticas (`S3_ACCESS_KEY` y `S3_SECRET_KEY`). Con el rol
-  haría falta el proveedor de credenciales de AWS (`fs.s3a.aws.credentials.provider`).
 - **Warehouse**: Postgres y dbt siguen siendo locales. Athena sustituiría a Postgres para consultar silver, y dbt
   podría apuntar a Athena (`dbt-athena`).
 - **Time travel en Athena**: Athena lee la versión actual de la tabla Delta, pero no `VERSION AS OF`. Las versiones

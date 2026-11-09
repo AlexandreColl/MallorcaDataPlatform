@@ -67,6 +67,8 @@ resumen:
   (`quality_reasons`), pero nunca modifican el valor. Las correcciones van aparte, en `silver.corrections`, y gold
   muestra los dos valores ([abajo](#correcciones-con-fuentes-de-apoyo)).
 - **Local primero, nube después.** MinIO habla S3 y Spark usa S3A: pasar a AWS es cambiar el endpoint y las credenciales.
+  Con `S3_CREDENTIALS=role`, bronze y Spark escriben con credenciales temporales de un rol de privilegio mínimo,
+  también en local contra el STS de MinIO ([detalle](infra/terraform/README.md)).
 
 ## Puesta en marcha
 
