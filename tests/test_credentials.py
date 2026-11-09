@@ -87,8 +87,24 @@ def test_role_renews_the_session_before_it_expires(monkeypatch):
     assert renewed.token == "token2"  # noqa: S105 - a fake
 
 
+def test_role_for_spark_over_plain_http_sts_gets_the_session_of_boto3(monkeypatch):
+    """S3A only speaks HTTPS to STS; MinIO's local STS is HTTP, so Spark takes the session boto3 assumed."""
+    sts = _FakeSts(timedelta(hours=1))
+    monkeypatch.setattr(credentials, "_sts_client", lambda settings: sts)
+
+    spark = credentials.spark_s3a_config(replace(ROLE, s3_sts_endpoint_url="http://minio:9000"), "mdp-open_meteo")
+
+    assert spark == {
+        "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider",
+        "spark.hadoop.fs.s3a.access.key": "ASIA1",
+        "spark.hadoop.fs.s3a.secret.key": "secret1",
+        "spark.hadoop.fs.s3a.session.token": "token1",
+    }
+    assert sts.calls[0]["RoleSessionName"] == "mdp-open_meteo"
+
+
 def test_role_for_spark_assumes_it_with_the_base_keys():
-    settings = replace(ROLE, s3_sts_endpoint_url="http://minio:9000", s3_role_session_seconds=900)
+    settings = replace(ROLE, s3_sts_endpoint_url="https://sts.eu-south-2.amazonaws.com", s3_role_session_seconds=900)
 
     spark = credentials.spark_s3a_config(settings, "mdp anomalies")
 
@@ -98,7 +114,7 @@ def test_role_for_spark_assumes_it_with_the_base_keys():
     assert spark["spark.hadoop.fs.s3a.assumed.role.arn"] == ROLE.s3_role_arn
     assert spark["spark.hadoop.fs.s3a.assumed.role.session.name"] == "mdp-anomalies"
     assert spark["spark.hadoop.fs.s3a.assumed.role.session.duration"] == "900s"
-    assert spark["spark.hadoop.fs.s3a.assumed.role.sts.endpoint"] == "http://minio:9000"
+    assert spark["spark.hadoop.fs.s3a.assumed.role.sts.endpoint"] == "sts.eu-south-2.amazonaws.com"  # S3A adds https
     assert spark["spark.hadoop.fs.s3a.assumed.role.sts.endpoint.region"] == "eu-south-2"
     assert spark["spark.hadoop.fs.s3a.assumed.role.credentials.provider"] == (
         "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"

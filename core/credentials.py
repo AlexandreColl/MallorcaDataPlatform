@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from datetime import UTC
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 import boto3
 from botocore.credentials import RefreshableCredentials
@@ -34,6 +35,7 @@ _MAX_SESSION_NAME = 64
 _SIMPLE = "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
 _ASSUMED_ROLE = "org.apache.hadoop.fs.s3a.auth.AssumedRoleCredentialProvider"
 _DEFAULT_CHAIN = "software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider"
+_TEMPORARY = "org.apache.hadoop.fs.s3a.TemporaryAWSCredentialsProvider"
 
 
 class CredentialsConfigError(ValueError):
@@ -121,6 +123,18 @@ def spark_s3a_config(settings: Settings, name: str = "mdp") -> dict[str, str]:
     )
     if settings.s3_credentials == "static":
         return {**keys, f"{prefix}aws.credentials.provider": _SIMPLE}
+    endpoint = urlsplit(settings.s3_sts_endpoint_url)
+    if endpoint.scheme == "http":
+        # S3A only calls STS over HTTPS (it builds https://<host>), and MinIO's local STS is plain HTTP. Spark gets
+        # the session that boto3 assumed instead: the same role, but not renewed, so it lasts
+        # S3_ROLE_SESSION_SECONDS (enough for a local run; on AWS the branch below renews it).
+        frozen = boto3_session(settings, name).get_credentials().get_frozen_credentials()
+        return {
+            f"{prefix}aws.credentials.provider": _TEMPORARY,
+            f"{prefix}access.key": frozen.access_key,
+            f"{prefix}secret.key": frozen.secret_key,
+            f"{prefix}session.token": frozen.token,
+        }
     # S3A assumes the role itself and renews the session before it expires, like boto3 above.
     config = {
         **keys,
@@ -131,6 +145,6 @@ def spark_s3a_config(settings: Settings, name: str = "mdp") -> dict[str, str]:
         f"{prefix}assumed.role.credentials.provider": _SIMPLE if keys else _DEFAULT_CHAIN,
         f"{prefix}assumed.role.sts.endpoint.region": settings.s3_region,
     }
-    if settings.s3_sts_endpoint_url:
-        config[f"{prefix}assumed.role.sts.endpoint"] = settings.s3_sts_endpoint_url
+    if endpoint.netloc:
+        config[f"{prefix}assumed.role.sts.endpoint"] = endpoint.netloc  # S3A wants the host, it adds https://
     return config
