@@ -7,6 +7,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- Airflow 3.3.2 → 3.4.0. Inside the image its constraints also bring boto3 1.43.117, pandas 3.1.0, pydantic 2.14.2
+  and the OpenLineage provider 2.21.0. The metadata database is reached with psycopg 3 (`postgresql+psycopg://`),
+  the driver Airflow 3.4 defaults to. `airflow db migrate` upgrades an existing volume in place; going back to
+  3.3.2 needs `airflow db downgrade` first.
+
 - Dependencies: FastAPI 0.162.3, pydantic 2.14.3, psycopg 3.3.8, boto3 1.43.127, pandas 3.1.1, pyarrow 26.0.1,
   ruff 0.17.4, sqlfluff 4.5.0, Vite 8.3.7, @vitejs/plugin-react 6.3.0 and MapLibre 6.17.0.
 - pypdf 7.0.1 (major). The water reserves connector only uses `PdfReader` and `extract_text`: the raw text of the
