@@ -114,6 +114,15 @@ def test_catch_up_days_defaults_to_max_days_and_is_validated(tmp_path):
         registry.discover(root)
 
 
+def test_recover_days_defaults_to_catch_up_days_and_is_validated(tmp_path):
+    assert registry.discover()["open_meteo"].recover_days == 92  # the API serves no older past data
+    assert registry.discover()["socib"].recover_days == 28
+    assert registry.discover()["aemet"].recover_days == 1095
+    root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nmax_days: 10\nrecover_days: 5\n")
+    with pytest.raises(ConnectorError, match="recover_days"):
+        registry.discover(root)
+
+
 def test_window_ends_lag_days_before_yesterday(tmp_path):
     root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nlag_days: 3\n")
     cfg = registry.discover(root)["foo"]

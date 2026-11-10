@@ -14,6 +14,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   (`lapse_rate_c_per_km`). The mountain stations no longer measure the altitude: across the 29 AEMET stations
   with both heights the model's mean absolute error drops from 1.40 to 0.99 °C, and at the Serra d'Alfàbia, 996 m
   above its model cell, the bias goes from +6.0 to −0.4 °C. The API, the web panel and the Grafana panel show both.
+- A gap longer than the catch-up is recovered on its own. The catch-up grows a run's window back to
+  `catch_up_days`, by default the connector's `max_days` (what its API serves at once). When a source was down
+  longer, or the computer off, the run first loads the older days, oldest first, in extra runs of `catch_up_days`
+  each (`<run_id>_<first day>`, like a backfill), up to `recover_days` before the end of its window. A failed
+  chunk stops the recovery, and the next run resumes after the last chunk that loaded. `recover_days` defaults to
+  `catch_up_days` (no change) and is raised only where the API keeps the history: AEMET (1095) and REData (366).
+  `RunSummary.recovered_days` counts the recovered days.
 
 ### Changed
 

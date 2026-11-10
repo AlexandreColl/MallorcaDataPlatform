@@ -2,7 +2,7 @@
 
 import io
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -15,6 +15,7 @@ from core.pipeline import (
     _load_observations,
     bronze_to_silver,
     extract_to_bronze,
+    recovery_windows,
     remaining_window,
     run_connector,
 )
@@ -148,3 +149,81 @@ def test_a_window_already_loaded_is_skipped_without_downloading(monkeypatch):
 
     assert summary.skipped
     assert (summary.payloads, summary.rows_silver) == (0, 0)
+
+
+# --- recovery of a gap longer than the catch-up ---------------------------------------------------------------------
+
+MONTH = TimeWindow(date(2026, 10, 9), date(2026, 11, 8))  # 31 days, as grown by the catch-up
+
+
+def test_no_gap_to_recover_when_the_source_never_loaded_or_the_catch_up_reached_it():
+    assert recovery_windows(MONTH, None, recover_days=366, chunk_days=31) == []  # its history is a backfill
+    assert recovery_windows(MONTH, date(2026, 10, 8), recover_days=366, chunk_days=31) == []
+
+
+def test_an_older_gap_is_recovered_oldest_first_in_chunks_of_the_catch_up():
+    chunks = recovery_windows(MONTH, date(2026, 8, 19), recover_days=366, chunk_days=31)
+
+    assert chunks == [
+        TimeWindow(date(2026, 8, 20), date(2026, 9, 19)),
+        TimeWindow(date(2026, 9, 20), date(2026, 10, 8)),
+    ]
+
+
+def test_the_recovery_goes_back_no_further_than_recover_days():
+    chunks = recovery_windows(MONTH, date(2020, 1, 1), recover_days=60, chunk_days=31)
+
+    assert chunks == [TimeWindow(date(2026, 9, 10), date(2026, 10, 8))]  # 60 days before 8 November
+
+
+# REData: catch_up_days 92 (its max_days) and recover_days 366.
+REDATA_END = registry.discover()["redata"].window(1).end
+
+
+class _BehindWarehouse:
+    """A warehouse whose last successful load is 200 days before the end of the window."""
+
+    def __init__(self, settings):
+        self.settings = settings
+
+    def ensure_schema(self):
+        pass
+
+    def last_loaded_day(self, source, region):
+        return REDATA_END - timedelta(days=200)
+
+
+def test_run_connector_loads_the_older_gap_first_in_runs_of_its_own(monkeypatch):
+    loaded = []
+
+    def load_window(connector, region, window, run_id, warehouse):
+        loaded.append((run_id, window))
+        return core.pipeline.RunSummary(run_id, connector.name, region.name, str(window.start), str(window.end),
+                                        1, 0, 0, 0)  # fmt: skip
+
+    monkeypatch.setattr(core.pipeline, "Warehouse", _BehindWarehouse)
+    monkeypatch.setattr(core.pipeline, "_load_window", load_window)
+
+    summary = run_connector("redata", 1, run_id="r1")
+
+    (first_id, first), (second_id, second), (main_id, main) = loaded
+    assert main_id == "r1"
+    assert main.n_days == 92
+    assert (first.n_days, second.n_days) == (92, 16)  # the other 108 days of the gap, oldest first
+    assert first.start == REDATA_END - timedelta(days=199)
+    assert second.end == main.start - timedelta(days=1)
+    assert (first_id, second_id) == (f"r1_{first.start:%Y%m%d}", f"r1_{second.start:%Y%m%d}")
+    assert summary.recovered_days == 108
+
+
+def test_a_failed_recovery_stops_before_the_window(monkeypatch):
+    def load_window(connector, region, window, run_id, warehouse):
+        msg = "down"
+        raise ConnectionError(msg)
+
+    monkeypatch.setattr(core.pipeline, "Warehouse", _BehindWarehouse)
+    monkeypatch.setattr(core.pipeline, "_load_window", load_window)
+
+    # The next run resumes from the last successful load, so nothing is skipped.
+    with pytest.raises(ConnectionError):
+        run_connector("redata", 1, run_id="r1")
