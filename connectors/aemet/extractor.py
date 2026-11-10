@@ -107,7 +107,7 @@ class AemetConnector(BaseConnector):
         return payloads
 
     def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:
-        """Name and height of each station of the region, from the inventory (``SÓLLER, PUERTO``: ``Sóller, Puerto``)."""
+        """Name and height of each station of the region, from the inventory (``SÓLLER, PUERTO``: Sóller, Puerto)."""
         if payload.dataset != "stations":
             return
         for station_id, station in self._stations_in(payload.body, region).items():
