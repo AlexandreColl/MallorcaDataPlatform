@@ -270,9 +270,14 @@ export interface ModelBias {
   station: string;
   station_name: string | null;
   model_point: string;
+  /** Height of the station minus that of the model cell, in metres; null without both heights. */
+  elevation_diff_m: number | null;
   days_compared: number;
   temperature_bias_c: number | null;
   temperature_mae_c: number | null;
+  /** The same errors with the model brought to the station's height (6.5 °C per km). */
+  temperature_bias_adjusted_c: number | null;
+  temperature_mae_adjusted_c: number | null;
   rain_day_agreement: number | null;
 }
 

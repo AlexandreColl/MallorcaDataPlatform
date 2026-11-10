@@ -639,15 +639,20 @@ export function WeatherEnvironment() {
             )}
           </Async>
         </Panel>
-        <Panel title="Modelo frente a estaciones" subtitle="Error del modelo en la temperatura media diaria de cada estación de AEMET y SOCIB.">
+        <Panel
+          title="Modelo frente a estaciones"
+          subtitle="Error del modelo en la temperatura media diaria de cada estación de AEMET y SOCIB, a la altura de la estación (6,5 °C por km de desnivel con su celda)."
+        >
           <Async state={bias}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 8)}
                 columns={[
                   { label: "Estación", value: (b) => b.station_name ?? b.station },
-                  { label: "Sesgo", value: (b) => (b.temperature_bias_c === null ? "—" : `${signed(Number(b.temperature_bias_c))} °C`), numeric: true },
-                  { label: "Error", value: (b) => (b.temperature_mae_c === null ? "—" : `${number(Number(b.temperature_mae_c), 1)} °C`), numeric: true },
+                  { label: "Desnivel", value: (b) => (b.elevation_diff_m === null ? "—" : `${signed(Number(b.elevation_diff_m), 0)} m`), numeric: true },
+                  { label: "Sesgo bruto", value: (b) => (b.temperature_bias_c === null ? "—" : `${signed(Number(b.temperature_bias_c))} °C`), numeric: true },
+                  { label: "Sesgo", value: (b) => (b.temperature_bias_adjusted_c === null ? "—" : `${signed(Number(b.temperature_bias_adjusted_c))} °C`), numeric: true },
+                  { label: "Error", value: (b) => (b.temperature_mae_adjusted_c === null ? "—" : `${number(Number(b.temperature_mae_adjusted_c), 1)} °C`), numeric: true },
                   { label: "Días", value: (b) => number(b.days_compared), numeric: true },
                 ]}
               />

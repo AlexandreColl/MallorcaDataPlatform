@@ -34,10 +34,13 @@ CREATE TABLE IF NOT EXISTS silver.entities (
     source      text        NOT NULL,
     entity      text        NOT NULL,
     name        text        NOT NULL,
+    elevation_m double precision,  -- height above the sea, if the source publishes it (AEMET, the Open-Meteo cell)
     run_id      text        NOT NULL,
     updated_at  timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (source, entity)
 );
+-- Warehouses created before v0.16.0.
+ALTER TABLE silver.entities ADD COLUMN IF NOT EXISTS elevation_m double precision;
 
 -- Lines of the transit networks (GTFS routes) with the path each one draws: the main shape of each direction,
 -- simplified, as a GeoJSON MultiLineString. Each run replaces the lines of its source (core/connectors: routes); its
