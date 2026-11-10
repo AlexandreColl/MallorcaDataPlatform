@@ -15,6 +15,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   with both heights the model's mean absolute error drops from 1.40 to 0.99 °C, and at the Serra d'Alfàbia, 996 m
   above its model cell, the bias goes from +6.0 to −0.4 °C. The API, the web panel and the Grafana panel show both.
 
+### Changed
+
+- Dependencies: FastAPI 0.143.2 → 0.162.0 (API image and CI), boto3 1.43.120 → 1.43.123 and pytest 9.1.1 → 9.2.0.
+  The FastAPI `TestClient` runs on `httpx2` instead of `httpx`, which Starlette 1.10 deprecates, so the API tests
+  run without warnings.
+
 ## [0.15.0] - 2026-11-10
 
 ### Added
