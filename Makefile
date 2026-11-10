@@ -9,13 +9,15 @@ COMPOSE ?= docker compose
 CONNECTORS ?= open_meteo
 DAYS ?= 1
 REGION ?= mallorca
+# true: skip the days a successful run already loaded; false: download the whole window again.
+ONLY_MISSING ?= true
 
 comma := ,
 empty :=
 space := $(empty) $(empty)
 CONNECTORS_JSON := [$(patsubst %,"%",$(subst $(comma),$(space),$(CONNECTORS)))]
 CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
-RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)"}
+RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)", "only_missing": $(ONLY_MISSING)}
 
 .DEFAULT_GOAL := help
 .PHONY: help init build up down clean ps logs run run-local connectors test lint format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test minio-pipeline-user screenshots tf-check tf-fmt
@@ -49,7 +51,7 @@ ps: ## Service status
 logs: ## Follow logs (SERVICE=airflow-scheduler to filter)
 	$(COMPOSE) logs -f $(SERVICE)
 
-run: ## Trigger the Airflow DAG: make run CONNECTORS=open_meteo,redata DAYS=30
+run: ## Trigger the DAG (only missing days): make run CONNECTORS=open_meteo,redata DAYS=30 [ONLY_MISSING=false]
 	$(COMPOSE) exec airflow-scheduler airflow dags trigger mallorca_pipeline --conf '$(RUN_CONF)'
 
 run-local: ## Run the pipeline without Airflow (CLI inside the image)

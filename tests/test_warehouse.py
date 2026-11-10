@@ -111,6 +111,21 @@ def test_the_last_loaded_day_comes_from_successful_runs_only(warehouse):
     assert warehouse.last_loaded_day(SOURCE, "mallorca") == WINDOW.end
 
 
+def test_missing_days_are_the_ones_no_successful_run_covered(warehouse):
+    week = TimeWindow(date(2026, 10, 26), date(2026, 11, 1))
+    warehouse.start_run("run1", SOURCE, "mallorca", TimeWindow(date(2026, 10, 26), date(2026, 10, 27)))
+    warehouse.finish_run("run1", SOURCE, "success")
+    warehouse.start_run("run2", SOURCE, "mallorca", TimeWindow(date(2026, 10, 30), date(2026, 10, 30)))
+    warehouse.finish_run("run2", SOURCE, "success")
+    warehouse.start_run("run3", SOURCE, "mallorca", TimeWindow(date(2026, 10, 28), date(2026, 10, 29)))
+    warehouse.finish_run("run3", SOURCE, "failed", error="ConnectTimeout: upstream down")
+
+    missing = warehouse.missing_days(SOURCE, "mallorca", week)
+
+    assert missing == [date(2026, 10, 28), date(2026, 10, 29), date(2026, 10, 31), date(2026, 11, 1)]
+    assert warehouse.missing_days(SOURCE, "menorca", WINDOW) == [WINDOW.start, WINDOW.end]  # another region
+
+
 def test_a_retried_run_starts_again_from_running(warehouse):
     warehouse.start_run("run1", SOURCE, "mallorca", WINDOW)
     warehouse.finish_run("run1", SOURCE, "failed", error="ConnectTimeout: upstream down")

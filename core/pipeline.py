@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from pyspark.sql import DataFrame, SparkSession, Window
@@ -18,14 +18,16 @@ from pyspark.sql import functions as F
 from core.config import Settings, load_region
 from core.connectors import BaseConnector, registry
 from core.lake import open_silver
-from core.models import KEY
+from core.models import KEY, TimeWindow
 from core.quality import QualityEngine, RuleResult, rules_for
 from core.spark import SILVER_SCHEMA, build_spark
 from core.storage import BronzeStore, ensure_bucket
 from core.warehouse import RunStats, Warehouse
 
 if TYPE_CHECKING:
-    from core.models import Entity, Observation, Region, Route, TimeWindow
+    from datetime import date
+
+    from core.models import Entity, Observation, Region, Route
 
 log = logging.getLogger(__name__)
 
@@ -47,10 +49,41 @@ class RunSummary:
     rows_silver: int
     rows_upserted: int
     checks_failed: int
+    # True when every day of the window was already loaded (only_missing): nothing was downloaded.
+    skipped: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         """Plain dict (JSON-serialisable)."""
         return asdict(self)
+
+
+def remaining_window(window: TimeWindow, missing: list[date], *, rereads: bool) -> TimeWindow | None:
+    """What is left to download of ``window`` when ``missing`` (sorted) are its days without a successful load.
+
+    None when nothing is missing. Otherwise the window from its first missing day, so the days already loaded at its
+    start are not asked for again. A source that re-reads on purpose (``rereads``: its ``min_days`` window picks
+    up the publisher's revisions) keeps its whole window as soon as one day is missing.
+    """
+    if not missing:
+        return None
+    if rereads:
+        return window
+    return TimeWindow(max(window.start, missing[0]), window.end)
+
+
+def _to_download(
+    warehouse: Warehouse, connector: BaseConnector, region: Region, window: TimeWindow, run_id: str
+) -> TimeWindow | None:
+    """The part of ``window`` that no successful run of the connector has loaded yet (None: all of it is loaded)."""
+    name = connector.config.name
+    missing = warehouse.missing_days(name, region.name, window)
+    remaining = remaining_window(window, missing, rereads=connector.config.min_days > 1)
+    if remaining is None:
+        log.info("run %s: %s already loaded for %s..%s, nothing to download", run_id, name, window.start, window.end)
+    elif remaining != window:
+        log.info("run %s: %s already loaded until %s, window %s..%s", run_id, name,
+                 remaining.start - timedelta(days=1), remaining.start, remaining.end)  # fmt: skip
+    return remaining
 
 
 def new_run_id() -> str:
@@ -160,10 +193,13 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     settings: Settings | None = None,
     catch_up: bool = True,
     window: TimeWindow | None = None,
+    only_missing: bool = False,
 ) -> RunSummary:
     """Run one connector end to end and record the run in ``ops.ingestion_runs``.
 
-    With ``catch_up`` the window grows back to the day after the last successful run (up to the
+    With ``only_missing`` the days already covered by a successful load are not downloaded again: the window starts
+    at its first missing day, and a window with nothing missing is skipped without calling the source (nor
+    recording a run). With ``catch_up`` the window grows back to the day after the last successful run (up to the
     connector's ``catch_up_days``), so a source that was down is recovered by its next run.
     A ``window`` (backfills) replaces the last ``days``.
     """
@@ -177,6 +213,22 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
 
     warehouse = Warehouse(settings)
     warehouse.ensure_schema()
+    if only_missing:
+        remaining = _to_download(warehouse, connector, region, window, run_id)
+        if remaining is None:
+            return RunSummary(
+                run_id=run_id,
+                source=name,
+                region=region.name,
+                window_start=window.start.isoformat(),
+                window_end=window.end.isoformat(),
+                payloads=0,
+                rows_silver=0,
+                rows_upserted=0,
+                checks_failed=0,
+                skipped=True,
+            )
+        window = remaining
     if catch_up:
         requested = window
         window = window.catch_up(warehouse.last_loaded_day(name, region.name), connector.config.catch_up_days)
