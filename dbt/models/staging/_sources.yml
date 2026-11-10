@@ -45,12 +45,15 @@ sources:
       - {name: ibestat_iph, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 120, period: day}, filter: "source = 'ibestat_iph'"}}
       - name: entities
         description: >-
-          Names of the stops and stations that silver.observations knows only by identifier (stop_452, B228): the
-          GTFS stop_name, the AEMET inventory, the station lists of connector.yaml. Upserted on every run.
+          Names (and heights, where published) of the stops and stations that silver.observations knows only by
+          identifier (stop_452, B228): the GTFS stop_name, the AEMET inventory, the station lists of connector.yaml.
+          Upserted on every run.
         freshness: null  # names change rarely: an unchanged name keeps its updated_at
         columns:
           - name: name
             data_tests: [not_null]
+          - name: elevation_m
+            description: Height above the sea in metres (AEMET inventory, Open-Meteo model cell); null if unpublished.
       - name: routes
         description: >-
           Lines of the transit networks (GTFS routes of EMT Palma and CTM) with the path each one draws, as a GeoJSON

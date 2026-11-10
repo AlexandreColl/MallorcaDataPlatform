@@ -110,19 +110,25 @@ class Warehouse:
             return cur.rowcount
 
     def merge_entities(self, entities: list[Entity], run_id: str) -> int:
-        """Upsert entity names into silver.entities; an unchanged name keeps its run and ``updated_at``.
+        """Upsert entity names and heights into silver.entities; an unchanged entity keeps its run and ``updated_at``.
 
-        Returns the number of new or renamed entities.
+        A missing height (``None``) keeps the stored one, so a payload without heights does not erase them. Returns
+        the number of new, renamed or re-measured entities.
         """
         query = """
-            INSERT INTO silver.entities AS t (source, entity, name, run_id)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO silver.entities AS t (source, entity, name, elevation_m, run_id)
+            VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (source, entity) DO UPDATE
-               SET name = EXCLUDED.name, run_id = EXCLUDED.run_id, updated_at = now()
+               SET name = EXCLUDED.name,
+                   elevation_m = coalesce(EXCLUDED.elevation_m, t.elevation_m),
+                   run_id = EXCLUDED.run_id,
+                   updated_at = now()
              WHERE t.name IS DISTINCT FROM EXCLUDED.name
+                OR (EXCLUDED.elevation_m IS NOT NULL AND t.elevation_m IS DISTINCT FROM EXCLUDED.elevation_m)
         """
+        rows = [(e.source, e.entity, e.name, e.elevation_m, run_id) for e in entities]
         with self.connect() as conn, conn.cursor() as cur:
-            cur.executemany(query, [(e.source, e.entity, e.name, run_id) for e in entities])
+            cur.executemany(query, rows)
             return cur.rowcount
 
     def replace_routes(self, source: str, routes: list[Route], run_id: str) -> int:

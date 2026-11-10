@@ -395,7 +395,7 @@
       "id": 5,
       "type": "barchart",
       "title": "Modelo vs estaciones: error de temperatura",
-      "description": "dbt (fct_model_bias_daily): temperatura media diaria de Open-Meteo menos la medida por cada estación de AEMET y SOCIB en el punto del modelo más cercano, en el rango elegido. Sesgo positivo = el modelo calienta de más. Las 15 estaciones con más error; las de montaña de la Serra de Tramuntana delatan que el modelo no corrige la altitud.",
+      "description": "dbt (fct_model_bias_daily): temperatura media diaria de Open-Meteo menos la medida por cada estación de AEMET y SOCIB en el punto del modelo más cercano, en el rango elegido. Sesgo positivo = el modelo calienta de más. El sesgo bruto de las estaciones de montaña de la Serra de Tramuntana es sobre todo altitud: el sesgo y el error a su altura llevan antes el modelo a la altura de la estación (6,5 °C por km de desnivel con su celda). Las 15 estaciones con más error a su altura.",
       "gridPos": {
         "h": 11,
         "w": 12,
@@ -416,7 +416,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT concat(coalesce(l.name, b.station), ' → ', b.model_point, ' (', round(b.distance_km::numeric, 1), ' km)') AS \"Estación\", avg(b.temperature_mean_bias) AS \"Sesgo medio\", avg(abs(b.temperature_mean_bias)) AS \"Error absoluto medio\" FROM gold.fct_model_bias_daily b LEFT JOIN gold.dim_locations l ON l.source = b.station_source AND l.entity = b.station WHERE (b.station_source IN ($source) OR 'open_meteo' IN ($source)) AND b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY b.station, l.name, b.model_point, b.distance_km ORDER BY 3 DESC LIMIT 15"
+          "rawSql": "SELECT concat(coalesce(l.name, b.station), ' → ', b.model_point, ' (', round(b.distance_km::numeric, 1), ' km)') AS \"Estación\", avg(b.temperature_mean_bias) AS \"Sesgo bruto\", avg(b.temperature_mean_bias_adjusted) AS \"Sesgo a su altura\", avg(abs(b.temperature_mean_bias_adjusted)) AS \"Error a su altura\" FROM gold.fct_model_bias_daily b LEFT JOIN gold.dim_locations l ON l.source = b.station_source AND l.entity = b.station WHERE (b.station_source IN ($source) OR 'open_meteo' IN ($source)) AND b.local_date BETWEEN $__timeFrom()::date AND $__timeTo()::date GROUP BY b.station, l.name, b.model_point, b.distance_km ORDER BY 4 DESC LIMIT 15"
         }
       ],
       "fieldConfig": {
@@ -432,7 +432,22 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Sesgo medio"
+              "options": "Sesgo bruto"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B7B7B7"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sesgo a su altura"
             },
             "properties": [
               {
@@ -447,7 +462,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Error absoluto medio"
+              "options": "Error a su altura"
             },
             "properties": [
               {

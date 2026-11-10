@@ -107,11 +107,16 @@ class AemetConnector(BaseConnector):
         return payloads
 
     def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:
-        """The name of every station of the region, from the inventory (``SÓLLER, PUERTO`` as ``Sóller, Puerto``)."""
+        """Name and height of each station of the region, from the inventory (``SÓLLER, PUERTO``: ``Sóller, Puerto``)."""
         if payload.dataset != "stations":
             return
         for station_id, station in self._stations_in(payload.body, region).items():
-            yield Entity(source=self.name, entity=station_id, name=_title(station["name"]))
+            yield Entity(
+                source=self.name,
+                entity=station_id,
+                name=_title(station["name"]),
+                elevation_m=_number(station["altitude"]),
+            )
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:  # noqa: ARG002 - stations were filtered in extract
         """One observation per station, day and variable the station reports."""

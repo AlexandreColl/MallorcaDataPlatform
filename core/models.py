@@ -242,11 +242,14 @@ class Entity:
     """The name of one series' entity (a stop, a station), read from the same payloads as its observations.
 
     Observations carry only the identifier (``stop_452``, ``B228``): names live apart, one row per source and entity.
+    ``elevation_m`` is its height above the sea when the source publishes it (the AEMET inventory, the Open-Meteo
+    model cell); ``None`` keeps the height already stored.
     """
 
     source: str
     entity: str
     name: str
+    elevation_m: float | None = None
 
 
 @dataclass(frozen=True)

@@ -101,3 +101,16 @@ def test_describe_names_the_points_that_have_a_label():
     payload.request["locations"] = ["pollenca", "palma"]
 
     assert [(e.entity, e.name) for e in connector.describe(payload, region)] == [("pollenca", "Pollença")]
+
+
+def test_describe_takes_the_height_of_the_model_cell_from_the_weather_forecast():
+    region = Region("test", 39.25, 2.30, 39.97, 3.50, (Location("palma", 39.5696, 2.6502, "Palma"),
+                                                       Location("inca", 39.7210, 2.9110, "Inca")))
+    connector = registry.load("open_meteo", http=RecordedHttp())
+    payloads = {p.dataset: p for p in connector.extract(WINDOW, region)}
+
+    weather = {e.entity: e.elevation_m for e in connector.describe(payloads["weather"], region)}
+    air = {e.entity: e.elevation_m for e in connector.describe(payloads["air_quality"], region)}
+
+    assert weather == {"palma": 32.0, "inca": 129.0}
+    assert air == {"palma": None, "inca": None}  # the air quality grid is another model: it names the points only
