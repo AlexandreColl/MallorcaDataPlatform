@@ -1,10 +1,14 @@
 # Airflow + PySpark (local mode) + dbt in an isolated venv.
 ARG AIRFLOW_VERSION=3.4.0
 ARG PYTHON_VERSION=3.14
+# Resolved here, before any FROM: the Airflow image sets ENV AIRFLOW_VERSION and PYTHON_VERSION (a full
+# patch, 3.14.10), and an ENV overrides an ARG of the same name inside a stage. These names are ours alone.
+ARG AIRFLOW_PIN=apache-airflow==${AIRFLOW_VERSION}
+ARG AIRFLOW_CONSTRAINTS=https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt
 
 FROM apache/airflow:${AIRFLOW_VERSION}-python${PYTHON_VERSION} AS runtime
-ARG AIRFLOW_VERSION
-ARG PYTHON_VERSION
+ARG AIRFLOW_PIN
+ARG AIRFLOW_CONSTRAINTS
 # Versions matching the Hadoop client bundled with PySpark 4.2 (Hadoop 3.5.0).
 ARG HADOOP_AWS_VERSION=3.5.0
 ARG AWS_SDK_V2_VERSION=2.35.4
@@ -51,8 +55,7 @@ RUN python -m venv /opt/dbt-venv \
 
 USER airflow
 COPY requirements/runtime.txt /tmp/requirements-runtime.txt
-RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r /tmp/requirements-runtime.txt \
-    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+RUN pip install --no-cache-dir "${AIRFLOW_PIN}" -r /tmp/requirements-runtime.txt --constraint "${AIRFLOW_CONSTRAINTS}"
 
 ENV MDP_PROJECT_ROOT=/opt/project \
     PYTHONPATH=/opt/project \
@@ -73,5 +76,6 @@ COPY --chown=airflow:0 dags /opt/project/dags
 # Dev image: adds test/lint tooling (used by `make test` and `make lint`).
 FROM runtime AS dev
 ARG RUFF_VERSION=0.17.4
-RUN pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" pytest pytest-cov "ruff==${RUFF_VERSION}" \
-    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+ARG AIRFLOW_PIN
+ARG AIRFLOW_CONSTRAINTS
+RUN pip install --no-cache-dir "${AIRFLOW_PIN}" pytest pytest-cov "ruff==${RUFF_VERSION}" --constraint "${AIRFLOW_CONSTRAINTS}"
