@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- The model is compared with each station at the height of the station. AEMET publishes the height of every
+  station and Open-Meteo that of the terrain its model sees at each point; both are now stored in
+  `silver.entities.elevation_m` and reach `dim_locations`. `fct_model_bias_daily` and `agg_model_bias_by_station`
+  keep the raw bias and add `_adjusted` ones, with the model brought to the station's height at 6.5 °C per km
+  (`lapse_rate_c_per_km`). The mountain stations no longer measure the altitude: across the 29 AEMET stations
+  with both heights the model's mean absolute error drops from 1.40 to 0.99 °C, and at the Serra d'Alfàbia, 996 m
+  above its model cell, the bias goes from +6.0 to −0.4 °C. The API, the web panel and the Grafana panel show both.
+
 ## [0.15.0] - 2026-11-10
 
 ### Added
