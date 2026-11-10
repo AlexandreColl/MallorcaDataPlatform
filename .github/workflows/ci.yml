@@ -62,7 +62,7 @@ jobs:
       # Providers (registry) and tflint plugins (GitHub releases) are cached, and every download is retried: a
       # 502/504 of a few minutes no longer fails the job. tflint runs in its image from ghcr.io, as `make tf-check`
       # does, instead of the setup action that downloads the binary from a GitHub release.
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.terraform.d/plugin-cache
