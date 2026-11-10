@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Falexandrecoll.github.io%2FMallorcaDataPlatform%2Fcoverage%2Fbadge.json)](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/)
 [![dbt docs](https://img.shields.io/badge/dbt_docs-lineage-FF694B)](https://alexandrecoll.github.io/MallorcaDataPlatform/)
 ![Python](https://img.shields.io/badge/python-3.14-blue)
-![Airflow](https://img.shields.io/badge/airflow-3.3-017CEE)
+![Airflow](https://img.shields.io/badge/airflow-3.4-017CEE)
 ![Spark](https://img.shields.io/badge/pyspark-4.2-E25A1C)
 ![dbt](https://img.shields.io/badge/dbt-1.12-FF694B)
 

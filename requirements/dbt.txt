@@ -2,5 +2,5 @@
 # (DBT_CORE_VERSION and DBT_POSTGRES_VERSION in docker/airflow/Dockerfile): keep them equal.
 dbt-core==1.12.6
 dbt-postgres==1.11.0
-sqlfluff==4.4.0
-sqlfluff-templater-dbt==4.4.0
+sqlfluff==4.5.0
+sqlfluff-templater-dbt==4.5.0

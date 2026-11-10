@@ -5,6 +5,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-10
+
+### Changed
+
+- Airflow 3.3.2 → 3.4.0. Inside the image its constraints also bring boto3 1.43.117, pandas 3.1.0, pydantic 2.14.2
+  and the OpenLineage provider 2.21.0. The metadata database is reached with psycopg 3 (`postgresql+psycopg://`),
+  the driver Airflow 3.4 defaults to. `airflow db migrate` upgrades an existing volume in place; going back to
+  3.3.2 needs `airflow db downgrade` first.
+
+- Dependencies: FastAPI 0.162.3, pydantic 2.14.3, psycopg 3.3.8, boto3 1.43.127, pandas 3.1.1, pyarrow 26.0.1,
+  ruff 0.17.4, sqlfluff 4.5.0, Vite 8.3.7, @vitejs/plugin-react 6.3.0 and MapLibre 6.17.0.
+- pypdf 7.0.1 (major). The water reserves connector only uses `PdfReader` and `extract_text`: the raw text of the
+  recorded PDFs changes slightly, but the 355 observations read from each are identical to pypdf 6.
+- PySpark stays at 4.2: Delta has no build for Spark 4.3 yet, and Dependabot no longer proposes Spark minors.
+
 ## [0.16.0] - 2026-11-10
 
 ### Added
@@ -706,7 +721,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...v0.14.0

@@ -2,17 +2,17 @@
 # Inside the Docker image the same libraries are resolved against the official Airflow
 # constraints file (the combination Airflow tests and supports), so patch versions may differ.
 pyspark==4.2.1
-pypdf==6.21.4
-boto3==1.43.123
-psycopg[binary]==3.3.6
+pypdf==7.0.1
+boto3==1.43.127
+psycopg[binary]==3.3.8
 requests==2.34.2
 PyYAML==6.0.3
-pandas==3.1.0
-pyarrow==26.0.0
+pandas==3.1.1
+pyarrow==26.0.1
 scikit-learn==1.9.1
-fastapi==0.162.0
+fastapi==0.162.3
 psycopg-pool==3.3.3
 httpx2==2.16.0  # FastAPI TestClient (Starlette deprecates it with httpx)
 pytest==9.2.0
 pytest-cov==7.1.0
-ruff==0.17.3
+ruff==0.17.4
