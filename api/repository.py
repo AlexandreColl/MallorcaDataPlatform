@@ -191,12 +191,13 @@ ORDER BY start_date DESC
 """
 
 _MODEL_BIAS = """
-SELECT b.station_source, b.station, l.name AS station_name, b.model_point, b.distance_km, b.days_compared,
-       b.temperature_bias_c, b.temperature_mae_c, b.temperature_rmse_c, b.precipitation_bias_total_mm,
+SELECT b.station_source, b.station, l.name AS station_name, b.model_point, b.distance_km, b.elevation_diff_m,
+       b.days_compared, b.temperature_bias_c, b.temperature_mae_c, b.temperature_rmse_c, b.temperature_bias_adjusted_c,
+       b.temperature_mae_adjusted_c, b.temperature_rmse_adjusted_c, b.precipitation_bias_total_mm,
        b.rain_day_agreement, b.wind_speed_bias_kmh, b.first_day, b.last_day
 FROM gold.agg_model_bias_by_station AS b
 LEFT JOIN gold.dim_locations AS l ON l.source = b.station_source AND l.entity = b.station
-ORDER BY b.temperature_mae_c DESC NULLS LAST, b.station
+ORDER BY b.temperature_mae_adjusted_c DESC NULLS LAST, b.station
 """
 
 # The latest hour of each air quality station or model point in the last two days, with its European AQI band.

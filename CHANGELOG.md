@@ -5,6 +5,31 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-10
+
+### Added
+
+- The model is compared with each station at the height of the station. AEMET publishes the height of every
+  station and Open-Meteo that of the terrain its model sees at each point; both are now stored in
+  `silver.entities.elevation_m` and reach `dim_locations`. `fct_model_bias_daily` and `agg_model_bias_by_station`
+  keep the raw bias and add `_adjusted` ones, with the model brought to the station's height at 6.5 °C per km
+  (`lapse_rate_c_per_km`). The mountain stations no longer measure the altitude: across the 29 AEMET stations
+  with both heights the model's mean absolute error drops from 1.40 to 0.99 °C, and at the Serra d'Alfàbia, 996 m
+  above its model cell, the bias goes from +6.0 to −0.4 °C. The API, the web panel and the Grafana panel show both.
+- A gap longer than the catch-up is recovered on its own. The catch-up grows a run's window back to
+  `catch_up_days`, by default the connector's `max_days` (what its API serves at once). When a source was down
+  longer, or the computer off, the run first loads the older days, oldest first, in extra runs of `catch_up_days`
+  each (`<run_id>_<first day>`, like a backfill), up to `recover_days` before the end of its window. A failed
+  chunk stops the recovery, and the next run resumes after the last chunk that loaded. `recover_days` defaults to
+  `catch_up_days` (no change) and is raised only where the API keeps the history: AEMET (1095) and REData (366).
+  `RunSummary.recovered_days` counts the recovered days.
+
+### Changed
+
+- Dependencies: FastAPI 0.143.2 → 0.162.0 (API image and CI), boto3 1.43.120 → 1.43.123 and pytest 9.1.1 → 9.2.0.
+  The FastAPI `TestClient` runs on `httpx2` instead of `httpx`, which Starlette 1.10 deprecates, so the API tests
+  run without warnings.
+
 ## [0.15.0] - 2026-11-10
 
 ### Added
@@ -681,7 +706,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...v0.13.0

@@ -1,5 +1,5 @@
 name: mallorca
-version: "0.15.0"
+version: "0.16.0"
 config-version: 2
 profile: mallorca
 
@@ -19,6 +19,8 @@ vars:
   palma: {lat: 39.5696, lon: 2.6502}  # reference point for distances
   # station vs model: an observation station is compared with the nearest model point within this distance
   model_pairing_max_km: 25
+  # the air cools ~6.5 °C per km up: the model is compared at the height of the station (see fct_model_bias_daily)
+  lapse_rate_c_per_km: 6.5
   # weather episodes: a day is an episode day when any threshold is reached somewhere on the island
   episode_rain_mm: 30
   episode_gust_kmh: 70

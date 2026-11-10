@@ -194,8 +194,8 @@ exposures:
     description: >
       Phase 4 (ROADMAP): core/corrections fills the gaps and suspect values of the hourly stations (SOCIB, EEA)
       by interpolation or with a nearby support series and its calibrated bias, measured by
-      `make evaluate-corrections`. The daily model bias per station (with the altitude effect of the mountain
-      stations) is the input for correcting the model itself, still planned.
+      `make evaluate-corrections`. The daily model bias per station, raw and at the height of the station (6.5 °C
+      per km between the station and its model cell), is the input for correcting the model itself.
     owner:
       name: AlexandreColl
     depends_on:

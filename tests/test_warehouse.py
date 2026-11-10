@@ -189,6 +189,23 @@ def test_entity_names_are_upserted_and_only_a_rename_counts(warehouse):
     assert names(warehouse) == {"stop_1": ("Plaça d'Espanya", "run1"), "stop_2": ("Sindicat - intercanvi", "run2")}
 
 
+def heights(warehouse):
+    with warehouse.connect() as conn:
+        rows = conn.execute("SELECT entity, elevation_m FROM silver.entities WHERE source = %s", (SOURCE,)).fetchall()
+    return dict(rows)
+
+
+def test_entity_heights_are_kept_when_a_payload_has_none(warehouse):
+    assert warehouse.merge_entities([Entity(SOURCE, "lluc", "Lluc", 490.0)], "run1") == 1
+
+    # A payload that does not publish heights neither erases the stored one nor counts as a change.
+    assert warehouse.merge_entities([Entity(SOURCE, "lluc", "Lluc")], "run2") == 0
+    assert heights(warehouse) == {"lluc": 490.0}
+
+    assert warehouse.merge_entities([Entity(SOURCE, "lluc", "Lluc", 491.0)], "run3") == 1
+    assert heights(warehouse) == {"lluc": 491.0}
+
+
 def route(name, path=((2.65, 39.57), (2.66, 39.58)), color="#44743f"):
     return Route(SOURCE, f"route_{name}", name, f"{name} · Portopí - Sindicat", "bus", color, (path,))
 

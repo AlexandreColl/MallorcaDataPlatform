@@ -51,6 +51,8 @@ class RunSummary:
     checks_failed: int
     # True when every day of the window was already loaded (only_missing): nothing was downloaded.
     skipped: bool = False
+    # Days of an older gap loaded first, in runs of their own (catch-up beyond catch_up_days, up to recover_days).
+    recovered_days: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         """Plain dict (JSON-serialisable)."""
@@ -69,6 +71,24 @@ def remaining_window(window: TimeWindow, missing: list[date], *, rereads: bool) 
     if rereads:
         return window
     return TimeWindow(max(window.start, missing[0]), window.end)
+
+
+def recovery_windows(
+    window: TimeWindow, last_loaded: date | None, recover_days: int, chunk_days: int
+) -> list[TimeWindow]:
+    """The gap between ``last_loaded`` and ``window`` that the catch-up did not reach, in chunks of ``chunk_days``.
+
+    The catch-up grows a run's window back to ``catch_up_days``: one request, which most APIs cap. When the source
+    was down longer (or the computer off), the days before that window are loaded first, oldest first, but no
+    further back than ``recover_days`` from the end of the window. A source that never loaded has no gap: its
+    history is a backfill.
+    """
+    if last_loaded is None:
+        return []
+    start = max(last_loaded + timedelta(days=1), window.end - timedelta(days=recover_days - 1))
+    if start >= window.start:
+        return []
+    return TimeWindow(start, window.start - timedelta(days=1)).split(chunk_days)
 
 
 def _to_download(
@@ -200,7 +220,8 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     With ``only_missing`` the days already covered by a successful load are not downloaded again: the window starts
     at its first missing day, and a window with nothing missing is skipped without calling the source (nor
     recording a run). With ``catch_up`` the window grows back to the day after the last successful run (up to the
-    connector's ``catch_up_days``), so a source that was down is recovered by its next run.
+    connector's ``catch_up_days``), so a source that was down is recovered by its next run; an older gap, up to
+    ``recover_days``, is loaded first in runs of its own (see :func:`recovery_windows`).
     A ``window`` (backfills) replaces the last ``days``.
     """
     settings = settings or Settings.from_env()
@@ -229,11 +250,54 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
                 skipped=True,
             )
         window = remaining
+    recovered_days = 0
     if catch_up:
+        last_loaded = warehouse.last_loaded_day(name, region.name)
         requested = window
-        window = window.catch_up(warehouse.last_loaded_day(name, region.name), connector.config.catch_up_days)
+        window = window.catch_up(last_loaded, connector.config.catch_up_days)
         if window != requested:
             log.warning("run %s: %s catching up missed days, window %s..%s", run_id, name, window.start, window.end)
+        recovered_days = _recover(connector, region, window, last_loaded, run_id=run_id, warehouse=warehouse)
+
+    summary = _load_window(connector, region, window, run_id, warehouse)
+    summary.recovered_days = recovered_days
+    log.info("run summary: %s", summary.as_dict())
+    return summary
+
+
+def _recover(  # noqa: PLR0913 - the context of the run, keyword-only after the window
+    connector: BaseConnector,
+    region: Region,
+    window: TimeWindow,
+    last_loaded: date | None,
+    *,
+    run_id: str,
+    warehouse: Warehouse,
+) -> int:
+    """Load the gap older than ``window`` (since ``last_loaded``), oldest first, one run per chunk.
+
+    Each chunk is a run of its own (``<run_id>_<first day>``, like a backfill), so a failure stops the recovery with
+    the earlier chunks recorded and the next run resumes after them. Returns the number of days recovered.
+    """
+    config = connector.config
+    chunks = recovery_windows(window, last_loaded, config.recover_days, config.catch_up_days)
+    if last_loaded is not None and chunks and chunks[0].start > last_loaded + timedelta(days=1):
+        log.warning("run %s: %s missed %s..%s, beyond recover_days (%d): load it with `make backfill`", run_id,
+                    config.name, last_loaded + timedelta(days=1), chunks[0].start - timedelta(days=1),
+                    config.recover_days)  # fmt: skip
+    for chunk in chunks:
+        log.warning("run %s: %s recovering %s..%s before the window", run_id, config.name, chunk.start, chunk.end)
+        older = _load_window(connector, region, chunk, f"{run_id}_{chunk.start:%Y%m%d}", warehouse)
+        log.info("run summary: %s", older.as_dict())
+    return sum(chunk.n_days for chunk in chunks)
+
+
+def _load_window(
+    connector: BaseConnector, region: Region, window: TimeWindow, run_id: str, warehouse: Warehouse
+) -> RunSummary:
+    """Extract, normalise and load one window as one run recorded in ``ops.ingestion_runs``."""
+    name = connector.config.name
+    settings = warehouse.settings
     warehouse.start_run(run_id, name, region.name, window)
     log.info("run %s: %s %s..%s (%s)", run_id, name, window.start, window.end, region.name)
 
@@ -259,19 +323,16 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
         # The exception type lets readers tell an upstream outage (ConnectTimeout, HTTPError 503...) from a bug.
         warehouse.finish_run(run_id, name, "failed", error=f"{type(exc).__name__}: {exc}"[:2000])
         raise
-    else:
-        stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)
-        warehouse.finish_run(run_id, name, "success", stats=stats)
-        summary = RunSummary(
-            run_id=run_id,
-            source=name,
-            region=region.name,
-            window_start=window.start.isoformat(),
-            window_end=window.end.isoformat(),
-            payloads=stats.payloads,
-            rows_silver=stats.rows_silver,
-            rows_upserted=stats.rows_upserted,
-            checks_failed=sum(1 for r in results if not r.passed),
-        )
-        log.info("run summary: %s", summary.as_dict())
-        return summary
+    stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)
+    warehouse.finish_run(run_id, name, "success", stats=stats)
+    return RunSummary(
+        run_id=run_id,
+        source=name,
+        region=region.name,
+        window_start=window.start.isoformat(),
+        window_end=window.end.isoformat(),
+        payloads=stats.payloads,
+        rows_silver=stats.rows_silver,
+        rows_upserted=stats.rows_upserted,
+        checks_failed=sum(1 for r in results if not r.passed),
+    )

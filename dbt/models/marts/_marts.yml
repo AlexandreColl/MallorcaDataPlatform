@@ -73,6 +73,9 @@ models:
       - {name: source, data_type: text, constraints: [{type: not_null}]}
       - {name: entity, data_type: text, constraints: [{type: not_null}]}
       - {name: name, data_type: text}
+      - name: elevation_m
+        data_type: double precision
+        description: Height above the sea in metres, when the source publishes it (AEMET stations, the Open-Meteo model cell).
       - name: lat
         data_type: double precision
         data_tests:
@@ -326,7 +329,9 @@ models:
   - name: fct_model_bias_daily
     description: >
       Station vs model per station and day: AEMET or SOCIB observation, Open-Meteo at the nearest model point
-      and the difference (model minus observation; positive = the model overestimates). Complete days only.
+      and the difference (model minus observation; positive = the model overestimates). Complete days only. The
+      `_adjusted` temperature biases first bring the model to the height of the station with the standard lapse
+      rate (`lapse_rate_c_per_km`), so a mountain station measures the model and not the altitude.
     data_tests:
       - unique_combination:
           arguments:
@@ -336,13 +341,27 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: 0, max_value: 25}
+      - name: elevation_diff_m
+        description: Height of the station minus that of the model cell (positive = the station stands higher).
+      - name: altitude_adjustment_c
+        description: Added to the model's temperatures to compare them at the station's height; 0 without both heights.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: -10, max_value: 10}
       - name: temperature_mean_bias
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: -15, max_value: 15}
+      - name: temperature_mean_bias_adjusted
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: -15, max_value: 15}
 
   - name: agg_model_bias_by_station
-    description: Model quality per station (bias, MAE and RMSE of the daily mean temperature, rain bias and agreement).
+    description: >-
+      Model quality per station (bias, MAE and RMSE of the daily mean temperature, raw and at the station's height;
+      rain bias and agreement).
     config:
       contract: {enforced: true}
     constraints:
@@ -353,6 +372,7 @@ models:
       - {name: station, data_type: text, constraints: [{type: not_null}]}
       - {name: model_point, data_type: text}
       - {name: distance_km, data_type: double precision}
+      - {name: elevation_diff_m, data_type: double precision, description: Height of the station minus that of the model cell.}
       - {name: days_compared, data_type: bigint}
       - {name: temperature_bias_c, data_type: "numeric(6,2)"}
       - name: temperature_mae_c
@@ -361,6 +381,14 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: 0}
       - {name: temperature_rmse_c, data_type: "numeric(6,2)"}
+      - {name: temperature_bias_adjusted_c, data_type: "numeric(6,2)", description: Mean bias at the station's height.}
+      - name: temperature_mae_adjusted_c
+        data_type: "numeric(6,2)"
+        description: Mean absolute error at the station's height.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0}
+      - {name: temperature_rmse_adjusted_c, data_type: "numeric(6,2)"}
       - {name: precipitation_bias_total_mm, data_type: "numeric(8,1)"}
       - name: rain_day_agreement
         data_type: "numeric(4,3)"
@@ -787,3 +815,24 @@ unit_tests:
     expect:
       rows:
         - {month: "2025-09-01", hydrological_year: 2026, rain_stations: 1, rain_mm: 60.0, wet_days: 30.0, hot_days: 0.0, rain_anomaly: 0.000}
+
+  - name: model_bias_is_compared_at_the_height_of_the_station
+    description: >-
+      A station 500 m above its model cell is 3.25 °C colder for the altitude alone: the adjusted bias removes it.
+      Without the heights the adjustment is 0.
+    model: fct_model_bias_daily
+    given:
+      - input: ref('int_station_model_pairs')
+        rows:
+          - {station_source: aemet, station: B013X, model_point: inca, distance_km: 12.0, elevation_diff_m: 500.0}
+          - {station_source: socib, station: parcbit, model_point: palma, distance_km: 5.0, elevation_diff_m: null}
+      - input: ref('fct_weather_daily')
+        rows:
+          - {source: aemet, entity: B013X, local_date: "2026-11-01", is_complete_day: true, temperature_mean: 12.0, temperature_max: 16.0, temperature_min: 8.0}
+          - {source: socib, entity: parcbit, local_date: "2026-11-01", is_complete_day: true, temperature_mean: 16.0, temperature_max: 20.0, temperature_min: 12.0}
+          - {source: open_meteo, entity: inca, local_date: "2026-11-01", is_complete_day: true, temperature_mean: 14.5, temperature_max: 18.5, temperature_min: 10.5}
+          - {source: open_meteo, entity: palma, local_date: "2026-11-01", is_complete_day: true, temperature_mean: 17.0, temperature_max: 21.0, temperature_min: 13.0}
+    expect:
+      rows:
+        - {station: B013X, altitude_adjustment_c: -3.25, temperature_mean_bias: 2.5, temperature_mean_bias_adjusted: -0.75, temperature_max_bias_adjusted: -0.75}
+        - {station: parcbit, altitude_adjustment_c: 0.0, temperature_mean_bias: 1.0, temperature_mean_bias_adjusted: 1.0, temperature_max_bias_adjusted: 1.0}

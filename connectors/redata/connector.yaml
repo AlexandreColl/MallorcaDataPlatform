@@ -4,6 +4,7 @@ entrypoint: connectors.redata.extractor:REDataConnector
 enabled: true
 frequency: 1d          # default sampling; datasets below may override it
 max_days: 92
+recover_days: 366      # the API serves years of history: a longer gap is recovered in runs of 92 days
 secrets: []
 
 options:

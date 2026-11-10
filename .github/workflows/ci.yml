@@ -206,7 +206,7 @@ jobs:
           API_DB_PASSWORD: warehouse
         run: |
           (cd dbt && dbt build --profiles-dir . --select +exposure:rest_api --indirect-selection cautious)
-          scripts/ci/retry.sh pip install -r requirements/api.txt pytest==9.1.1 httpx==0.28.1
+          scripts/ci/retry.sh pip install -r requirements/api.txt pytest==9.2.0 httpx2==2.16.0
           pytest -q api/tests/test_integration.py
       # The pipeline's writes (the upsert behind idempotent reruns, run tracking) against the same Postgres.
       - name: Warehouse writes against Postgres

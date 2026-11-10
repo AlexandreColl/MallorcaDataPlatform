@@ -54,8 +54,10 @@ ya está.
 - **En contra.**
   - Lo que decide "cargado" es el registro de ejecuciones, no los datos. Si se borran filas de silver a mano, hay que
     recargar con `ONLY_MISSING=false`.
-  - El *catch-up* sigue limitado a `catch_up_days` (31 por defecto). Si el PC está apagado más tiempo, los días
-    anteriores se recuperan con `make backfill`.
+  - El *catch-up* sigue limitado a `catch_up_days`, que por defecto es el `max_days` de cada conector (92 días en
+    Open-Meteo, REData o la EEA; 366 en AEMET): lo que su API sirve de una vez. Desde la v0.16.0, `recover_days`
+    recupera un hueco más largo, en ejecuciones extra, en las fuentes cuya API guarda el histórico (AEMET y REData).
+    Más allá, los días se cargan con `make backfill`.
   - Una ejecución saltada no deja fila en `ops.ingestion_runs`. Solo ocurre si una carga correcta reciente ya cubrió
     el último día, así que la alerta de 36 h sin carga correcta no salta por ello.
 

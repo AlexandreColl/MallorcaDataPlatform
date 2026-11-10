@@ -60,12 +60,21 @@ class OpenMeteoConnector(BaseConnector):
         return payloads
 
     def describe(self, payload: RawPayload, region: Region) -> Iterator[Entity]:
-        """The display name (``label``) of every requested point that has one."""
+        """The display name (``label``) of every requested point that has one, with the height of its model cell.
+
+        The height comes from the weather forecast (``elevation``, metres): the terrain the model sees at that point,
+        which the station vs model comparison needs to correct for altitude. Other datasets name the points only.
+        """
         by_name = {loc.name: loc for loc in self.locations(region)}
-        for name in payload.request["locations"]:
+        names = payload.request["locations"]
+        bodies = payload.body if isinstance(payload.body, list) else [payload.body]
+        heights: list[float | None] = [None] * len(names)
+        if payload.dataset == "weather" and len(bodies) == len(names):
+            heights = [None if b.get("elevation") is None else float(b["elevation"]) for b in bodies]
+        for name, height in zip(names, heights, strict=True):
             location = by_name.get(name)
             if location is not None and location.label:
-                yield Entity(source=self.name, entity=location.name, name=location.label)
+                yield Entity(source=self.name, entity=location.name, name=location.label, elevation_m=height)
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:
         """Yield one observation per location, metric and hour.

@@ -15,7 +15,7 @@ class Health(BaseModel):
 
     status: str = Field(examples=["ok"])
     database: str = Field(examples=["ok"], description="`ok` or `unavailable`")
-    version: str = Field(examples=["0.15.0"])
+    version: str = Field(examples=["0.16.0"])
 
 
 class Governance(BaseModel):
@@ -421,17 +421,27 @@ class WeatherEpisode(BaseModel):
 
 
 class ModelBias(BaseModel):
-    """Error of the weather model against one station (gold.agg_model_bias_by_station): model minus station."""
+    """Error of the weather model against one station (gold.agg_model_bias_by_station): model minus station.
+
+    The ``_adjusted`` temperature errors compare the model at the height of the station (6.5 °C per km), so a
+    mountain station measures the model and not the altitude.
+    """
 
     station_source: str
     station: str
     station_name: str | None = Field(default=None, examples=["Escorca, Son Torrella"], description=NAME)
     model_point: str
     distance_km: float | None
+    elevation_diff_m: float | None = Field(
+        default=None, examples=[340.0], description="Height of the station minus that of the model cell, in metres."
+    )
     days_compared: int
     temperature_bias_c: float | None
     temperature_mae_c: float | None
     temperature_rmse_c: float | None
+    temperature_bias_adjusted_c: float | None = None
+    temperature_mae_adjusted_c: float | None = None
+    temperature_rmse_adjusted_c: float | None = None
     precipitation_bias_total_mm: float | None
     rain_day_agreement: float | None
     wind_speed_bias_kmh: float | None

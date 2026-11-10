@@ -17,6 +17,7 @@ select
     l.source,
     l.entity,
     e.name,
+    e.elevation_m,
     l.lat,
     l.lon,
     l.first_seen,

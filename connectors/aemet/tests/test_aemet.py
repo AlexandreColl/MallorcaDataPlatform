@@ -131,6 +131,16 @@ def test_stations_are_named_from_the_inventory():
     assert "B893" not in names  # Menorca airport
 
 
+def test_stations_carry_their_height_from_the_inventory():
+    connector = _connector()
+    payloads = connector.extract(WINDOW, MALLORCA)
+
+    heights = {e.entity: e.elevation_m for p in payloads for e in connector.describe(p, MALLORCA)}
+
+    assert heights["B013X"] == 490.0  # Escorca, Lluc: a mountain station
+    assert heights["B051A"] == 5.0
+
+
 @pytest.mark.parametrize(
     ("raw", "name"),
     [

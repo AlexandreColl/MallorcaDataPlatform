@@ -4,6 +4,7 @@ entrypoint: connectors.aemet.extractor:AemetConnector
 enabled: true
 frequency: 1d          # one value per station and day
 max_days: 366
+recover_days: 1095      # the API serves the whole history: a longer gap is recovered in runs of a year
 lag_days: 3            # AEMET publishes the daily values 2-3 days late: windows end 3 days before yesterday
 secrets: [AEMET_API_KEY]
 
