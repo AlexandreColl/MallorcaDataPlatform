@@ -176,8 +176,12 @@ def test_the_recovery_goes_back_no_further_than_recover_days():
     assert chunks == [TimeWindow(date(2026, 9, 10), date(2026, 10, 8))]  # 60 days before 8 November
 
 
+# REData: catch_up_days 92 (its max_days) and recover_days 366.
+REDATA_END = registry.discover()["redata"].window(1).end
+
+
 class _BehindWarehouse:
-    """A warehouse whose last successful load is 200 days before the window."""
+    """A warehouse whose last successful load is 200 days before the end of the window."""
 
     def __init__(self, settings):
         self.settings = settings
@@ -186,7 +190,7 @@ class _BehindWarehouse:
         pass
 
     def last_loaded_day(self, source, region):
-        return date.today() - timedelta(days=201)
+        return REDATA_END - timedelta(days=200)
 
 
 def test_run_connector_loads_the_older_gap_first_in_runs_of_its_own(monkeypatch):
@@ -200,14 +204,13 @@ def test_run_connector_loads_the_older_gap_first_in_runs_of_its_own(monkeypatch)
     monkeypatch.setattr(core.pipeline, "Warehouse", _BehindWarehouse)
     monkeypatch.setattr(core.pipeline, "_load_window", load_window)
 
-    # REData: catch_up_days 92 (its max_days) and recover_days 366.
     summary = run_connector("redata", 1, run_id="r1")
 
     (first_id, first), (second_id, second), (main_id, main) = loaded
     assert main_id == "r1"
     assert main.n_days == 92
     assert (first.n_days, second.n_days) == (92, 16)  # the other 108 days of the gap, oldest first
-    assert first.start == date.today() - timedelta(days=200)
+    assert first.start == REDATA_END - timedelta(days=199)
     assert second.end == main.start - timedelta(days=1)
     assert (first_id, second_id) == (f"r1_{first.start:%Y%m%d}", f"r1_{second.start:%Y%m%d}")
     assert summary.recovered_days == 108
@@ -215,7 +218,8 @@ def test_run_connector_loads_the_older_gap_first_in_runs_of_its_own(monkeypatch)
 
 def test_a_failed_recovery_stops_before_the_window(monkeypatch):
     def load_window(connector, region, window, run_id, warehouse):
-        raise ConnectionError("down")
+        msg = "down"
+        raise ConnectionError(msg)
 
     monkeypatch.setattr(core.pipeline, "Warehouse", _BehindWarehouse)
     monkeypatch.setattr(core.pipeline, "_load_window", load_window)

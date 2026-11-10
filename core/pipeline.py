@@ -257,7 +257,7 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
         window = window.catch_up(last_loaded, connector.config.catch_up_days)
         if window != requested:
             log.warning("run %s: %s catching up missed days, window %s..%s", run_id, name, window.start, window.end)
-        recovered_days = _recover(connector, region, window, last_loaded, run_id, warehouse)
+        recovered_days = _recover(connector, region, window, last_loaded, run_id=run_id, warehouse=warehouse)
 
     summary = _load_window(connector, region, window, run_id, warehouse)
     summary.recovered_days = recovered_days
@@ -265,11 +265,12 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     return summary
 
 
-def _recover(
+def _recover(  # noqa: PLR0913 - the context of the run, keyword-only after the window
     connector: BaseConnector,
     region: Region,
     window: TimeWindow,
     last_loaded: date | None,
+    *,
     run_id: str,
     warehouse: Warehouse,
 ) -> int:
