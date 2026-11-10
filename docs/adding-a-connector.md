@@ -20,7 +20,9 @@ connectors/<nombre>/
    huecos (`1h`, `1d`…); si los datasets tienen granularidades distintas, cada uno puede declarar la suya
    (`datasets.<x>.frequency`, ver `connectors/redata`). `catch_up_days` (por defecto `max_days`) limita cuánto se
    alarga una ventana para recuperar días de ejecuciones fallidas; bájalo si la fuente no guarda tanto histórico
-   (SOCIB: 28). `lag_days` retrasa el final de la ventana para fuentes que publican tarde (AEMET: 3).
+   (SOCIB: 28). Si la API sirve más histórico que eso, `recover_days` (por defecto `catch_up_days`) recupera un
+   hueco más largo en ejecuciones extra de `catch_up_days` días, de la más antigua a la más reciente (AEMET: 1095,
+   REData: 366); no lo subas si la API no sirve esos días, o cada ejecución fallaría. `lag_days` retrasa el final de la ventana para fuentes que publican tarde (AEMET: 3).
    Para estadísticas mensuales usa `frequency: 1mo` (un valor por mes, fechado el día 1) y `min_days` para que
    cada ejecución cubra meses ya publicados (ver `connectors/dataestur`). Las anuales usan `frequency: 1y` (un valor
    por año, fechado el 1 de enero; ver `connectors/ine_population`).
