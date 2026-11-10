@@ -56,8 +56,9 @@ Ninguno decía si una fuente mensual con datos de hace dos meses estaba bien o m
   - La alerta del SLA lee un mart de dbt (`gold.source_health`), cuando las demás alertas leen solo tablas
     operativas. Se mitiga calculando la antigüedad en vivo: el último dato solo cambia con una carga y su build.
     Además, la alerta de 36 h sin carga correcta sigue leyendo `ops.ingestion_runs`.
-  - Los umbrales de `dbt source freshness` siguen en `_sources.yml`. Miden algo distinto: si las cargas traen filas
-    nuevas, no la antigüedad del dato. Hay que mantenerlos coherentes a mano.
+  - Los umbrales de `dbt source freshness` siguen en `_sources.yml`, porque el YAML no puede leer el seed. Miden
+    algo distinto: si las cargas traen filas nuevas, no la antigüedad del dato. Desde la v0.15.0, su `error_after` es
+    el SLA del catálogo y un test (`tests/test_freshness_sla.py`) falla si se separan.
 
 ## Cuándo revisarla
 

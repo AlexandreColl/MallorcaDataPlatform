@@ -9,7 +9,8 @@ DAG_ID=mallorca_pipeline
 CONNECTORS='"open_meteo", "open_meteo_marine", "redata", "socib", "ign", "emt_palma", "ctm", "dataestur", "water_reserves", "eea_air_quality", "ine_population", "ibestat_iph"'
 # AEMET needs an API key: it joins the E2E only when .env has one (in CI, the AEMET_API_KEY repository secret).
 if grep -Eq '^AEMET_API_KEY=.+' .env 2>/dev/null; then CONNECTORS+=', "aemet", "aemet_warnings"'; fi
-CONF=${CONF:-"{\"connectors\": [$CONNECTORS], \"days\": 1, \"region\": \"mallorca\"}"}
+# only_missing false: the second run must load the same window again, to prove it duplicates nothing.
+CONF=${CONF:-"{\"connectors\": [$CONNECTORS], \"days\": 1, \"region\": \"mallorca\", \"only_missing\": false}"}
 TIMEOUT=${TIMEOUT:-900}
 # Connectors with `frequency: event`: a 1-day window usually has no events, so they must succeed, not load rows.
 EVENT_SOURCES=${EVENT_SOURCES:-ign aemet_warnings}

@@ -28,4 +28,7 @@ No añadir ninguna caché.
 Si alguna fuente empieza a limitar las peticiones de forma estricta. Aun así, antes que Redis convendría leer de
 bronze cuando la ventana ya está descargada.
 
+En la v0.15.0 se fue un paso más allá ([0021](0021-solo-los-dias-que-faltan.md)): una ejecución no vuelve a pedir
+los días que ya cargó una ejecución correcta, y se salta entera si no falta ninguno.
+
 **La lección:** medir antes de optimizar. La solución a la lentitud es un servidor Spark Connect compartido.

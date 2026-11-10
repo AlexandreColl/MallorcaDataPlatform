@@ -70,7 +70,8 @@ owner, licence, access and SLA of each source are in [docs/data-governance.md](d
   change the value. Corrections go elsewhere, into `silver.corrections`, and gold shows both values
   ([below](#corrections-with-support-sources)).
 - **Local first, cloud later.** MinIO speaks S3 and Spark uses S3A: moving to AWS means changing the endpoint and
-  the credentials.
+  the credentials. With `S3_CREDENTIALS=role`, bronze and Spark write with temporary credentials of a
+  least-privilege role, locally too against MinIO's STS ([details](infra/terraform/README.md)).
 
 ## Getting started
 
@@ -79,7 +80,7 @@ Windows with WSL2 + Debian (in Spanish): [docs/setup-windows.md](docs/setup-wind
 
 ```bash
 make up                                      # creates .env, builds the image and starts everything
-make run CONNECTORS=open_meteo DAYS=30       # triggers the DAG
+make run CONNECTORS=open_meteo DAYS=30       # triggers the DAG (missing days only; ONLY_MISSING=false: all)
 make run-local CONNECTORS=open_meteo DAYS=1  # the same pipeline without Airflow
 make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # history, one run per year
 ```
@@ -95,6 +96,12 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # history, one r
 | Marquez (optional) | http://localhost:3001 | OpenLineage lineage, with `COMPOSE_PROFILES=lineage` ([below](#lineage-with-openlineage)) |
 
 Other commands: `make help`.
+
+**Restarting the computer neither loses nor repeats anything.** Postgres, MinIO, Grafana and the logs live in Docker
+volumes (`make down` keeps them; only `make clean` deletes them). The DAG runs by itself every day
+(`MDP_SCHEDULE=@daily`): if the computer was off, Airflow starts the pending run once when it comes back. Each
+connector downloads only the days no successful load has covered, from the first missing one, and does not call its
+source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-que-faltan.md)).
 
 ## Connectors
 

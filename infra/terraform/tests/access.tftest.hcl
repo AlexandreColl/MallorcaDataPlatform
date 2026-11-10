@@ -19,6 +19,11 @@ run "pipeline_role" {
   command = apply
 
   assert {
+    condition     = output.pipeline_env.S3_CREDENTIALS == "role" && output.pipeline_env.S3_ROLE_ARN == aws_iam_role.pipeline.arn
+    error_message = "the pipeline writes the lake with the pipeline role, through temporary credentials"
+  }
+
+  assert {
     condition = toset(one([
       for s in data.aws_iam_policy_document.pipeline.statement : s.actions if s.sid == "ReadWriteBronze"
     ])) == toset(["s3:GetObject", "s3:PutObject"])

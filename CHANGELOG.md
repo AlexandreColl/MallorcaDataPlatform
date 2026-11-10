@@ -5,6 +5,38 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-10
+
+### Added
+
+- Restarts no longer download the same data again (ADR 0021). With `only_missing`, the default of the DAG and of
+  `make run`, each connector asks `ops.ingestion_runs` which days of its window no successful load covered: it
+  starts at the first missing one, or skips the source entirely (no request, no Spark) when nothing is missing.
+  Sources that re-read on purpose to pick up revisions keep their window, once a day. `ONLY_MISSING=false`
+  downloads the whole window again (the E2E does, to keep proving idempotency).
+- The DAG runs every day by itself (`MDP_SCHEDULE`, default `@daily`, without catch-up): after the computer was off,
+  Airflow starts the pending run once as soon as it is back. `MDP_SCHEDULE=none` turns it off (the E2E).
+
+- The pipeline can write the lake with an assumed role (`S3_CREDENTIALS=role`, `core/credentials.py`). Bronze
+  (boto3) and Spark (S3A) assume `S3_ROLE_ARN` through STS with temporary credentials that are renewed before they
+  expire; `default` uses the SDK's default chain with no keys, and `static` (the default) keeps MinIO's keys.
+  `terraform output pipeline_env` gives the role. `make minio-pipeline-user` creates in MinIO the local twin of the
+  pipeline role, with the same policy (a test compares it with `iam.tf`), so the role flow runs locally against
+  MinIO's STS: a real run writes bronze and merges silver, and is denied deletes in bronze and bucket creation.
+
+### Changed
+
+- `dbt source freshness` follows the SLA of the catalogue: each source's `error_after` is its agreed maximum age
+  (`dim_sources.sla_data_age_hours`), next to the earlier `warn_after`. `tests/test_freshness_sla.py` fails if a
+  source of the catalogue is not declared to dbt, if `error_after` differs from its SLA, if `warn_after` exceeds it,
+  or if a source without an age SLA has a check. AEMET's warnings, Ibestat and the register now have their thresholds
+  documented in the data model.
+
+### Fixed
+
+- The pipeline no longer enables versioning on an existing bucket. The pipeline role has no
+  `s3:PutBucketVersioning`, and on AWS Terraform creates and configures the buckets.
+
 ## [0.14.0] - 2026-11-09
 
 ### Added
@@ -649,7 +681,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.11.0...v0.12.0

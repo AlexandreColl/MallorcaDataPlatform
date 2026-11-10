@@ -7,9 +7,17 @@ from pathlib import Path
 
 import pytest
 
+import core.pipeline
 from core.connectors import registry
 from core.models import Location, Region, TimeWindow
-from core.pipeline import NoObservationsError, _load_observations, bronze_to_silver, extract_to_bronze
+from core.pipeline import (
+    NoObservationsError,
+    _load_observations,
+    bronze_to_silver,
+    extract_to_bronze,
+    remaining_window,
+    run_connector,
+)
 from core.storage import BronzeStore
 
 FIXTURES = Path(__file__).parent.parent / "connectors" / "open_meteo" / "tests" / "fixtures"
@@ -88,3 +96,55 @@ def test_time_series_source_without_data_fails(store, monkeypatch):
 
     with pytest.raises(NoObservationsError):
         _load_observations(connector, WINDOW, REGION, store)
+
+
+# --- only_missing: what is left to download of a window ------------------------------------------------------------
+
+WEEK = TimeWindow(date(2026, 11, 2), date(2026, 11, 8))
+
+
+def test_nothing_left_when_every_day_was_loaded():
+    assert remaining_window(WEEK, [], rereads=False) is None
+    assert remaining_window(WEEK, [], rereads=True) is None
+
+
+def test_the_window_starts_at_its_first_missing_day():
+    remaining = remaining_window(WEEK, [date(2026, 11, 7), date(2026, 11, 8)], rereads=False)
+
+    assert remaining == TimeWindow(date(2026, 11, 7), date(2026, 11, 8))
+
+
+def test_a_gap_in_the_middle_is_downloaded_with_what_follows_it():
+    remaining = remaining_window(WEEK, [date(2026, 11, 4), date(2026, 11, 8)], rereads=False)
+
+    assert remaining == TimeWindow(date(2026, 11, 4), date(2026, 11, 8))
+
+
+def test_a_source_that_rereads_for_revisions_keeps_its_whole_window():
+    assert remaining_window(WEEK, [date(2026, 11, 8)], rereads=True) == WEEK
+
+
+class _LoadedWarehouse:
+    """A warehouse where every day was already loaded: run_connector must not record a run or call the source."""
+
+    def __init__(self, settings):
+        self.calls = []
+
+    def ensure_schema(self):
+        pass
+
+    def missing_days(self, source, region, window):
+        return []
+
+    def start_run(self, *args):
+        pytest.fail("a skipped window records no run")
+
+
+def test_a_window_already_loaded_is_skipped_without_downloading(monkeypatch):
+    monkeypatch.setattr(core.pipeline, "Warehouse", _LoadedWarehouse)
+    monkeypatch.setattr(core.pipeline, "BronzeStore", lambda settings: pytest.fail("no download"))
+
+    summary = run_connector("open_meteo", 1, run_id="r1", only_missing=True)
+
+    assert summary.skipped
+    assert (summary.payloads, summary.rows_silver) == (0, 0)
