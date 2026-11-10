@@ -61,7 +61,7 @@ resumen:
 - **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
   si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
   error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
-  su última carga correcta (hasta `catch_up_days`). El E2E distingue una API caída o una fuente que ha dejado de
+  su última carga correcta (hasta `catch_up_days`), y no vuelve a pedir los días que ya cargó (`only_missing`). El E2E distingue una API caída o una fuente que ha dejado de
   publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).
 - **Marcar ≠ corregir.** Las reglas de calidad etiquetan (`ok` / `suspect` / `missing`) y explican
   (`quality_reasons`), pero nunca modifican el valor. Las correcciones van aparte, en `silver.corrections`, y gold
@@ -77,7 +77,7 @@ Guía para Windows con WSL2 + Debian: [docs/setup-windows.md](docs/setup-windows
 
 ```bash
 make up                                      # crea .env, construye la imagen y levanta todo
-make run CONNECTORS=open_meteo DAYS=30       # dispara el DAG
+make run CONNECTORS=open_meteo DAYS=30       # dispara el DAG (solo los días que faltan; ONLY_MISSING=false: todos)
 make run-local CONNECTORS=open_meteo DAYS=1  # mismo pipeline sin Airflow
 make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un run por año
 ```
@@ -93,6 +93,12 @@ make backfill CONNECTORS=aemet START=2016-09-01 END=2026-10-25  # histórico, un
 | Marquez (opcional) | http://localhost:3001 | linaje OpenLineage, con `COMPOSE_PROFILES=lineage` ([abajo](#linaje-con-openlineage)) |
 
 Otros comandos: `make help`.
+
+**Al reiniciar el PC no se pierde ni se repite nada.** Postgres, MinIO, Grafana y los logs viven en volúmenes de
+Docker (`make down` los conserva; solo `make clean` los borra). El DAG corre solo cada día (`MDP_SCHEDULE=@daily`):
+si el PC estaba apagado, Airflow lanza la ejecución pendiente al arrancar, una vez. Cada conector descarga solo los
+días que ninguna carga correcta ha cubierto, desde el primero que falta, y si no falta ninguno ni llama a la fuente
+([ADR 0021](docs/adr/0021-solo-los-dias-que-faltan.md)).
 
 ## Conectores
 

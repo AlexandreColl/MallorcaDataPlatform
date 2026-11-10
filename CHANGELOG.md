@@ -7,6 +7,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Restarts no longer download the same data again (ADR 0021). With `only_missing`, the default of the DAG and of
+  `make run`, each connector asks `ops.ingestion_runs` which days of its window no successful load covered: it
+  starts at the first missing one, or skips the source entirely (no request, no Spark) when nothing is missing.
+  Sources that re-read on purpose to pick up revisions keep their window, once a day. `ONLY_MISSING=false`
+  downloads the whole window again (the E2E does, to keep proving idempotency).
+- The DAG runs every day by itself (`MDP_SCHEDULE`, default `@daily`, without catch-up): after the computer was off,
+  Airflow starts the pending run once as soon as it is back. `MDP_SCHEDULE=none` turns it off (the E2E).
+
 - The pipeline can write the lake with an assumed role (`S3_CREDENTIALS=role`, `core/credentials.py`). Bronze
   (boto3) and Spark (S3A) assume `S3_ROLE_ARN` through STS with temporary credentials that are renewed before they
   expire; `default` uses the SDK's default chain with no keys, and `static` (the default) keeps MinIO's keys.
