@@ -64,7 +64,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
     for name in names:
         try:
             summary = run_connector(
-                name, days=args.days, region_name=args.region, run_id=run_id, catch_up=not args.no_catch_up
+                name,
+                days=args.days,
+                region_name=args.region,
+                run_id=run_id,
+                catch_up=not args.no_catch_up,
+                only_missing=args.only_missing,
             )
             print(json.dumps(summary.as_dict()))
         except Exception:
@@ -231,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--region", default="mallorca")
     run.add_argument("--run-id")
     run.add_argument("--no-catch-up", action="store_true", help="do not recover days missed by failed runs")
+    run.add_argument("--only-missing", action="store_true", help="skip the days a successful run already loaded")
     run.set_defaults(func=_cmd_run)
 
     backfill = sub.add_parser("backfill", help="load a past date range, one run per chunk")

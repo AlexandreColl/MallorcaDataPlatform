@@ -256,6 +256,24 @@ class Warehouse:
             ).fetchone()
         return row[0] if row else None
 
+    def missing_days(self, source: str, region: str, window: TimeWindow) -> list[date]:
+        """Days of ``window`` that no successful run of ``source`` for ``region`` has covered yet, oldest first."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT day::date
+                FROM generate_series(%s::date, %s::date, interval '1 day') AS day
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM ops.ingestion_runs AS r
+                    WHERE r.source = %s AND r.region = %s AND r.status = 'success'
+                      AND day::date BETWEEN r.window_start AND r.window_end
+                )
+                ORDER BY 1
+                """,
+                (window.start, window.end, source, region),
+            ).fetchall()
+        return [row[0] for row in rows]
+
     def start_run(self, run_id: str, source: str, region: str, window: TimeWindow) -> None:
         """Register a run as ``running`` (a retry of the same run resets it)."""
         with self.connect() as conn:

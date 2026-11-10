@@ -19,13 +19,36 @@ def test_dags_import_without_errors():
     assert bag.import_errors == {}
     assert "mallorca_pipeline" in bag.dags  # get_dag() would query the metadata DB
     dag = bag.dags["mallorca_pipeline"]
-    assert set(dag.params.keys()) == {"connectors", "days", "region", "catch_up"}
+    assert set(dag.params.keys()) == {"connectors", "days", "region", "catch_up", "only_missing"}
+    assert dag.params["only_missing"] is True  # a restart or a manual run only downloads what is missing
+    assert dag.catchup is False  # after a restart only the latest interval runs; connectors recover their own days
     assert {"resolve_connectors", "ingest", "detect_anomalies", "correct_values", "dbt_build"} <= set(dag.task_ids)
     # anomalies are scored, values corrected and gold rebuilt even when a source failed
     for task_id in ("detect_anomalies", "correct_values", "dbt_build"):
         assert dag.get_task(task_id).trigger_rule == "all_done"
     assert dag.get_task("detect_anomalies").downstream_task_ids == {"correct_values"}
     assert dag.get_task("correct_values").downstream_task_ids == {"dbt_build"}
+
+
+def _load_dag_module(monkeypatch, schedule):
+    if schedule is None:
+        monkeypatch.delenv("MDP_SCHEDULE", raising=False)
+    else:
+        monkeypatch.setenv("MDP_SCHEDULE", schedule)
+    spec = importlib.util.spec_from_file_location("mallorca_pipeline_schedule", DAGS_DIR / "mallorca_pipeline.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize(
+    ("schedule", "expected"), [(None, "@daily"), ("@hourly", "@hourly"), ("none", None), ("", None)]
+)
+def test_the_dag_runs_daily_unless_turned_off(monkeypatch, schedule, expected):
+    module = _load_dag_module(monkeypatch, schedule)
+
+    schedule = module.SCHEDULE
+    assert schedule == expected
 
 
 def _uris(assets):

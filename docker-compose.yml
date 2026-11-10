@@ -40,6 +40,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "30"
     # Retries of each ingest task when a source fails (the E2E lowers it to keep runs short).
     MDP_TASK_RETRIES: ${MDP_TASK_RETRIES:-3}
+    MDP_SCHEDULE: ${MDP_SCHEDULE:-@daily}
     # Optional lineage (OpenLineage): with OPENLINEAGE_URL set, every task and dbt model sends its run and datasets.
     OPENLINEAGE_URL: ${OPENLINEAGE_URL:-}
     OPENLINEAGE_NAMESPACE: mallorca-data-platform

@@ -12,6 +12,11 @@ Trigger with a config such as:
 
 * One mapped task per connector; a failing source does not stop the others, and dbt still
   builds gold with whatever loaded. Failed runs are visible in `ops.ingestion_runs` and Grafana.
+* It runs every day by itself (`MDP_SCHEDULE`, default `@daily`, without catch-up): after the computer was off, the
+  scheduler starts the pending run as soon as Airflow is back, once.
+* With `only_missing` (default) a connector does not download again the days a successful run already loaded: it
+  starts at its first missing day, or is skipped without calling its source. Sources that re-read on purpose to pick
+  up revisions keep their window, once a day.
 * With `catch_up` (default) each connector extends its window back to the day after its last
   successful run, so the days lost while a source was down are recovered by the next run.
 * Re-running the same window is idempotent (no duplicated rows).
@@ -65,12 +70,18 @@ def _assets(settings: Settings) -> dict[str, Asset]:
 
 
 ASSETS = _assets(Settings.from_env())
+# Daily by default, so the data is kept up to date and a restart picks up where it left off. Empty or `none`: only
+# manual runs (the E2E test, which triggers its own runs).
+SCHEDULE = os.environ.get("MDP_SCHEDULE", "@daily").strip() or None
+if SCHEDULE and SCHEDULE.lower() == "none":
+    SCHEDULE = None
 
 
 @dag(
     dag_id="mallorca_pipeline",
-    schedule=None,
+    schedule=SCHEDULE,
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
+    # Only the latest missed interval runs after a restart: each connector recovers its own missed days.
     catchup=False,
     max_active_runs=1,
     doc_md=__doc__,
@@ -92,6 +103,9 @@ ASSETS = _assets(Settings.from_env())
         "days": Param(1, type="integer", minimum=1, maximum=92, description="Days back"),
         "region": Param("mallorca", type="string", enum=available_regions()),
         "catch_up": Param(True, type="boolean", description="Recover days missed by failed runs"),
+        "only_missing": Param(
+            True, type="boolean", description="Skip the days already loaded (false: download the whole window again)"
+        ),
     },
 )
 def mallorca_pipeline() -> None:
@@ -137,6 +151,7 @@ def mallorca_pipeline() -> None:
                 region_name=params["region"],
                 run_id=run_id,
                 catch_up=bool(params.get("catch_up", True)),
+                only_missing=bool(params.get("only_missing", True)),
             )
         except Exception as exc:
             if not is_permanent(exc):
