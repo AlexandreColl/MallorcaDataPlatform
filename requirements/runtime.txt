@@ -2,7 +2,7 @@
 # Inside the Airflow image these are resolved against the Airflow constraints file,
 # so only packages missing from it (pyspark, pypdf) are pinned here.
 pyspark==4.2.1
-pypdf==6.21.4
+pypdf==7.0.1
 boto3
 psycopg[binary]
 requests

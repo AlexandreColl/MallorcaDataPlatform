@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Dependencies: FastAPI 0.162.3, pydantic 2.14.3, psycopg 3.3.8, boto3 1.43.127, pandas 3.1.1, pyarrow 26.0.1,
+  ruff 0.17.4, sqlfluff 4.5.0, Vite 8.3.7, @vitejs/plugin-react 6.3.0 and MapLibre 6.17.0.
+- pypdf 7.0.1 (major). The water reserves connector only uses `PdfReader` and `extract_text`: the raw text of the
+  recorded PDFs changes slightly, but the 355 observations read from each are identical to pypdf 6.
+- PySpark stays at 4.2: Delta has no build for Spark 4.3 yet, and Dependabot no longer proposes Spark minors.
+
 ## [0.16.0] - 2026-11-10
 
 ### Added
