@@ -10,6 +10,11 @@ updates:
     target-branch: develop
     schedule: { interval: monthly }
     commit-message: { prefix: "⬆️ build", include: scope }
+    ignore:
+      # Spark minors wait for Delta: its jars are built per Spark version (delta-spark_4.2_2.13 in the Dockerfile),
+      # and Delta 4.4.1 supports pyspark <= 4.2. Patches of the same minor still come.
+      - dependency-name: pyspark
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
   - package-ecosystem: docker
     directory: /docker/airflow
     target-branch: develop
