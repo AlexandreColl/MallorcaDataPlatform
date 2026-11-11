@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-10
+
 ### Changed
 
 - Airflow 3.3.2 → 3.4.0. Inside the image its constraints also bring boto3 1.43.117, pandas 3.1.0, pydantic 2.14.2
@@ -719,7 +721,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.13.0...v0.14.0
