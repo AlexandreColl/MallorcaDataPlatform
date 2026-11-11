@@ -4,8 +4,10 @@ import io
 import json
 from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import requests
 
 import core.pipeline
 from core.connectors import registry
@@ -227,3 +229,43 @@ def test_a_failed_recovery_stops_before_the_window(monkeypatch):
     # The next run resumes from the last successful load, so nothing is skipped.
     with pytest.raises(ConnectionError):
         run_connector("redata", 1, run_id="r1")
+
+
+# --- a source that is down is recorded apart from a failure of ours -------------------------------------------------
+
+
+class _RecordingWarehouse:
+    def __init__(self, settings=None):
+        self.settings = settings
+        self.finished = []
+
+    def start_run(self, *args):
+        pass
+
+    def finish_run(self, run_id, source, status, **kwargs):
+        self.finished.append((source, status, kwargs.get("error", "")))
+
+
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (requests.exceptions.RetryError("too many 500 error responses"), "unavailable"),
+        (requests.ConnectTimeout("connect timeout"), "unavailable"),
+        (KeyError("fecha"), "failed"),
+    ],
+)
+def test_a_run_whose_source_is_down_is_unavailable_not_failed(monkeypatch, error, status):
+    def down(connector, window, region, store):
+        raise error
+
+    monkeypatch.setattr(core.pipeline, "BronzeStore", lambda settings: SimpleNamespace(ensure=lambda: None))
+    monkeypatch.setattr(core.pipeline, "_load_observations", down)
+    warehouse = _RecordingWarehouse()
+    connector = registry.load("open_meteo")
+
+    with pytest.raises(type(error)):
+        core.pipeline._load_window(connector, REGION, WINDOW, "r1", warehouse)
+
+    (source, recorded, message), = warehouse.finished
+    assert (source, recorded) == ("open_meteo", status)
+    assert message.startswith(type(error).__name__)  # the exception type stays readable

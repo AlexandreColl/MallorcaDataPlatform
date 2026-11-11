@@ -70,7 +70,8 @@ run_dag "e2e_first_$suffix"
 sources=$(grep -o '"connectors": *\[[^]]*\]' <<<"$CONF" | grep -o '"[a-z_]*"' | tr -d '"' | grep -v connectors)
 
 # A connector may fail only because its upstream API is down (connection errors, timeouts, 5xx) or has stopped
-# publishing (SourceNotUpdatedError: its data ends before the window): that is a warning, because the DAG keeps
+# publishing (SourceNotUpdatedError: its data ends before the window): the pipeline records it as `unavailable`
+# (older runs as `failed` with one of these errors). That is a warning, because the DAG keeps
 # going without it and its next run catches up the missed days. Any other error (a bug, an API that changed its
 # format) fails the E2E.
 UPSTREAM_ERRORS='^(ConnectTimeout|ConnectionError|ReadTimeout|Timeout|SSLError|ChunkedEncodingError|RetryError|HTTPError: 5[0-9][0-9]|SourceNotUpdatedError)'
@@ -85,7 +86,7 @@ check_runs() {
       continue
     fi
     error=$(sql warehouse "select coalesce(error, '') from ops.ingestion_runs where run_id = '$run_id' and source = '$source'")
-    if [[ "$status" == failed ]] && grep -Eq "$UPSTREAM_ERRORS" <<<"$error"; then
+    if [[ "$status" == unavailable ]] || { [[ "$status" == failed ]] && grep -Eq "$UPSTREAM_ERRORS" <<<"$error"; }; then
       echo "::warning title=Upstream outage::$source unavailable in $run_id: ${error:0:300}"
     else
       echo "connector $source in $run_id: status=${status:-missing} ${error:0:500}"

@@ -16,7 +16,7 @@ from pyspark.sql import DataFrame, SparkSession, Window
 from pyspark.sql import functions as F
 
 from core.config import Settings, load_region
-from core.connectors import BaseConnector, registry
+from core.connectors import BaseConnector, is_outage, registry
 from core.lake import open_silver
 from core.models import KEY, TimeWindow
 from core.quality import QualityEngine, RuleResult, rules_for
@@ -320,8 +320,9 @@ def _load_window(
             log.info("run %s: no %s events in %s..%s", run_id, name, window.start, window.end)
             rows_silver, upserted, results = 0, 0, []
     except Exception as exc:
-        # The exception type lets readers tell an upstream outage (ConnectTimeout, HTTPError 503...) from a bug.
-        warehouse.finish_run(run_id, name, "failed", error=f"{type(exc).__name__}: {exc}"[:2000])
+        # A source that is down is `unavailable`, our own failure `failed`; the exception type stays in the error.
+        status = "unavailable" if is_outage(exc) else "failed"
+        warehouse.finish_run(run_id, name, status, error=f"{type(exc).__name__}: {exc}"[:2000])
         raise
     stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)
     warehouse.finish_run(run_id, name, "success", stats=stats)

@@ -320,7 +320,12 @@ models:
         description: Share of successful runs in 7 days at least `sla_success_rate`. Null when the source did not run.
       - name: sla_met
         description: False if either part is breached, true if a known part is met and none is breached, else null.
+      - name: failed_7d
+        description: Runs in 7 days that failed on our side (a bug, a changed format, a rejected key).
+      - name: unavailable_7d
+        description: Runs in 7 days whose source was down (unreachable, 5xx, not publishing yet).
       - name: failure_rate_7d
+        description: Share of the runs in 7 days that did not load, failed or unavailable.
         data_tests:
           - value_between:
               arguments: {min_value: 0, max_value: 1}

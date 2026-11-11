@@ -20,7 +20,9 @@ stats as (
         source,
         max(finished_at) filter (where status = 'success') as last_success_at,
         count(*) filter (where started_at > now() - interval '7 days') as runs_7d,
+        -- failed: our side (to fix); unavailable: the source was down (it recovers by itself)
         count(*) filter (where started_at > now() - interval '7 days' and status = 'failed') as failed_7d,
+        count(*) filter (where started_at > now() - interval '7 days' and status = 'unavailable') as unavailable_7d,
         max(window_end) filter (where status = 'success') as last_loaded_day
     from runs
     group by source
@@ -57,7 +59,9 @@ health as (
         st.last_loaded_day,
         coalesce(st.runs_7d, 0) as runs_7d,
         coalesce(st.failed_7d, 0) as failed_7d,
-        round(st.failed_7d::numeric / nullif(st.runs_7d, 0), 3) as failure_rate_7d,
+        coalesce(st.unavailable_7d, 0) as unavailable_7d,
+        -- every run that did not load counts against the SLA, whoever's fault it was
+        round((st.failed_7d + st.unavailable_7d)::numeric / nullif(st.runs_7d, 0), 3) as failure_rate_7d,
         d.latest_observation_ts,
         round((extract(epoch from now() - d.latest_observation_ts) / 3600)::numeric, 1) as data_age_hours,
         coalesce(d.observations, 0) as observations

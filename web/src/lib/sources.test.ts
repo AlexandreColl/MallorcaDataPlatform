@@ -9,7 +9,8 @@ function source(fields: Partial<Source> = {}, sla: Partial<Source["sla"]> = {}, 
   return {
     source: "aemet", label: "AEMET", kind: "observation", last_status: "success",
     last_run_at: "2026-11-05T06:00:00Z", last_success_at: "2026-11-05T06:00:00Z", last_loaded_day: null,
-    runs_7d: 7, failure_rate_7d: 0, latest_observation_ts: null, data_age_hours: null, observations: 1,
+    runs_7d: 7, failed_7d: 0, unavailable_7d: 0, failure_rate_7d: 0, latest_observation_ts: null, data_age_hours: null,
+    observations: 1,
     governance: {
       domain: "weather", owner: "AEMET", license: "CC BY 4.0", terms_url: "https://www.aemet.es", access: "api_key",
       personal_data: false, classification: "public", lifecycle,
@@ -26,6 +27,10 @@ describe("sourceState", () => {
 
   it("is failed when the last run failed", () => {
     expect(sourceState(source({ last_status: "failed" }), NOW)).toBe("failed");
+  });
+
+  it("is down, not failed, when its last run found the source down", () => {
+    expect(sourceState(source({ last_status: "unavailable" }), NOW)).toBe("down");
   });
 
   it("is late without a successful run in 36 h", () => {

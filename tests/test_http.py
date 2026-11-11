@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from core import __version__
-from core.connectors import ConnectorError, SourceNotUpdatedError, is_permanent
+from core.connectors import ConnectorError, SourceNotUpdatedError, failure_action, is_outage, is_permanent
 from core.connectors.http import HttpClient
 
 
@@ -99,3 +99,37 @@ def _http_error(status: int) -> requests.HTTPError:
 )
 def test_only_failures_that_waiting_will_not_fix_are_permanent(exc, permanent):
     assert is_permanent(exc) is permanent
+
+
+@pytest.mark.parametrize(
+    ("exc", "outage"),
+    [
+        (requests.ConnectionError("connection refused"), True),
+        (requests.ConnectTimeout("connect timeout"), True),
+        (requests.ReadTimeout("read timeout"), True),
+        (requests.exceptions.RetryError("too many 500 error responses"), True),  # Dataestur, November 2026
+        (_http_error(503), True),
+        (SourceNotUpdatedError("EEA files end before the window"), True),
+        (_http_error(404), False),  # a moved URL is ours to fix
+        (_http_error(429), False),
+        (ConnectorError("no file of the configured stations"), False),
+        (KeyError("fecha"), False),  # a format the parser does not know
+    ],
+)
+def test_an_outage_is_the_source_being_down_not_our_code(exc, outage):
+    assert is_outage(exc) is outage
+
+
+@pytest.mark.parametrize(
+    ("exc", "retries_left", "action"),
+    [
+        (_http_error(503), True, "retry"),  # a short outage may clear before the next try
+        (_http_error(503), False, "skip"),  # still down after the retries: skipped, not failed
+        (SourceNotUpdatedError("not published yet"), True, "skip"),  # waiting minutes will not publish it
+        (_http_error(404), True, "fail"),  # ours, and retrying will not fix it
+        (KeyError("fecha"), True, "retry"),  # unknown: the scheduler retries and then fails it
+        (KeyError("fecha"), False, "retry"),
+    ],
+)
+def test_a_source_still_down_after_its_retries_is_skipped(exc, retries_left, action):
+    assert failure_action(exc, retries_left=retries_left) == action
