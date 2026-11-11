@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-11-11
+
+### Changed
+
+- A source that is down is no longer counted as a failure of the platform (ADR 0022). When a source cannot be
+  reached, answers 5xx after the retries, or has not published the window yet, `ops.ingestion_runs` records the run
+  as `unavailable` instead of `failed`, and the task is skipped instead of failed, so the DAG run stays green. Its
+  retries stay, for short outages. The "Ingesta fallida" alert only fires for `failed`; a long outage is caught by
+  the SLA alert, where every run that did not load counts. `gold.source_health` adds `failed_7d` and
+  `unavailable_7d`, the API exposes them, and the web shows a "Fuente caída" state and counts outages apart from
+  failures. Found with Dataestur, whose API has answered HTTP 500 on every table since at least 10 November.
+- GitHub Actions: `actions/setup-node` 7 and `actions/cache` 6.
+
 ## [0.16.1] - 2026-11-10
 
 ### Changed
@@ -721,7 +734,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...HEAD
+[0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...v0.15.0

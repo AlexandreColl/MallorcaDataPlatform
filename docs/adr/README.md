@@ -43,6 +43,7 @@ cambio.
 | [0019](0019-frontal-web-sobre-la-api.md) | Un frontal web propio que solo lee la API | Aceptada | 2026-11-05 |
 | [0020](0020-gobierno-del-dato-en-el-catalogo-de-fuentes.md) | El gobierno del dato vive en el catálogo de fuentes, con un SLA por fuente | Aceptada | 2026-11-09 |
 | [0021](0021-solo-los-dias-que-faltan.md) | Un DAG diario que solo descarga los días que faltan | Aceptada | 2026-11-10 |
+| [0022](0022-fuente-caida-no-es-un-fallo.md) | Una fuente caída no es un fallo de la plataforma | Aceptada | 2026-11-11 |
 
 Las fechas son las del commit que llevó la decisión a `develop`. Las ADR se escribieron a la vez el 3 de
 noviembre de 2026, a partir del historial y de las notas de cada PR.

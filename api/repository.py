@@ -22,7 +22,8 @@ MONTHLY_MARTS = {
 }
 
 _SOURCES = """
-SELECT source, label, kind, last_status, last_run_at, last_success_at, last_loaded_day, runs_7d, failure_rate_7d,
+SELECT source, label, kind, last_status, last_run_at, last_success_at, last_loaded_day, runs_7d, failed_7d,
+       unavailable_7d, failure_rate_7d,
        latest_observation_ts, data_age_hours, observations,
        domain, owner, license, terms_url, access, personal_data, classification, lifecycle,
        sla_data_age_hours, sla_success_rate, sla_age_met, sla_success_met, sla_met

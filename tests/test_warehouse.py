@@ -106,7 +106,9 @@ def test_the_last_loaded_day_comes_from_successful_runs_only(warehouse):
     warehouse.finish_run("run1", SOURCE, "success")
     later = TimeWindow(date(2026, 11, 1), date(2026, 11, 2))
     warehouse.start_run("run2", SOURCE, "mallorca", later)
-    warehouse.finish_run("run2", SOURCE, "failed", error="ConnectTimeout: upstream down")
+    warehouse.finish_run("run2", SOURCE, "unavailable", error="ConnectTimeout: upstream down")  # the source was down
+    warehouse.start_run("run3", SOURCE, "mallorca", later)
+    warehouse.finish_run("run3", SOURCE, "failed", error="KeyError: 'fecha'")  # our side
 
     assert warehouse.last_loaded_day(SOURCE, "mallorca") == WINDOW.end
 

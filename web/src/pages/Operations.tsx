@@ -46,12 +46,13 @@ function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRul
   const active = sources.filter((s) => sourceState(s) !== "inactive");
   const ok = active.filter((s) => sourceState(s) === "ok").length;
   const runs = active.reduce((n, s) => n + s.runs_7d, 0);
-  const failed = active.reduce((n, s) => n + Math.round((s.failure_rate_7d ?? 0) * s.runs_7d), 0);
+  const failed = active.reduce((n, s) => n + s.failed_7d, 0);
+  const down = active.reduce((n, s) => n + s.unavailable_7d, 0);
   const flagged = anomalies.reduce((n, a) => n + a.anomalies, 0);
   return [
     {
       id: "sources", label: "Fuentes al día", value: `${ok}`, unit: `de ${active.length}`, month: "Carga correcta en 36 h y dentro de su SLA",
-      deviation: ok === active.length ? "Todas al día" : `${active.length - ok} atrasadas, con fallos o fuera de SLA`,
+      deviation: ok === active.length ? "Todas al día" : `${active.length - ok} caídas, atrasadas, con fallos o fuera de SLA`,
       tone: ok === active.length ? "good" : "bad", history: [],
     },
     {
@@ -60,7 +61,9 @@ function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRul
     },
     {
       id: "runs", label: "Ejecuciones fallidas", value: number(failed), unit: `de ${number(runs)}`, month: "Últimos 7 días",
-      deviation: failed === 0 ? "Ningún fallo" : null, tone: failed === 0 ? "good" : "bad", history: [],
+      // Our failures are the bad news; a source that was down recovers by itself and is only counted aside.
+      deviation: down > 0 ? `y ${number(down)} con la fuente caída` : failed === 0 ? "Ningún fallo" : null,
+      tone: failed > 0 ? "bad" : down > 0 ? "neutral" : "good", history: [],
     },
     {
       id: "anomalies", label: "Anomalías", value: number(flagged), unit: "", month: "Últimos 30 días",
@@ -120,7 +123,7 @@ export function Operations() {
                   },
                   { label: "Estado", value: (s) => <span className={`state state-${sourceState(s)}`}>{STATE_LABELS[sourceState(s)]}</span> },
                   { label: "Último dato", value: (s) => (s.data_age_hours === null ? "—" : age(s.data_age_hours)) },
-                  { label: "Fallos 7 días", value: (s) => `${number((s.failure_rate_7d ?? 0) * 100)} %`, numeric: true },
+                  { label: "Sin cargar 7 días", value: (s) => `${number((s.failure_rate_7d ?? 0) * 100)} %`, numeric: true },
                   { label: "SLA", value: (s) => <SlaCell source={s} /> },
                   { label: "Valores", value: (s) => compact(s.observations), numeric: true },
                 ]}

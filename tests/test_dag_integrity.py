@@ -104,38 +104,40 @@ def test_dbt_sends_lineage_only_with_somewhere_to_send_it():
         assert out.stdout.strip() == expected
 
 
-def test_failures_that_waiting_will_not_fix_skip_the_retries(monkeypatch):
+def test_a_source_that_is_down_is_skipped_and_our_failures_fail(monkeypatch):
     import requests  # noqa: PLC0415
-    from airflow.sdk.exceptions import AirflowFailException  # noqa: PLC0415
+    from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException  # noqa: PLC0415
 
     import core.pipeline  # noqa: PLC0415
     from core.connectors import SourceNotUpdatedError  # noqa: PLC0415
 
     ingest = dagbag.DagBag(dag_folder=DAGS_DIR).dags["mallorca_pipeline"].get_task("ingest").python_callable
-    monkeypatch.setitem(ingest.__globals__, "get_current_context", dict)
+    attempt = {"try_number": 1, "max_tries": 3}  # the first of 1 + 3 retries
+    monkeypatch.setitem(ingest.__globals__, "get_current_context", lambda: {"ti": SimpleNamespace(**attempt)})
 
-    def stale(*args, **kwargs):
-        msg = "EEA files end at 2026-10-30 11:00 UTC, before 2026-11-01: not updated yet"
-        raise SourceNotUpdatedError(msg)
+    def run(error):
+        def fail(*args, **kwargs):
+            raise error
 
-    monkeypatch.setattr(core.pipeline, "run_connector", stale)
-    with pytest.raises(AirflowFailException, match=r"^SourceNotUpdatedError: EEA files end"):
+        monkeypatch.setattr(core.pipeline, "run_connector", fail)
         ingest("eea_air_quality", params={"days": 1, "region": "mallorca"}, run_id="r1")
 
-    def moved(*args, **kwargs):
-        response = requests.Response()
-        response.status_code = 404
-        msg = "404 Client Error"
-        raise requests.HTTPError(msg, response=response)
+    # Not published yet: skipped at once, since waiting minutes will not publish it.
+    stale = SourceNotUpdatedError("EEA files end at 2026-10-30 11:00 UTC, before 2026-11-01: not updated yet")
+    with pytest.raises(AirflowSkipException, match=r"eea_air_quality unavailable: SourceNotUpdatedError"):
+        run(stale)
 
-    monkeypatch.setattr(core.pipeline, "run_connector", moved)
+    # A moved URL is ours to fix, and retrying will not fix it: failed without retries.
+    response = requests.Response()
+    response.status_code = 404
     with pytest.raises(AirflowFailException, match=r"^HTTPError: 404"):
-        ingest("socib", params={"days": 1, "region": "mallorca"}, run_id="r1")
+        run(requests.HTTPError("404 Client Error", response=response))
 
-    def outage(*args, **kwargs):
-        msg = "connection refused"
-        raise requests.ConnectionError(msg)
+    # A source that is down keeps its retries...
+    with pytest.raises(requests.ConnectionError):
+        run(requests.ConnectionError("connection refused"))
 
-    monkeypatch.setattr(core.pipeline, "run_connector", outage)
-    with pytest.raises(requests.ConnectionError):  # an outage keeps its retries
-        ingest("eea_air_quality", params={"days": 1, "region": "mallorca"}, run_id="r1")
+    # ...and is skipped, not failed, when it is still down on the last one.
+    attempt["try_number"] = 4
+    with pytest.raises(AirflowSkipException, match=r"unavailable: ConnectionError"):
+        run(requests.ConnectionError("connection refused"))

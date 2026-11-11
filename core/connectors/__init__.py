@@ -6,7 +6,18 @@ from core.connectors.base import (
     ConnectorError,
     MetricSpec,
     SourceNotUpdatedError,
+    failure_action,
+    is_outage,
     is_permanent,
 )
 
-__all__ = ["BaseConnector", "ConnectorConfig", "ConnectorError", "MetricSpec", "SourceNotUpdatedError", "is_permanent"]
+__all__ = [
+    "BaseConnector",
+    "ConnectorConfig",
+    "ConnectorError",
+    "MetricSpec",
+    "SourceNotUpdatedError",
+    "failure_action",
+    "is_outage",
+    "is_permanent",
+]
