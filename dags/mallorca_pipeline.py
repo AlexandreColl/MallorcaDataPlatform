@@ -78,6 +78,21 @@ if SCHEDULE and SCHEDULE.lower() == "none":
     SCHEDULE = None
 
 
+def _task_outcome(connector: str, exc: Exception, *, retries_left: bool) -> Exception | None:
+    """The Airflow exception that ends an ingest task (skip or fail without retries), or None to retry it."""
+    from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
+
+    from core.connectors import failure_action
+
+    action = failure_action(exc, retries_left=retries_left)
+    error = f"{type(exc).__name__}: {exc}"
+    if action == "skip":
+        return AirflowSkipException(f"{connector} unavailable: {error}")
+    if action == "fail":
+        return AirflowFailException(error)
+    return None
+
+
 @dag(
     dag_id="mallorca_pipeline",
     schedule=SCHEDULE,
@@ -140,9 +155,6 @@ def mallorca_pipeline() -> None:
         `unavailable`. A failure on our side that waiting will not fix (an HTTP 4xx such as a moved URL) fails
         without retries. Either way the next run recovers the days (catch-up).
         """
-        from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
-
-        from core.connectors import failure_action
         from core.pipeline import run_connector
 
         params = params or {}
@@ -159,13 +171,10 @@ def mallorca_pipeline() -> None:
                 only_missing=bool(params.get("only_missing", True)),
             )
         except Exception as exc:
-            action = failure_action(exc, retries_left=ti.try_number <= ti.max_tries)
-            msg = f"{type(exc).__name__}: {exc}"
-            if action == "skip":
-                raise AirflowSkipException(f"{connector} unavailable: {msg}") from exc
-            if action == "fail":
-                raise AirflowFailException(msg) from exc
-            raise
+            replacement = _task_outcome(connector, exc, retries_left=ti.try_number <= ti.max_tries)
+            if replacement is None:
+                raise
+            raise replacement from exc
         return summary.as_dict()
 
     @task(trigger_rule=TriggerRule.ALL_DONE, retries=0, inlets=[ASSETS["observations"]], outlets=[ASSETS["anomalies"]])

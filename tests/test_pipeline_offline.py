@@ -266,6 +266,6 @@ def test_a_run_whose_source_is_down_is_unavailable_not_failed(monkeypatch, error
     with pytest.raises(type(error)):
         core.pipeline._load_window(connector, REGION, WINDOW, "r1", warehouse)
 
-    (source, recorded, message), = warehouse.finished
+    ((source, recorded, message),) = warehouse.finished
     assert (source, recorded) == ("open_meteo", status)
     assert message.startswith(type(error).__name__)  # the exception type stays readable

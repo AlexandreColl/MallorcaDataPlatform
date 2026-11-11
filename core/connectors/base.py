@@ -62,7 +62,12 @@ def is_permanent(exc: BaseException) -> bool:
 
 
 # The source could not be reached or answered with a server error, once the HTTP client's own retries ran out.
-_UNREACHABLE = (requests.ConnectionError, requests.Timeout, requests.exceptions.RetryError, requests.exceptions.ChunkedEncodingError)
+_UNREACHABLE = (
+    requests.ConnectionError,
+    requests.Timeout,
+    requests.exceptions.RetryError,
+    requests.exceptions.ChunkedEncodingError,
+)
 
 
 def is_outage(exc: BaseException) -> bool:
@@ -73,8 +78,10 @@ def is_outage(exc: BaseException) -> bool:
     """
     if isinstance(exc, (SourceNotUpdatedError, *_UNREACHABLE)):
         return True
-    status = getattr(getattr(exc, "response", None), "status_code", None)
-    return isinstance(exc, requests.HTTPError) and isinstance(status, int) and status >= HTTPStatus.INTERNAL_SERVER_ERROR
+    if not isinstance(exc, requests.HTTPError):
+        return False
+    status = getattr(exc.response, "status_code", None)
+    return isinstance(status, int) and status >= HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def failure_action(exc: BaseException, *, retries_left: bool) -> Literal["retry", "fail", "skip"]:
