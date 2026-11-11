@@ -60,7 +60,10 @@ resumen:
   en Postgres: las filas que no cambian no se reescriben. El E2E de CI lanza el DAG dos veces y comprueba que no cambia el número de filas.
 - **Una fuente caída no para el resto.** Cada conector es una tarea independiente con reintentos (2, 4 y 8 min);
   si al final falla, dbt reconstruye gold con lo que sí cargó y el fallo queda en `ops.ingestion_runs` con el tipo de
-  error. La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
+  error. Si lo que falla es la fuente (no responde, da 5xx o aún no ha publicado), la tarea se omite en vez de fallar
+  y la ejecución queda como `unavailable`, aparte de los fallos propios (`failed`)
+  ([ADR 0022](docs/adr/0022-fuente-caida-no-es-un-fallo.md)).
+  La siguiente ejecución de esa fuente **recupera los días perdidos**: su ventana empieza el día después de
   su última carga correcta (hasta `catch_up_days`; un hueco más largo, en ejecuciones extra hasta `recover_days`
   donde la API guarda histórico), y no vuelve a pedir los días que ya cargó (`only_missing`). El E2E distingue una API caída o una fuente que ha dejado de
   publicar (`SourceNotUpdatedError`: aviso) de un fallo real (error).

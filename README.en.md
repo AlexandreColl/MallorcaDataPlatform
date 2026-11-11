@@ -63,7 +63,10 @@ owner, licence, access and SLA of each source are in [docs/data-governance.md](d
   not rewritten. The CI end-to-end test runs the DAG twice and checks that the row counts do not change.
 - **One source down does not stop the rest.** Each connector is an independent task with retries (2, 4 and 8 min).
   If it finally fails, dbt rebuilds gold with what did load, and the failure is recorded in `ops.ingestion_runs` with
-  its error type. The next run of that source **recovers the missed days**: its window starts the day after its last
+  its error type. When the source itself is down (unreachable, 5xx, or not published yet), the task is skipped rather
+  than failed and the run is recorded as `unavailable`, apart from our own failures (`failed`)
+  ([ADR 0022](docs/adr/0022-fuente-caida-no-es-un-fallo.md)).
+  The next run of that source **recovers the missed days**: its window starts the day after its last
   successful load (up to `catch_up_days`; a longer gap in extra runs up to `recover_days`, where the API keeps
   the history). The end-to-end test tells an API that is down, or a source that stopped
   publishing (`SourceNotUpdatedError`: a warning), from a real failure (an error).
