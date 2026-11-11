@@ -47,12 +47,17 @@ class Source(BaseModel):
     source: str = Field(examples=["aemet"])
     label: str | None = Field(examples=["AEMET (estaciones oficiales)"])
     kind: str | None = Field(examples=["observation"])
-    last_status: str | None = Field(examples=["success"])
+    last_status: str | None = Field(
+        examples=["success"],
+        description="running, success, failed (our side) or unavailable (the source was down).",
+    )
     last_run_at: datetime | None
     last_success_at: datetime | None
     last_loaded_day: date | None
     runs_7d: int
-    failure_rate_7d: float | None = Field(description="Share of failed runs in the last 7 days (0-1).")
+    failed_7d: int = Field(default=0, description="Runs in 7 days that failed on our side.")
+    unavailable_7d: int = Field(default=0, description="Runs in 7 days whose source was down.")
+    failure_rate_7d: float | None = Field(description="Share of the runs in 7 days that did not load (0-1).")
     latest_observation_ts: datetime | None
     data_age_hours: float | None
     observations: int

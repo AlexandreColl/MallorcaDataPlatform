@@ -10,11 +10,16 @@ export interface Source {
   source: string;
   label: string | null;
   kind: string | null;
+  /** running, success, failed (our side) or unavailable (the source was down). */
   last_status: string | null;
   last_run_at: string | null;
   last_success_at: string | null;
   last_loaded_day: string | null;
   runs_7d: number;
+  /** Runs in 7 days that failed on our side, and those whose source was down. */
+  failed_7d: number;
+  unavailable_7d: number;
+  /** Share of the runs in 7 days that did not load, either way. */
   failure_rate_7d: number | null;
   latest_observation_ts: string | null;
   data_age_hours: number | null;

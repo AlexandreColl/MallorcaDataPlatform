@@ -11,7 +11,8 @@ from api.settings import Settings
 TS = datetime(2026, 10, 27, 10, tzinfo=UTC)
 SOURCE = {
     "source": "aemet", "label": "AEMET", "kind": "observation", "last_status": "success", "last_run_at": TS,
-    "last_success_at": TS, "last_loaded_day": date(2026, 10, 25), "runs_7d": 7, "failure_rate_7d": 0,
+    "last_success_at": TS, "last_loaded_day": date(2026, 10, 25), "runs_7d": 7, "failed_7d": 0, "unavailable_7d": 1,
+    "failure_rate_7d": Decimal("0.143"),
     "latest_observation_ts": TS, "data_age_hours": 26.5, "observations": 796474,
     "domain": "weather", "owner": "AEMET", "license": "Reutilización con cita", "terms_url": "https://www.aemet.es",
     "access": "api_key", "personal_data": False, "classification": "public", "lifecycle": "active",
@@ -83,6 +84,7 @@ def test_sources_and_one_source(db):
     assert api.get("/v1/sources").json()[0]["source"] == "aemet"
     one = api.get("/v1/sources/aemet").json()
     assert one["observations"] == 796474
+    assert (one["failed_7d"], one["unavailable_7d"]) == (0, 1)  # a source that was down, apart from our failures
     assert one["governance"] == {
         "domain": "weather", "owner": "AEMET", "license": "Reutilización con cita", "terms_url": "https://www.aemet.es",
         "access": "api_key", "personal_data": False, "classification": "public", "lifecycle": "active",

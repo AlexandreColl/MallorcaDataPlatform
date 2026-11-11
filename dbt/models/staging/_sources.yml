@@ -79,7 +79,9 @@ sources:
   - name: ops
     tables:
       - name: ingestion_runs
-        description: Audit of every connector run (window, status, row counts, error with its exception type).
+        description: >-
+          Audit of every connector run (window, status, row counts, error with its exception type). Status
+          `failed` is our side, `unavailable` a source that was down.
         loaded_at_field: coalesce(finished_at, started_at)
         freshness:
           warn_after: {count: 36, period: hour}

@@ -274,7 +274,7 @@
       "id": 4,
       "type": "stat",
       "title": "Fallos",
-      "description": "Ejecuciones de las fuentes seleccionadas que fallaron en el rango (p. ej. una API caída). La siguiente ejecución recupera los días perdidos.",
+      "description": "Ejecuciones de las fuentes seleccionadas que fallaron por nuestra parte en el rango (un error, un formato que cambió, una clave rechazada). Las que encontraron la fuente caída (estado unavailable, en naranja en las tablas) no cuentan aquí: la siguiente ejecución recupera esos días sola.",
       "gridPos": {
         "h": 4,
         "w": 5,
@@ -437,6 +437,10 @@
                       "failed": {
                         "color": "red",
                         "index": 1
+                      },
+                      "unavailable": {
+                        "color": "orange",
+                        "index": 2
                       }
                     }
                   }
@@ -722,6 +726,10 @@
                       "running": {
                         "color": "blue",
                         "index": 2
+                      },
+                      "unavailable": {
+                        "color": "orange",
+                        "index": 3
                       }
                     }
                   }

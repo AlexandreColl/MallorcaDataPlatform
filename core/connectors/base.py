@@ -17,8 +17,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
+import requests
 import yaml
 
 from core.connectors.http import HttpClient, JsonGetter
@@ -58,6 +59,42 @@ def is_permanent(exc: BaseException) -> bool:
     status = getattr(response, "status_code", None)
     client_error = isinstance(status, int) and HTTPStatus.BAD_REQUEST <= status < HTTPStatus.INTERNAL_SERVER_ERROR
     return client_error and status not in _TRANSIENT_CLIENT_ERRORS
+
+
+# The source could not be reached or answered with a server error, once the HTTP client's own retries ran out.
+_UNREACHABLE = (
+    requests.ConnectionError,
+    requests.Timeout,
+    requests.exceptions.RetryError,
+    requests.exceptions.ChunkedEncodingError,
+)
+
+
+def is_outage(exc: BaseException) -> bool:
+    """True when the source is down, not our code: it cannot be reached, answers 5xx, or has stopped publishing.
+
+    The run is recorded as ``unavailable`` instead of ``failed``: nothing here needs fixing, and the next run
+    catches up the missed days. ``SourceNotUpdatedError`` is both an outage and permanent (no point retrying).
+    """
+    if isinstance(exc, (SourceNotUpdatedError, *_UNREACHABLE)):
+        return True
+    if not isinstance(exc, requests.HTTPError):
+        return False
+    status = getattr(exc.response, "status_code", None)
+    return isinstance(status, int) and status >= HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def failure_action(exc: BaseException, *, retries_left: bool) -> Literal["retry", "fail", "skip"]:
+    """What a scheduler task should do with a connector failure.
+
+    * ``retry``: a short outage may clear before the next try (on the last try the scheduler fails the task).
+    * ``skip``: the source is still down after the retries, or has not published yet. The task is skipped, not
+      failed: the run stays green, ``ops.ingestion_runs`` records it as ``unavailable`` and the next run catches up.
+    * ``fail``: our side, and waiting will not fix it (an HTTP 4xx such as a moved URL or a rejected key).
+    """
+    if is_outage(exc):
+        return "skip" if is_permanent(exc) or not retries_left else "retry"
+    return "fail" if is_permanent(exc) else "retry"
 
 
 @dataclass(frozen=True)

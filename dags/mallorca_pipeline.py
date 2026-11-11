@@ -11,7 +11,8 @@ Trigger with a config such as:
 ```
 
 * One mapped task per connector; a failing source does not stop the others, and dbt still
-  builds gold with whatever loaded. Failed runs are visible in `ops.ingestion_runs` and Grafana.
+  builds gold with whatever loaded. Runs are visible in `ops.ingestion_runs` and Grafana: `failed` is our side,
+  `unavailable` a source that was down (its task is skipped after the retries, and the run stays green).
 * It runs every day by itself (`MDP_SCHEDULE`, default `@daily`, without catch-up): after the computer was off, the
   scheduler starts the pending run as soon as Airflow is back, once.
 * With `only_missing` (default) a connector does not download again the days a successful run already loaded: it
@@ -77,6 +78,21 @@ if SCHEDULE and SCHEDULE.lower() == "none":
     SCHEDULE = None
 
 
+def _task_outcome(connector: str, exc: Exception, *, retries_left: bool) -> Exception | None:
+    """The Airflow exception that ends an ingest task (skip or fail without retries), or None to retry it."""
+    from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
+
+    from core.connectors import failure_action
+
+    action = failure_action(exc, retries_left=retries_left)
+    error = f"{type(exc).__name__}: {exc}"
+    if action == "skip":
+        return AirflowSkipException(f"{connector} unavailable: {error}")
+    if action == "fail":
+        return AirflowFailException(error)
+    return None
+
+
 @dag(
     dag_id="mallorca_pipeline",
     schedule=SCHEDULE,
@@ -134,16 +150,17 @@ def mallorca_pipeline() -> None:
     def ingest(connector: str, params: dict[str, Any] | None = None, run_id: str | None = None) -> dict[str, Any]:
         """Run one connector end to end (bronze -> silver -> warehouse).
 
-        A failure that waiting will not fix (a source that has not published the window yet, an HTTP 4xx such as a
-        moved URL) fails without retries; the next run recovers the days (catch-up). Outages keep their retries.
+        A source that is down keeps its retries, and if it is still down after them (or has not published the
+        window yet) the task is skipped, not failed: the run stays green and `ops.ingestion_runs` says
+        `unavailable`. A failure on our side that waiting will not fix (an HTTP 4xx such as a moved URL) fails
+        without retries. Either way the next run recovers the days (catch-up).
         """
-        from airflow.sdk.exceptions import AirflowFailException
-
-        from core.connectors import is_permanent
         from core.pipeline import run_connector
 
         params = params or {}
-        get_current_context()["connector_name"] = connector
+        context = get_current_context()
+        context["connector_name"] = connector
+        ti = context["ti"]
         try:
             summary = run_connector(
                 connector,
@@ -154,10 +171,10 @@ def mallorca_pipeline() -> None:
                 only_missing=bool(params.get("only_missing", True)),
             )
         except Exception as exc:
-            if not is_permanent(exc):
+            replacement = _task_outcome(connector, exc, retries_left=ti.try_number <= ti.max_tries)
+            if replacement is None:
                 raise
-            msg = f"{type(exc).__name__}: {exc}"
-            raise AirflowFailException(msg) from exc
+            raise replacement from exc
         return summary.as_dict()
 
     @task(trigger_rule=TriggerRule.ALL_DONE, retries=0, inlets=[ASSETS["observations"]], outlets=[ASSETS["anomalies"]])

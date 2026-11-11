@@ -23,8 +23,9 @@ groups:
         annotations:
           summary: "La última ejecución de {{ $labels.source }} ha fallado"
           description: >-
-            El último run de la fuente terminó en `failed` (ops.ingestion_runs). El error y su tipo están en el
-            dashboard Operación; el DAG ya reintentó la tarea.
+            El último run de la fuente terminó en `failed` (ops.ingestion_runs): un fallo por nuestra parte. El error
+            y su tipo están en el dashboard Operación. Una fuente caída (`unavailable`) no avisa aquí: se recupera sola,
+            y si sigue caída días la avisa la regla del SLA.
           __dashboardUid__: mallorca-operations
           __panelId__: "10"
         data:
@@ -67,7 +68,8 @@ groups:
           summary: "{{ $labels.source }} no cumple el SLA acordado en su ficha"
           description: >-
             Su último dato es más antiguo que sla_data_age_hours o sus ejecuciones correctas de los últimos 7 días
-            no llegan a sla_success_rate (dim_sources, docs/data-governance.md). Solo cuenta las fuentes activas:
+            no llegan a sla_success_rate (dim_sources, docs/data-governance.md); una fuente caída también cuenta como
+            ejecución no correcta. Solo cuenta las fuentes activas:
             un histórico cerrado (goib_air_quality) no tiene SLA de antigüedad.
           __dashboardUid__: mallorca-operations
           __panelId__: "6"
@@ -88,7 +90,7 @@ groups:
                 )::int AS breached
                 FROM gold.source_health AS h
                 LEFT JOIN (
-                  SELECT source, count(*) AS runs, count(*) FILTER (WHERE status = 'failed') AS failed
+                  SELECT source, count(*) AS runs, count(*) FILTER (WHERE status IN ('failed', 'unavailable')) AS failed
                   FROM ops.ingestion_runs WHERE status <> 'running' AND started_at > now() - interval '7 days'
                   GROUP BY source
                 ) AS r USING (source)

@@ -142,7 +142,10 @@ CREATE TABLE IF NOT EXISTS ops.ingestion_runs (
     region         text        NOT NULL,
     window_start   date        NOT NULL,
     window_end     date        NOT NULL,
-    status         text        NOT NULL CHECK (status IN ('running', 'success', 'failed')),
+    -- failed: our side (a bug, a changed format, a rejected key). unavailable: the source was down (unreachable, 5xx
+    -- after the retries, or not publishing yet); nothing to fix, the next run catches up the missed days.
+    status         text        NOT NULL CONSTRAINT ingestion_runs_status_check
+                               CHECK (status IN ('running', 'success', 'failed', 'unavailable')),
     payloads       integer,
     rows_silver    integer,
     rows_upserted  integer,
@@ -151,3 +154,16 @@ CREATE TABLE IF NOT EXISTS ops.ingestion_runs (
     error          text,
     PRIMARY KEY (run_id, source)
 );
+-- Warehouses created before v0.16.2 only accept running, success and failed.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'ingestion_runs_status_check' AND pg_get_constraintdef(oid) LIKE '%unavailable%'
+    ) THEN
+        ALTER TABLE ops.ingestion_runs DROP CONSTRAINT IF EXISTS ingestion_runs_status_check;
+        ALTER TABLE ops.ingestion_runs ADD CONSTRAINT ingestion_runs_status_check
+            CHECK (status IN ('running', 'success', 'failed', 'unavailable'));
+    END IF;
+END
+$$;

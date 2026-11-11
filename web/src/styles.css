@@ -725,6 +725,10 @@ tr:last-child td {
   background: var(--bad);
 }
 
+.status-down {
+  background: var(--warn);
+}
+
 .status-late {
   background: var(--warn);
 }
@@ -747,6 +751,10 @@ tr:last-child td {
 
 .state-failed {
   color: var(--bad);
+}
+
+.state-down {
+  color: var(--warn);
 }
 
 .state-late {
