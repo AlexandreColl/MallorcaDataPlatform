@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-11-11
+
 ### Changed
 
 - A source that is down is no longer counted as a failure of the platform (ADR 0022). When a source cannot be
@@ -732,7 +734,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...HEAD
+[0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.14.0...v0.15.0
