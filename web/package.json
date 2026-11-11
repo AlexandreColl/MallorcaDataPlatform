@@ -1,7 +1,7 @@
 {
   "name": "mallorca-data-platform-web",
   "private": true,
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "Web front end of Mallorca Data Platform: the island in figures, read from the REST API.",
   "type": "module",
   "scripts": {
