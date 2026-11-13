@@ -54,6 +54,33 @@ class RunSummary:
     # Days of an older gap loaded first, in runs of their own (catch-up beyond catch_up_days, up to recover_days).
     recovered_days: int = 0
 
+    @classmethod
+    def of(  # noqa: PLR0913 - the outcome of a run, keyword-only after the window
+        cls,
+        run_id: str,
+        source: str,
+        region: str,
+        window: TimeWindow,
+        *,
+        stats: RunStats | None = None,
+        checks_failed: int = 0,
+        skipped: bool = False,
+    ) -> RunSummary:
+        """The summary of a run of ``window``; without ``stats`` nothing was downloaded."""
+        stats = stats or RunStats(payloads=0, rows_silver=0, rows_upserted=0)
+        return cls(
+            run_id=run_id,
+            source=source,
+            region=region,
+            window_start=window.start.isoformat(),
+            window_end=window.end.isoformat(),
+            payloads=stats.payloads,
+            rows_silver=stats.rows_silver,
+            rows_upserted=stats.rows_upserted,
+            checks_failed=checks_failed,
+            skipped=skipped,
+        )
+
     def as_dict(self) -> dict[str, Any]:
         """Plain dict (JSON-serialisable)."""
         return asdict(self)
@@ -195,12 +222,13 @@ def _load_silver(
     spark = build_spark(settings, app_name=f"mdp-{connector.name}")
     silver, results = apply_quality(to_dataframe(spark, observations, run_id), connector, window)
     silver = silver.cache()
-    rows_silver = silver.count()
-
-    landing_table = f"observations_{connector.name}"
-    write_silver(silver, settings, landing_table)
-    upserted = warehouse.merge_observations(landing_table)
-    silver.unpersist()
+    try:
+        rows_silver = silver.count()
+        landing_table = f"observations_{connector.name}"
+        write_silver(silver, settings, landing_table)
+        upserted = warehouse.merge_observations(landing_table)
+    finally:  # a failed write must not leave the rows cached in the next run of the same Spark session
+        silver.unpersist()
     return rows_silver, upserted, results
 
 
@@ -237,18 +265,7 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
     if only_missing:
         remaining = _to_download(warehouse, connector, region, window, run_id)
         if remaining is None:
-            return RunSummary(
-                run_id=run_id,
-                source=name,
-                region=region.name,
-                window_start=window.start.isoformat(),
-                window_end=window.end.isoformat(),
-                payloads=0,
-                rows_silver=0,
-                rows_upserted=0,
-                checks_failed=0,
-                skipped=True,
-            )
+            return RunSummary.of(run_id, name, region.name, window, skipped=True)
         window = remaining
     recovered_days = 0
     if catch_up:
@@ -326,14 +343,6 @@ def _load_window(
         raise
     stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)
     warehouse.finish_run(run_id, name, "success", stats=stats)
-    return RunSummary(
-        run_id=run_id,
-        source=name,
-        region=region.name,
-        window_start=window.start.isoformat(),
-        window_end=window.end.isoformat(),
-        payloads=stats.payloads,
-        rows_silver=stats.rows_silver,
-        rows_upserted=stats.rows_upserted,
-        checks_failed=sum(1 for r in results if not r.passed),
+    return RunSummary.of(
+        run_id, name, region.name, window, stats=stats, checks_failed=sum(1 for r in results if not r.passed)
     )
