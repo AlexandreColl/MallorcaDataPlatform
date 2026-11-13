@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, get_args
 
 import psycopg
 from psycopg import sql
@@ -24,6 +24,11 @@ if TYPE_CHECKING:
 DDL_PATH = Path(__file__).parent / "sql" / "warehouse.sql"
 
 SILVER_COLUMNS = (*KEY, *COMPARED, "run_id", "ingested_at")
+
+# The status of a run in ops.ingestion_runs. `failed` is our side (to fix), `unavailable` a source that was down (it
+# recovers by itself, ADR 0022). tests/test_run_statuses.py keeps the SQL CHECK, dbt, the API and Grafana in step.
+RunStatus = Literal["running", "success", "failed", "unavailable"]
+RUN_STATUSES: tuple[RunStatus, ...] = get_args(RunStatus)
 
 # A run still `running` this long after it started will never finish: far longer than any run or backfill chunk takes.
 ABANDONED_AFTER = timedelta(hours=12)
@@ -319,7 +324,7 @@ class Warehouse:
         self,
         run_id: str,
         source: str,
-        status: str,
+        status: RunStatus,
         *,
         stats: RunStats | None = None,
         error: str | None = None,

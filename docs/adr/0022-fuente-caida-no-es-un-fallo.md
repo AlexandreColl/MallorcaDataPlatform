@@ -17,7 +17,8 @@ ejecución acababa en `success`. Pero la plataforma la contaba como un fallo pro
 - **El E2E ya hacía esa distinción, pero aparte**: una expresión regular sobre el texto del error.
 
 Una fuente caída no se arregla tocando nada: la siguiente ejecución recupera los días con el *catch-up*
-([ADR 0003](0003-idempotencia.md)). Mezclarla con los fallos propios esconde los que sí piden trabajo.
+([ADR 0003](0003-idempotencia.md)). Mezclarla con los fallos propios esconde los que sí piden trabajo. Esta decisión
+cambia cómo [0010](0010-aislar-fallos-por-fuente.md) trataba los cortes, y la 0010 lo recoge en sus revisiones.
 
 ## Decisión
 

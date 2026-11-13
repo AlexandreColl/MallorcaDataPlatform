@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from datetime import date
 
     from core.models import Entity, Observation, Region, Route
+    from core.warehouse import RunStatus
 
 log = logging.getLogger(__name__)
 
@@ -338,7 +339,7 @@ def _load_window(
             rows_silver, upserted, results = 0, 0, []
     except Exception as exc:
         # A source that is down is `unavailable`, our own failure `failed`; the exception type stays in the error.
-        status = "unavailable" if is_outage(exc) else "failed"
+        status: RunStatus = "unavailable" if is_outage(exc) else "failed"
         warehouse.finish_run(run_id, name, status, error=f"{type(exc).__name__}: {exc}"[:2000])
         raise
     stats = RunStats(payloads=len(keys), rows_silver=rows_silver, rows_upserted=upserted)
