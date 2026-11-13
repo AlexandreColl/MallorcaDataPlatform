@@ -107,6 +107,13 @@ class Calibration:
         return self.correlation**2 * distance * np.exp(-gap_hours / params.gap_scale_hours)
 
 
+def _only_where(mask: np.ndarray, value: object) -> np.ndarray:
+    """``value`` where ``mask`` holds and None elsewhere, in an object array (None, not NaN, is a NULL in Postgres)."""
+    out = np.full(len(mask), None, dtype=object)
+    out[mask] = value
+    return out
+
+
 def calibrate(station: pd.Series, candidate: Candidate, params: SupportParams) -> Calibration | None:
     """Correlation and bias per hour of the day over the shared hours, or None if there are too few of them."""
     pairs = pd.concat({"station": station, "support": candidate.history}, axis=1, sort=True).dropna()
@@ -166,7 +173,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
     interpolated = values.interpolate(method="time", limit_area="inside")
     short = gap & gap_hours.le(interpolation.max_gap_hours)
     corrected = interpolated.where(short)
-    method = pd.Series(np.where(short, INTERPOLATION, None), index=grid, dtype=object)
+    method = pd.Series(_only_where(short.to_numpy(dtype=bool), INTERPOLATION), index=grid, dtype=object)
     confidence = interpolation.confidence(gap_hours).where(short)
     if calibration is not None:
         substituted = calibration.corrected(grid)
@@ -179,7 +186,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
 
     keep = corrected.notna() & (grid >= start) & (grid < end)
     hours = grid[keep]
-    by_support = long[keep].to_numpy()
+    by_support = long[keep].to_numpy(dtype=bool)
     source, entity = (calibration.candidate.source, calibration.candidate.entity) if calibration else (None, None)
     bias = calibration.bias_by_hour.reindex(hours.hour).to_numpy() if calibration else np.full(len(hours), np.nan)
     result = pd.DataFrame(
@@ -189,8 +196,8 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
             "original_quality": rows["quality"].reindex(hours).fillna(ABSENT).to_numpy(),
             "corrected_value": corrected[keep].round(3).to_numpy(),
             "method": method[keep].to_numpy(),
-            "support_source": np.where(by_support, source, None),
-            "support_entity": np.where(by_support, entity, None),
+            "support_source": _only_where(by_support, source),
+            "support_entity": _only_where(by_support, entity),
             "bias": np.where(by_support, np.round(bias, 3), np.nan),
             "confidence": confidence[keep].round(3).to_numpy(),
         }

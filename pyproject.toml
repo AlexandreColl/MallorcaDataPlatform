@@ -86,3 +86,19 @@ omit = ["*/tests/*"]
 
 [tool.coverage.report]
 skip_empty = true
+
+[tool.mypy]
+# Ruff makes every function annotated; mypy checks that the annotations hold. The platform code only: connectors
+# are checked by their recorded-response tests, and tests by running.
+python_version = "3.14"
+files = ["core", "api"]
+exclude = ["/tests/"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+# Libraries without types. pandas-stubs is left out on purpose: it types the frames column by column (Hashable keys)
+# and mostly reports its own strictness; boto3 is typed only where an S3 client is annotated (mypy-boto3-s3).
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "pandas", "pandas.*", "sklearn", "sklearn.*", "psycopg_pool"]
+ignore_missing_imports = true

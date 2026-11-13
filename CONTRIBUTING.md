@@ -13,6 +13,7 @@ Antes de abrir un PR:
 
 ```bash
 make lint       # solo informa, igual que la CI
+make typecheck  # mypy sobre core y api
 make test
 make e2e        # con la plataforma levantada
 ```
@@ -23,6 +24,7 @@ Ruff con **todas** las reglas activadas (`select = ["ALL"]`), líneas de 120 car
 *unsafe* habilitados y Python 3.14. Las pocas excepciones están justificadas una a una en
 `pyproject.toml`. `make format` (o el hook de pre-commit) aplica los arreglos y el formato; lo que
 ruff no puede arreglar solo (docstrings, tipos, diseño de funciones) hay que corregirlo a mano.
+mypy comprueba además que esos tipos se cumplen en `core/` y `api/` (`make typecheck`, también en la CI).
 
 Reglas del proyecto:
 
