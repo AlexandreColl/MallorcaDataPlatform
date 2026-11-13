@@ -9,6 +9,10 @@ from pydantic import BaseModel, Field
 
 # The status of a connector run (core.warehouse.RunStatus: the API image does not ship the pipeline).
 RunStatus = Literal["running", "success", "failed", "unavailable"]
+# The two transit networks: EMT Palma (the city buses) and CTM (the island: TIB buses, train and metro).
+Network = Literal["emt_palma", "ctm"]
+# A [lon, lat] point of a GeoJSON path or polygon.
+Point = tuple[float, float]
 
 NAME = "The name the source publishes (silver.entities); null when the identifier already reads as a name."
 
@@ -276,7 +280,7 @@ class ResourcesMonth(BaseModel):
 class MobilityDay(BaseModel):
     """Scheduled public transport of one network in one day (gold.fct_bus_network_daily, fct_island_transit_daily)."""
 
-    network: str = Field(examples=["emt_palma"], description="`emt_palma` (Palma buses) or `ctm` (the island)")
+    network: Network = Field(examples=["emt_palma"], description="`emt_palma` (Palma buses) or `ctm` (the island)")
     local_date: date
     is_weekend: bool
     stops: int
@@ -291,7 +295,7 @@ class MobilityDay(BaseModel):
 class StopService(BaseModel):
     """The scheduled service of one stop on the latest day of its network."""
 
-    network: str = Field(examples=["ctm"])
+    network: Network = Field(examples=["ctm"])
     stop: str = Field(examples=["stop_1024"])
     name: str | None = Field(default=None, examples=["Jacint Verdaguer Estació (302)"], description=NAME)
     lat: float
@@ -305,13 +309,13 @@ class RouteGeometry(BaseModel):
     """The path of a line as a GeoJSON MultiLineString of [lon, lat] points: one polyline per direction."""
 
     type: Literal["MultiLineString"]
-    coordinates: list[list[list[float]]]
+    coordinates: list[list[Point]]
 
 
 class TransitRoute(BaseModel):
     """One line of a transit network with its path and its departures on the latest day of the network."""
 
-    network: str = Field(examples=["ctm"])
+    network: Network = Field(examples=["ctm"])
     route: str = Field(examples=["route_234"], description="Entity of the line's `scheduled_trips` series.")
     short_name: str = Field(examples=["101"])
     name: str = Field(examples=["101 · Port d'Andratx - Palma"])
@@ -371,8 +375,8 @@ class WarningZone(BaseModel):
 
     zone: str = Field(examples=["645403"])
     name: str = Field(examples=["Interior de Mallorca"])
-    kind: str = Field(examples=["land"])
-    polygon: list[list[float]] = Field(description="[lon, lat] vertices.")
+    kind: Literal["land", "coast"] = Field(examples=["land"], description="`land` or `coast`")
+    polygon: list[Point] = Field(description="[lon, lat] vertices.")
 
 
 class PopulationYear(BaseModel):
@@ -409,7 +413,7 @@ class Municipality(BaseModel):
     lat: float
     lon: float
     area_km2: float
-    polygon: list[list[list[float]]] = Field(description="Rings of [lon, lat] vertices; the largest first.")
+    polygon: list[list[Point]] = Field(description="Rings of [lon, lat] vertices; the largest first.")
 
 
 class WeatherEpisode(BaseModel):

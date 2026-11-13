@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+# Generated from the OpenAPI schema (make web-types): collapsed in diffs.
+web/src/api.gen.ts linguist-generated=true

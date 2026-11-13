@@ -515,6 +515,10 @@ remembers, and on a phone the menu becomes a drawer.
 quality, anomalies and corrections. Why a web front end of its own instead of reworking Grafana:
 [ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md).
 
+Its types come from the OpenAPI schema of the API (`web/src/api.gen.ts`, generated with `make web-types`), and a test
+fails when the file does not match what the API serves. A field that changes in `api/schemas.py` shows up in the
+web's `tsc` instead of in a broken page.
+
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, with /api pointing at the stack's API (localhost:8000)
 npm test                               # key figures and the state of the sources (Vitest)
