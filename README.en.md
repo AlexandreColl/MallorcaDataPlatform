@@ -521,7 +521,7 @@ web's `tsc` instead of in a broken page.
 
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, with /api pointing at the stack's API (localhost:8000)
-npm test                               # key figures and the state of the sources (Vitest)
+npm test                               # figures, state of the sources and pages (Vitest, Testing Library)
 ```
 
 ## Grafana
