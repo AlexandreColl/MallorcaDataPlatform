@@ -7,6 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# The status of a connector run (core.warehouse.RunStatus: the API image does not ship the pipeline).
+RunStatus = Literal["running", "success", "failed", "unavailable"]
+
 NAME = "The name the source publishes (silver.entities); null when the identifier already reads as a name."
 
 
@@ -47,7 +50,7 @@ class Source(BaseModel):
     source: str = Field(examples=["aemet"])
     label: str | None = Field(examples=["AEMET (estaciones oficiales)"])
     kind: str | None = Field(examples=["observation"])
-    last_status: str | None = Field(
+    last_status: RunStatus | None = Field(
         examples=["success"],
         description="running, success, failed (our side) or unavailable (the source was down).",
     )

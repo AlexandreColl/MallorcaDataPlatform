@@ -11,6 +11,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   did not retry is no longer shown as running forever: the next run of the source closes it as `failed`, with the
   error "Interrupted", once it is 12 h old. The Spark cache of a run is released also when its write fails.
 
+### Changed
+
+- The statuses of a run (`running`, `success`, `failed`, `unavailable`) are one list in `core.warehouse.RunStatus`,
+  and `tests/test_run_statuses.py` checks that the table CHECK, the dbt test, the API model, `source_health`, the
+  Grafana colours, the SLA alert and the web list the same ones. The API documents `last_status` as an enum.
+  ADR 0010 records how ADR 0022 changed its handling of outages.
+
 ## [0.16.2] - 2026-11-11
 
 ### Changed

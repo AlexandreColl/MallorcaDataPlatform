@@ -6,12 +6,14 @@ export interface Health {
   version: string;
 }
 
+/** The status of a connector run: `failed` is our side, `unavailable` a source that was down. */
+export type RunStatus = "running" | "success" | "failed" | "unavailable";
+
 export interface Source {
   source: string;
   label: string | null;
   kind: string | null;
-  /** running, success, failed (our side) or unavailable (the source was down). */
-  last_status: string | null;
+  last_status: RunStatus | null;
   last_run_at: string | null;
   last_success_at: string | null;
   last_loaded_day: string | null;
