@@ -28,14 +28,12 @@ class PooledDatabase:
     """psycopg 3 connection pool. Every connection is read-only and has a statement timeout (see Settings)."""
 
     def __init__(self, settings: Settings) -> None:
-        from psycopg.rows import dict_row  # noqa: PLC0415 - tests with a fake database never need psycopg
-        from psycopg_pool import ConnectionPool  # noqa: PLC0415
+        from psycopg_pool import ConnectionPool  # noqa: PLC0415 - tests with a fake database never need psycopg
 
         self.pool = ConnectionPool(
             settings.conninfo,
             min_size=settings.pool_min_size,
             max_size=settings.pool_max_size,
-            kwargs={"row_factory": dict_row},
             open=False,
         )
 
@@ -49,8 +47,10 @@ class PooledDatabase:
 
     def fetch_all(self, sql: str, params: Mapping[str, Any] | None = None) -> list[Row]:
         """Run ``sql`` on a pooled connection and return every row as a dict."""
-        with self.pool.connection() as conn:
-            return conn.execute(sql, params or {}).fetchall()
+        from psycopg.rows import dict_row  # noqa: PLC0415
+
+        with self.pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            return cur.execute(sql, params or {}).fetchall()
 
     def ping(self) -> bool:
         """True when a connection answers ``SELECT 1`` within a few seconds."""
