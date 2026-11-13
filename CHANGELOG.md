@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Fixed
+
+- A run left `running` because its process stopped (the computer turned off, the worker killed) and that Airflow
+  did not retry is no longer shown as running forever: the next run of the source closes it as `failed`, with the
+  error "Interrupted", once it is 12 h old. The Spark cache of a run is released also when its write fails.
+
 ## [0.16.2] - 2026-11-11
 
 ### Changed
