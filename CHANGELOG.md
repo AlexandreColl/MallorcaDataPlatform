@@ -20,6 +20,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - mypy checks the annotations of `core/` and `api/` in the CI and with `make typecheck`. It found places where a
   Spark query that always returns one row, or a missing JVM gateway, would have failed with an unclear error; they
   now raise a clear one.
+- The web's types are generated from the OpenAPI schema of the API (`web/src/api.gen.ts`, `make web-types`), and a
+  test fails when the committed file is out of date. They replace the hand-written copy in `web/src/api.ts`, which
+  had fallen behind (several months lacked fields the API sends). The API now types the transit `network`, the
+  warning zone `kind` and the [lon, lat] points of paths and polygons.
 
 ## [0.16.2] - 2026-11-11
 

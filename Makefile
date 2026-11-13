@@ -20,7 +20,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)", "only_missing": $(ONLY_MISSING)}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint typecheck format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test minio-pipeline-user screenshots tf-check tf-fmt
+.PHONY: help init build up down clean ps logs run run-local connectors test lint typecheck format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test web-types minio-pipeline-user screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -72,6 +72,9 @@ minio-pipeline-user: ## Create the local twin of the AWS pipeline role in MinIO,
 
 api-test: ## Unit tests of the REST API (no database needed)
 	$(COMPOSE) run --rm toolbox pytest api
+
+web-types: ## Regenerate the TypeScript types of the web from the OpenAPI schema of the API (web/src/api.gen.ts)
+	$(COMPOSE) --profile tools run --rm toolbox python -m api.typescript
 
 evaluate: ## Measure the anomaly detectors against injected faults (precision and recall)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli evaluate

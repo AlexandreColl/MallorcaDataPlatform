@@ -515,6 +515,10 @@ navegador, y en el móvil el menú pasa a ser un cajón.
 alertas, calidad, anomalías y correcciones. Por qué una web propia y no rehacer Grafana:
 [ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md).
 
+Sus tipos salen del OpenAPI de la API (`web/src/api.gen.ts`, generado con `make web-types`), y un test falla si el
+fichero no coincide con lo que sirve la API. Un campo que cambia en `api/schemas.py` aparece así en el `tsc` de la web
+y no en una página rota.
+
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, con /api hacia la API del stack (localhost:8000)
 npm test                               # cifras clave y estado de las fuentes (Vitest)

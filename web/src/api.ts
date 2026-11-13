@@ -1,356 +1,38 @@
-// Types and calls of the REST API (api/schemas.py). The front end reads only the API, never the warehouse.
+// Calls of the REST API. The front end reads only the API, never the warehouse. Its types are generated from the
+// OpenAPI schema (api.gen.ts, `make web-types`), so a change in api/schemas.py shows up in the type check.
 
-export interface Health {
-  status: string;
-  database: string;
-  version: string;
-}
+import type {
+  AirQualityNow,
+  AnomaliesDay,
+  Aquifer,
+  ClimateMonth,
+  Correction,
+  Earthquake,
+  Health,
+  HumanPressureDay,
+  Location,
+  MobilityDay,
+  ModelBias,
+  Municipality,
+  PopulationYear,
+  QualityRule,
+  ResourcesMonth,
+  SeaHour,
+  Series,
+  SeriesDay,
+  Source,
+  StationDay,
+  StopService,
+  TourismMonth,
+  TransitRoute,
+  WarningZone,
+  WaterReservesMonth,
+  WeatherEpisode,
+  WeatherSourceDay,
+  WeatherWarning,
+} from "./api.gen";
 
-/** The status of a connector run: `failed` is our side, `unavailable` a source that was down. */
-export type RunStatus = "running" | "success" | "failed" | "unavailable";
-
-export interface Source {
-  source: string;
-  label: string | null;
-  kind: string | null;
-  last_status: RunStatus | null;
-  last_run_at: string | null;
-  last_success_at: string | null;
-  last_loaded_day: string | null;
-  runs_7d: number;
-  /** Runs in 7 days that failed on our side, and those whose source was down. */
-  failed_7d: number;
-  unavailable_7d: number;
-  /** Share of the runs in 7 days that did not load, either way. */
-  failure_rate_7d: number | null;
-  latest_observation_ts: string | null;
-  data_age_hours: number | null;
-  observations: number;
-  governance: Governance;
-  sla: Sla;
-}
-
-/** Who owns a source and under which terms it is used (the catalogue of sources, docs/data-governance.md). */
-export interface Governance {
-  domain: string;
-  owner: string;
-  license: string;
-  terms_url: string;
-  access: "open" | "api_key";
-  personal_data: boolean;
-  classification: "public" | "internal" | "restricted";
-  /** `history`: a closed series, with no SLA on its age. */
-  lifecycle: "active" | "history";
-}
-
-/** The SLA agreed for a source and whether it is met; null means it cannot be judged. */
-export interface Sla {
-  data_age_hours: number | null;
-  success_rate: number;
-  age_met: boolean | null;
-  success_met: boolean | null;
-  met: boolean | null;
-}
-
-export interface Location {
-  source: string;
-  label: string | null;
-  kind: string | null;
-  entity: string;
-  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
-  name: string | null;
-  lat: number;
-  lon: number;
-  first_seen: string | null;
-  last_seen: string | null;
-  n_metrics: number;
-}
-
-export interface ResourcesMonth {
-  month: string;
-  international_tourists: number | null;
-  tourists_anomaly: number | null;
-  airport_passengers: number | null;
-  hotel_bed_occupancy_pct: number | null;
-  electricity_demand_gwh: number | null;
-  electricity_demand_anomaly: number | null;
-  reserves_pct: number | null;
-  reserves_anomaly_pts: number | null;
-  rain_mm: number | null;
-  rain_anomaly: number | null;
-  temperature_mean_c: number | null;
-  temperature_anomaly_c: number | null;
-}
-
-export interface TourismMonth {
-  month: string;
-  international_tourists: number | null;
-  international_spending_eur: number | null;
-  spending_per_tourist_eur: number | null;
-  hotel_bed_occupancy_pct: number | null;
-  airport_passengers: number | null;
-  international_tourists_yoy: number | null;
-  airport_passengers_yoy: number | null;
-}
-
-export interface ClimateMonth {
-  month: string;
-  hydrological_year: number;
-  rain_mm: number | null;
-  rain_hydrological_year_mm: number | null;
-  rain_hydrological_year_mean_mm: number | null;
-  temperature_mean_c: number | null;
-  temperature_anomaly_c: number | null;
-  hot_days: number | null;
-}
-
-export interface WaterReservesMonth {
-  month: string;
-  hydrological_year: number;
-  reserves_pct: number;
-  same_month_mean_pct: number | null;
-  anomaly_pts: number | null;
-  aquifers_below_30_pct: number | null;
-  lowest_aquifer: string | null;
-}
-
-export interface Aquifer {
-  entity: string;
-  aquifer: string;
-  month: string;
-  reserves_pct: number | null;
-  change_12m_pts: number | null;
-}
-
-export interface MobilityDay {
-  network: "emt_palma" | "ctm";
-  local_date: string;
-  is_weekend: boolean;
-  stops: number;
-  stops_with_service: number;
-  scheduled_stop_calls: number | null;
-  busiest_stop: string | null;
-  busiest_stop_name: string | null;
-  busiest_stop_departures: number | null;
-}
-
-/** One daily series of a source and the days it covers. */
-export interface Series {
-  source: string;
-  entity: string;
-  name: string | null;
-  metric: string;
-  unit: string | null;
-  first_day: string;
-  last_day: string;
-  days: number;
-}
-
-/** One local day of a series: its statistics, completeness and flagged values. */
-export interface SeriesDay {
-  local_date: string;
-  samples: number;
-  valid: number;
-  suspect: number;
-  min_value: number | null;
-  avg_value: number | null;
-  max_value: number | null;
-  completeness: number | null;
-  anomalies: number;
-}
-
-/** A bus, train or metro line with its path and its departures on the latest day of its network. */
-export interface TransitRoute {
-  network: "emt_palma" | "ctm";
-  route: string;
-  short_name: string;
-  name: string;
-  kind: string;
-  color: string | null;
-  local_date: string | null;
-  trips: number | null;
-  geometry: { type: "MultiLineString"; coordinates: number[][][] };
-}
-
-export interface StopService {
-  network: "emt_palma" | "ctm";
-  stop: string;
-  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
-  name: string | null;
-  lat: number;
-  lon: number;
-  local_date: string;
-  departures: number | null;
-  lines: number | null;
-}
-
-export interface WeatherSourceDay {
-  source: string;
-  source_label: string | null;
-  source_kind: string | null;
-  local_date: string;
-  entities: number;
-  temperature_mean: number | null;
-  temperature_max: number | null;
-  precipitation_mean: number | null;
-  wind_gust_max: number | null;
-}
-
-export interface StationDay {
-  source: string;
-  entity: string;
-  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
-  name: string | null;
-  lat: number;
-  lon: number;
-  local_date: string;
-  temperature_mean: number;
-  temperature_max: number | null;
-  temperature_min: number | null;
-  precipitation_sum: number | null;
-}
-
-export interface WeatherWarning {
-  warning_id: string;
-  zone: string;
-  zone_name: string | null;
-  zone_kind: string | null;
-  phenomenon: string;
-  level: number;
-  start_ts: string;
-  end_ts: string;
-}
-
-export interface WarningZone {
-  zone: string;
-  name: string;
-  kind: "land" | "coast";
-  polygon: [number, number][];
-}
-
-export interface PopulationYear {
-  municipality: string;
-  municipality_name: string | null;
-  year: number;
-  population: number | null;
-  population_men: number | null;
-  population_women: number | null;
-  density_per_km2: number | null;
-  population_change: number | null;
-  population_change_pct: number | null;
-}
-
-export interface HumanPressureDay {
-  local_date: string;
-  is_weekend: boolean | null;
-  people_present: number;
-  residents: number | null;
-  register_year: number | null;
-  people_over_residents: number | null;
-  pressure_ratio: number | null;
-}
-
-export interface Municipality {
-  municipality: string;
-  name: string;
-  lat: number;
-  lon: number;
-  area_km2: number;
-  /** Rings of [lon, lat] vertices, the largest first (Palma also has the Cabrera archipelago). */
-  polygon: [number, number][][];
-}
-
-export interface WeatherEpisode {
-  episode_id: string;
-  start_date: string;
-  end_date: string;
-  days: number;
-  episode_type: string;
-  peak_rain_mm: number | null;
-  peak_rain_station: string | null;
-  peak_gust_kmh: number | null;
-  peak_wave_m: number | null;
-}
-
-export interface ModelBias {
-  station_source: string;
-  station: string;
-  station_name: string | null;
-  model_point: string;
-  /** Height of the station minus that of the model cell, in metres; null without both heights. */
-  elevation_diff_m: number | null;
-  days_compared: number;
-  temperature_bias_c: number | null;
-  temperature_mae_c: number | null;
-  /** The same errors with the model brought to the station's height (6.5 °C per km). */
-  temperature_bias_adjusted_c: number | null;
-  temperature_mae_adjusted_c: number | null;
-  rain_day_agreement: number | null;
-}
-
-export interface AirQualityNow {
-  source: string;
-  entity: string;
-  /** The name the source publishes (a stop, a station); null when the identifier already reads as one. */
-  name: string | null;
-  lat: number | null;
-  lon: number | null;
-  ts: string;
-  pm2_5: number | null;
-  pm10: number | null;
-  no2: number | null;
-  o3: number | null;
-  eaqi_band: number;
-  eaqi_label: string | null;
-}
-
-export interface SeaHour {
-  point: string;
-  name?: string | null;
-  ts: string;
-  wave_height_m: number | null;
-  sea_temperature_c: number | null;
-}
-
-export interface Earthquake {
-  event_id: string;
-  ts: string;
-  lat: number;
-  lon: number;
-  magnitude: number | null;
-  depth_km: number | null;
-  distance_to_palma_km: number | null;
-}
-
-export interface QualityRule {
-  source: string;
-  rule: string;
-  target: string;
-  checked: number;
-  failed: number;
-  passed: boolean;
-  failed_ratio: number | null;
-}
-
-export interface AnomaliesDay {
-  local_date: string;
-  detector: string;
-  anomalies: number;
-}
-
-export interface Correction {
-  source: string;
-  entity: string;
-  name: string | null;
-  metric: string;
-  ts: string;
-  unit: string | null;
-  original_quality: string;
-  original_value: number | null;
-  corrected_value: number;
-  method: string;
-  confidence: number;
-}
+export type * from "./api.gen";
 
 interface Page<T> {
   items: T[];
