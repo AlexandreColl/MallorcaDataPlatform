@@ -88,7 +88,9 @@ class FaultInjector:
             event_id = 0
             for kind in self.KINDS:
                 spec = self.specs.get(kind)
-                for _ in range(spec.count if spec else 0):
+                if spec is None:
+                    continue
+                for _ in range(spec.count):
                     span = self._place(spec, taken, rng, first=spec.lag if kind == "shift" else 1)
                     if span is None:
                         break  # series too short for more faults

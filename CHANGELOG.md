@@ -17,6 +17,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   and `tests/test_run_statuses.py` checks that the table CHECK, the dbt test, the API model, `source_health`, the
   Grafana colours, the SLA alert and the web list the same ones. The API documents `last_status` as an enum.
   ADR 0010 records how ADR 0022 changed its handling of outages.
+- mypy checks the annotations of `core/` and `api/` in the CI and with `make typecheck`. It found places where a
+  Spark query that always returns one row, or a missing JVM gateway, would have failed with an unclear error; they
+  now raise a clear one.
 
 ## [0.16.2] - 2026-11-11
 

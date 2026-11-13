@@ -43,7 +43,10 @@ def _error(status_code: int, message: str) -> JSONResponse:
 def create_app(settings: Settings | None = None, database: Database | None = None) -> FastAPI:
     """Build the application. Without ``database`` it opens a connection pool to the warehouse at start-up."""
     settings = settings or Settings.from_env()
-    pooled = None if database is not None else PooledDatabase(settings)
+    # The pool is opened and closed with the app; a database passed in (the tests) is the caller's.
+    pooled: PooledDatabase | None = None
+    if database is None:
+        database = pooled = PooledDatabase(settings)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -65,7 +68,7 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         ],
     )
     app.state.settings = settings
-    app.state.warehouse = Warehouse(database or pooled)
+    app.state.warehouse = Warehouse(database)
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins), allow_methods=["GET"])
     app.include_router(router)
 

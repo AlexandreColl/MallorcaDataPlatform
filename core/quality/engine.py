@@ -54,6 +54,9 @@ class QualityEngine:
                 aggs.append(F.sum(F.col(failed_col).cast("long")).alias(failed_col))
                 aggs.append(F.sum(F.col(scope_col).cast("long")).alias(scope_col))
             counts = df.agg(*aggs).first()
+            if counts is None:  # an aggregate without groupBy always has one row, even on an empty frame
+                msg = "the quality aggregate returned no row"
+                raise RuntimeError(msg)
             results.extend(
                 RuleResult(
                     rule=rule.name,
@@ -64,8 +67,8 @@ class QualityEngine:
                 for rule, failed_col, scope_col in flag_cols
             )
 
-        for rule in self.dataset_rules:
-            results.extend(rule.evaluate(df))
+        for dataset_rule in self.dataset_rules:
+            results.extend(dataset_rule.evaluate(df))
 
         # Reasons exclude not_null: a null value is already labelled `missing`.
         reason_exprs = [
