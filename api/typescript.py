@@ -28,9 +28,20 @@ SKIPPED = ("Page_", "Error", "ErrorResponse")
 Schema = dict[str, Any]
 
 
+class _NoDatabase:
+    """The database of an app built only to read its OpenAPI document: no query ever runs."""
+
+    def fetch_all(self, sql: str, params: object = None) -> list[dict[str, Any]]:  # noqa: ARG002 - the protocol
+        msg = "no database: the app is built only for its schema"
+        raise RuntimeError(msg)
+
+    def ping(self) -> bool:
+        return False
+
+
 def schemas() -> dict[str, Schema]:
     """The response models of the API, by name, as its OpenAPI document describes them."""
-    spec = create_app(Settings(), database=object()).openapi()  # type: ignore[arg-type] - no query runs
+    spec = create_app(Settings(), database=_NoDatabase()).openapi()
     return spec["components"]["schemas"]
 
 
