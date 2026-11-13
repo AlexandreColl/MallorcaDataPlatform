@@ -521,7 +521,7 @@ y no en una página rota.
 
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, con /api hacia la API del stack (localhost:8000)
-npm test                               # cifras clave y estado de las fuentes (Vitest)
+npm test                               # cifras, estado de las fuentes y páginas (Vitest, Testing Library)
 ```
 
 ## Grafana

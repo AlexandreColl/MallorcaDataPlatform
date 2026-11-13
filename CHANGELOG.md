@@ -24,6 +24,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   test fails when the committed file is out of date. They replace the hand-written copy in `web/src/api.ts`, which
   had fallen behind (several months lacked fields the API sends). The API now types the transit `network`, the
   warning zone `kind` and the [lon, lat] points of paths and polygons.
+- The two largest pages of the web are split: their figures moved to `lib/environment.ts` and `lib/mobility.ts`,
+  with tests, and their maps and controls to components of their own (`TemperatureZones`, `DaySlider`,
+  `WarningsMap`, `MobilityMap`, `PopulationHistory`, `TransitMap`). Both pages have tests with Testing Library
+  (happy-dom): their panels, tables, empty and error states, and the municipality that the table, the map and the
+  chart share.
 
 ## [0.16.2] - 2026-11-11
 
