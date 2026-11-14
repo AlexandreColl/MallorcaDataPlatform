@@ -14,6 +14,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   sensors and 61 % of the time shifts with 81 % precision. Its members take the parameters of their own entry in
   `config/anomaly.yaml`; `min_votes` turns the union into a majority. The web counts its flags as the anomalies
   of the platform, and Grafana and the API name the new detectors.
+- `make new-connector NAME=x` writes the folder of a new connector, disabled until it works: its YAML, an extractor
+  for a JSON API, a README and a test. `make record-fixtures CONNECTOR=x` runs the connector against the real API
+  and keeps every response in `tests/fixtures/` with a `recorded.json`; `RecordedHttp` replays them without a
+  network and fails on a request that was not recorded. The generated test checks that every value has a metric
+  of the YAML, its unit, and falls in the window and in its range.
 - Correction method `profile` for the long gaps of NO2 and CO, which almost never have a support with r ≥ 0.6: the
   station's own median of each local hour on weekdays and on weekends, moved to the level of the values around the
   gap. In 24-hour gaps it corrects 532 of 720 hidden NO2 hours that stayed empty, with an error of 3.3 µg/m³
