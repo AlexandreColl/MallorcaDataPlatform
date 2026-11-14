@@ -378,11 +378,19 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
 - **`robust_zscore`**: z-score modificado de Iglewicz y Hoaglin, `0,6745 · (x − mediana) / MAD` sobre una ventana
   móvil centrada (7 días en series horarias, 31 en diarias). La mediana y la MAD apenas se mueven con el pico que
   buscan, al contrario que la media y la desviación típica. Una ventana casi constante (MAD = 0) no se puntúa.
+- **`seasonal_residual`**: quita el ciclo antes de puntuar. El valor esperado es la mediana de la misma hora en los
+  3 días anteriores y los 3 siguientes (el mismo día de la semana en las series diarias), y el residuo se puntúa
+  como el z-score. También puntúa el **cambio** desde la hora anterior frente al de esa hora otros días: el tiempo
+  de un día mueve el nivel de todas las horas, pero mucho menos cuánto se calienta o se enfría cada una. Un cambio
+  raro implica dos valores y se culpa al más alejado de su nivel, así que la vuelta a la normalidad tras un fallo
+  marca el último valor malo y no el primero bueno. Es el único que ve un reloj desfasado.
 - **`isolation_forest`** (scikit-learn): un bosque por entidad sobre todas sus métricas a la vez. Cada instante se
   describe, por métrica, con su valor, su cambio, cuántos valores seguidos lleva igual y la distancia al valor
   habitual a esa hora, más la propia hora. Aísla los instantes raros (un 5 % de cada entidad, `contamination`) y
   culpa a la métrica cuyas variables más se alejan de su mediana. Necesita 48 instantes completos: las series
   diarias de AEMET no llegan.
+- **`vote`**: la respuesta de la plataforma. Une el residuo estacional y el bosque, que fallan en cosas distintas
+  (`min_votes: 1`; con 2 solo queda lo que marcan los dos). Su puntuación es el número de votos.
 - Tarea `detect_anomalies` del DAG tras la ingesta, también si alguna fuente falló. Cada ejecución vuelve a puntuar
   al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
   recuperan se juzgan con sus vecinos, y es idempotente.
@@ -390,8 +398,9 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
   (sismos, horarios de EMT y CTM y estadísticas mensuales de Dataestur y de reservas hídricas; precipitación, insolación y dirección del
   oleaje). A mano: `make detect DAYS=30`.
 
-Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
-de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.
+Con 30 días reales (195 000 valores) el z-score marca 1 738, sobre todo episodios de verdad (el temporal del 18-19
+de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el residuo estacional, 1 644; el Isolation
+Forest, 1 112, y la votación, 2 404 (un 1,2 %). Los cuatro tardan 2 min 50 s en Spark local.
 
 En Grafana, las anomalías se dibujan como anotaciones sobre las series: en el explorador de Tiempo y entorno (la
 métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto, porque son nueve) y en el
@@ -414,20 +423,29 @@ una semilla fija y puntúa cada serie limpia y corrompida (`core/anomaly/faults.
 Un aviso sobre un valor inyectado es un acierto; uno nuevo sobre un valor limpio, una falsa alarma. Lo que el
 detector ya marcaba en la serie limpia (episodios reales) se cuenta aparte y no penaliza. Los huecos no se inyectan:
 un valor que falta no se puede marcar, y ya los cuenta la regla `gaps`. Resultados en
-`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en 54 series de 6 localidades, 30 días:
+`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en los 35 000 valores de Open-Meteo de los
+30 días hasta el 14 de noviembre de 2026:
 
 | Detector | Picos | Derivas | Congelados | Desfase | Precisión |
 |---|---|---|---|---|---|
-| `robust_zscore` | 90 % | 22 % | 0 % | 6 % | 80 % |
-| `isolation_forest` | 49 % | 11 % | 52 % | 6 % | 85 % |
+| `robust_zscore` | 88 % | 19 % | 2 % | 6 % | 70 % |
+| `seasonal_residual` | 98 % | 81 % | 30 % | 61 % | 81 % |
+| `isolation_forest` | 33 % | 17 % | 31 % | 6 % | 83 % |
+| `vote` (estacional o bosque) | 98 % | 83 % | 50 % | 61 % | 81 % |
 
-Son complementarios. El z-score ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal:
-un sensor congelado en 18 °C está cerca de la mediana. El bosque ve que una serie que siempre se mueve se ha
-parado (con la variable "valores seguidos iguales"; una dispersión móvil no basta, porque cerca del máximo o el
-mínimo diario casi no hay dispersión de todos modos), pero con su cupo del 5 % se deja la mitad de los picos. El
-desfase horario se escapa a los dos: en un modelo suave, los valores de 12 horas antes parecen una noche templada.
-`contamination` mueve el equilibrio: con 0,10 el bosque llega al 73 % de picos y 74 % de congelados con un 81 % de
-precisión.
+El z-score ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal: un sensor congelado en
+18 °C está cerca de la mediana, y en un modelo suave los valores de 12 horas antes parecen una noche templada. El
+bosque ve que una serie que siempre se mueve se ha parado (con la variable "valores seguidos iguales"; una
+dispersión móvil no basta, porque cerca del máximo o el mínimo diario casi no hay dispersión de todos modos), pero
+con su cupo del 5 % se deja dos tercios de los picos. El residuo estacional ve el desfase porque compara cada hora
+con la misma hora de otros días, y sobre todo porque compara el cambio: con el reloj mal, la serie se enfría cuando
+debería calentarse. Puntuando solo el nivel, incluso con el umbral del z-score (3,5), veía un 22 % de desfases. Ojo con su 81 % de
+derivas: casi siempre las ve donde acaban, en el salto de vuelta, no mientras crecen.
+
+La votación une los dos que fallan en cosas distintas: suma los congelados del bosque a lo que ve el residuo, sin
+perder precisión. Añadir el z-score solo le quita precisión (74 %) sin ganar fallos, y exigir dos votos sube la
+precisión al 86 % a cambio de dejarse la mitad. `contamination` mueve el equilibrio del bosque: con 0,10 llega a
+más picos y congelados con algo menos de precisión.
 
 ## Correcciones con fuentes de apoyo
 

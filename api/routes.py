@@ -192,7 +192,10 @@ def anomalies(  # noqa: PLR0913 - one query parameter per filter
     request: Request,
     warehouse: WarehouseDep,
     source: Annotated[str | None, Query(description="Only this source.")] = None,
-    detector: Annotated[str | None, Query(description="`robust_zscore` or `isolation_forest`.")] = None,
+    detector: Annotated[
+        str | None,
+        Query(description="`robust_zscore`, `seasonal_residual`, `isolation_forest` or `vote`."),
+    ] = None,
     start: Start = None,
     end: End = None,
     limit: Limit = DEFAULT_PAGE_SIZE,
