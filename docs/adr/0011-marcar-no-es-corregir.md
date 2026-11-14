@@ -15,8 +15,9 @@ Tres niveles, cada uno en su propia tabla. Ninguno modifica el valor original:
 
 - **Reglas de calidad.** Etiquetan cada fila como `ok`, `suspect` o `missing` y explican la etiqueta en
   `quality_reasons`.
-- **Detectores de anomalías.** Escriben en `silver.anomalies`. Hay dos complementarios: un z-score robusto y un
-  Isolation Forest multivariante.
+- **Detectores de anomalías.** Escriben en `silver.anomalies`. Al principio eran dos: un z-score robusto y un
+  Isolation Forest multivariante. Desde el 2026-11-14 hay también un residuo estacional y una votación que une el
+  residuo y el bosque. La votación tiene su propia fila por valor marcado, en la misma tabla.
 - **Correcciones.** Proponen un valor en `silver.corrections`, con el método, la fuente de apoyo, el sesgo y una
   confianza. Llegaron el 2026-11-01.
 

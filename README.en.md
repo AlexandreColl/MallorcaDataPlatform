@@ -379,11 +379,19 @@ improbable: possible values that do not fit their own series. They only **flag**
 - **`robust_zscore`**: Iglewicz and Hoaglin's modified z-score, `0.6745 · (x − median) / MAD` over a centred rolling
   window (7 days for hourly series, 31 for daily ones). The median and the MAD barely move with the spike they look
   for, unlike the mean and the standard deviation. A nearly constant window (MAD = 0) is not scored.
+- **`seasonal_residual`**: removes the cycle before scoring. The expected value is the median of the same hour on the
+  3 days before and the 3 after (the same weekday for daily series), and the residual is scored like the z-score.
+  It also scores the **change** since the previous hour against that hour's change on other days: one day's weather
+  moves the level of every hour, but much less how much each hour warms or cools. An odd change involves two values
+  and is blamed on the one further from its level, so the return to normal after a fault flags the last bad value
+  and not the first good one. It is the only one that sees a wrong clock.
 - **`isolation_forest`** (scikit-learn): one forest per entity over all its metrics at once. Each instant is
   described, per metric, by its value, its change, how many equal values in a row it has and its distance to the
   usual value at that hour, plus the hour itself. It isolates the rare instants (5 % of each entity,
   `contamination`) and blames the metric whose features are furthest from their median. It needs 48 complete
   instants: AEMET's daily series do not reach that.
+- **`vote`**: the platform's answer. It joins the seasonal residual and the forest, which fail on different things
+  (`min_votes: 1`; with 2 only what both flag remains). Its score is the number of votes.
 - The DAG's `detect_anomalies` task runs after ingestion, even if a source failed. Each run rescores at least the
   last `rescore_days` (14) and replaces its result: data that arrives late (AEMET) or is recovered is judged with its
   neighbours, and the task is idempotent.
@@ -391,8 +399,9 @@ improbable: possible values that do not fit their own series. They only **flag**
   (earthquakes, EMT and CTM timetables and the monthly statistics of Dataestur and water reserves; precipitation,
   sunshine and wave direction). By hand: `make detect DAYS=30`.
 
-With 30 real days the z-score flags ~1 % of 104,000 values, mostly real episodes (the storm of 18-19 October, swell
-in Alcúdia) and the night-time NO₂ peaks; the Isolation Forest, 732.
+With 30 real days (195,000 values) the z-score flags 1,738, mostly real episodes (the storm of 18-19 October, swell
+in Alcúdia) and the night-time NO₂ peaks; the seasonal residual, 1,644; the Isolation Forest, 1,112, and the vote,
+2,404 (1.2 %). The four take 2 min 50 s on local Spark.
 
 In Grafana, anomalies are drawn as annotations on the series: in the Weather and environment explorer (the chosen
 metric and entities), on the stations' NO₂ (off by default, because there are nine) and on the before-and-after
@@ -415,19 +424,28 @@ fixed seed and scores each clean and corrupted series (`core/anomaly/faults.py` 
 A flag on an injected value is a hit; a new flag on a clean value, a false alarm. What the detector already flagged
 in the clean series (real episodes) is counted separately and not penalised. Gaps are not injected: a missing value
 cannot be flagged, and the `gaps` rule already counts them. Results in `quality.anomaly_evaluations`; faults detected
-(some value flagged) in 54 series from 6 towns, 30 days:
+(some value flagged) in the 35,000 Open-Meteo values of the 30 days to 14 November 2026:
 
 | Detector | Spikes | Drifts | Frozen | Shift | Precision |
 |---|---|---|---|---|---|
-| `robust_zscore` | 90 % | 22 % | 0 % | 6 % | 80 % |
-| `isolation_forest` | 49 % | 11 % | 52 % | 6 % | 85 % |
+| `robust_zscore` | 88 % | 19 % | 2 % | 6 % | 70 % |
+| `seasonal_residual` | 98 % | 81 % | 30 % | 61 % | 81 % |
+| `isolation_forest` | 33 % | 17 % | 31 % | 6 % | 83 % |
+| `vote` (seasonal or forest) | 98 % | 83 % | 50 % | 61 % | 81 % |
 
-They complement each other. The z-score sees what strays from its neighbours and is blind to what stays at a normal
-level: a sensor frozen at 18 °C is close to the median. The forest sees that a series that always moves has stopped
-(through the "equal values in a row" feature; a rolling spread is not enough, because near the daily maximum or
-minimum there is hardly any spread anyway), but with its 5 % quota it misses half the spikes. The time shift escapes
-both: in a smooth model, the values of 12 hours earlier look like a mild night. `contamination` moves the balance:
-at 0.10 the forest reaches 73 % of spikes and 74 % of frozen sensors with 81 % precision.
+The z-score sees what strays from its neighbours and is blind to what stays at a normal level: a sensor frozen at
+18 °C is close to the median, and in a smooth model the values of 12 hours earlier look like a mild night. The forest
+sees that a series that always moves has stopped (through the "equal values in a row" feature; a rolling spread is
+not enough, because near the daily maximum or minimum there is hardly any spread anyway), but with its 5 % quota it
+misses two thirds of the spikes. The seasonal residual sees the shift because it compares each hour with the same
+hour on other days, and above all because it compares the change: with a wrong clock, the series cools when it
+should warm. Scoring only the level, even at the z-score's threshold (3.5), it saw 22 % of the shifts. Mind its
+81 % of drifts: it nearly always sees them where they end, in the jump back, not while they grow.
+
+The vote joins the two that fail on different things: it adds the forest's frozen sensors to what the residual sees,
+without losing precision. Adding the z-score only lowers the precision (74 %) without catching more faults, and
+requiring two votes raises the precision to 86 % at the cost of missing half of them. `contamination` moves the
+forest's balance: at 0.10 it catches more spikes and frozen sensors with somewhat less precision.
 
 ## Corrections with support sources
 

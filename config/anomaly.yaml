@@ -10,6 +10,15 @@ detectors:
     daily_window: 31D # the same for daily series (AEMET, REData): a week of daily values is too few
     threshold: 3.5    # |modified z-score| above which a value is flagged (Iglewicz & Hoaglin)
     min_points: 5     # windows with fewer values are not scored
+  seasonal_residual:  # each value and each change against the same hour on the days around it (the same weekday for
+                      # daily series): catches what is normal for the day but not for the hour, like a clock error
+    periods: 3        # days (weeks for daily series) before and after whose median is the expected value
+    min_periods: 3    # values with fewer of them are not scored
+    window: 7D        # rolling window of the residuals' median and MAD, hourly series
+    daily_window: 63D # the same for daily series
+    threshold: 4.5    # above the z-score's 3.5: two scores per value (level and change) give two chances to flag it
+    min_points: 24    # windows with fewer residuals are not scored
+    changes: true     # also score the change since the previous value, blamed on the value further from normal
   isolation_forest:   # every metric of a location together: value, change and stillness of each, plus hour of day
     contamination: 0.05  # share of each location's timestamps flagged: about as many values as the z-score flags
                          # (one metric per timestamp); scikit-learn's "auto" flags ~15 % of clean data
@@ -17,6 +26,9 @@ detectors:
     min_points: 48       # locations with fewer complete timestamps are not scored
     min_coverage: 0.8    # metrics present at fewer timestamps (another frequency) are left out of the forest
     random_state: 42     # same forest on every run
+  vote:               # the platform's answer: the members fail on different things (`make evaluate`)
+    members: [seasonal_residual, isolation_forest]  # each with the parameters of its own entry above
+    min_votes: 1      # 1 = union; 2 = only what both flag (precision 86 %, but half the faults are missed)
 
 skip:
   # Events, timetables and warning levels, not measurements of a continuous quantity; monthly and yearly statistics

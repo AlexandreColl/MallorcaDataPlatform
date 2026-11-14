@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.anomaly import SCORE_COLUMNS, IsolationForestDetector, RobustZScore
+from core.anomaly import SCORE_COLUMNS, IsolationForestDetector, RobustZScore, SeasonalResidual, Vote
 from core.anomaly.runner import ANOMALY_COLUMNS, ANOMALY_SCHEMA, ENTITY_KEYS, AnomalyConfig, score_entity
 from core.config import PROJECT_ROOT
 from core.models import TimeWindow
@@ -126,10 +126,16 @@ def test_project_config_loads():
     assert config.rescore_days >= 1
     assert "ign" in config.skip_sources
     assert "precipitation" in config.skip_metrics
-    zscore, forest = config.build()
+    zscore, seasonal, forest, vote = config.build()
     assert isinstance(zscore, RobustZScore)
     assert zscore.threshold == 3.5
+    assert isinstance(seasonal, SeasonalResidual)
     assert isinstance(forest, IsolationForestDetector)
+    assert isinstance(vote, Vote)
+    members = {type(m): m for m in vote.members}
+    assert set(members) == {SeasonalResidual, IsolationForestDetector}
+    assert members[SeasonalResidual].threshold == seasonal.threshold  # a member takes its own entry's parameters
+    assert vote.min_votes == 1
 
 
 def test_unknown_detector_is_rejected(tmp_path):
@@ -137,6 +143,21 @@ def test_unknown_detector_is_rejected(tmp_path):
     path.write_text("rescore_days: 7\ndetectors:\n  magic: {}\n", encoding="utf-8")
     with pytest.raises(ValueError, match="unknown detectors"):
         AnomalyConfig.load(path)
+
+
+@pytest.mark.parametrize("members", ["[magic]", "[vote, robust_zscore]"])
+def test_a_vote_only_takes_other_known_detectors(tmp_path, members):
+    path = tmp_path / "anomaly.yaml"
+    path.write_text(f"rescore_days: 7\ndetectors:\n  vote: {{members: {members}}}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="members of vote"):
+        AnomalyConfig.load(path)
+
+
+def test_a_vote_member_without_an_entry_takes_its_defaults(tmp_path):
+    path = tmp_path / "anomaly.yaml"
+    path.write_text("rescore_days: 7\ndetectors:\n  vote: {members: [robust_zscore], min_votes: 1}\n", encoding="utf-8")
+    (vote,) = AnomalyConfig.load(path).build()
+    assert vote.members[0].threshold == RobustZScore().threshold
 
 
 @pytest.mark.spark

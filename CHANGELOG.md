@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Anomaly detector `seasonal_residual`: each value, and each change since the previous one, against the same hour on
+  the three days before and after (the same weekday for daily series). It is the first to see a wrong clock: 61 %
+  of the injected time shifts, where the z-score and the forest see 6 %, with 81 % precision.
+- Detector `vote`, the union of `seasonal_residual` and `isolation_forest`: 98 % of the spikes, 50 % of the frozen
+  sensors and 61 % of the time shifts with 81 % precision. Its members take the parameters of their own entry in
+  `config/anomaly.yaml`; `min_votes` turns the union into a majority. The web counts its flags as the anomalies
+  of the platform, and Grafana and the API name the new detectors.
+
 ### Fixed
 
 - A run left `running` because its process stopped (the computer turned off, the worker killed) and that Airflow

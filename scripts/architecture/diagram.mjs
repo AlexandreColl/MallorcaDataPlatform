@@ -176,7 +176,7 @@ function airflow(t) {
   s += text(x + 180, y + 32, "DAG mallorca_pipeline, cada día · parámetros: fuentes, días y región", { size: 11.5, weight: 600, fill: color });
   const chips = [
     ["1", "ingest", "una tarea por conector"],
-    ["2", "detect_anomalies", "z-score e Isolation Forest"],
+    ["2", "detect_anomalies", "tres detectores y su voto"],
     ["3", "correct_values", "interpolación y apoyo"],
     ["4", "dbt_build", "modelos y tests"],
   ];

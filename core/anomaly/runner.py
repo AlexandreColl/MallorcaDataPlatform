@@ -14,6 +14,8 @@ import pandas as pd
 import yaml
 
 from core.anomaly.isolation_forest import IsolationForestDetector
+from core.anomaly.seasonal import SeasonalResidual
+from core.anomaly.vote import Vote
 from core.anomaly.zscore import RobustZScore
 from core.config import Settings
 from core.connectors import registry
@@ -28,7 +30,9 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-DETECTORS: dict[str, type[Detector]] = {d.name: d for d in (RobustZScore, IsolationForestDetector)}
+DETECTORS: dict[str, type[Detector]] = {
+    d.name: d for d in (RobustZScore, SeasonalResidual, IsolationForestDetector, Vote)
+}
 
 ENTITY_KEYS = ("source", "entity")
 SERIES_KEYS = (*ENTITY_KEYS, "metric")
@@ -58,6 +62,10 @@ class AnomalyConfig:
         if unknown:
             msg = f"unknown detectors {unknown} in {path}; available {sorted(DETECTORS)}"
             raise ValueError(msg)
+        members = (data["detectors"].get(Vote.name) or {}).get("members") or []
+        if Vote.name in members or set(members) - set(DETECTORS):
+            msg = f"the members of {Vote.name} must be other detectors, not {members}"
+            raise ValueError(msg)
         skip = data.get("skip") or {}
         return cls(
             rescore_days=int(data["rescore_days"]),
@@ -68,8 +76,15 @@ class AnomalyConfig:
         )
 
     def build(self) -> list[Detector]:
-        """One configured instance per detector."""
-        return [DETECTORS[name](**params) for name, params in self.detectors.items()]
+        """One configured instance per detector; a vote's members take the parameters of their own entry."""
+        detectors: list[Detector] = []
+        for name, params in self.detectors.items():
+            if name == Vote.name:
+                members = [DETECTORS[m](**self.detectors.get(m, {})) for m in params["members"]]
+                detectors.append(Vote(members, min_votes=int(params.get("min_votes", 1))))
+            else:
+                detectors.append(DETECTORS[name](**params))
+        return detectors
 
 
 @dataclass
