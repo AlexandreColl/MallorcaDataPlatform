@@ -20,7 +20,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)", "only_missing": $(ONLY_MISSING)}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint typecheck format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill api-role api-test web-types minio-pipeline-user screenshots tf-check tf-fmt
+.PHONY: help init build up down clean ps logs run run-local connectors test lint typecheck format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill new-connector record-fixtures api-role api-test web-types minio-pipeline-user screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -93,6 +93,12 @@ silver-changes: ## Silver rows changed since a past version (time travel): make 
 
 silver-maintain: ## Compact the silver Delta table and delete files older than a week of time travel
 	$(COMPOSE) exec airflow-scheduler python -m core.cli silver-maintain
+
+new-connector: ## Write the folder of a new connector, ready to fill in: make new-connector NAME=water_quality
+	$(COMPOSE) --profile tools run --rm toolbox python -m core.cli new-connector $(NAME)
+
+record-fixtures: ## Record a connector's real API responses as its test fixtures: make record-fixtures CONNECTOR=redata [DAYS=1]
+	$(COMPOSE) --profile tools run --rm toolbox python -m core.cli record-fixtures $(CONNECTOR) --days $(DAYS) --region $(REGION)
 
 connectors: ## List available connectors and regions
 	$(COMPOSE) exec airflow-scheduler python -m core.cli list
