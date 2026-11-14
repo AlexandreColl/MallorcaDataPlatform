@@ -27,7 +27,7 @@ models:
         data_tests:
           - accepted_values:
               arguments:
-                values: ["interpolation", "support"]
+                values: ["interpolation", "support", "profile"]
   - name: stg_open_meteo__observations
     description: Open-Meteo air quality and weather (model), hourly.
   - name: stg_open_meteo_marine__observations

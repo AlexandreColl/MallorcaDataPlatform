@@ -20,6 +20,11 @@ const DETECTORS: Record<string, { label: string; color: string }> = {
 /** The detector whose flags are the platform's answer: the vote, which already includes what its members flag. */
 const COMBINED = "vote";
 
+/** How a station hour was corrected (core/corrections/methods.py). */
+const METHODS: Record<string, string> = {
+  interpolation: "Interpolación", support: "Fuente de apoyo", profile: "Perfil semanal",
+};
+
 /** Why a station hour had no valid value. */
 const QUALITY: Record<string, string> = { missing: "falta", suspect: "dudoso", absent: "sin dato" };
 
@@ -209,7 +214,7 @@ export function Operations() {
                   { label: "Hora", value: (c) => `${dayShort(c.ts)} ${c.ts.slice(11, 16)}` },
                   { label: "Original", value: (c) => (c.original_value === null ? (QUALITY[c.original_quality] ?? c.original_quality) : number(c.original_value, 1)), numeric: true },
                   { label: "Corregido", value: (c) => `${number(c.corrected_value, 1)} ${c.unit ?? ""}`, numeric: true },
-                  { label: "Método", value: (c) => (c.method === "support" ? "Fuente de apoyo" : "Interpolación") },
+                  { label: "Método", value: (c) => METHODS[c.method] ?? c.method },
                   { label: "Confianza", value: (c) => `${number(c.confidence * 100)} %`, numeric: true },
                 ]}
               />

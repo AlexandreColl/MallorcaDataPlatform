@@ -139,11 +139,13 @@ def _cmd_evaluate_corrections(args: argparse.Namespace) -> int:
     rows = run_evaluation(days=args.days, seed=args.seed)
     print(
         f"{'source':<16} {'metric':<21} {'gap':>4} {'hidden':>6} {'fixed':>6} {'support':>7} {'MAE':>8} {'no bias':>8}"
+        f" {'profile':>7} {'MAE':>8} {'line':>8}"
     )
     for r in rows:
         print(
             f"{r['source']:<16} {r['metric']:<21} {r['gap_hours']:>3}h {r['hidden']:>6} {r['corrected']:>6}"
             f" {r['by_support']:>7} {_num(r['mae']):>8} {_num(r['mae_without_bias']):>8}"
+            f" {r['by_profile']:>7} {_num(r['mae_profile']):>8} {_num(r['mae_line']):>8}"
         )
     return 0
 

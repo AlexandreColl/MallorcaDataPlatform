@@ -16,6 +16,7 @@ from core.corrections.methods import (
     CORRECTION_COLUMNS,
     Candidate,
     InterpolationParams,
+    ProfileParams,
     SupportParams,
     correct_series,
 )
@@ -42,6 +43,7 @@ class CorrectionConfig:
     targets: dict[str, tuple[str, ...]]  # corrected source -> sources that may support it
     interpolation: InterpolationParams
     support: SupportParams
+    profile: ProfileParams | None = None  # method 3; without the block, long gaps without a support stay as they are
     evaluation: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -54,8 +56,13 @@ class CorrectionConfig:
             targets={source: tuple(spec["supports"]) for source, spec in data["targets"].items()},
             interpolation=InterpolationParams.from_dict(data["interpolation"]),
             support=SupportParams.from_dict(data["support"]),
+            profile=ProfileParams.from_dict(data["profile"]) if data.get("profile") else None,
             evaluation=data.get("evaluation") or {},
         )
+
+    def profile_for(self, metric: str) -> ProfileParams | None:
+        """The profile parameters if ``metric`` is corrected with its weekly profile, else None."""
+        return self.profile if self.profile is not None and metric in self.profile.metrics else None
 
     def only(self, sources: list[str]) -> CorrectionConfig:
         """The same configuration correcting only these targets (their supports are still read)."""
@@ -153,6 +160,7 @@ def correct_all(
             end=end,
             interpolation=config.interpolation,
             support=config.support,
+            profile=config.profile_for(metric),
         )
         if calibration is not None:
             c = calibration.candidate

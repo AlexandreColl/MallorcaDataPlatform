@@ -31,6 +31,18 @@ support:
   distance_scale_km: 100        # confidence r^2 * exp(-distance / 100 km) * exp(-gap / 7 days)
   gap_scale_hours: 168
 
+# Method 3: for long gaps without such a support (NO2 and CO are very local), the station's own weekly profile: the
+# median of each local hour on weekdays and on weekends over the calibration history, moved to the level of the
+# values on each side of the gap.
+profile:
+  # Only where traffic, which follows the clock and the weekday, drives the series: for NO2 and CO the profile errs
+  # 14-54 % less than a straight line across the gap (`make evaluate-corrections`); for PM, ozone and the weather it
+  # errs as much or more, because the weather drives them.
+  metrics: [nitrogen_dioxide, carbon_monoxide]
+  min_days: 14                  # days with valid values needed to know the usual value of every hour
+  min_correlation: 0.2          # Pearson r of the station and its profile: a floor for a station without a cycle
+  gap_scale_hours: 48           # confidence r^2 * exp(-gap / 2 days): a profile ages faster than a live support
+
 # Benchmark (`make evaluate-corrections`): hides clean values of the stations in blocks of these lengths, corrects
 # them as gaps and compares the result with the hidden values.
 evaluation:

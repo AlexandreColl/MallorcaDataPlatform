@@ -465,6 +465,12 @@ by side, and `value` is the corrected one where there is one and the original el
   r ≥ 0.6. The support value is shifted by its bias, the median of "station minus support", calibrated **per hour of
   the day** with the previous 30 days. That way it captures the sea breeze, the altitude and the model's daily cycle.
   Confidence `r² · exp(−distance / 100 km) · exp(−hours / 7 days)`.
+- **Method 3, weekly profile**: NO₂ and CO come from each street's traffic and almost never have a support with
+  r ≥ 0.6. Their long gaps without a support take the station's own cycle: the median of each local hour on weekdays
+  and on weekends over the previous 30 days, moved to the level of the values on each side of the gap (the
+  difference from the profile is interpolated across the gap). The hour is the island's, with summer time, because
+  traffic follows the clock. Confidence `r² · exp(−hours / 2 days)`, with the r of the station against its profile.
+  Only for the metrics the benchmark backs (`profile.metrics`).
 - The DAG's `correct_values` task runs after detection. Each run recomputes the last 14 days: a correction
   disappears when the real value arrives, and the task is idempotent. Configuration in
   [config/corrections.yaml](config/corrections.yaml); by hand, `make correct DAYS=30`.
@@ -485,7 +491,18 @@ for the support source, the error it would have without its bias:
   similar series (r = 1.00). It looks like pressure at the station's height, not reduced to sea level: about 115 m.
   Without the bias, the support would be 14 hPa off; with it, 0.2.
 - **NO₂** is very local: it comes from each street's traffic and almost no station has a support with r ≥ 0.6. Only
-  S'Albufera and Sa Pobla lean on each other. The same goes for PM10, PM2.5 and CO. In those series, long gaps stay
+  S'Albufera and Sa Pobla lean on each other. The weekly profile covers the rest: in 24-hour gaps it corrects 532 of
+  the 720 hidden hours that used to stay without a value, with an error of 3.3 µg/m³ against 4.7 for a straight line
+  between the two sides of the gap. A line skips the rush hours; the profile knows when they are. MAE of the hours
+  the profile corrects, 14 days to 14 November 2026:
+
+  | Series | 6 h, profile | 6 h, line | 24 h, profile | 24 h, line |
+  |---|---|---|---|---|
+  | NO₂ (EEA) | 3.3 µg/m³ | 4.3 µg/m³ | 3.3 µg/m³ | 4.7 µg/m³ |
+  | CO (EEA) | 74 µg/m³ | 86 µg/m³ | 77 µg/m³ | 168 µg/m³ |
+
+- **PM10, PM2.5, ozone and the weather variables** do not use the profile: the benchmark gives the same error as a
+  straight line, or more, because the weather moves them, not the clock. Their long gaps without a support stay
   uncorrected instead of being filled with an unreliable value.
 - **Wind gusts** are the one case where the bias does not help: 7.5 against 6.8 km/h in 6-hour gaps. A gust is a
   momentary maximum and keeps no stable difference with another station.

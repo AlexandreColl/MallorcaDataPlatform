@@ -3,7 +3,8 @@
 Each target series gets ``gaps_per_series`` artificial gaps of every length in ``gap_hours``, placed at random on
 clean hours of the window and surrounded by clean hours, so each is a gap of exactly that length. The hidden values
 are the truth. Per source, metric and gap length the benchmark reports how many hidden hours were corrected, the
-mean absolute error and, for the support method, the error the support would have without its calibrated bias.
+mean absolute error and, for the support method, the error the support would have without its calibrated bias. For
+the profile method it also reports the error of a straight line between the values around the gap, its baseline.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from core.config import Settings
-from core.corrections.methods import SUPPORT, correct_series
+from core.corrections.methods import PROFILE, SUPPORT, correct_series
 from core.corrections.runner import SERIES_KEYS, CorrectionConfig, Neighbours, load_observations, with_utc
 from core.models import Quality, TimeWindow
 
@@ -92,8 +93,13 @@ def evaluate(
             end=end,
             interpolation=config.interpolation,
             support=config.support,
+            profile=config.profile_for(metric),
         )
         compared = truth.merge(corrected[["ts", "corrected_value", "method", "bias"]], on="ts", how="left")
+        # What a straight line between the values around each gap would give: the baseline of the long gaps.
+        valid = masked.set_index("ts")["value"].where(masked.set_index("ts")["quality"].eq(Quality.OK)).dropna()
+        line = valid.reindex(valid.index.union(truth["ts"])).interpolate(method="time", limit_area="inside")
+        compared["interpolated"] = line.reindex(compared["ts"]).to_numpy()
         results.append(compared.assign(source=source, metric=metric))
     if not results:
         return pd.DataFrame()
@@ -103,14 +109,20 @@ def evaluate(
     compared["error_without_bias"] = (
         (compared["corrected_value"] - compared["bias"] - compared["truth"]).abs().where(by_support)
     )
+    by_profile = compared["method"].eq(PROFILE)
+    compared["profile_error"] = compared["error"].where(by_profile)
+    compared["line_error"] = (compared["interpolated"] - compared["truth"]).abs().where(by_profile)
     return (
         compared.groupby(["source", "metric", "gap_hours"])
         .agg(
             hidden=("truth", "size"),
             corrected=("corrected_value", "count"),
             by_support=("method", lambda m: int(m.eq(SUPPORT).sum())),
+            by_profile=("method", lambda m: int(m.eq(PROFILE).sum())),
             mae=("error", "mean"),
             mae_without_bias=("error_without_bias", "mean"),
+            mae_profile=("profile_error", "mean"),
+            mae_line=("line_error", "mean"),
         )
         .reset_index()
     )

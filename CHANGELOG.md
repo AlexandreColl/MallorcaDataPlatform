@@ -14,6 +14,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   sensors and 61 % of the time shifts with 81 % precision. Its members take the parameters of their own entry in
   `config/anomaly.yaml`; `min_votes` turns the union into a majority. The web counts its flags as the anomalies
   of the platform, and Grafana and the API name the new detectors.
+- Correction method `profile` for the long gaps of NO2 and CO, which almost never have a support with r ≥ 0.6: the
+  station's own median of each local hour on weekdays and on weekends, moved to the level of the values around the
+  gap. In 24-hour gaps it corrects 532 of 720 hidden NO2 hours that stayed empty, with an error of 3.3 µg/m³
+  against 4.7 for a straight line; CO, 77 against 168. PM and ozone do not use it: there it is no better than a
+  line. `make evaluate-corrections` reports the profile and the line side by side, and warehouses created earlier
+  accept the new method.
 
 ### Fixed
 

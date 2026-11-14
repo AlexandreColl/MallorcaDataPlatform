@@ -439,8 +439,8 @@ bosque ve que una serie que siempre se mueve se ha parado (con la variable "valo
 dispersión móvil no basta, porque cerca del máximo o el mínimo diario casi no hay dispersión de todos modos), pero
 con su cupo del 5 % se deja dos tercios de los picos. El residuo estacional ve el desfase porque compara cada hora
 con la misma hora de otros días, y sobre todo porque compara el cambio: con el reloj mal, la serie se enfría cuando
-debería calentarse. Puntuando solo el nivel, incluso con el umbral del z-score (3,5), veía un 22 % de desfases. Ojo con su 81 % de
-derivas: casi siempre las ve donde acaban, en el salto de vuelta, no mientras crecen.
+debería calentarse. Puntuando solo el nivel, incluso con el umbral del z-score (3,5), veía un 22 % de desfases.
+Ojo con su 81 % de derivas: casi siempre las ve donde acaban, en el salto de vuelta, no mientras crecen.
 
 La votación une los dos que fallan en cosas distintas: suma los congelados del bosque a lo que ve el residuo, sin
 perder precisión. Añadir el z-score solo le quita precisión (74 %) sin ganar fallos, y exigir dos votos sube la
@@ -465,6 +465,12 @@ lado a lado, y `value` es el corregido donde lo hay y el original en el resto.
   de horas en común y una r ≥ 0,6. El valor de apoyo se desplaza con su sesgo, la mediana de "estación menos apoyo",
   calibrado **por hora del día** con los 30 días anteriores. Así recoge la brisa, la altitud y el ciclo diario del
   modelo. Confianza `r² · exp(−distancia / 100 km) · exp(−horas / 7 días)`.
+- **Método 3, perfil semanal**: el NO₂ y el CO vienen del tráfico de cada calle y casi nunca tienen un apoyo con
+  r ≥ 0,6. Para sus huecos largos sin apoyo se usa el ciclo de la propia estación: la mediana de cada hora local de
+  los días laborables y de los fines de semana en los 30 días anteriores, desplazada al nivel de los valores a cada
+  lado del hueco (la diferencia con el perfil se interpola a través del hueco). La hora es la de la isla, con el
+  horario de verano, porque el tráfico sigue al reloj. Confianza `r² · exp(−horas / 2 días)`, con la r de la
+  estación frente a su perfil. Solo para las métricas en las que el benchmark lo respalda (`profile.metrics`).
 - Tarea `correct_values` del DAG tras la detección. Cada ejecución recalcula los últimos 14 días: una corrección
   desaparece cuando llega el valor real, y es idempotente. Configuración en
   [config/corrections.yaml](config/corrections.yaml); a mano, `make correct DAYS=30`.
@@ -485,8 +491,19 @@ absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
   bahía, que es la que más se le parece (r = 1,00). Parece presión a la altura de la estación, sin reducir al nivel
   del mar: unos 115 m. Sin el sesgo, el apoyo se equivocaría en 14 hPa; con él, en 0,2.
 - **El NO₂** es muy local: viene del tráfico de cada calle y casi ninguna estación tiene un apoyo con r ≥ 0,6. Solo
-  S'Albufera y Sa Pobla se apoyan la una en la otra. Lo mismo pasa con PM10, PM2.5 y CO. En esas series, los huecos
-  largos se quedan sin corregir en lugar de rellenarse con un valor poco fiable.
+  S'Albufera y Sa Pobla se apoyan la una en la otra. El perfil semanal cubre el resto: en huecos de 24 horas
+  corrige 532 de las 720 horas escondidas que antes se quedaban sin valor, con un error de 3,3 µg/m³ frente a los
+  4,7 de una recta entre los dos lados del hueco. Una recta se salta las horas punta; el perfil sabe cuándo son.
+  MAE de las horas que corrige el perfil, 14 días hasta el 14 de noviembre de 2026:
+
+  | Serie | 6 h, perfil | 6 h, recta | 24 h, perfil | 24 h, recta |
+  |---|---|---|---|---|
+  | NO₂ (EEA) | 3,3 µg/m³ | 4,3 µg/m³ | 3,3 µg/m³ | 4,7 µg/m³ |
+  | CO (EEA) | 74 µg/m³ | 86 µg/m³ | 77 µg/m³ | 168 µg/m³ |
+
+- **PM10, PM2.5, ozono y las variables del tiempo** no usan el perfil: el benchmark da con él el mismo error que con
+  una recta, o más, porque los mueve el tiempo y no el reloj. Sus huecos largos sin apoyo se quedan sin corregir en
+  lugar de rellenarse con un valor poco fiable.
 - **Las rachas de viento** son el único caso en el que el sesgo no ayuda: 7,5 frente a 6,8 km/h en huecos de 6
   horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
 

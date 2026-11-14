@@ -87,7 +87,7 @@ export interface Correction {
   /** The suspect value; empty when it was missing or absent. */
   original_value: number | null;
   corrected_value: number;
-  /** `interpolation` (gaps up to 3 h) or `support` */
+  /** `interpolation` (gaps up to 3 h), `support` or `profile` (weekly cycle) */
   method: string;
   /** Method `support`: the series used. */
   support_source: string | null;
