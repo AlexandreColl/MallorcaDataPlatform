@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from datetime import date, datetime
 
     from api.database import Database, Row
@@ -251,6 +252,9 @@ WHERE o.source = %(source)s
 ORDER BY o.ts, o.entity, o.metric
 LIMIT %(limit)s OFFSET %(offset)s
 """
+# The same rows without paging, for the exports, and how many they are.
+_OBSERVATIONS_ALL = _OBSERVATIONS.removesuffix("LIMIT %(limit)s OFFSET %(offset)s\n")
+_OBSERVATIONS_COUNT = f"SELECT count(*) AS n FROM ({_OBSERVATIONS_ALL}) AS export"  # noqa: S608 - constant SQL
 
 _ANOMALIES = """
 SELECT source, entity, metric, ts, detector, value, expected, score, threshold
@@ -325,6 +329,20 @@ class Warehouse:
         """A page of observations of one source, oldest first."""
         params = {"source": source, "metric": metric, "entity": entity, "start": start, "end": end}
         return self.db.fetch_all(_OBSERVATIONS, {**params, "limit": limit, "offset": offset})
+
+    def observations_count(
+        self, *, source: str, metric: str | None, entity: str | None, start: datetime, end: datetime
+    ) -> int:
+        """How many observations an export of these filters would have."""
+        params = {"source": source, "metric": metric, "entity": entity, "start": start, "end": end}
+        return int(self.db.fetch_all(_OBSERVATIONS_COUNT, params)[0]["n"])
+
+    def observations_stream(
+        self, *, source: str, metric: str | None, entity: str | None, start: datetime, end: datetime
+    ) -> Iterator[Row]:
+        """Every observation of these filters, oldest first, one row at a time."""
+        params = {"source": source, "metric": metric, "entity": entity, "start": start, "end": end}
+        return self.db.stream(_OBSERVATIONS_ALL, params)
 
     def anomalies(  # noqa: PLR0913 - one argument per filter, all keyword-only
         self,

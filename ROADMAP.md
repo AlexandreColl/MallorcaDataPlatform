@@ -108,8 +108,8 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 |---|---|
 | ✅ | API de solo lectura con FastAPI sobre los marts con contrato: salud, fuentes, observaciones y anomalías paginadas, reservas, acuíferos y marts mensuales; rol `api_reader`, imagen propia, tests unitarios e integración en CI, y comprobación en el E2E |
 | ✅ | `GET /v1/corrections`: las correcciones propuestas de las estaciones (`gold.fct_observations_corrected`), filtrables por fuente, estación, método y rango |
-| ⬜ | Caché de respuestas de los marts mensuales (cambian una vez al día) y límite de peticiones por cliente |
-| ⬜ | Exportar series en CSV o Parquet además de JSON |
+| ✅ | Caché de una hora de los marts que cambian una vez al día (con `ETag` y 304) y límite de 300 peticiones por minuto y cliente (429 con `Retry-After`), en la memoria de cada worker y sin Redis ([ADR 0023](docs/adr/0023-cache-y-limite-en-el-proceso-de-la-api.md)) |
+| ✅ | `GET /v1/observations/export`: una serie en CSV (en streaming desde un cursor del servidor) o Parquet (zstd), hasta 366 días y un millón de valores, enlazada desde el explorador de la web |
 
 ## Fase 4 · v0.4.0 — Correcciones con fuentes de apoyo
 
@@ -153,7 +153,7 @@ despliegue real con su coste medido.
 | Estado | Tarea |
 |---|---|
 | ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
-| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 21 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
+| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 23 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
 | ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
 | ✅ | **Frontal web** (`web/`, http://localhost:3002): portada con cinco cifras clave frente a lo normal de cada mes, mapa de estaciones, puntos de modelo y paradas, y estado de las fuentes. React + Vite + ECharts + MapLibre, solo lee la API ([ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md)) |
 | ✅ | Seis dashboards en la web con un menú lateral (inicio, turismo y recursos, clima y agua, movilidad, tiempo y entorno, operación), modo claro y oscuro con botón, logo con la silueta de la isla y diez endpoints nuevos en la API |

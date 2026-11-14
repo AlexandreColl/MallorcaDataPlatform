@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Series, SeriesDay } from "../api";
-import { axisDate, entitiesOf, longest, metricLabel, metricsOf, rangeStart, summarize, unitLabel } from "./series";
+import { axisDate, entitiesOf, exportLink, longest, metricLabel, metricsOf, rangeStart, summarize, unitLabel } from "./series";
 
 const series = (entity: string, metric: string, days: number, name: string | null = null): Series => ({
   source: "aemet", entity, name, metric, unit: "degC", first_day: "2020-01-01", last_day: "2026-11-03", days,
@@ -75,5 +75,26 @@ describe("axisDate", () => {
     expect(axisDate(ms, 30)).toBe("15 mar");
     expect(axisDate(ms, 365)).toBe("mar 24");
     expect(axisDate(ms, 5 * 365)).toBe("2024");
+  });
+});
+
+describe("exportLink", () => {
+  it("asks for the chosen days, the last one included", () => {
+    const { href, clipped } = exportLink(series("B228", "temperature_2m_mean", 30), "2026-10-05", "csv");
+    const params = new URL(href, "http://x").searchParams;
+
+    expect(clipped).toBe(false);
+    expect(new URL(href, "http://x").pathname).toBe("/api/v1/observations/export");
+    expect(Object.fromEntries(params)).toEqual({
+      source: "aemet", entity: "B228", metric: "temperature_2m_mean",
+      start: "2026-10-05T00:00:00.000Z", end: "2026-11-04T00:00:00.000Z", format: "csv",
+    });
+  });
+
+  it("keeps a long range to the last days an export may cover", () => {
+    const { href, clipped } = exportLink(series("B228", "temperature_2m_mean", 2500), "2020-01-01", "parquet");
+
+    expect(clipped).toBe(true);
+    expect(new URL(href, "http://x").searchParams.get("start")).toBe("2025-11-03T00:00:00.000Z");
   });
 });

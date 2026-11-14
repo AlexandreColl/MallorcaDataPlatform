@@ -13,10 +13,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from api.main import create_app
 from api.settings import Settings
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 OUTPUT = Path(__file__).parent.parent / "web" / "src" / "api.gen.ts"
 HEADER = """\
@@ -32,6 +35,10 @@ class _NoDatabase:
     """The database of an app built only to read its OpenAPI document: no query ever runs."""
 
     def fetch_all(self, sql: str, params: object = None) -> list[dict[str, Any]]:  # noqa: ARG002 - the protocol
+        msg = "no database: the app is built only for its schema"
+        raise RuntimeError(msg)
+
+    def stream(self, sql: str, params: object = None) -> Iterator[dict[str, Any]]:  # noqa: ARG002 - the protocol
         msg = "no database: the app is built only for its schema"
         raise RuntimeError(msg)
 

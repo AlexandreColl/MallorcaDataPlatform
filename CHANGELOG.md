@@ -20,6 +20,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   against 4.7 for a straight line; CO, 77 against 168. PM and ozone do not use it: there it is no better than a
   line. `make evaluate-corrections` reports the profile and the line side by side, and warehouses created earlier
   accept the new method.
+- `GET /v1/observations/export`: the values of a source as a CSV file, streamed from a Postgres server-side cursor,
+  or as Parquet (zstd, `ts` in UTC), up to 366 days and a million values. The web's series explorer links both for
+  the chosen series and period.
+- The API caches for an hour the marts that change once a day (reserves, climate, tourism, resources, population,
+  municipalities), with an `ETag` that returns 304, and limits each client to 300 requests a minute (429 with
+  `Retry-After`, `RateLimit-*` headers). Both live in each API process, without Redis (ADR 0023);
+  `API_CACHE_SECONDS` and `API_RATE_LIMIT_PER_MINUTE` set or turn them off.
 
 ### Fixed
 

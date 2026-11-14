@@ -643,6 +643,7 @@ Airflow, Spark or Java. The OpenAPI documentation is at http://localhost:8000/do
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | The latest check of each quality rule and anomalies per day and detector |
 | `GET /v1/series`, `/v1/series/daily` | A source's daily series (entity with its name, metric, unit and days covered) and one series day by day: minimum, mean, maximum, completeness, suspect values and anomalies (one year by default) |
 | `GET /v1/observations` | A source's values filtered by metric, entity and time range (the last 7 days by default), paginated |
+| `GET /v1/observations/export` | The same values as a file, unpaginated: CSV (`format=csv`, streamed) or Parquet (`format=parquet`, zstd, `ts` in UTC); up to 366 days and a million values |
 | `GET /v1/anomalies` | Values flagged by the detectors, filtered by source, detector and range, paginated |
 | `GET /v1/corrections` | Values proposed for the stations' hours without a valid value, with the original, the method, the support, the bias and the confidence; filtered by source, station, method and range, paginated |
 | `GET /v1/water/reserves`, `/v1/water/aquifers` | Monthly reserves with their anomaly and the 18 aquifers in the latest month |
@@ -650,6 +651,10 @@ Airflow, Spark or Java. The OpenAPI documentation is at http://localhost:8000/do
 
 ```bash
 curl "http://localhost:8000/v1/observations?source=aemet&metric=temperature_2m_max&entity=B278&limit=2"
+```
+
+```bash
+curl -OJ "http://localhost:8000/v1/observations/export?source=socib&start=2026-01-01T00:00:00Z&format=parquet"
 ```
 
 Decisions:
@@ -661,6 +666,14 @@ Decisions:
   read-only transactions and a 15 s limit per query. On an existing volume: `make api-role`.
 - **Pagination** with `limit` (at most 1000) and `offset`: the response carries `next_offset`, computed by asking for
   one extra row. **Errors** with a single shape: `{"error": {"code": "not_found", "message": "..."}}`.
+- **A cache for the daily marts and a limit per client** ([ADR 0023](docs/adr/0023-cache-y-limite-en-el-proceso-de-la-api.md)):
+  the answers for reserves, climate, tourism, resources, population and municipalities are kept in memory for an
+  hour (`X-Cache: HIT`), with an `ETag` that returns 304 without a body. Each client gets 300 requests a minute
+  (`RateLimit-*` headers; 429 with `Retry-After` beyond that). Both live in each worker, without Redis:
+  `API_CACHE_SECONDS` and `API_RATE_LIMIT_PER_MINUTE` (0 turns them off).
+- **Exports in batches**: the CSV comes from a Postgres server-side cursor, 10,000 rows at a time, while the response
+  is written; the Parquet is written in row groups of 50,000. Memory does not grow with the size of the file. The
+  web's explorer links both for the chosen series and period.
 - **A replaceable data access layer** (`api/repository.py` over a `Database` protocol): the unit tests use a fake
   database and do not need Postgres. `make api-test`.
 
