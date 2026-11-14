@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterator, Mapping
 
     from api.settings import Settings
 
 type Row = dict[str, Any]
+STREAM_BATCH = 10_000  # rows per round trip of an export
 
 
 class Database(Protocol):
@@ -17,6 +18,10 @@ class Database(Protocol):
 
     def fetch_all(self, sql: str, params: Mapping[str, Any] | None = None) -> list[Row]:
         """Run ``sql`` with named ``%(param)s`` placeholders and return every row."""
+        ...
+
+    def stream(self, sql: str, params: Mapping[str, Any] | None = None) -> Iterator[Row]:
+        """Run ``sql`` and yield its rows one at a time, without holding them all in memory."""
         ...
 
     def ping(self) -> bool:
@@ -51,6 +56,15 @@ class PooledDatabase:
 
         with self.pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             return cur.execute(sql, params or {}).fetchall()
+
+    def stream(self, sql: str, params: Mapping[str, Any] | None = None) -> Iterator[Row]:
+        """Rows from a server-side cursor, fetched ``STREAM_BATCH`` at a time, on a connection held while they flow."""
+        from psycopg.rows import dict_row  # noqa: PLC0415
+
+        with self.pool.connection() as conn, conn.cursor(name="export", row_factory=dict_row) as cur:
+            cur.itersize = STREAM_BATCH
+            cur.execute(sql, params or {})
+            yield from cur
 
     def ping(self) -> bool:
         """True when a connection answers ``SELECT 1`` within a few seconds."""

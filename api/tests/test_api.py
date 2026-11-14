@@ -52,6 +52,9 @@ class FakeDatabase:
                 return rows(params) if callable(rows) else rows
         return []
 
+    def stream(self, sql, params=None):
+        return iter(self.fetch_all(sql, params))
+
     def ping(self):
         return self.up
 
@@ -224,6 +227,7 @@ def test_openapi_documents_every_endpoint(db):
 
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
+        "/v1/observations/export",
         "/v1/series", "/v1/series/daily",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/mobility/routes",

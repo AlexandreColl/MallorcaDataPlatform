@@ -6,9 +6,11 @@ import json
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import StreamingResponse
 
 from api import __version__
+from api.export import MEDIA_TYPES, csv_chunks, parquet_bytes
 from api.repository import Warehouse
 from api.schemas import (
     AirQualityNow,
@@ -45,7 +47,21 @@ from api.schemas import (
     WeatherWarning,
 )
 
-router = APIRouter(prefix="/v1", responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+router = APIRouter(
+    prefix="/v1",
+    responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+)
+
+# Marts rebuilt once a day by the DAG: their answers are cached (API_CACHE_SECONDS) and validated with an ETag.
+CACHED_PATHS = (
+    "/v1/water/reserves",
+    "/v1/water/aquifers",
+    "/v1/climate/monthly",
+    "/v1/tourism/monthly",
+    "/v1/resources/monthly",
+    "/v1/population",
+    "/v1/municipalities",
+)
 
 DEFAULT_PAGE_SIZE = 100
 DEFAULT_DAYS = 7
@@ -158,6 +174,51 @@ def observations(  # noqa: PLR0913 - one query parameter per filter
         source=source, metric=metric, entity=entity, start=start, end=end, limit=limit + 1, offset=offset
     )
     return _page([Observation(**row) for row in rows], limit, offset)
+
+
+@router.get(
+    "/observations/export",
+    tags=["series"],
+    response_class=Response,
+    responses={
+        200: {"content": {"text/csv": {}, MEDIA_TYPES["parquet"]: {}}, "description": "The file."},
+        404: {"model": ErrorResponse},
+    },
+)
+def export_observations(  # noqa: PLR0913 - one query parameter per filter
+    request: Request,
+    warehouse: WarehouseDep,
+    source: Annotated[str, Query(description="Source, e.g. `aemet` (see /v1/sources).")],
+    metric: Annotated[str | None, Query(description="Metric, e.g. `temperature_2m_mean`.")] = None,
+    entity: Annotated[str | None, Query(description="Station, point, stop or aquifer.")] = None,
+    start: Start = None,
+    end: End = None,
+    format_: Annotated[Literal["csv", "parquet"], Query(alias="format", description="`csv` or `parquet`.")] = "csv",
+) -> Response:
+    """Every value of one source in a time range as a file, oldest first: the columns of /v1/observations.
+
+    CSV is streamed as it is read; Parquet (zstd, ``ts`` as a UTC timestamp) is written in row groups. The range
+    is limited to API_EXPORT_MAX_DAYS (366) and API_EXPORT_MAX_ROWS values (a million) per file.
+    """
+    settings = request.app.state.settings
+    start, end = _window(start, end)
+    if end - start > timedelta(days=settings.export_max_days):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, f"an export covers at most {settings.export_max_days} days"
+        )
+    if not warehouse.source_exists(source):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown source '{source}'")
+    count = warehouse.observations_count(source=source, metric=metric, entity=entity, start=start, end=end)
+    if count > settings.export_max_rows:
+        msg = f"{count} values, more than the {settings.export_max_rows} of an export: narrow the range or the series"
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, msg)
+
+    name = "_".join(p for p in (source, entity, metric, f"{start:%Y%m%d}-{end:%Y%m%d}") if p)
+    headers = {"Content-Disposition": f'attachment; filename="{name}.{format_}"', "X-Total-Count": str(count)}
+    rows = warehouse.observations_stream(source=source, metric=metric, entity=entity, start=start, end=end)
+    if format_ == "parquet":
+        return Response(parquet_bytes(rows), media_type=MEDIA_TYPES["parquet"], headers=headers)
+    return StreamingResponse(csv_chunks(rows), media_type=MEDIA_TYPES["csv"], headers=headers)
 
 
 @router.get("/series", tags=["series"], responses={404: {"model": ErrorResponse}})

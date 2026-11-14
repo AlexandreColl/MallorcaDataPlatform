@@ -9,6 +9,7 @@ import { dayName, number, orDash, placeName } from "../lib/format";
 import {
   axisDate,
   entitiesOf,
+  exportLink,
   longest,
   metricLabel,
   metricsOf,
@@ -205,6 +206,18 @@ function Controls({ sources, catalog, selection, onChange }: {
   );
 }
 
+/** Links to the values of the chosen days as files, from the API export. */
+function Downloads({ series, from }: { series: Series; from: string }) {
+  const csv = exportLink(series, from, "csv");
+  const parquet = exportLink(series, from, "parquet");
+  return (
+    <p className="correlation-note">
+      Descargar los valores {csv.clipped ? "del último año" : "del periodo"}:{" "}
+      <a href={csv.href} download>CSV</a> · <a href={parquet.href} download>Parquet</a>
+    </p>
+  );
+}
+
 export function Explorer() {
   const [selection, setSelection] = useState<Selection>(readSelection);
   const sources = useLoad(api.sources);
@@ -255,6 +268,7 @@ export function Explorer() {
             ) : (
               <>
                 <Summary days={rows} unit={unit} />
+                {series && from && <Downloads series={series} from={from} />}
                 <SeriesChart days={rows} unit={unit} />
                 <h3 className="chart-title">Completitud por día</h3>
                 <CompletenessChart days={rows} />

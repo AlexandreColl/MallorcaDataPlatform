@@ -155,3 +155,24 @@ export function summarize(days: SeriesDay[]): SeriesSummary {
     max: maxes.length ? Math.max(...maxes) : null,
   };
 }
+
+/** Days an export of the API may cover (API_EXPORT_MAX_DAYS). */
+export const EXPORT_MAX_DAYS = 366;
+
+/**
+ * The link that downloads the values of `series` from `from` to its last day as a file, and whether it had to be
+ * cut to the last `EXPORT_MAX_DAYS` days. The API counts the end as excluded: the day after the last one.
+ */
+export function exportLink(series: Series, from: string, format: "csv" | "parquet"): { href: string; clipped: boolean } {
+  const end = new Date(`${series.last_day}T00:00:00Z`);
+  end.setUTCDate(end.getUTCDate() + 1);
+  const earliest = new Date(end);
+  earliest.setUTCDate(earliest.getUTCDate() - EXPORT_MAX_DAYS);
+  const start = new Date(`${from}T00:00:00Z`);
+  const clipped = start < earliest;
+  const params = new URLSearchParams({
+    source: series.source, entity: series.entity, metric: series.metric,
+    start: (clipped ? earliest : start).toISOString(), end: end.toISOString(), format,
+  });
+  return { href: `/api/v1/observations/export?${params}`, clipped };
+}
