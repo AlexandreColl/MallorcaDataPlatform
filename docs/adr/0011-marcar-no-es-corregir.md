@@ -40,8 +40,8 @@ Gold enseña el valor original y el corregido lado a lado.
   14 hPa sin el sesgo y de 0,2 con él.
 - **En contra.**
   - Tres tablas y dos valores por fila en gold.
-  - Los contaminantes muy locales casi nunca tienen una fuente de apoyo, y sus huecos largos se quedan sin corregir
-    a propósito.
+  - Los contaminantes muy locales casi nunca tienen una fuente de apoyo. Desde el 2026-11-14 el NO₂ y el CO usan el
+    perfil semanal de la propia estación; las partículas siguen con sus huecos largos sin corregir, a propósito.
 
 ## Cuándo revisarla
 

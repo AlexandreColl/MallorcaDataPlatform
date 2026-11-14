@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS silver.corrections (
     original_value    double precision,
     original_quality  text             NOT NULL CHECK (original_quality IN ('missing', 'suspect', 'absent')),
     corrected_value   double precision NOT NULL,
-    method            text             NOT NULL CHECK (method IN ('interpolation', 'support')),
+    method            text             NOT NULL CHECK (method IN ('interpolation', 'support', 'profile')),
     support_source    text,                      -- method 'support': the series that stood in for the station
     support_entity    text,
     bias              double precision,          -- station minus support at that hour of the day
@@ -96,6 +96,19 @@ CREATE TABLE IF NOT EXISTS silver.corrections (
     corrected_at      timestamptz      NOT NULL DEFAULT now(),
     PRIMARY KEY (source, entity, metric, ts)
 );
+-- Warehouses created before v0.17.0 only accept interpolation and support.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'corrections_method_check' AND pg_get_constraintdef(oid) LIKE '%profile%'
+    ) THEN
+        ALTER TABLE silver.corrections DROP CONSTRAINT IF EXISTS corrections_method_check;
+        ALTER TABLE silver.corrections ADD CONSTRAINT corrections_method_check
+            CHECK (method IN ('interpolation', 'support', 'profile'));
+    END IF;
+END
+$$;
 
 -- Fault-injection benchmark of the detectors (core/anomaly/evaluation.py): one row per detector and fault kind,
 -- plus fault = 'all' with the totals and the precision.

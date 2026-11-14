@@ -214,7 +214,9 @@ def corrections(  # noqa: PLR0913 - one query parameter per filter
     warehouse: WarehouseDep,
     source: Annotated[str | None, Query(description="Only this source: `socib` or `eea_air_quality`.")] = None,
     entity: Annotated[str | None, Query(description="Only this station.")] = None,
-    method: Annotated[Literal["interpolation", "support"] | None, Query(description="Only this method.")] = None,
+    method: Annotated[
+        Literal["interpolation", "support", "profile"] | None, Query(description="Only this method.")
+    ] = None,
     start: Start = None,
     end: End = None,
     limit: Limit = DEFAULT_PAGE_SIZE,

@@ -122,7 +122,8 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | Método 2: la serie de la misma métrica mejor correlacionada a menos de 30 km (otra estación de la red o el punto de Open-Meteo, r ≥ 0,6) con su sesgo calibrado por hora del día en los 30 días anteriores |
 | ✅ | Confianza según correlación (r²), distancia y longitud del hueco; `make evaluate-corrections` esconde valores limpios en huecos de 1-24 h y mide el error de cada método: 0,26 °C en una hora, 1,35 °C en 24 h con apoyo frente a 2,19 sin su sesgo |
 | ✅ | Modelo dbt `fct_observations_corrected` y paneles en Operación: correcciones por día y método, antes y después de la serie elegida y últimas correcciones |
-| ⬜ | NO₂, PM10, PM2.5 y CO casi nunca tienen un apoyo con r ≥ 0,6 (contaminación muy local): probar un apoyo con el ciclo semanal del tráfico o el modelo CAMS con un sesgo por día de la semana |
+| ✅ | Método 3, **perfil semanal** de la propia estación (cada hora local de laborables y de fines de semana, al nivel de los dos lados del hueco) para el NO₂ y el CO, que casi nunca tienen un apoyo con r ≥ 0,6: en huecos de 24 h, 3,3 µg/m³ de error frente a 4,7 de una recta en el NO₂ y 77 frente a 168 en el CO |
+| ⬜ | PM10 y PM2.5 siguen sin corrección en huecos largos sin apoyo: el perfil no mejora a una recta porque los mueve el tiempo. Probar el modelo CAMS con un sesgo por día de la semana, o una r calculada después del sesgo |
 
 ## Fase 5 · v0.5.0 — Calidad de ingeniería
 

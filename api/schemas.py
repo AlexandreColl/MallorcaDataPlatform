@@ -171,7 +171,9 @@ class Correction(BaseModel):
     original_quality: str = Field(examples=["missing"], description="`missing`, `suspect` or `absent` (no row)")
     original_value: float | None = Field(description="The suspect value; empty when it was missing or absent.")
     corrected_value: float
-    method: str = Field(examples=["support"], description="`interpolation` (gaps up to 3 h) or `support`")
+    method: str = Field(
+        examples=["support"], description="`interpolation` (gaps up to 3 h), `support` or `profile` (weekly cycle)"
+    )
     support_source: str | None = Field(examples=["open_meteo"], description="Method `support`: the series used.")
     support_entity: str | None = Field(examples=["llucmajor"])
     bias: float | None = Field(description="Station minus support at that hour of the day, added to the support.")
