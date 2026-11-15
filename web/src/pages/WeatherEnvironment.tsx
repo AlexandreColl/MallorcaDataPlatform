@@ -231,7 +231,7 @@ export function WeatherEnvironment() {
         </Panel>
         <Panel
           title="Oleaje: boyas frente al modelo"
-          subtitle="Altura significativa de ola medida por las boyas de SOCIB y la que da Open-Meteo Marine en el punto más cercano, hora a hora."
+          subtitle="Media de la altura significativa de ola que miden las boyas de SOCIB y la que da Open-Meteo Marine en el punto más cercano, en las horas que tienen las dos; r es la correlación hora a hora."
         >
           <Async state={waveBias}>
             {(rows) => (
@@ -240,11 +240,10 @@ export function WeatherEnvironment() {
                 empty="Sin horas comparables todavía"
                 columns={[
                   { label: "Boya", value: (b) => placeName(b.buoy, b.buoy_name) },
-                  { label: "Boya", value: (b) => (b.wave_height_buoy_mean_m === null ? "—" : `${number(Number(b.wave_height_buoy_mean_m), 2)} m`), numeric: true },
+                  { label: "Medida", value: (b) => (b.wave_height_buoy_mean_m === null ? "—" : `${number(Number(b.wave_height_buoy_mean_m), 2)} m`), numeric: true },
                   { label: "Modelo", value: (b) => (b.wave_height_model_mean_m === null ? "—" : `${number(Number(b.wave_height_model_mean_m), 2)} m`), numeric: true },
                   { label: "Sesgo", value: (b) => (b.wave_height_bias_m === null ? "—" : `${signed(Number(b.wave_height_bias_m), 2)} m`), numeric: true },
                   { label: "r", value: (b) => (b.wave_height_correlation === null ? "—" : number(Number(b.wave_height_correlation), 2)), numeric: true },
-                  { label: "Horas", value: (b) => number(b.hours_compared), numeric: true },
                 ]}
               />
             )}
