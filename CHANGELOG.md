@@ -7,6 +7,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- SOCIB reads its archive: the days before the current `latest` file come from the monthly files, one request per
+  month and deployment, so `make backfill CONNECTORS=socib` loads the history (`max_days` 366). It also reads the
+  waves of the two active buoys, the Bay of Palma and Portocolom: significant and maximum height (`wave_height`,
+  `wave_height_max`), hourly from half-hour records. There is no tide gauge: SOCIB's Mallorca sea-level folders
+  are empty since 2024 and its tide gauges stop in 2019-2020.
 - Anomaly detector `seasonal_residual`: each value, and each change since the previous one, against the same hour on
   the three days before and after (the same weekday for daily series). It is the first to see a wrong clock: 61 %
   of the injected time shifts, where the z-score and the forest see 6 %, with 81 % precision.

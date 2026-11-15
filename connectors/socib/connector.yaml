@@ -1,9 +1,9 @@
 name: socib
-description: SOCIB weather stations and buoy in Mallorca (real observations, hourly from 1-10 min data), no API key
+description: SOCIB weather stations and wave buoys in Mallorca (real observations, hourly from 1-30 min data), no API key
 entrypoint: connectors.socib.extractor:SocibConnector
 enabled: true
 frequency: 1h          # raw data is every 1-10 min; normalize() aggregates it to hourly values
-max_days: 61           # the *_latest.nc file starts on the 1st of the previous month (checked per request)
+max_days: 366          # days before the *_latest.nc file come from the monthly archive, one request per file
 catch_up_days: 28      # always inside the latest file, whatever the day of the month
 secrets: []
 
@@ -12,11 +12,14 @@ options:
   good_qc_flags: [1, 2]      # SOCIB QC: 1 good, 2 probably good, 3-4 bad, 9 missing
   min_good_share: 0.5        # an hour with fewer good samples is labelled suspect (reason source_qc)
   # Active Mallorca stations; folder = THREDDS dataset folder, the current deployment is resolved at run time.
+  # dataset: weather (default) or waves. The Bahía de Palma buoy has both, under one entity: the same place.
   stations:
     - {entity: parcbit, name: Parc Bit (Palma), folder: mooring/weather_station/station_parcbit-scb_met023, lat: 39.6352, lon: 2.6314}
     - {entity: cala_millor, name: Cala Millor, folder: mooring/weather_station/mobims_calamillor-scb_met012, lat: 39.5958, lon: 3.3826}
     - {entity: muro, name: Platja de Muro, folder: mooring/weather_station/mobims_muro-scb_met016, lat: 39.8117, lon: 3.1161}
     - {entity: bahia_de_palma_buoy, name: Boya de la bahía de Palma, folder: mooring/weather_station/buoy_bahiadepalma-scb_met029, lat: 39.4984, lon: 2.7016}
+    - {entity: bahia_de_palma_buoy, name: Boya de la bahía de Palma, folder: mooring/waves_recorder/buoy_bahiadepalma-scb_wave006, dataset: waves, lat: 39.4984, lon: 2.7016}
+    - {entity: portocolom_buoy, name: Boya de Portocolom, folder: mooring/waves_recorder/buoy_portocolom-scb_wave008, dataset: waves, lat: 39.4031, lon: 3.2867}
 
 datasets:
   weather:
@@ -27,6 +30,12 @@ datasets:
       AIR_PRE:     {metric: pressure_msl, agg: mean}
       WIN_SPE:     {metric: wind_speed_10m, agg: mean, scale: 3.6}    # m/s -> km/h
       WIN_SPE_GUS: {metric: wind_gusts_10m, agg: max, scale: 3.6}     # m/s -> km/h
+  waves:
+    # Every 30 min. Same name and unit as Open-Meteo Marine (significant height); the direction is left out: an
+    # hourly mean of angles means nothing (350 and 10 degrees average 180).
+    variables:
+      WAV_HEI_SIG: {metric: wave_height, agg: mean}
+      WAV_HEI_MAX: {metric: wave_height_max, agg: max}
 
 metrics:
   temperature_2m:       {dataset: weather, unit: degC, min: -15, max: 50}
@@ -34,3 +43,5 @@ metrics:
   pressure_msl:         {dataset: weather, unit: hPa, min: 940, max: 1060}
   wind_speed_10m:       {dataset: weather, unit: km/h, min: 0, max: 250}
   wind_gusts_10m:       {dataset: weather, unit: km/h, min: 0, max: 300}
+  wave_height:          {dataset: waves, unit: m, min: 0, max: 20}
+  wave_height_max:      {dataset: waves, unit: m, min: 0, max: 30}

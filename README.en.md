@@ -203,6 +203,11 @@ from SOCIB's THREDDS server (no key). The data arrives every 1-10 minutes with S
 aggregates it by hour using only the good samples and flags as `suspect` the hours with fewer than 50 % valid
 samples. The metrics are named as in Open-Meteo, so Grafana compares the real station with the model on one chart.
 
+It also reads the **waves** of the two active buoys, in the Bay of Palma and off Portocolom: the significant and the
+maximum height every half hour, aggregated by hour (`wave_height`, as in Open-Meteo Marine, and `wave_height_max`).
+The days before the `latest` file come from the monthly files of the archive, one per month and deployment, so
+`make backfill CONNECTORS=socib` loads the history.
+
 ### IGN (earthquakes)
 
 Earthquakes located by Spain's National Geographic Institute, read from EMSC's FDSN service (a standard, no key) in

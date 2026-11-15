@@ -152,10 +152,20 @@ def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):
     )
 
     cli.main(
-        ["backfill", "--connectors", "socib", "--start", "2026-01-01", "--end", "2026-03-31", "--chunk-days", "400"]
+        [
+            "backfill",
+            "--connectors",
+            "open_meteo",
+            "--start",
+            "2026-01-01",
+            "--end",
+            "2026-06-30",
+            "--chunk-days",
+            "400",
+        ]
     )
 
-    assert max(w.n_days for w in windows) == 61  # SOCIB allows 61 days per run
+    assert max(w.n_days for w in windows) == 92  # Open-Meteo serves 92 days per request
 
 
 def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsys):

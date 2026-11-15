@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2">
+  <service name="baseServices" serviceType="compound" base="">
+    <service name="odap" serviceType="OpenDAP" base="/thredds/dodsC/" />
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <service name="ncss" serviceType="NetcdfSubset" base="/thredds/ncss/point/" />
+    <service name="ncml" serviceType="NCML" base="/thredds/ncml/" />
+    <service name="uddc" serviceType="UDDC" base="/thredds/uddc/" />
+    <service name="iso" serviceType="ISO" base="/thredds/iso/" />
+  </service>
+  <service name="allServices" serviceType="compound" base="">
+    <service name="odap" serviceType="OpenDAP" base="/thredds/dodsC/" />
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <service name="wcs" serviceType="WCS" base="/thredds/wcs/" />
+    <service name="wms" serviceType="WMS" base="/thredds/wms/" />
+    <service name="ncss" serviceType="NetcdfSubset" base="/thredds/ncss/grid/" />
+    <service name="ncml" serviceType="NCML" base="/thredds/ncml/" />
+    <service name="uddc" serviceType="UDDC" base="/thredds/uddc/" />
+    <service name="iso" serviceType="ISO" base="/thredds/iso/" />
+  </service>
+  <dataset name="weather_station/station_parcbit-scb_met023/L1/2026/" harvest="true">
+    <property name="DatasetScan" value="true" />
+    <metadata inherited="true">
+      <serviceName>baseServices</serviceName>
+      <dataType>Station</dataType>
+      <property name="viewer" value="https://apps.socib.es/jwebchart/?file={url},jwebchart,SOCIB time series viewer,Application" />
+    </metadata>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-11.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-11.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-11.nc">
+      <dataSize units="Mbytes">2.070</dataSize>
+      <date type="modified">2026-11-14T18:11:26.184Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-10.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-10.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-10.nc">
+      <dataSize units="Mbytes">4.653</dataSize>
+      <date type="modified">2026-11-02T00:11:29.689Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-09.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-09.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-09.nc">
+      <dataSize units="Mbytes">4.503</dataSize>
+      <date type="modified">2026-10-02T00:11:32.768Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-08.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-08.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-08.nc">
+      <dataSize units="Mbytes">4.653</dataSize>
+      <date type="modified">2026-09-02T00:11:36.868Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-07.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-07.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-07.nc">
+      <dataSize units="Mbytes">4.653</dataSize>
+      <date type="modified">2026-08-02T00:11:31.318Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-06.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-06.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-06.nc">
+      <dataSize units="Mbytes">4.503</dataSize>
+      <date type="modified">2026-07-27T12:41:56.135Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-05.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-05.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-05.nc">
+      <dataSize units="Mbytes">4.653</dataSize>
+      <date type="modified">2026-07-27T12:41:55.984Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-04.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-04.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-04.nc">
+      <dataSize units="Mbytes">4.504</dataSize>
+      <date type="modified">2026-07-27T12:41:55.696Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-03.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-03.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-03.nc">
+      <dataSize units="Mbytes">4.653</dataSize>
+      <date type="modified">2026-07-27T12:41:55.547Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-02.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-02.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-02.nc">
+      <dataSize units="Mbytes">4.204</dataSize>
+      <date type="modified">2026-07-27T12:41:55.387Z</date>
+    </dataset>
+    <dataset name="dep0001_station-parcbit_scb-met023_L1_2026-01.nc" ID="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-01.nc" urlPath="mooring/weather_station/station_parcbit-scb_met023/L1/2026/dep0001_station-parcbit_scb-met023_L1_2026-01.nc">
+      <dataSize units="Mbytes">4.654</dataSize>
+      <date type="modified">2026-07-27T12:41:55.256Z</date>
+    </dataset>
+  </dataset>
+</catalog>
