@@ -58,6 +58,7 @@ def test_health(api):
         "/v1/municipalities",
         "/v1/air-quality/latest",
         "/v1/sea/hourly?start=2016-01-01T00:00:00Z",
+        "/v1/sea/model-bias",
         "/v1/earthquakes",
         "/v1/quality/rules",
         "/v1/anomalies/daily?start=2016-01-01T00:00:00Z",

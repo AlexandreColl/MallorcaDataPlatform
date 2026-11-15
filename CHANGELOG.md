@@ -7,6 +7,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- SOCIB's wave buoys against the Open-Meteo Marine model: `fct_wave_model_comparison_hourly` pairs each buoy with
+  the nearest model point and compares the significant wave height hour by hour, `agg_wave_model_bias_by_buoy`
+  sums it up (bias, mean error, RMSE, correlation, model over buoy), `GET /v1/sea/model-bias` serves it and the web
+  shows it in Tiempo y entorno. From August to mid-November: the Bay of Palma, 2,498 hours with r = 0.80; Portocolom,
+  361 hours with r = 0.63.
 - SOCIB reads its archive: the days before the current `latest` file come from the monthly files, one request per
   month and deployment, so `make backfill CONNECTORS=socib` loads the history (`max_days` 366). It also reads the
   waves of the two active buoys, the Bay of Palma and Portocolom: significant and maximum height (`wave_height`,

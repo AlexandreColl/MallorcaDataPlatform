@@ -468,6 +468,30 @@ export interface WaterReservesMonth {
   lowest_aquifer_pct: number | null;
 }
 
+/** Error of the wave model against one SOCIB buoy (gold.agg_wave_model_bias_by_buoy): model minus buoy. */
+export interface WaveModelBias {
+  buoy: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  buoy_name: string | null;
+  model_point: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  model_point_name: string | null;
+  distance_km: number | null;
+  hours_compared: number;
+  wave_height_buoy_mean_m: number | null;
+  wave_height_model_mean_m: number | null;
+  /** Mean of model minus buoy, in metres. */
+  wave_height_bias_m: number | null;
+  wave_height_mae_m: number | null;
+  wave_height_rmse_m: number | null;
+  /** Pearson r of the hourly significant wave heights. */
+  wave_height_correlation: number | null;
+  /** Mean model height over mean buoy height. */
+  model_ratio: number | null;
+  first_ts: string | null;
+  last_ts: string | null;
+}
+
 /** Consecutive days of heavy rain, strong wind or high waves on the island (gold.fct_weather_episodes). */
 export interface WeatherEpisode {
   episode_id: string;

@@ -463,6 +463,26 @@ class ModelBias(BaseModel):
     last_day: date | None
 
 
+class WaveModelBias(BaseModel):
+    """Error of the wave model against one SOCIB buoy (gold.agg_wave_model_bias_by_buoy): model minus buoy."""
+
+    buoy: str = Field(examples=["bahia_de_palma_buoy"])
+    buoy_name: str | None = Field(default=None, examples=["Boya de la bahía de Palma"], description=NAME)
+    model_point: str = Field(examples=["bahia_de_palma"])
+    model_point_name: str | None = Field(default=None, examples=["Bahía de Palma"], description=NAME)
+    distance_km: float | None
+    hours_compared: int
+    wave_height_buoy_mean_m: float | None
+    wave_height_model_mean_m: float | None
+    wave_height_bias_m: float | None = Field(description="Mean of model minus buoy, in metres.")
+    wave_height_mae_m: float | None
+    wave_height_rmse_m: float | None
+    wave_height_correlation: float | None = Field(description="Pearson r of the hourly significant wave heights.")
+    model_ratio: float | None = Field(description="Mean model height over mean buoy height.")
+    first_ts: datetime | None
+    last_ts: datetime | None
+
+
 class AirQualityNow(BaseModel):
     """The latest hour of one air quality station or model point (gold.air_quality_hourly)."""
 

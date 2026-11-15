@@ -208,6 +208,19 @@ maximum height every half hour, aggregated by hour (`wave_height`, as in Open-Me
 The days before the `latest` file come from the monthly files of the archive, one per month and deployment, so
 `make backfill CONNECTORS=socib` loads the history.
 
+**Buoys against the wave model**: each buoy is paired with the nearest Open-Meteo Marine point (under 2 km away) and
+their significant heights are compared hour by hour (`fct_wave_model_comparison_hourly`, and the summary per buoy
+in `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` and the web). From August to 14 November 2026:
+
+| Buoy | Hours | Buoy (mean) | Model (mean) | Bias | Mean error | RMSE | r |
+|---|---|---|---|---|---|---|---|
+| Bay of Palma | 2,498 | 0.34 m | 0.39 m | +0.05 m | 0.16 m | 0.23 m | 0.80 |
+| Portocolom | 361 | 0.86 m | 0.78 m | −0.08 m | 0.18 m | 0.45 m | 0.63 |
+
+In the bay, with a calm sea (under 0.5 m), the model gives 40 % more sea than the buoy measures: its ~5 km cell looks
+out to open water and the buoy sits in a sheltered bay. Off Portocolom it is the other way round with a small sea,
+and the RMSE (0.45 m), well above the mean error, gives away a few hours with large misses.
+
 ### IGN (earthquakes)
 
 Earthquakes located by Spain's National Geographic Institute, read from EMSC's FDSN service (a standard, no key) in
@@ -643,6 +656,7 @@ Airflow, Spark or Java. The OpenAPI documentation is at http://localhost:8000/do
 | `GET /v1/mobility/daily`, `/v1/mobility/stops`, `/v1/mobility/routes` | EMT and CTM scheduled service per day, each stop's service on the latest day, and each line with its path (GeoJSON) and departures |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Daily weather of each source, rain, wind or sea episodes, and model error against each station; `stations`: every station on the latest published day |
 | `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | The latest hour of air quality with its European index, hourly waves and earthquakes |
+| `GET /v1/sea/model-bias` | The wave model's error against each SOCIB buoy: bias, mean error, RMSE and correlation of the hourly significant height |
 | `GET /v1/warnings`, `/v1/warnings/zones` | AEMET warnings in force or announced (by default, from now to 3 days ahead) and the warning zones with their polygons |
 | `GET /v1/population`, `/v1/municipalities` | The population of each municipality per year (filterable with `from` and `to`) and the 53 municipalities with their area and boundary |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | The latest check of each quality rule and anomalies per day and detector |

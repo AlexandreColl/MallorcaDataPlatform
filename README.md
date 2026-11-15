@@ -207,6 +207,19 @@ significativa y la máxima cada media hora, agregadas por hora (`wave_height`, c
 `wave_height_max`). Los días anteriores al fichero `latest` salen de los ficheros mensuales del archivo, uno por mes
 y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico.
 
+**Boyas frente al modelo de oleaje**: cada boya se empareja con el punto de Open-Meteo Marine más cercano (a menos
+de 2 km) y se comparan las alturas significativas hora a hora (`fct_wave_model_comparison_hourly`, y el resumen
+por boya en `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` y la web). De agosto al 14 de noviembre de 2026:
+
+| Boya | Horas | Boya (media) | Modelo (media) | Sesgo | Error medio | RMSE | r |
+|---|---|---|---|---|---|---|---|
+| Bahía de Palma | 2.498 | 0,34 m | 0,39 m | +0,05 m | 0,16 m | 0,23 m | 0,80 |
+| Portocolom | 361 | 0,86 m | 0,78 m | −0,08 m | 0,18 m | 0,45 m | 0,63 |
+
+En la bahía, con mar en calma (menos de 0,5 m), el modelo da un 40 % más de ola de la que mide la boya: su celda de
+unos 5 km se asoma a mar abierto y la boya está en una bahía resguardada. En Portocolom pasa al revés con la mar
+pequeña, y el RMSE (0,45 m), muy por encima del error medio, delata unas pocas horas con fallos grandes.
+
 ### IGN (sismos)
 
 Sismos localizados por el Instituto Geográfico Nacional, leídos del servicio FDSN de EMSC (estándar, sin clave)
@@ -643,6 +656,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/mobility/daily`, `/v1/mobility/stops`, `/v1/mobility/routes` | Servicio programado de EMT y CTM por día, el de cada parada en el último día y cada línea con su recorrido (GeoJSON) y sus salidas |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación; `stations`: cada estación en el último día publicado |
 | `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | Última hora de calidad del aire con su índice europeo, oleaje por hora y sismos |
+| `GET /v1/sea/model-bias` | Error del modelo de oleaje frente a cada boya de SOCIB: sesgo, error medio, RMSE y correlación de la altura significativa hora a hora |
 | `GET /v1/warnings`, `/v1/warnings/zones` | Avisos de AEMET en vigor o anunciados (por defecto, de ahora a 3 días) y las zonas de aviso con su polígono |
 | `GET /v1/population`, `/v1/municipalities` | Población de cada municipio por año (filtrable con `from` y `to`) y los 53 municipios con su superficie y su límite |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | Último chequeo de cada regla de calidad y anomalías por día y detector |
