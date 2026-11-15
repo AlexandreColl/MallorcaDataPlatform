@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2">
+  <service name="baseServices" serviceType="compound" base="">
+    <service name="odap" serviceType="OpenDAP" base="/thredds/dodsC/" />
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <service name="ncss" serviceType="NetcdfSubset" base="/thredds/ncss/point/" />
+    <service name="ncml" serviceType="NCML" base="/thredds/ncml/" />
+    <service name="uddc" serviceType="UDDC" base="/thredds/uddc/" />
+    <service name="iso" serviceType="ISO" base="/thredds/iso/" />
+  </service>
+  <service name="allServices" serviceType="compound" base="">
+    <service name="odap" serviceType="OpenDAP" base="/thredds/dodsC/" />
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+    <service name="wcs" serviceType="WCS" base="/thredds/wcs/" />
+    <service name="wms" serviceType="WMS" base="/thredds/wms/" />
+    <service name="ncss" serviceType="NetcdfSubset" base="/thredds/ncss/grid/" />
+    <service name="ncml" serviceType="NCML" base="/thredds/ncml/" />
+    <service name="uddc" serviceType="UDDC" base="/thredds/uddc/" />
+    <service name="iso" serviceType="ISO" base="/thredds/iso/" />
+  </service>
+  <dataset name="weather_station/buoy_bahiadepalma-scb_met029/L1/2026/" harvest="true">
+    <property name="DatasetScan" value="true" />
+    <metadata inherited="true">
+      <serviceName>baseServices</serviceName>
+      <dataType>Station</dataType>
+      <property name="viewer" value="https://apps.socib.es/jwebchart/?file={url},jwebchart,SOCIB time series viewer,Application" />
+    </metadata>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-11.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-11.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-11.nc">
+      <dataSize units="Kbytes">72.55</dataSize>
+      <date type="modified">2026-11-13T08:40:21.341Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-10.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-10.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-10.nc">
+      <dataSize units="Kbytes">475.1</dataSize>
+      <date type="modified">2026-11-03T01:10:22.032Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-09.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-09.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-09.nc">
+      <dataSize units="Kbytes">460.1</dataSize>
+      <date type="modified">2026-10-04T01:10:20.552Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-08.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-08.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-08.nc">
+      <dataSize units="Kbytes">475.4</dataSize>
+      <date type="modified">2026-09-04T01:10:24.045Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-07.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-07.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-07.nc">
+      <dataSize units="Kbytes">475.1</dataSize>
+      <date type="modified">2026-08-04T01:10:23.928Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-06.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-06.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-06.nc">
+      <dataSize units="Kbytes">460.3</dataSize>
+      <date type="modified">2026-07-04T01:10:24.437Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-05.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-05.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-05.nc">
+      <dataSize units="Kbytes">475.3</dataSize>
+      <date type="modified">2026-06-04T01:10:12.229Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-04.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-04.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-04.nc">
+      <dataSize units="Kbytes">460.3</dataSize>
+      <date type="modified">2026-05-04T01:10:12.432Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-03.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-03.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-03.nc">
+      <dataSize units="Kbytes">475.3</dataSize>
+      <date type="modified">2026-04-04T01:10:11.347Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-02.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-02.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-02.nc">
+      <dataSize units="Kbytes">430.2</dataSize>
+      <date type="modified">2026-03-04T01:10:12.489Z</date>
+    </dataset>
+    <dataset name="dep0002_buoy-bahiadepalma_scb-met029_L1_2026-01.nc" ID="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-01.nc" urlPath="mooring/weather_station/buoy_bahiadepalma-scb_met029/L1/2026/dep0002_buoy-bahiadepalma_scb-met029_L1_2026-01.nc">
+      <dataSize units="Kbytes">475.2</dataSize>
+      <date type="modified">2026-02-04T00:10:11.969Z</date>
+    </dataset>
+  </dataset>
+</catalog>

@@ -202,6 +202,11 @@ SOCIB por variable; el conector los agrega por hora usando solo las muestras bue
 con menos del 50 % de muestras válidas. Las métricas se llaman igual que en Open-Meteo, así que Grafana compara
 estación real y modelo en la misma gráfica.
 
+También lee el **oleaje** de las dos boyas activas, la de la bahía de Palma y la de Portocolom: la altura
+significativa y la máxima cada media hora, agregadas por hora (`wave_height`, como en Open-Meteo Marine, y
+`wave_height_max`). Los días anteriores al fichero `latest` salen de los ficheros mensuales del archivo, uno por mes
+y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico.
+
 ### IGN (sismos)
 
 Sismos localizados por el Instituto Geográfico Nacional, leídos del servicio FDSN de EMSC (estándar, sin clave)
