@@ -51,6 +51,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Changed
 
+- The E2E also checks that the detection and correction tasks succeed (they run with `all_done`, so their failure
+  would not fail the DAG run), that the export gives a CSV matching its count and a Parquet file, and that a
+  monthly mart is answered from the cache. It prints how many values each detector flagged.
 - The statuses of a run (`running`, `success`, `failed`, `unavailable`) are one list in `core.warehouse.RunStatus`,
   and `tests/test_run_statuses.py` checks that the table CHECK, the dbt test, the API model, `source_health`, the
   Grafana colours, the SLA alert and the web list the same ones. The API documents `last_status` as an enum.
