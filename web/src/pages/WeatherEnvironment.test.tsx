@@ -21,7 +21,7 @@ const answers = {
   episodes: [],
   earthquakes: [{ ts: new Date().toISOString(), magnitude: 2.1, depth_km: 8, distance_to_palma_km: 40 }],
   seaModelBias: [
-    { buoy: "portocolom_buoy", buoy_name: "Boya de Portocolom", model_point: "portocolom", model_point_name: "Portocolom", distance_km: 1.4, hours_compared: 300, wave_height_buoy_mean_m: 0.8, wave_height_model_mean_m: 0.95, wave_height_bias_m: 0.15, wave_height_mae_m: 0.2, wave_height_rmse_m: 0.27, correlation: 0.912, model_ratio: 1.19, first_ts: null, last_ts: null },
+    { buoy: "portocolom_buoy", buoy_name: "Boya de Portocolom", model_point: "portocolom", model_point_name: "Portocolom", distance_km: 1.4, hours_compared: 300, wave_height_buoy_mean_m: 0.8, wave_height_model_mean_m: 0.95, wave_height_bias_m: 0.15, wave_height_mae_m: 0.2, wave_height_rmse_m: 0.27, wave_height_correlation: 0.912, model_ratio: 1.19, first_ts: null, last_ts: null },
   ],
   modelBias: [{ station: "B228", station_name: "Palma, Puerto", elevation_diff_m: -12, temperature_bias_c: 0.8, temperature_bias_adjusted_c: 0.7, temperature_mae_adjusted_c: 1.1, days_compared: 30 }],
   stations: [],

@@ -243,7 +243,7 @@ export function WeatherEnvironment() {
                   { label: "Boya", value: (b) => (b.wave_height_buoy_mean_m === null ? "—" : `${number(Number(b.wave_height_buoy_mean_m), 2)} m`), numeric: true },
                   { label: "Modelo", value: (b) => (b.wave_height_model_mean_m === null ? "—" : `${number(Number(b.wave_height_model_mean_m), 2)} m`), numeric: true },
                   { label: "Sesgo", value: (b) => (b.wave_height_bias_m === null ? "—" : `${signed(Number(b.wave_height_bias_m), 2)} m`), numeric: true },
-                  { label: "r", value: (b) => (b.correlation === null ? "—" : number(Number(b.correlation), 2)), numeric: true },
+                  { label: "r", value: (b) => (b.wave_height_correlation === null ? "—" : number(Number(b.wave_height_correlation), 2)), numeric: true },
                   { label: "Horas", value: (b) => number(b.hours_compared), numeric: true },
                 ]}
               />

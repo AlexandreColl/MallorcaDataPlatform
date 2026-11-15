@@ -477,7 +477,7 @@ class WaveModelBias(BaseModel):
     wave_height_bias_m: float | None = Field(description="Mean of model minus buoy, in metres.")
     wave_height_mae_m: float | None
     wave_height_rmse_m: float | None
-    correlation: float | None = Field(description="Pearson r of the hourly significant wave heights.")
+    wave_height_correlation: float | None = Field(description="Pearson r of the hourly significant wave heights.")
     model_ratio: float | None = Field(description="Mean model height over mean buoy height.")
     first_ts: datetime | None
     last_ts: datetime | None

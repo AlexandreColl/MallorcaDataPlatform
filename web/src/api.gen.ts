@@ -485,7 +485,7 @@ export interface WaveModelBias {
   wave_height_mae_m: number | null;
   wave_height_rmse_m: number | null;
   /** Pearson r of the hourly significant wave heights. */
-  correlation: number | null;
+  wave_height_correlation: number | null;
   /** Mean model height over mean buoy height. */
   model_ratio: number | null;
   first_ts: string | null;

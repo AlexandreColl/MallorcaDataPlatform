@@ -205,7 +205,7 @@ ORDER BY b.temperature_mae_adjusted_c DESC NULLS LAST, b.station
 _WAVE_MODEL_BIAS = """
 SELECT b.buoy, l.name AS buoy_name, b.model_point, m.name AS model_point_name, b.distance_km, b.hours_compared,
        b.wave_height_buoy_mean_m, b.wave_height_model_mean_m, b.wave_height_bias_m, b.wave_height_mae_m,
-       b.wave_height_rmse_m, b.correlation, b.model_ratio, b.first_ts, b.last_ts
+       b.wave_height_rmse_m, b.wave_height_correlation, b.model_ratio, b.first_ts, b.last_ts
 FROM gold.agg_wave_model_bias_by_buoy AS b
 LEFT JOIN gold.dim_locations AS l ON l.source = 'socib' AND l.entity = b.buoy
 LEFT JOIN gold.dim_locations AS m ON m.source = 'open_meteo_marine' AND m.entity = b.model_point

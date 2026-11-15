@@ -379,7 +379,8 @@ def test_sea_model_bias_names_the_buoy_and_the_model_point():
         "buoy": "portocolom_buoy", "buoy_name": "Boya de Portocolom", "model_point": "portocolom",
         "model_point_name": "Portocolom", "distance_km": 1.4, "hours_compared": 300, "wave_height_buoy_mean_m": 0.8,
         "wave_height_model_mean_m": Decimal("0.95"), "wave_height_bias_m": Decimal("0.15"), "wave_height_mae_m": 0.2,
-        "wave_height_rmse_m": 0.27, "correlation": Decimal("0.912"), "model_ratio": 1.19, "first_ts": TS, "last_ts": TS,
+        "wave_height_rmse_m": 0.27, "wave_height_correlation": Decimal("0.912"), "model_ratio": 1.19,
+        "first_ts": TS, "last_ts": TS,
     }  # fmt: skip
     db = FakeDatabase({"agg_wave_model_bias_by_buoy": [row]})
 
@@ -387,4 +388,4 @@ def test_sea_model_bias_names_the_buoy_and_the_model_point():
 
     assert bias["buoy_name"] == "Boya de Portocolom"
     assert bias["wave_height_bias_m"] == 0.15
-    assert bias["correlation"] == 0.912
+    assert bias["wave_height_correlation"] == 0.912

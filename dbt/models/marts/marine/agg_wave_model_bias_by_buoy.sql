@@ -11,7 +11,7 @@ select
     round(avg(wave_height_bias_m)::numeric, 2)::numeric(6, 2) as wave_height_bias_m,
     round(avg(abs(wave_height_bias_m))::numeric, 2)::numeric(6, 2) as wave_height_mae_m,
     round(sqrt(avg(power(wave_height_bias_m, 2)))::numeric, 2)::numeric(6, 2) as wave_height_rmse_m,
-    round(corr(wave_height_buoy_m, wave_height_model_m)::numeric, 3)::numeric(4, 3) as correlation,
+    round(corr(wave_height_buoy_m, wave_height_model_m)::numeric, 3)::numeric(4, 3) as wave_height_correlation,
     round((avg(wave_height_model_m) / nullif(avg(wave_height_buoy_m), 0))::numeric, 2)::numeric(6, 2) as model_ratio,
     min(ts) as first_ts,
     max(ts) as last_ts

@@ -225,7 +225,7 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: 0}
       - {name: wave_height_rmse_m, data_type: "numeric(6,2)"}
-      - name: correlation
+      - name: wave_height_correlation
         data_type: "numeric(4,3)"
         description: Pearson r of the hourly heights; empty with fewer than two hours or a constant side.
         data_tests:
