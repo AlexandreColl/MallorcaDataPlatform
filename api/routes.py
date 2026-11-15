@@ -42,6 +42,7 @@ from api.schemas import (
     TransitRoute,
     WarningZone,
     WaterReservesMonth,
+    WaveModelBias,
     WeatherEpisode,
     WeatherSourceDay,
     WeatherWarning,
@@ -424,6 +425,12 @@ def weather_episodes(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay =
 def weather_model_bias(warehouse: WarehouseDep) -> list[ModelBias]:
     """How far the weather model is from each official station, worst first."""
     return [ModelBias(**row) for row in warehouse.model_bias()]
+
+
+@router.get("/sea/model-bias", tags=["environment"])
+def sea_model_bias(warehouse: WarehouseDep) -> list[WaveModelBias]:
+    """How far the wave model (Open-Meteo Marine) is from each SOCIB buoy: bias, error and correlation."""
+    return [WaveModelBias(**row) for row in warehouse.wave_model_bias()]
 
 
 @router.get("/air-quality/latest", tags=["environment"])

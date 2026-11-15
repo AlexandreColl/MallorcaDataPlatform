@@ -183,6 +183,58 @@ models:
           - value_between:
               arguments: {min_value: 0, max_value: 20}
 
+  - name: fct_wave_model_comparison_hourly
+    description: >
+      Buoy vs model per SOCIB wave buoy and hour: the significant wave height measured and the one Open-Meteo Marine
+      gave at the nearest point, and the difference (model minus buoy; positive = the model overestimates). Valid
+      values on both sides only.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [buoy, ts]
+    columns:
+      - name: wave_height_buoy_m
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 20}
+      - name: wave_height_bias_m
+        data_tests:
+          - value_between:
+              arguments: {min_value: -20, max_value: 20}
+
+  - name: agg_wave_model_bias_by_buoy
+    description: >-
+      Wave model quality per SOCIB buoy: bias, MAE, RMSE and correlation of the hourly significant wave height, the
+      mean of each side and the share of the buoy's height the model gives.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [buoy]
+    columns:
+      - {name: buoy, data_type: text, constraints: [{type: not_null}]}
+      - {name: model_point, data_type: text}
+      - {name: distance_km, data_type: double precision}
+      - {name: hours_compared, data_type: bigint}
+      - {name: wave_height_buoy_mean_m, data_type: "numeric(6,2)"}
+      - {name: wave_height_model_mean_m, data_type: "numeric(6,2)"}
+      - {name: wave_height_bias_m, data_type: "numeric(6,2)", description: Mean of model minus buoy.}
+      - name: wave_height_mae_m
+        data_type: "numeric(6,2)"
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0}
+      - {name: wave_height_rmse_m, data_type: "numeric(6,2)"}
+      - name: correlation
+        data_type: "numeric(4,3)"
+        description: Pearson r of the hourly heights; empty with fewer than two hours or a constant side.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: -1, max_value: 1}
+      - {name: model_ratio, data_type: "numeric(6,2)", description: Mean model height over mean buoy height.}
+      - {name: first_ts, data_type: timestamptz}
+      - {name: last_ts, data_type: timestamptz}
+
   - name: fct_electricity_daily
     description: >
       Balearic electric system per local day: demand, generation by technology, renewable share, CO2 and the
