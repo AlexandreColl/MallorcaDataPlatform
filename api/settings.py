@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class Settings:
-    """Connection to the warehouse as the read-only API role, plus paging and CORS limits."""
+    """Connection to the warehouse as the read-only API role, plus paging, CORS, cache, rate and export limits."""
 
     host: str = "localhost"
     port: int = 5432
@@ -23,6 +23,10 @@ class Settings:
     pool_max_size: int = 5
     max_page_size: int = 1000
     cors_origins: tuple[str, ...] = ("*",)
+    cache_seconds: int = 3600  # the cached marts change once a day, after the DAG's dbt build; 0 turns it off
+    rate_limit_per_minute: int = 300  # per client and API process; 0 turns it off
+    export_max_rows: int = 1_000_000
+    export_max_days: int = 366
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
@@ -38,6 +42,10 @@ class Settings:
             pool_max_size=int(env.get("API_POOL_MAX_SIZE", cls.pool_max_size)),
             max_page_size=int(env.get("API_MAX_PAGE_SIZE", cls.max_page_size)),
             cors_origins=tuple(o.strip() for o in env.get("API_CORS_ORIGINS", "*").split(",") if o.strip()),
+            cache_seconds=int(env.get("API_CACHE_SECONDS", cls.cache_seconds)),
+            rate_limit_per_minute=int(env.get("API_RATE_LIMIT_PER_MINUTE", cls.rate_limit_per_minute)),
+            export_max_rows=int(env.get("API_EXPORT_MAX_ROWS", cls.export_max_rows)),
+            export_max_days=int(env.get("API_EXPORT_MAX_DAYS", cls.export_max_days)),
         )
 
     @property

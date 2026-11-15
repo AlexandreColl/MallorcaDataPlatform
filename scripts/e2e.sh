@@ -98,6 +98,14 @@ check_runs() {
 
 check_runs "e2e_first_$suffix"
 first_ok=$succeeded
+
+# Detection and corrections run with ALL_DONE after the ingestion: their own failure would not fail the DAG run.
+for task in detect_anomalies correct_values; do
+  state=$(sql airflow "select state from task_instance where dag_id='$DAG_ID' and run_id='e2e_first_$suffix' and task_id='$task'")
+  [[ "$state" == success ]] || { echo "task $task: ${state:-missing}"; false; }
+done
+# One day of data is too little for most detectors to flag anything: the count is shown, not required.
+echo "anomalies by detector: $(sql warehouse "select coalesce(string_agg(detector || '=' || n, ' '), 'none') from (select detector, count(*) as n from silver.anomalies group by 1 order by 1) as a")"
 gold_1=$(sql warehouse "select count(*) from gold.fct_observations")
 checks=$(sql warehouse "select count(*) from quality.check_results")
 echo "gold=$gold_1 quality_checks=$checks succeeded:$first_ok"
@@ -143,4 +151,23 @@ api_rows=$(curl -sf "http://localhost:${API_PORT:-8000}/v1/observations?source=$
 echo "REST API: /v1/health ok, $api_rows $api_source observations on the first page"
 (( api_rows > 0 )) || { echo "REST API returned no observations"; false; }
 
-echo "E2E OK: data in bronze/silver/gold, reruns are idempotent and the REST API serves them"
+# The export gives the same values as a file: a header and one line per value (the default window, 7 days).
+api=http://localhost:${API_PORT:-8000}/v1
+export_headers=$(mktemp)
+export_lines=$(curl -sf -D "$export_headers" "$api/observations/export?source=$api_source&format=csv" | wc -l)
+export_total=$(grep -i '^x-total-count:' "$export_headers" | tr -dc '0-9')
+rm -f "$export_headers"
+echo "REST API: export of $api_source with $export_total values in $export_lines lines"
+(( export_total > 0 && export_lines == export_total + 1 )) || { echo "the CSV export does not match its count"; false; }
+parquet=$(mktemp)
+curl -sf -o "$parquet" "$api/observations/export?source=$api_source&format=parquet"
+[[ "$(head -c 4 "$parquet")" == PAR1 ]] || { echo "the Parquet export is not a Parquet file"; false; }
+rm -f "$parquet"
+
+# A mart rebuilt once a day is answered from the cache once it has been asked for. Each of the API's two workers
+# keeps its own cache, so a few requests are made and at least one must be a hit.
+cache=$(for _ in 1 2 3 4 5 6; do curl -sf -o /dev/null -D - "$api/climate/monthly" | grep -i '^x-cache:' | tr -d '\r' | cut -d' ' -f2; done | tr '\n' ' ')
+echo "REST API: /v1/climate/monthly cache $cache"
+[[ "$cache" == *HIT* ]] || { echo "the monthly marts are not cached"; false; }
+
+echo "E2E OK: data in bronze/silver/gold, reruns are idempotent and the REST API serves, exports and caches them"

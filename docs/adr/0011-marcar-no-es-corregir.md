@@ -15,8 +15,9 @@ Tres niveles, cada uno en su propia tabla. Ninguno modifica el valor original:
 
 - **Reglas de calidad.** Etiquetan cada fila como `ok`, `suspect` o `missing` y explican la etiqueta en
   `quality_reasons`.
-- **Detectores de anomalías.** Escriben en `silver.anomalies`. Hay dos complementarios: un z-score robusto y un
-  Isolation Forest multivariante.
+- **Detectores de anomalías.** Escriben en `silver.anomalies`. Al principio eran dos: un z-score robusto y un
+  Isolation Forest multivariante. Desde el 2026-11-14 hay también un residuo estacional y una votación que une el
+  residuo y el bosque. La votación tiene su propia fila por valor marcado, en la misma tabla.
 - **Correcciones.** Proponen un valor en `silver.corrections`, con el método, la fuente de apoyo, el sesgo y una
   confianza. Llegaron el 2026-11-01.
 
@@ -39,8 +40,8 @@ Gold enseña el valor original y el corregido lado a lado.
   14 hPa sin el sesgo y de 0,2 con él.
 - **En contra.**
   - Tres tablas y dos valores por fila en gold.
-  - Los contaminantes muy locales casi nunca tienen una fuente de apoyo, y sus huecos largos se quedan sin corregir
-    a propósito.
+  - Los contaminantes muy locales casi nunca tienen una fuente de apoyo. Desde el 2026-11-14 el NO₂ y el CO usan el
+    perfil semanal de la propia estación; las partículas siguen con sus huecos largos sin corregir, a propósito.
 
 ## Cuándo revisarla
 

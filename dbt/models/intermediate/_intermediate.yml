@@ -26,6 +26,16 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: 0, max_value: 25}
 
+  - name: int_buoy_wave_model_pairs
+    description: Each SOCIB wave buoy paired with its nearest Open-Meteo Marine point within `model_pairing_max_km`.
+    columns:
+      - name: buoy
+        data_tests: [not_null, unique]
+      - name: distance_km
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0, max_value: 25}
+
   - name: int_weather_extremes__daily
     description: Island-wide daily extremes (wettest AEMET station, strongest gust, highest wave) and their flags.
     columns:

@@ -1,14 +1,42 @@
 import { describe, expect, it } from "vitest";
 
-import type { ClimateMonth, ResourcesMonth } from "../api";
+import type { ClimateMonth, ResourcesMonth, TourismMonth, WaterReservesMonth } from "../api";
 import { buildKpi, RAIN_SPEC, RESOURCE_SPECS, TOURISM_SPECS, WATER_SPECS } from "./kpis";
 
+// Rows as the API sends them: every field, null unless the test sets it.
 function month(m: string, fields: Partial<ResourcesMonth>): ResourcesMonth {
   return {
-    month: m, international_tourists: null, tourists_anomaly: null, airport_passengers: null,
-    hotel_bed_occupancy_pct: null, electricity_demand_gwh: null, electricity_demand_anomaly: null,
-    reserves_pct: null, reserves_anomaly_pts: null, rain_mm: null, rain_anomaly: null, temperature_mean_c: null,
-    temperature_anomaly_c: null, ...fields,
+    month: m, hydrological_year: 2026, international_tourists: null, tourists_anomaly: null,
+    international_spending_eur: null, airport_passengers: null, hotel_bed_occupancy_pct: null,
+    electricity_demand_gwh: null, electricity_demand_anomaly: null, reserves_pct: null, reserves_change_1m_pts: null,
+    reserves_anomaly_pts: null, rain_mm: null, rain_hydrological_year_mm: null, rain_anomaly: null,
+    temperature_mean_c: null, temperature_anomaly_c: null, hot_days: null, ...fields,
+  };
+}
+
+function climate(fields: Partial<ClimateMonth>): ClimateMonth {
+  return {
+    month: "2026-10-01", hydrological_year: 2027, rain_stations: 1, rain_mm: null, rain_same_month_mean_mm: null,
+    rain_anomaly: null, rain_hydrological_year_mm: null, rain_hydrological_year_mean_mm: null, wet_days: null,
+    temperature_stations: 1, temperature_mean_c: null, temperature_anomaly_c: null, temperature_max_c: null,
+    hot_days: null, same_month_years: 10, ...fields,
+  };
+}
+
+function tourism(fields: Partial<TourismMonth>): TourismMonth {
+  return {
+    month: "2026-09-01", international_tourists: null, international_spending_eur: null,
+    international_tourist_nights: null, spending_per_tourist_eur: null, hotel_guests: null, hotel_nights: null,
+    hotel_average_stay_nights: null, hotel_bed_occupancy_pct: null, hotels_open: null, hotel_staff: null,
+    airport_passengers: null, international_tourists_yoy: null, airport_passengers_yoy: null, ...fields,
+  };
+}
+
+function water(fields: Partial<WaterReservesMonth>): WaterReservesMonth {
+  return {
+    month: "2026-09-01", hydrological_year: 2026, reserves_pct: 0, change_1m_pts: null, change_12m_pts: null,
+    same_month_mean_pct: null, anomaly_pts: null, aquifers: null, aquifers_below_30_pct: null, lowest_aquifer: null,
+    lowest_aquifer_pct: null, ...fields,
   };
 }
 
@@ -37,11 +65,11 @@ describe("buildKpi", () => {
   });
 
   it("compares the rain of the hydrological year with its mean at the same point", () => {
-    const rows: ClimateMonth[] = [
-      {
-        month: "2026-10-01", hydrological_year: 2027, rain_mm: 40, rain_hydrological_year_mm: 120,
-        rain_hydrological_year_mean_mm: 100, temperature_mean_c: 20, temperature_anomaly_c: 0.5, hot_days: 0,
-      },
+    const rows = [
+      climate({
+        rain_mm: 40, rain_hydrological_year_mm: 120, rain_hydrological_year_mean_mm: 100, temperature_mean_c: 20,
+        temperature_anomaly_c: 0.5, hot_days: 0,
+      }),
     ];
 
     expect(buildKpi(RAIN_SPEC, rows)).toMatchObject({ value: "120", tone: "good", deviation: "+20 % sobre lo normal" });
@@ -66,23 +94,17 @@ describe("buildKpi", () => {
 
 describe("tourism and water figures", () => {
   it("compare tourists with the same month a year earlier, as a plain fact", () => {
-    const rows = [
-      {
-        month: "2026-09-01", international_tourists: 2_200_000, international_spending_eur: null,
-        spending_per_tourist_eur: null, hotel_bed_occupancy_pct: null, airport_passengers: null,
-        international_tourists_yoy: 0.001, airport_passengers_yoy: null,
-      },
-    ];
+    const rows = [tourism({ international_tourists: 2_200_000, international_tourists_yoy: 0.001 })];
 
     expect(buildKpi(TOURISM_SPECS[0]!, rows)).toMatchObject({ value: "2,2 M", deviation: "+0,1 % que hace un año", tone: "neutral" });
   });
 
   it("name the lowest aquifer next to the count below 30 %", () => {
     const rows = [
-      {
-        month: "2026-09-01", hydrological_year: 2026, reserves_pct: 36, same_month_mean_pct: 49.2, anomaly_pts: -13.2,
-        aquifers_below_30_pct: 8, lowest_aquifer: "Son Real",
-      },
+      water({
+        reserves_pct: 36, same_month_mean_pct: 49.2, anomaly_pts: -13.2, aquifers_below_30_pct: 8,
+        lowest_aquifer: "Son Real",
+      }),
     ];
 
     expect(buildKpi(WATER_SPECS[1]!, rows)).toMatchObject({ value: "8", unit: "de 18", deviation: "El más bajo: Son Real" });

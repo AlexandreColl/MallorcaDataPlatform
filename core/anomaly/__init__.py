@@ -2,6 +2,8 @@
 
 from core.anomaly.base import ENTITY_SCORE_COLUMNS, SCORE_COLUMNS, Detector, UnivariateDetector
 from core.anomaly.isolation_forest import IsolationForestDetector
+from core.anomaly.seasonal import SeasonalResidual
+from core.anomaly.vote import Vote
 from core.anomaly.zscore import RobustZScore
 
 __all__ = [
@@ -10,5 +12,7 @@ __all__ = [
     "Detector",
     "IsolationForestDetector",
     "RobustZScore",
+    "SeasonalResidual",
     "UnivariateDetector",
+    "Vote",
 ]

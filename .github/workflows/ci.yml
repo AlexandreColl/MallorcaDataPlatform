@@ -112,6 +112,9 @@ jobs:
             "https://repo1.maven.org/maven2/io/delta/delta-storage/${version}/delta-storage-${version}.jar"
           echo "SPARK_EXTRA_JARS=$HOME/spark-jars/delta-spark.jar,$HOME/spark-jars/delta-storage.jar" >> "$GITHUB_ENV"
       - run: scripts/ci/retry.sh pip install -r requirements/dev.txt
+      # The annotations ruff requires are checked too: core and api, with the libraries of the tests installed.
+      - name: Type check (mypy)
+        run: mypy
       - run: pytest --cov=core --cov=connectors --cov=api --cov-report=term-missing --cov-report=xml
       # The core (the platform without the source-specific connectors) keeps at least 80 % coverage, branches
       # included. dbt-docs.yml publishes the report and the README badge from this artifact.

@@ -12,7 +12,17 @@ import { ACCESS_LABELS, slaText, sourceState, STATE_LABELS } from "../lib/source
 
 const DETECTORS: Record<string, { label: string; color: string }> = {
   robust_zscore: { label: "Z-score robusto", color: "#d97706" },
+  seasonal_residual: { label: "Residuo estacional", color: "#0891b2" },
   isolation_forest: { label: "Isolation Forest", color: "#7c3aed" },
+  vote: { label: "Votación (estacional o bosque)", color: "#475569" },
+};
+
+/** The detector whose flags are the platform's answer: the vote, which already includes what its members flag. */
+const COMBINED = "vote";
+
+/** How a station hour was corrected (core/corrections/methods.py). */
+const METHODS: Record<string, string> = {
+  interpolation: "Interpolación", support: "Fuente de apoyo", profile: "Perfil semanal",
 };
 
 /** Why a station hour had no valid value. */
@@ -48,7 +58,8 @@ function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRul
   const runs = active.reduce((n, s) => n + s.runs_7d, 0);
   const failed = active.reduce((n, s) => n + s.failed_7d, 0);
   const down = active.reduce((n, s) => n + s.unavailable_7d, 0);
-  const flagged = anomalies.reduce((n, a) => n + a.anomalies, 0);
+  const combined = anomalies.filter((a) => a.detector === COMBINED);
+  const flagged = (combined.length > 0 ? combined : anomalies).reduce((n, a) => n + a.anomalies, 0);
   return [
     {
       id: "sources", label: "Fuentes al día", value: `${ok}`, unit: `de ${active.length}`, month: "Carga correcta en 36 h y dentro de su SLA",
@@ -80,7 +91,7 @@ function AnomaliesPerDay({ rows }: { rows: AnomaliesDay[] }) {
       xAxis: { type: "category", data: dates.map(dayShort) },
       yAxis: { type: "value" },
       series: Object.entries(DETECTORS).map(([detector, { label, color }]) => ({
-        name: label, type: "bar", stack: "total", color,
+        name: label, type: "bar", color, // side by side: the vote repeats what its members flag
         data: dates.map((d) => rows.find((r) => r.local_date === d && r.detector === detector)?.anomalies ?? 0),
       })),
     };
@@ -203,7 +214,7 @@ export function Operations() {
                   { label: "Hora", value: (c) => `${dayShort(c.ts)} ${c.ts.slice(11, 16)}` },
                   { label: "Original", value: (c) => (c.original_value === null ? (QUALITY[c.original_quality] ?? c.original_quality) : number(c.original_value, 1)), numeric: true },
                   { label: "Corregido", value: (c) => `${number(c.corrected_value, 1)} ${c.unit ?? ""}`, numeric: true },
-                  { label: "Método", value: (c) => (c.method === "support" ? "Fuente de apoyo" : "Interpolación") },
+                  { label: "Método", value: (c) => METHODS[c.method] ?? c.method },
                   { label: "Confianza", value: (c) => `${number(c.confidence * 100)} %`, numeric: true },
                 ]}
               />

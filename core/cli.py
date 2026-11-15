@@ -12,6 +12,8 @@ Examples:
     python -m core.cli silver-history
     python -m core.cli silver-changes --version 12 --sources aemet
     python -m core.cli silver-maintain
+    python -m core.cli new-connector water_quality
+    python -m core.cli record-fixtures redata --days 1
 """
 
 from __future__ import annotations
@@ -139,11 +141,13 @@ def _cmd_evaluate_corrections(args: argparse.Namespace) -> int:
     rows = run_evaluation(days=args.days, seed=args.seed)
     print(
         f"{'source':<16} {'metric':<21} {'gap':>4} {'hidden':>6} {'fixed':>6} {'support':>7} {'MAE':>8} {'no bias':>8}"
+        f" {'profile':>7} {'MAE':>8} {'line':>8}"
     )
     for r in rows:
         print(
             f"{r['source']:<16} {r['metric']:<21} {r['gap_hours']:>3}h {r['hidden']:>6} {r['corrected']:>6}"
             f" {r['by_support']:>7} {_num(r['mae']):>8} {_num(r['mae_without_bias']):>8}"
+            f" {r['by_profile']:>7} {_num(r['mae_profile']):>8} {_num(r['mae_line']):>8}"
         )
     return 0
 
@@ -221,6 +225,45 @@ def _add_silver_commands(sub: argparse._SubParsersAction) -> None:
     silver_maintain.set_defaults(func=_cmd_silver_maintain)
 
 
+def _cmd_new_connector(args: argparse.Namespace) -> int:
+    from core.connectors.scaffold import new_connector
+
+    for path in new_connector(args.name, Settings.from_env().connectors_dir):
+        print(path)
+    print(f"next: fill in connector.yaml and extractor.py, then make record-fixtures CONNECTOR={args.name}")
+    return 0
+
+
+def _cmd_record_fixtures(args: argparse.Namespace) -> int:
+    from core.connectors.recording import record
+
+    settings = Settings.from_env()
+    manifest = record(
+        args.connector,
+        days=args.days,
+        region_name=args.region,
+        connectors_dir=settings.connectors_dir,
+        regions_dir=settings.regions_dir,
+        max_bytes=int(args.max_mb * 1_000_000),
+    )
+    print(json.dumps({"window": manifest.window.slug, "responses": [r.file for r in manifest.recordings]}))
+    return 0
+
+
+def _add_connector_tools(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The commands that help write a connector."""
+    scaffold = sub.add_parser("new-connector", help="write the folder of a new connector, ready to fill in")
+    scaffold.add_argument("name", help="snake_case, e.g. water_quality")
+    scaffold.set_defaults(func=_cmd_new_connector)
+
+    recording = sub.add_parser("record-fixtures", help="record a connector's real responses as its test fixtures")
+    recording.add_argument("connector")
+    recording.add_argument("--days", type=int, default=1, help="window to record (at least the connector's min_days)")
+    recording.add_argument("--region", default="mallorca")
+    recording.add_argument("--max-mb", type=float, default=2.0, help="largest response to keep in git")
+    recording.set_defaults(func=_cmd_record_fixtures)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and run a sub-command. Returns the process exit code."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -228,6 +271,8 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("list", help="list connectors and regions").set_defaults(func=_cmd_list)
+
+    _add_connector_tools(sub)
     sub.add_parser("init", help="create buckets and warehouse schema").set_defaults(func=_cmd_init)
 
     run = sub.add_parser("run", help="run the pipeline for one or more connectors")

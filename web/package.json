@@ -1,7 +1,7 @@
 {
   "name": "mallorca-data-platform-web",
   "private": true,
-  "version": "0.16.2",
+  "version": "0.17.0",
   "description": "Web front end of Mallorca Data Platform: the island in figures, read from the REST API.",
   "type": "module",
   "scripts": {
@@ -19,11 +19,14 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/geojson": "7946.0.16",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
+    "happy-dom": "21.0.4",
     "typescript": "7.0.2",
     "vite": "8.3.7",
     "vitest": "5.1.0"

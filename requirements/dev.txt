@@ -16,3 +16,6 @@ httpx2==2.16.0  # FastAPI TestClient (Starlette deprecates it with httpx)
 pytest==9.2.0
 pytest-cov==7.1.0
 ruff==0.17.4
+mypy==2.4.1  # `make typecheck`: core and api ([tool.mypy] in pyproject.toml)
+types-PyYAML==6.0.12.20261113
+mypy-boto3-s3==1.44.0

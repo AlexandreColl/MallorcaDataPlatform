@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from datetime import date, datetime
 
     from api.database import Database, Row
@@ -201,6 +202,16 @@ LEFT JOIN gold.dim_locations AS l ON l.source = b.station_source AND l.entity = 
 ORDER BY b.temperature_mae_adjusted_c DESC NULLS LAST, b.station
 """
 
+_WAVE_MODEL_BIAS = """
+SELECT b.buoy, l.name AS buoy_name, b.model_point, m.name AS model_point_name, b.distance_km, b.hours_compared,
+       b.wave_height_buoy_mean_m, b.wave_height_model_mean_m, b.wave_height_bias_m, b.wave_height_mae_m,
+       b.wave_height_rmse_m, b.wave_height_correlation, b.model_ratio, b.first_ts, b.last_ts
+FROM gold.agg_wave_model_bias_by_buoy AS b
+LEFT JOIN gold.dim_locations AS l ON l.source = 'socib' AND l.entity = b.buoy
+LEFT JOIN gold.dim_locations AS m ON m.source = 'open_meteo_marine' AND m.entity = b.model_point
+ORDER BY b.buoy
+"""
+
 # The latest hour of each air quality station or model point in the last two days, with its European AQI band.
 _AIR_QUALITY_LATEST = """
 SELECT DISTINCT ON (a.source, a.entity)
@@ -251,6 +262,9 @@ WHERE o.source = %(source)s
 ORDER BY o.ts, o.entity, o.metric
 LIMIT %(limit)s OFFSET %(offset)s
 """
+# The same rows without paging, for the exports, and how many they are.
+_OBSERVATIONS_ALL = _OBSERVATIONS.removesuffix("LIMIT %(limit)s OFFSET %(offset)s\n")
+_OBSERVATIONS_COUNT = f"SELECT count(*) AS n FROM ({_OBSERVATIONS_ALL}) AS export"  # noqa: S608 - constant SQL
 
 _ANOMALIES = """
 SELECT source, entity, metric, ts, detector, value, expected, score, threshold
@@ -325,6 +339,20 @@ class Warehouse:
         """A page of observations of one source, oldest first."""
         params = {"source": source, "metric": metric, "entity": entity, "start": start, "end": end}
         return self.db.fetch_all(_OBSERVATIONS, {**params, "limit": limit, "offset": offset})
+
+    def observations_count(
+        self, *, source: str, metric: str | None, entity: str | None, start: datetime, end: datetime
+    ) -> int:
+        """How many observations an export of these filters would have."""
+        params = {"source": source, "metric": metric, "entity": entity, "start": start, "end": end}
+        return int(self.db.fetch_all(_OBSERVATIONS_COUNT, params)[0]["n"])
+
+    def observations_stream(
+        self, *, source: str, metric: str | None, entity: str | None, start: datetime, end: datetime
+    ) -> Iterator[Row]:
+        """Every observation of these filters, oldest first, one row at a time."""
+        params = {"source": source, "metric": metric, "entity": entity, "start": start, "end": end}
+        return self.db.stream(_OBSERVATIONS_ALL, params)
 
     def anomalies(  # noqa: PLR0913 - one argument per filter, all keyword-only
         self,
@@ -429,6 +457,10 @@ class Warehouse:
     def model_bias(self) -> list[Row]:
         """Error of the weather model against each station, largest first."""
         return self.db.fetch_all(_MODEL_BIAS)
+
+    def wave_model_bias(self) -> list[Row]:
+        """Error of the wave model against each SOCIB buoy."""
+        return self.db.fetch_all(_WAVE_MODEL_BIAS)
 
     def air_quality_latest(self) -> list[Row]:
         """The latest hour of each air quality station and model point."""

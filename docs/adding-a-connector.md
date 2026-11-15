@@ -3,7 +3,9 @@
 1. **Probar la API a mano** y anotar en un issue (`Nuevo conector`): URL, autenticación, frecuencia,
    cobertura en Mallorca, ejemplo de respuesta.
 2. Rama: `git switch develop && git switch -c feature/connector-<nombre>`.
-3. Crear la carpeta:
+3. Crear la carpeta con `make new-connector NAME=<nombre>`. Escribe esto, con el conector desactivado
+   (`enabled: false`), un dataset y una métrica de ejemplo, y un extractor que pide la ventana a una API JSON y lee
+   una lista de registros:
 
 ```
 connectors/<nombre>/
@@ -12,8 +14,8 @@ connectors/<nombre>/
 ├── extractor.py          # clase que hereda de BaseConnector
 ├── README.md             # qué datos trae y sus limitaciones
 └── tests/
-    ├── fixtures/*.json   # respuestas REALES grabadas con curl
-    └── test_<nombre>.py
+    ├── fixtures/         # respuestas REALES: make record-fixtures (más abajo)
+    └── test_<nombre>.py  # reproduce las grabaciones y comprueba que cada valor encaja con el YAML
 ```
 
 4. `connector.yaml`: el campo `name` debe coincidir con la carpeta. `frequency` alimenta la regla de
@@ -46,7 +48,16 @@ connectors/<nombre>/
      pipeline lo guarda en `silver.entities` y la API lo devuelve como `name`. Sin él, la web enseña el identificador.
    - Opcional, solo para redes de transporte: `routes(payload, region) -> Iterable[Route]` da las líneas con su
      recorrido. El pipeline sustituye con ellas las de la fuente en `silver.routes` (ver `core/connectors/gtfs.py`).
-6. Tests contra las fixtures (sin red). Ver `connectors/open_meteo/tests/` como plantilla.
+6. **Grabar las respuestas reales**: `make record-fixtures CONNECTOR=<nombre> DAYS=1`. Ejecuta el `extract` del
+   conector con la API de verdad (con las claves del `.env`), guarda cada respuesta en `tests/fixtures/` y escribe
+   `recorded.json`, que guarda la ventana, la región y, por cada petición, su URL, sus parámetros y su fichero.
+   Los tests las reproducen con `RecordedHttp` (`core/connectors/recording.py`), sin red. Una petición que no se
+   grabó falla, así que si el conector cambia lo que pide, el test lo dice. Para regrabar, se repite el comando:
+   solo se sustituyen `recorded.json` y los ficheros que lista, y si la grabación falla, las anteriores se
+   conservan. Una respuesta de más de 2 MB detiene la grabación (`--max-mb`), porque las fixtures van en git. Para
+   fuentes de eventos, graba una ventana larga (`DAYS=90`): un día tranquilo no trae ninguno. El test generado
+   comprueba que cada valor tiene una métrica del YAML, con su unidad, dentro de la ventana y de su rango; añade los
+   tuyos (ver `connectors/open_meteo/tests/`).
 7. Añadir una fila a `dbt/seeds/dim_sources.csv`: nombre visible en el selector de fuentes de Grafana, tipo de
    datos y la ficha de gobierno, que incluye el dueño, la licencia, el acceso, los datos personales y el SLA
    ([data-governance.md](data-governance.md) dice cómo fijarlo). Los tests de dbt fallan si una fuente de silver no

@@ -199,6 +199,11 @@ services:
       API_DB_USER: ${API_DB_USER:-api_reader}
       API_DB_PASSWORD: ${API_DB_PASSWORD:-api_reader}
       API_CORS_ORIGINS: ${API_CORS_ORIGINS:-*}
+      API_CACHE_SECONDS: ${API_CACHE_SECONDS:-3600}
+      API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-300}
+      # uvicorn reads the client from X-Forwarded-For only on requests from these networks (the web's nginx, on the
+      # compose network), so the rate limit sees each visitor of the web and not the proxy.
+      FORWARDED_ALLOW_IPS: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:

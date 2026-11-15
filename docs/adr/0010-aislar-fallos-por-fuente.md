@@ -42,3 +42,9 @@ Entonces haría falta expresar esas dependencias en el DAG.
     `AirflowFailException`.
 
   Con la EEA sin datos, se pasó de unos 14 minutos de reintentos inútiles a fallar en 7 s.
+- **2026-11-11.** Una fuente caída deja de contar como fallo ([0022](0022-fuente-caida-no-es-un-fallo.md)):
+  - **Cortes** (sin conexión, 5xx): conservan los reintentos y, si la fuente sigue caída en el último, la tarea se
+    omite en lugar de fallar. La ejecución queda `unavailable` en `ops.ingestion_runs`.
+  - **`SourceNotUpdatedError`** (la fuente aún no ha publicado la ventana): ya no falla en el acto. La tarea se omite
+    sin reintentos y la ejecución también queda `unavailable`.
+  - **Otros 4xx** (una URL movida, una clave rechazada): siguen fallando sin reintentos, como `failed`.

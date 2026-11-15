@@ -52,6 +52,9 @@ class FakeDatabase:
                 return rows(params) if callable(rows) else rows
         return []
 
+    def stream(self, sql, params=None):
+        return iter(self.fetch_all(sql, params))
+
     def ping(self):
         return self.up
 
@@ -224,12 +227,14 @@ def test_openapi_documents_every_endpoint(db):
 
     assert set(paths) == {
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
+        "/v1/observations/export",
         "/v1/series", "/v1/series/daily",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/mobility/routes",
         "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
-        "/v1/sea/hourly", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones", "/v1/population",
+        "/v1/sea/hourly", "/v1/sea/model-bias", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
+        "/v1/population",
         "/v1/population/pressure",
         "/v1/municipalities",
         "/v1/quality/rules", "/v1/anomalies/daily",
@@ -267,6 +272,7 @@ def test_settings_from_environment():
         ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),
         ("/v1/air-quality/latest", "gold.air_quality_hourly"),
         ("/v1/sea/hourly", "gold.fct_sea_conditions_hourly"),
+        ("/v1/sea/model-bias", "gold.agg_wave_model_bias_by_buoy"),
         ("/v1/earthquakes", "gold.fct_earthquakes"),
         ("/v1/quality/rules", "gold.data_quality_summary"),
         ("/v1/anomalies/daily", "silver.anomalies"),
@@ -366,3 +372,20 @@ def test_series_lists_a_source_and_returns_one_day_per_row(db):
     assert (query["entity"], query["metric"], str(query["start"])) == ("B228", "t", "2026-11-01")
     assert client(FakeDatabase()).get("/v1/series", params={"source": "nope"}).status_code == 404  # no such source
     assert api.get("/v1/series/daily", params={"source": "aemet"}).status_code == 422  # entity and metric required
+
+
+def test_sea_model_bias_names_the_buoy_and_the_model_point():
+    row = {
+        "buoy": "portocolom_buoy", "buoy_name": "Boya de Portocolom", "model_point": "portocolom",
+        "model_point_name": "Portocolom", "distance_km": 1.4, "hours_compared": 300, "wave_height_buoy_mean_m": 0.8,
+        "wave_height_model_mean_m": Decimal("0.95"), "wave_height_bias_m": Decimal("0.15"), "wave_height_mae_m": 0.2,
+        "wave_height_rmse_m": 0.27, "wave_height_correlation": Decimal("0.912"), "model_ratio": 1.19,
+        "first_ts": TS, "last_ts": TS,
+    }  # fmt: skip
+    db = FakeDatabase({"agg_wave_model_bias_by_buoy": [row]})
+
+    (bias,) = client(db).get("/v1/sea/model-bias").json()
+
+    assert bias["buoy_name"] == "Boya de Portocolom"
+    assert bias["wave_height_bias_m"] == 0.15
+    assert bias["wave_height_correlation"] == 0.912

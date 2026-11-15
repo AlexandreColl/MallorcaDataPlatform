@@ -33,11 +33,21 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from contextlib import AbstractContextManager
 
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import DataFrame, Row, SparkSession
 
     from core.config import Settings
 
 log = logging.getLogger(__name__)
+
+
+def _one(df: DataFrame) -> Row:
+    """The single row of a query that always returns one (DESCRIBE DETAIL, an aggregate without groupBy)."""
+    row = df.first()
+    if row is None:
+        msg = "expected one row, got none"
+        raise RuntimeError(msg)
+    return row
+
 
 DELTA_SPARK_CONFIG = {
     "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
@@ -91,13 +101,21 @@ class SilverTable:
     def _table(self) -> str:
         return f"delta.`{self.path}`"
 
+    def _jvm(self) -> Any:  # noqa: ANN401 - a py4j gateway: its attributes are Java packages
+        """The JVM of the session: the Delta Python package pins an older PySpark, so its JVM API is used instead."""
+        jvm = self.spark._jvm  # noqa: SLF001
+        if jvm is None:
+            msg = "the Spark session has no JVM gateway (a Spark Connect session?)"
+            raise RuntimeError(msg)
+        return jvm
+
     def is_delta(self) -> bool:
         """True once the directory has a Delta transaction log."""
-        jvm = self.spark._jvm  # noqa: SLF001 - the Delta Python package pins an older PySpark: use its JVM API
+        jvm = self._jvm()
         return bool(jvm.io.delta.tables.DeltaTable.isDeltaTable(self.spark._jsparkSession, self.path))  # noqa: SLF001
 
     def _has_files(self) -> bool:
-        jvm = self.spark._jvm  # noqa: SLF001
+        jvm = self._jvm()
         path = jvm.org.apache.hadoop.fs.Path(self.path)
         fs = path.getFileSystem(self.spark._jsc.hadoopConfiguration())  # noqa: SLF001
         return bool(fs.exists(path))
@@ -113,7 +131,7 @@ class SilverTable:
                 return
             log.warning("silver %s is plain Parquet: converting it to Delta", self.path)
             self.spark.sql(f"CONVERT TO DELTA parquet.`{self.path}` PARTITIONED BY (source STRING, date DATE)")
-        detail = self.spark.sql(f"DESCRIBE DETAIL {self._table}").first()
+        detail = _one(self.spark.sql(f"DESCRIBE DETAIL {self._table}"))
         if tuple(detail["partitionColumns"]) != PARTITIONS:
             self._relayout(detail["partitionColumns"])
         if detail["properties"].get("delta.enableChangeDataFeed") != "true":
@@ -169,9 +187,11 @@ class SilverTable:
     @staticmethod
     def _pruning(rows: DataFrame) -> str:
         """Literal partition values of the run: Delta prunes the target files and other sources' writers stay apart."""
-        bounds = rows.agg(
-            F.min("date").alias("first"), F.max("date").alias("last"), F.collect_set("source").alias("sources")
-        ).first()  # one Spark job
+        bounds = _one(  # one Spark job
+            rows.agg(
+                F.min("date").alias("first"), F.max("date").alias("last"), F.collect_set("source").alias("sources")
+            )
+        )
         sources = ", ".join(f"'{s}'" for s in sorted(bounds["sources"]))  # connector names: [a-z0-9_]
         return f"t.source IN ({sources}) AND t.date BETWEEN '{bounds['first']}' AND '{bounds['last']}'"
 
@@ -230,9 +250,9 @@ class SilverTable:
             ValueError: for a version before the table recorded its changes (the old lake, until it was rewritten).
         """
         latest = self.history(limit=1)[0]["version"]
-        first = self._first_change_feed_version()
-        if version < first - 1:
-            msg = f"silver records its changes from version {first}: ask for version {first - 1} or later"
+        oldest = self._first_change_feed_version()
+        if version < oldest - 1:
+            msg = f"silver records its changes from version {oldest}: ask for version {oldest - 1} or later"
             raise ValueError(msg)
         feed = (
             self.spark.read.format("delta")

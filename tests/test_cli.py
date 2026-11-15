@@ -152,10 +152,20 @@ def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):
     )
 
     cli.main(
-        ["backfill", "--connectors", "socib", "--start", "2026-01-01", "--end", "2026-03-31", "--chunk-days", "400"]
+        [
+            "backfill",
+            "--connectors",
+            "open_meteo",
+            "--start",
+            "2026-01-01",
+            "--end",
+            "2026-06-30",
+            "--chunk-days",
+            "400",
+        ]
     )
 
-    assert max(w.n_days for w in windows) == 61  # SOCIB allows 61 days per run
+    assert max(w.n_days for w in windows) == 92  # Open-Meteo serves 92 days per request
 
 
 def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsys):
@@ -168,9 +178,13 @@ def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsy
     def fake_evaluate(days, seed):
         seen["evaluate"] = (days, seed)
         row = {"source": "socib", "metric": "temperature_2m", "hidden": 16, "corrected": 16}
+        nan = float("nan")
+        no_profile = {"by_profile": 0, "mae_profile": nan, "mae_line": nan}
+        by_profile = {"by_profile": 16, "mae_profile": 3.3, "mae_line": 4.7}
         return [
-            {**row, "gap_hours": 3, "by_support": 0, "mae": 0.41, "mae_without_bias": float("nan")},
-            {**row, "gap_hours": 24, "by_support": 16, "mae": 0.95, "mae_without_bias": 1.62},
+            {**row, "gap_hours": 3, "by_support": 0, "mae": 0.41, "mae_without_bias": float("nan"), **no_profile},
+            {**row, "gap_hours": 24, "by_support": 16, "mae": 0.95, "mae_without_bias": 1.62, **no_profile},
+            {**row, "gap_hours": 24, "by_support": 0, "mae": 3.3, "mae_without_bias": nan, **by_profile},
         ]
 
     monkeypatch.setattr(core.corrections.runner, "correct_values", fake_correct)
@@ -182,9 +196,10 @@ def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsy
     assert seen == {"correct": (30, ["socib"], "c1"), "evaluate": (7, 3)}
     lines = capsys.readouterr().out.splitlines()
     assert json.loads(lines[0]) == {"start": "2026-10-01", "end": "2026-10-14"}
-    assert lines[1].split() == ["source", "metric", "gap", "hidden", "fixed", "support", "MAE", "no", "bias"]
-    assert lines[2].split() == ["socib", "temperature_2m", "3h", "16", "16", "0", "0.41"]
-    assert lines[3].split() == ["socib", "temperature_2m", "24h", "16", "16", "16", "0.95", "1.62"]
+    assert " ".join(lines[1].split()) == "source metric gap hidden fixed support MAE no bias profile MAE line"
+    assert lines[2].split() == ["socib", "temperature_2m", "3h", "16", "16", "0", "0.41", "0"]
+    assert lines[3].split() == ["socib", "temperature_2m", "24h", "16", "16", "16", "0.95", "1.62", "0"]
+    assert lines[4].split() == ["socib", "temperature_2m", "24h", "16", "16", "0", "3.30", "16", "3.30", "4.70"]
 
 
 class _FakeSilver:

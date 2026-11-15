@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 import numpy as np
@@ -10,12 +11,15 @@ from core.corrections.evaluation import evaluate, hide_gaps
 from core.corrections.methods import (
     ABSENT,
     INTERPOLATION,
+    PROFILE,
     SUPPORT,
     Candidate,
     InterpolationParams,
+    ProfileParams,
     SupportParams,
     calibrate,
     correct_series,
+    weekly_profile,
 )
 from core.corrections.runner import CorrectionConfig, Neighbours, correct_all, haversine_km
 from core.models import Quality, TimeWindow
@@ -331,3 +335,99 @@ def test_the_repository_config_loads():
     assert set(config.targets) == {"socib", "eea_air_quality"}
     assert config.read_sources() == ["eea_air_quality", "open_meteo", "socib"]
     assert config.only(["socib"]).targets == {"socib": ("socib", "open_meteo")}
+    assert config.profile_for("nitrogen_dioxide") is not None
+    assert config.profile_for("pm10") is None  # the weather, not the clock, drives it
+
+
+PROFILE_PARAMS = ProfileParams(
+    metrics=frozenset({"nitrogen_dioxide"}), min_days=14, min_correlation=0.2, gap_scale_hours=48
+)
+
+
+def _traffic(hours: pd.DatetimeIndex, seed: int = 0) -> pd.Series:
+    """NO2 near a road: rush hours on weekdays in local time, a flat weekend, noise and a slow change of level."""
+    local = hours.tz_convert("Europe/Madrid")
+    weekday = local.dayofweek < 5
+    rush = np.exp(-(((local.hour - 8) / 1.5) ** 2)) + np.exp(-(((local.hour - 19) / 2) ** 2))
+    level = 3 * np.sin(2 * np.pi * np.arange(len(hours)) / (24 * 11))
+    noise = np.random.default_rng(seed).normal(0, 1.5, len(hours))
+    return pd.Series(15 + level + 25 * rush * weekday + 5 * rush * ~weekday + noise, index=hours)
+
+
+def _correct_traffic(observations, candidates=(), profile=PROFILE_PARAMS):
+    return correct_series(
+        observations,
+        list(candidates),
+        start=WINDOW_START,
+        end=WINDOW_END,
+        interpolation=INTERPOLATE,
+        support=SUPPORT_PARAMS,
+        profile=profile,
+    )
+
+
+def test_a_long_gap_without_a_support_takes_the_weekly_profile():
+    no2 = _traffic(HOURS)
+    gap = _hours("2026-10-05 22:00", 24)  # a Monday night to a Tuesday night: the rush hours are inside
+    corrected, support = _correct_traffic(_observations(no2, missing=gap))
+
+    assert support is None
+    assert corrected["ts"].tolist() == list(gap)
+    assert set(corrected["method"]) == {PROFILE}
+    truth = no2.reindex(gap).to_numpy()
+    error = np.abs(corrected["corrected_value"].to_numpy() - truth).mean()
+    before, after = no2[gap[0] - pd.Timedelta(hours=1)], no2[gap[-1] + pd.Timedelta(hours=1)]
+    line = np.abs(np.linspace(before, after, len(gap) + 2)[1:-1] - truth).mean()
+    assert error < 3  # the noise alone is 1.5
+    assert error < line / 2  # a straight line across the gap misses both rush hours
+    assert corrected[["support_source", "support_entity"]].isna().all().all()
+    assert (corrected["confidence"] < np.exp(-24 / 48)).all()  # r^2 * exp(-gap / 2 days)
+
+
+def test_the_profile_follows_the_local_clock_and_the_weekend():
+    profile = weekly_profile(_traffic(HOURS), PROFILE_PARAMS)
+
+    assert profile is not None
+    assert profile.correlation > 0.8
+    monday_8 = profile.expected(pd.DatetimeIndex([pd.Timestamp("2026-10-05 06:00", tz="UTC")]))  # 08:00 CEST
+    sunday_8 = profile.expected(pd.DatetimeIndex([pd.Timestamp("2026-10-04 06:00", tz="UTC")]))
+    assert monday_8.iloc[0] > sunday_8.iloc[0] + 15
+
+
+def test_a_profile_needs_enough_days():
+    assert weekly_profile(_traffic(HOURS[: 10 * 24]), PROFILE_PARAMS) is None
+    assert weekly_profile(pd.Series(dtype=float), PROFILE_PARAMS) is None
+
+
+def test_a_support_is_preferred_to_the_profile_and_no_profile_is_no_correction():
+    no2 = _traffic(HOURS)
+    gap = _hours("2026-10-05 22:00", 24)
+    twin = Candidate("eea_air_quality", "twin", 2, no2 + 1)
+    corrected, support = _correct_traffic(_observations(no2, missing=gap), [twin])
+    assert support is not None
+    assert set(corrected["method"]) == {SUPPORT}
+
+    corrected, _ = _correct_traffic(_observations(no2, missing=gap), profile=None)
+    assert corrected.empty
+
+
+def test_the_profile_is_only_used_for_its_metrics():
+    config = replace(CONFIG, profile=PROFILE_PARAMS)
+    assert config.profile_for("nitrogen_dioxide") is PROFILE_PARAMS
+    assert config.profile_for("pm10") is None
+    assert CONFIG.profile_for("nitrogen_dioxide") is None
+
+
+def test_benchmark_compares_the_profile_with_a_straight_line():
+    coords = {("eea_air_quality", "foners"): (39.57, 2.66)}
+    silver = _silver({("eea_air_quality", "foners", "nitrogen_dioxide"): _traffic(HOURS)}, coords)
+    config = replace(
+        CONFIG,
+        targets={"eea_air_quality": ("eea_air_quality",)},
+        profile=PROFILE_PARAMS,
+        evaluation={"gap_hours": [24], "gaps_per_series": 3},
+    )
+    result = evaluate(silver, config, WINDOW_START, WINDOW_END, seed=0).set_index("gap_hours")
+
+    assert result.loc[24, "by_profile"] == result.loc[24, "hidden"] == 72
+    assert result.loc[24, "mae_profile"] < result.loc[24, "mae_line"]

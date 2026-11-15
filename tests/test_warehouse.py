@@ -6,14 +6,14 @@ is deleted afterwards.
 """
 
 import os
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
 
 from core.config import Settings
 from core.models import Entity, Route, TimeWindow
-from core.warehouse import Warehouse
+from core.warehouse import ABANDONED_AFTER, INTERRUPTED_ERROR, Warehouse
 
 pytestmark = [
     pytest.mark.integration,
@@ -139,6 +139,28 @@ def test_a_retried_run_starts_again_from_running(warehouse):
             (SOURCE,),
         ).fetchone()
     assert (status, error, finished) == ("running", None, None)
+
+
+def test_a_run_left_running_is_closed_as_failed_by_the_next_one(warehouse):
+    warehouse.start_run("old", SOURCE, "mallorca", WINDOW)  # the computer was turned off during this one
+    warehouse.start_run("recent", SOURCE, "mallorca", WINDOW)  # still going (another task of the same source)
+    with warehouse.connect() as conn:
+        conn.execute(
+            "UPDATE ops.ingestion_runs SET started_at = now() - %s WHERE run_id = 'old' AND source = %s",
+            (ABANDONED_AFTER + timedelta(minutes=1), SOURCE),
+        )
+
+    warehouse.start_run("new", SOURCE, "mallorca", WINDOW)
+
+    with warehouse.connect() as conn:
+        found = conn.execute(
+            "SELECT run_id, status, error, finished_at IS NOT NULL FROM ops.ingestion_runs WHERE source = %s",
+            (SOURCE,),
+        ).fetchall()
+    rows = {run_id: tuple(rest) for run_id, *rest in found}
+    assert rows["old"] == ("failed", INTERRUPTED_ERROR, True)
+    assert rows["recent"] == ("running", None, False)
+    assert rows["new"] == ("running", None, False)
 
 
 def test_quality_results_of_a_rerun_overwrite_the_previous_ones(warehouse):

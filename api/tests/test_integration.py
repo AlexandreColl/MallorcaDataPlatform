@@ -58,6 +58,7 @@ def test_health(api):
         "/v1/municipalities",
         "/v1/air-quality/latest",
         "/v1/sea/hourly?start=2016-01-01T00:00:00Z",
+        "/v1/sea/model-bias",
         "/v1/earthquakes",
         "/v1/quality/rules",
         "/v1/anomalies/daily?start=2016-01-01T00:00:00Z",
@@ -91,3 +92,15 @@ def test_the_role_cannot_write(api):
     db = api.app.state.warehouse.db
     with pytest.raises(Exception, match=r"read-only|permission denied"):
         db.fetch_all("DELETE FROM gold.dim_sources")
+
+
+@pytest.mark.parametrize("fmt", ["csv", "parquet"])
+def test_export_reads_through_a_server_side_cursor(api, fmt):
+    params = {"source": "aemet", "start": "2016-01-01T00:00:00Z", "end": "2017-01-01T00:00:00Z", "format": fmt}
+    response = api.get("/v1/observations/export", params=params)
+
+    assert response.status_code == 200, response.text
+    assert int(response.headers["x-total-count"]) >= 0
+    if fmt == "csv":
+        assert response.text.splitlines()[0] == "source,entity,metric,ts,value,unit,quality,lat,lon"
+        assert len(response.text.splitlines()) == int(response.headers["x-total-count"]) + 1

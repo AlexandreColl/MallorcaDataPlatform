@@ -5,10 +5,12 @@ A series is corrected on its hourly grid between its first and last valid value.
 
 * up to ``max_gap_hours``: time interpolation between the station's own values around the gap;
 * longer: the best correlated nearby series of the same metric (another station or a model point), shifted by its
-  bias calibrated per hour of the day on the hours both series share.
+  bias calibrated per hour of the day on the hours both series share;
+* longer and without such a support: the station's own weekly profile (the median of each local hour on weekdays
+  and on weekends), moved to the level of the values around the gap.
 
-Hours with no possible correction (a long gap without a usable support) stay uncorrected. Every correction carries
-a confidence between 0 and 1.
+Hours with no possible correction (a long gap without a usable support or profile) stay uncorrected. Every
+correction carries a confidence between 0 and 1.
 """
 
 from __future__ import annotations
@@ -27,7 +29,10 @@ if TYPE_CHECKING:
 
 INTERPOLATION = "interpolation"
 SUPPORT = "support"
+PROFILE = "profile"
+METHODS = (INTERPOLATION, SUPPORT, PROFILE)
 ABSENT = "absent"  # original_quality of an hour without a row in silver.observations
+LOCAL_TZ = "Europe/Madrid"  # traffic follows the clock of the island, summer time included
 
 CORRECTION_COLUMNS = (
     "ts",
@@ -41,6 +46,7 @@ CORRECTION_COLUMNS = (
     "confidence",
 )
 _HOUR = pd.Timedelta(hours=1)
+_SATURDAY = 5  # pandas numbers the days of the week from Monday = 0
 
 
 @dataclass(frozen=True)
@@ -78,6 +84,60 @@ class SupportParams:
 
 
 @dataclass(frozen=True)
+class ProfileParams:
+    """``profile`` block of ``config/corrections.yaml``."""
+
+    metrics: frozenset[str]  # the profile beats a straight line only where the clock drives the series (traffic)
+    min_days: int
+    min_correlation: float
+    gap_scale_hours: float
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ProfileParams:
+        """Build from the parsed YAML block."""
+        return cls(
+            frozenset(data["metrics"]),
+            int(data["min_days"]),
+            float(data["min_correlation"]),
+            float(data["gap_scale_hours"]),
+        )
+
+
+def _slots(ts: pd.DatetimeIndex) -> pd.MultiIndex:
+    """(weekend, local hour) of every timestamp."""
+    local = ts.tz_convert(LOCAL_TZ)
+    return pd.MultiIndex.from_arrays([local.dayofweek >= _SATURDAY, local.hour], names=["weekend", "hour"])
+
+
+@dataclass(frozen=True)
+class Profile:
+    """The usual value of a station at each local hour of a weekday and of a weekend day."""
+
+    by_slot: pd.Series  # median indexed by (weekend, hour)
+    correlation: float  # Pearson r of the station's valid values and the profile at their hours
+
+    def expected(self, ts: pd.DatetimeIndex) -> pd.Series:
+        """The profile at ``ts`` (NaN at a slot without values)."""
+        return pd.Series(self.by_slot.reindex(_slots(ts)).to_numpy(), index=ts)
+
+    def confidence(self, gap_hours: pd.Series, params: ProfileParams) -> pd.Series:
+        """How much of the series the profile explains (r squared), discounted by the length of the gap."""
+        return self.correlation**2 * np.exp(-gap_hours / params.gap_scale_hours)
+
+
+def weekly_profile(valid: pd.Series, params: ProfileParams) -> Profile | None:
+    """The station's profile over its valid values, or None with fewer than ``min_days`` days of them."""
+    if valid.empty or valid.index.tz_convert(LOCAL_TZ).normalize().nunique() < params.min_days:
+        return None
+    slots = _slots(pd.DatetimeIndex(valid.index))
+    by_slot = valid.groupby(slots).median()
+    expected = by_slot.reindex(slots).to_numpy()
+    if valid.std() == 0 or np.std(expected) == 0:
+        return None
+    return Profile(by_slot, float(np.corrcoef(valid.to_numpy(), expected)[0, 1]))
+
+
+@dataclass(frozen=True)
 class Candidate:
     """A series that may stand in for the station: same metric, another location."""
 
@@ -105,6 +165,13 @@ class Calibration:
         """Correlation squared, discounted by distance and by the length of the gap."""
         distance = math.exp(-self.candidate.distance_km / params.distance_scale_km)
         return self.correlation**2 * distance * np.exp(-gap_hours / params.gap_scale_hours)
+
+
+def _only_where(mask: np.ndarray, value: object) -> np.ndarray:
+    """``value`` where ``mask`` holds and None elsewhere, in an object array (None, not NaN, is a NULL in Postgres)."""
+    out = np.full(len(mask), None, dtype=object)
+    out[mask] = value
+    return out
 
 
 def calibrate(station: pd.Series, candidate: Candidate, params: SupportParams) -> Calibration | None:
@@ -137,6 +204,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
     end: pd.Timestamp,
     interpolation: InterpolationParams,
     support: SupportParams,
+    profile: ProfileParams | None = None,
 ) -> tuple[pd.DataFrame, Calibration | None]:
     """Correct the hours of one series in ``[start, end)``.
 
@@ -147,6 +215,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
         end: end of the window (exclusive).
         interpolation: parameters of method 1.
         support: parameters of method 2.
+        profile: parameters of method 3 (None: long gaps without a support stay uncorrected).
 
     Returns:
         ``CORRECTION_COLUMNS``, one row per corrected hour, and the support used (None when there was none).
@@ -166,7 +235,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
     interpolated = values.interpolate(method="time", limit_area="inside")
     short = gap & gap_hours.le(interpolation.max_gap_hours)
     corrected = interpolated.where(short)
-    method = pd.Series(np.where(short, INTERPOLATION, None), index=grid, dtype=object)
+    method = pd.Series(_only_where(short.to_numpy(dtype=bool), INTERPOLATION), index=grid, dtype=object)
     confidence = interpolation.confidence(gap_hours).where(short)
     if calibration is not None:
         substituted = calibration.corrected(grid)
@@ -176,10 +245,21 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
         confidence = confidence.mask(long, calibration.confidence(gap_hours, support))
     else:
         long = pd.Series(data=False, index=grid)
+    usual = weekly_profile(valid, profile) if profile is not None else None
+    if profile is not None and usual is not None and usual.correlation >= profile.min_correlation:
+        expected = usual.expected(grid)
+        # The profile moved to the level around the gap: the station's difference from it on each side, interpolated
+        # across the gap, so a day with more traffic or a stagnant air mass keeps its level.
+        level = (values - expected).interpolate(method="time", limit_area="inside")
+        estimate = expected + level
+        rest = gap & ~short & ~long & estimate.notna()
+        corrected = corrected.mask(rest, estimate)
+        method = method.mask(rest, PROFILE)
+        confidence = confidence.mask(rest, usual.confidence(gap_hours, profile))
 
     keep = corrected.notna() & (grid >= start) & (grid < end)
     hours = grid[keep]
-    by_support = long[keep].to_numpy()
+    by_support = long[keep].to_numpy(dtype=bool)
     source, entity = (calibration.candidate.source, calibration.candidate.entity) if calibration else (None, None)
     bias = calibration.bias_by_hour.reindex(hours.hour).to_numpy() if calibration else np.full(len(hours), np.nan)
     result = pd.DataFrame(
@@ -189,8 +269,8 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
             "original_quality": rows["quality"].reindex(hours).fillna(ABSENT).to_numpy(),
             "corrected_value": corrected[keep].round(3).to_numpy(),
             "method": method[keep].to_numpy(),
-            "support_source": np.where(by_support, source, None),
-            "support_entity": np.where(by_support, entity, None),
+            "support_source": _only_where(by_support, source),
+            "support_entity": _only_where(by_support, entity),
             "bias": np.where(by_support, np.round(bias, 3), np.nan),
             "confidence": confidence[keep].round(3).to_numpy(),
         }

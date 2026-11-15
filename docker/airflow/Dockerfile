@@ -73,9 +73,9 @@ ENV DBT_PACKAGES_INSTALL_PATH=/opt/dbt/packages
 RUN cd /opt/project/dbt && /opt/dbt-venv/bin/dbt deps --log-path /tmp/dbt-deps-logs && rm -rf /tmp/dbt-deps-logs
 COPY --chown=airflow:0 dags /opt/project/dags
 
-# Dev image: adds test/lint tooling (used by `make test` and `make lint`).
+# Dev image: adds test/lint tooling (used by `make test`, `make lint` and `make typecheck`).
 FROM runtime AS dev
 ARG RUFF_VERSION=0.17.4
 ARG AIRFLOW_PIN
 ARG AIRFLOW_CONSTRAINTS
-RUN pip install --no-cache-dir "${AIRFLOW_PIN}" pytest pytest-cov "ruff==${RUFF_VERSION}" --constraint "${AIRFLOW_CONSTRAINTS}"
+RUN pip install --no-cache-dir "${AIRFLOW_PIN}" pytest pytest-cov "ruff==${RUFF_VERSION}" mypy types-PyYAML mypy-boto3-s3 --constraint "${AIRFLOW_CONSTRAINTS}"

@@ -5,6 +5,74 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-15
+
+### Added
+
+- SOCIB's wave buoys against the Open-Meteo Marine model: `fct_wave_model_comparison_hourly` pairs each buoy with
+  the nearest model point and compares the significant wave height hour by hour, `agg_wave_model_bias_by_buoy`
+  sums it up (bias, mean error, RMSE, correlation, model over buoy), `GET /v1/sea/model-bias` serves it and the web
+  shows it in Tiempo y entorno. From August to mid-November: the Bay of Palma, 2,498 hours with r = 0.80; Portocolom,
+  361 hours with r = 0.63.
+- SOCIB reads its archive: the days before the current `latest` file come from the monthly files, one request per
+  month and deployment, so `make backfill CONNECTORS=socib` loads the history (`max_days` 366). It also reads the
+  waves of the two active buoys, the Bay of Palma and Portocolom: significant and maximum height (`wave_height`,
+  `wave_height_max`), hourly from half-hour records. There is no tide gauge: SOCIB's Mallorca sea-level folders
+  are empty since 2024 and its tide gauges stop in 2019-2020.
+- Anomaly detector `seasonal_residual`: each value, and each change since the previous one, against the same hour on
+  the three days before and after (the same weekday for daily series). It is the first to see a wrong clock: 61 %
+  of the injected time shifts, where the z-score and the forest see 6 %, with 81 % precision.
+- Detector `vote`, the union of `seasonal_residual` and `isolation_forest`: 98 % of the spikes, 50 % of the frozen
+  sensors and 61 % of the time shifts with 81 % precision. Its members take the parameters of their own entry in
+  `config/anomaly.yaml`; `min_votes` turns the union into a majority. The web counts its flags as the anomalies
+  of the platform, and Grafana and the API name the new detectors.
+- `make new-connector NAME=x` writes the folder of a new connector, disabled until it works: its YAML, an extractor
+  for a JSON API, a README and a test. `make record-fixtures CONNECTOR=x` runs the connector against the real API
+  and keeps every response in `tests/fixtures/` with a `recorded.json`; `RecordedHttp` replays them without a
+  network and fails on a request that was not recorded. The generated test checks that every value has a metric
+  of the YAML, its unit, and falls in the window and in its range.
+- Correction method `profile` for the long gaps of NO2 and CO, which almost never have a support with r ≥ 0.6: the
+  station's own median of each local hour on weekdays and on weekends, moved to the level of the values around the
+  gap. In 24-hour gaps it corrects 532 of 720 hidden NO2 hours that stayed empty, with an error of 3.3 µg/m³
+  against 4.7 for a straight line; CO, 77 against 168. PM and ozone do not use it: there it is no better than a
+  line. `make evaluate-corrections` reports the profile and the line side by side, and warehouses created earlier
+  accept the new method.
+- `GET /v1/observations/export`: the values of a source as a CSV file, streamed from a Postgres server-side cursor,
+  or as Parquet (zstd, `ts` in UTC), up to 366 days and a million values. The web's series explorer links both for
+  the chosen series and period.
+- The API caches for an hour the marts that change once a day (reserves, climate, tourism, resources, population,
+  municipalities), with an `ETag` that returns 304, and limits each client to 300 requests a minute (429 with
+  `Retry-After`, `RateLimit-*` headers). Both live in each API process, without Redis (ADR 0023);
+  `API_CACHE_SECONDS` and `API_RATE_LIMIT_PER_MINUTE` set or turn them off.
+
+### Fixed
+
+- A run left `running` because its process stopped (the computer turned off, the worker killed) and that Airflow
+  did not retry is no longer shown as running forever: the next run of the source closes it as `failed`, with the
+  error "Interrupted", once it is 12 h old. The Spark cache of a run is released also when its write fails.
+
+### Changed
+
+- The E2E also checks that the detection and correction tasks succeed (they run with `all_done`, so their failure
+  would not fail the DAG run), that the export gives a CSV matching its count and a Parquet file, and that a
+  monthly mart is answered from the cache. It prints how many values each detector flagged.
+- The statuses of a run (`running`, `success`, `failed`, `unavailable`) are one list in `core.warehouse.RunStatus`,
+  and `tests/test_run_statuses.py` checks that the table CHECK, the dbt test, the API model, `source_health`, the
+  Grafana colours, the SLA alert and the web list the same ones. The API documents `last_status` as an enum.
+  ADR 0010 records how ADR 0022 changed its handling of outages.
+- mypy checks the annotations of `core/` and `api/` in the CI and with `make typecheck`. It found places where a
+  Spark query that always returns one row, or a missing JVM gateway, would have failed with an unclear error; they
+  now raise a clear one.
+- The web's types are generated from the OpenAPI schema of the API (`web/src/api.gen.ts`, `make web-types`), and a
+  test fails when the committed file is out of date. They replace the hand-written copy in `web/src/api.ts`, which
+  had fallen behind (several months lacked fields the API sends). The API now types the transit `network`, the
+  warning zone `kind` and the [lon, lat] points of paths and polygons.
+- The two largest pages of the web are split: their figures moved to `lib/environment.ts` and `lib/mobility.ts`,
+  with tests, and their maps and controls to components of their own (`TemperatureZones`, `DaySlider`,
+  `WarningsMap`, `MobilityMap`, `PopulationHistory`, `TransitMap`). Both pages have tests with Testing Library
+  (happy-dom): their panels, tables, empty and error states, and the municipality that the table, the map and the
+  chart share.
+
 ## [0.16.2] - 2026-11-11
 
 ### Changed
@@ -734,7 +802,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0
 [0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.15.0...v0.16.0

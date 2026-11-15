@@ -7,6 +7,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# The status of a connector run (core.warehouse.RunStatus: the API image does not ship the pipeline).
+RunStatus = Literal["running", "success", "failed", "unavailable"]
+# The two transit networks: EMT Palma (the city buses) and CTM (the island: TIB buses, train and metro).
+Network = Literal["emt_palma", "ctm"]
+# A [lon, lat] point of a GeoJSON path or polygon.
+Point = tuple[float, float]
+
 NAME = "The name the source publishes (silver.entities); null when the identifier already reads as a name."
 
 
@@ -15,7 +22,7 @@ class Health(BaseModel):
 
     status: str = Field(examples=["ok"])
     database: str = Field(examples=["ok"], description="`ok` or `unavailable`")
-    version: str = Field(examples=["0.16.2"])
+    version: str = Field(examples=["0.17.0"])
 
 
 class Governance(BaseModel):
@@ -47,7 +54,7 @@ class Source(BaseModel):
     source: str = Field(examples=["aemet"])
     label: str | None = Field(examples=["AEMET (estaciones oficiales)"])
     kind: str | None = Field(examples=["observation"])
-    last_status: str | None = Field(
+    last_status: RunStatus | None = Field(
         examples=["success"],
         description="running, success, failed (our side) or unavailable (the source was down).",
     )
@@ -164,7 +171,9 @@ class Correction(BaseModel):
     original_quality: str = Field(examples=["missing"], description="`missing`, `suspect` or `absent` (no row)")
     original_value: float | None = Field(description="The suspect value; empty when it was missing or absent.")
     corrected_value: float
-    method: str = Field(examples=["support"], description="`interpolation` (gaps up to 3 h) or `support`")
+    method: str = Field(
+        examples=["support"], description="`interpolation` (gaps up to 3 h), `support` or `profile` (weekly cycle)"
+    )
     support_source: str | None = Field(examples=["open_meteo"], description="Method `support`: the series used.")
     support_entity: str | None = Field(examples=["llucmajor"])
     bias: float | None = Field(description="Station minus support at that hour of the day, added to the support.")
@@ -273,7 +282,7 @@ class ResourcesMonth(BaseModel):
 class MobilityDay(BaseModel):
     """Scheduled public transport of one network in one day (gold.fct_bus_network_daily, fct_island_transit_daily)."""
 
-    network: str = Field(examples=["emt_palma"], description="`emt_palma` (Palma buses) or `ctm` (the island)")
+    network: Network = Field(examples=["emt_palma"], description="`emt_palma` (Palma buses) or `ctm` (the island)")
     local_date: date
     is_weekend: bool
     stops: int
@@ -288,7 +297,7 @@ class MobilityDay(BaseModel):
 class StopService(BaseModel):
     """The scheduled service of one stop on the latest day of its network."""
 
-    network: str = Field(examples=["ctm"])
+    network: Network = Field(examples=["ctm"])
     stop: str = Field(examples=["stop_1024"])
     name: str | None = Field(default=None, examples=["Jacint Verdaguer Estació (302)"], description=NAME)
     lat: float
@@ -302,13 +311,13 @@ class RouteGeometry(BaseModel):
     """The path of a line as a GeoJSON MultiLineString of [lon, lat] points: one polyline per direction."""
 
     type: Literal["MultiLineString"]
-    coordinates: list[list[list[float]]]
+    coordinates: list[list[Point]]
 
 
 class TransitRoute(BaseModel):
     """One line of a transit network with its path and its departures on the latest day of the network."""
 
-    network: str = Field(examples=["ctm"])
+    network: Network = Field(examples=["ctm"])
     route: str = Field(examples=["route_234"], description="Entity of the line's `scheduled_trips` series.")
     short_name: str = Field(examples=["101"])
     name: str = Field(examples=["101 · Port d'Andratx - Palma"])
@@ -368,8 +377,8 @@ class WarningZone(BaseModel):
 
     zone: str = Field(examples=["645403"])
     name: str = Field(examples=["Interior de Mallorca"])
-    kind: str = Field(examples=["land"])
-    polygon: list[list[float]] = Field(description="[lon, lat] vertices.")
+    kind: Literal["land", "coast"] = Field(examples=["land"], description="`land` or `coast`")
+    polygon: list[Point] = Field(description="[lon, lat] vertices.")
 
 
 class PopulationYear(BaseModel):
@@ -406,7 +415,7 @@ class Municipality(BaseModel):
     lat: float
     lon: float
     area_km2: float
-    polygon: list[list[list[float]]] = Field(description="Rings of [lon, lat] vertices; the largest first.")
+    polygon: list[list[Point]] = Field(description="Rings of [lon, lat] vertices; the largest first.")
 
 
 class WeatherEpisode(BaseModel):
@@ -452,6 +461,26 @@ class ModelBias(BaseModel):
     wind_speed_bias_kmh: float | None
     first_day: date | None
     last_day: date | None
+
+
+class WaveModelBias(BaseModel):
+    """Error of the wave model against one SOCIB buoy (gold.agg_wave_model_bias_by_buoy): model minus buoy."""
+
+    buoy: str = Field(examples=["bahia_de_palma_buoy"])
+    buoy_name: str | None = Field(default=None, examples=["Boya de la bahía de Palma"], description=NAME)
+    model_point: str = Field(examples=["bahia_de_palma"])
+    model_point_name: str | None = Field(default=None, examples=["Bahía de Palma"], description=NAME)
+    distance_km: float | None
+    hours_compared: int
+    wave_height_buoy_mean_m: float | None
+    wave_height_model_mean_m: float | None
+    wave_height_bias_m: float | None = Field(description="Mean of model minus buoy, in metres.")
+    wave_height_mae_m: float | None
+    wave_height_rmse_m: float | None
+    wave_height_correlation: float | None = Field(description="Pearson r of the hourly significant wave heights.")
+    model_ratio: float | None = Field(description="Mean model height over mean buoy height.")
+    first_ts: datetime | None
+    last_ts: datetime | None
 
 
 class AirQualityNow(BaseModel):

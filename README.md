@@ -202,6 +202,24 @@ SOCIB por variable; el conector los agrega por hora usando solo las muestras bue
 con menos del 50 % de muestras válidas. Las métricas se llaman igual que en Open-Meteo, así que Grafana compara
 estación real y modelo en la misma gráfica.
 
+También lee el **oleaje** de las dos boyas activas, la de la bahía de Palma y la de Portocolom: la altura
+significativa y la máxima cada media hora, agregadas por hora (`wave_height`, como en Open-Meteo Marine, y
+`wave_height_max`). Los días anteriores al fichero `latest` salen de los ficheros mensuales del archivo, uno por mes
+y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico.
+
+**Boyas frente al modelo de oleaje**: cada boya se empareja con el punto de Open-Meteo Marine más cercano (a menos
+de 2 km) y se comparan las alturas significativas hora a hora (`fct_wave_model_comparison_hourly`, y el resumen
+por boya en `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` y la web). De agosto al 14 de noviembre de 2026:
+
+| Boya | Horas | Boya (media) | Modelo (media) | Sesgo | Error medio | RMSE | r |
+|---|---|---|---|---|---|---|---|
+| Bahía de Palma | 2.498 | 0,34 m | 0,39 m | +0,05 m | 0,16 m | 0,23 m | 0,80 |
+| Portocolom | 361 | 0,86 m | 0,78 m | −0,08 m | 0,18 m | 0,45 m | 0,63 |
+
+En la bahía, con mar en calma (menos de 0,5 m), el modelo da un 40 % más de ola de la que mide la boya: su celda de
+unos 5 km se asoma a mar abierto y la boya está en una bahía resguardada. En Portocolom pasa al revés con la mar
+pequeña, y el RMSE (0,45 m), muy por encima del error medio, delata unas pocas horas con fallos grandes.
+
 ### IGN (sismos)
 
 Sismos localizados por el Instituto Geográfico Nacional, leídos del servicio FDSN de EMSC (estándar, sin clave)
@@ -378,11 +396,19 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
 - **`robust_zscore`**: z-score modificado de Iglewicz y Hoaglin, `0,6745 · (x − mediana) / MAD` sobre una ventana
   móvil centrada (7 días en series horarias, 31 en diarias). La mediana y la MAD apenas se mueven con el pico que
   buscan, al contrario que la media y la desviación típica. Una ventana casi constante (MAD = 0) no se puntúa.
+- **`seasonal_residual`**: quita el ciclo antes de puntuar. El valor esperado es la mediana de la misma hora en los
+  3 días anteriores y los 3 siguientes (el mismo día de la semana en las series diarias), y el residuo se puntúa
+  como el z-score. También puntúa el **cambio** desde la hora anterior frente al de esa hora otros días: el tiempo
+  de un día mueve el nivel de todas las horas, pero mucho menos cuánto se calienta o se enfría cada una. Un cambio
+  raro implica dos valores y se culpa al más alejado de su nivel, así que la vuelta a la normalidad tras un fallo
+  marca el último valor malo y no el primero bueno. Es el único que ve un reloj desfasado.
 - **`isolation_forest`** (scikit-learn): un bosque por entidad sobre todas sus métricas a la vez. Cada instante se
   describe, por métrica, con su valor, su cambio, cuántos valores seguidos lleva igual y la distancia al valor
   habitual a esa hora, más la propia hora. Aísla los instantes raros (un 5 % de cada entidad, `contamination`) y
   culpa a la métrica cuyas variables más se alejan de su mediana. Necesita 48 instantes completos: las series
   diarias de AEMET no llegan.
+- **`vote`**: la respuesta de la plataforma. Une el residuo estacional y el bosque, que fallan en cosas distintas
+  (`min_votes: 1`; con 2 solo queda lo que marcan los dos). Su puntuación es el número de votos.
 - Tarea `detect_anomalies` del DAG tras la ingesta, también si alguna fuente falló. Cada ejecución vuelve a puntuar
   al menos los últimos `rescore_days` (14) y reemplaza su resultado: los datos que llegan tarde (AEMET) o se
   recuperan se juzgan con sus vecinos, y es idempotente.
@@ -390,8 +416,9 @@ improbable: valores posibles que no encajan con su propia serie. Solo **marcan**
   (sismos, horarios de EMT y CTM y estadísticas mensuales de Dataestur y de reservas hídricas; precipitación, insolación y dirección del
   oleaje). A mano: `make detect DAYS=30`.
 
-Con 30 días reales el z-score marca ~1 % de 104 000 valores, sobre todo episodios de verdad (el temporal del 18-19
-de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el Isolation Forest, 732.
+Con 30 días reales (195 000 valores) el z-score marca 1 738, sobre todo episodios de verdad (el temporal del 18-19
+de octubre, mar de fondo en Alcúdia) y los picos nocturnos de NO₂; el residuo estacional, 1 644; el Isolation
+Forest, 1 112, y la votación, 2 404 (un 1,2 %). Los cuatro tardan 2 min 50 s en Spark local.
 
 En Grafana, las anomalías se dibujan como anotaciones sobre las series: en el explorador de Tiempo y entorno (la
 métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto, porque son nueve) y en el
@@ -414,20 +441,29 @@ una semilla fija y puntúa cada serie limpia y corrompida (`core/anomaly/faults.
 Un aviso sobre un valor inyectado es un acierto; uno nuevo sobre un valor limpio, una falsa alarma. Lo que el
 detector ya marcaba en la serie limpia (episodios reales) se cuenta aparte y no penaliza. Los huecos no se inyectan:
 un valor que falta no se puede marcar, y ya los cuenta la regla `gaps`. Resultados en
-`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en 54 series de 6 localidades, 30 días:
+`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en los 35 000 valores de Open-Meteo de los
+30 días hasta el 14 de noviembre de 2026:
 
 | Detector | Picos | Derivas | Congelados | Desfase | Precisión |
 |---|---|---|---|---|---|
-| `robust_zscore` | 90 % | 22 % | 0 % | 6 % | 80 % |
-| `isolation_forest` | 49 % | 11 % | 52 % | 6 % | 85 % |
+| `robust_zscore` | 88 % | 19 % | 2 % | 6 % | 70 % |
+| `seasonal_residual` | 98 % | 81 % | 30 % | 61 % | 81 % |
+| `isolation_forest` | 33 % | 17 % | 31 % | 6 % | 83 % |
+| `vote` (estacional o bosque) | 98 % | 83 % | 50 % | 61 % | 81 % |
 
-Son complementarios. El z-score ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal:
-un sensor congelado en 18 °C está cerca de la mediana. El bosque ve que una serie que siempre se mueve se ha
-parado (con la variable "valores seguidos iguales"; una dispersión móvil no basta, porque cerca del máximo o el
-mínimo diario casi no hay dispersión de todos modos), pero con su cupo del 5 % se deja la mitad de los picos. El
-desfase horario se escapa a los dos: en un modelo suave, los valores de 12 horas antes parecen una noche templada.
-`contamination` mueve el equilibrio: con 0,10 el bosque llega al 73 % de picos y 74 % de congelados con un 81 % de
-precisión.
+El z-score ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal: un sensor congelado en
+18 °C está cerca de la mediana, y en un modelo suave los valores de 12 horas antes parecen una noche templada. El
+bosque ve que una serie que siempre se mueve se ha parado (con la variable "valores seguidos iguales"; una
+dispersión móvil no basta, porque cerca del máximo o el mínimo diario casi no hay dispersión de todos modos), pero
+con su cupo del 5 % se deja dos tercios de los picos. El residuo estacional ve el desfase porque compara cada hora
+con la misma hora de otros días, y sobre todo porque compara el cambio: con el reloj mal, la serie se enfría cuando
+debería calentarse. Puntuando solo el nivel, incluso con el umbral del z-score (3,5), veía un 22 % de desfases.
+Ojo con su 81 % de derivas: casi siempre las ve donde acaban, en el salto de vuelta, no mientras crecen.
+
+La votación une los dos que fallan en cosas distintas: suma los congelados del bosque a lo que ve el residuo, sin
+perder precisión. Añadir el z-score solo le quita precisión (74 %) sin ganar fallos, y exigir dos votos sube la
+precisión al 86 % a cambio de dejarse la mitad. `contamination` mueve el equilibrio del bosque: con 0,10 llega a
+más picos y congelados con algo menos de precisión.
 
 ## Correcciones con fuentes de apoyo
 
@@ -447,6 +483,12 @@ lado a lado, y `value` es el corregido donde lo hay y el original en el resto.
   de horas en común y una r ≥ 0,6. El valor de apoyo se desplaza con su sesgo, la mediana de "estación menos apoyo",
   calibrado **por hora del día** con los 30 días anteriores. Así recoge la brisa, la altitud y el ciclo diario del
   modelo. Confianza `r² · exp(−distancia / 100 km) · exp(−horas / 7 días)`.
+- **Método 3, perfil semanal**: el NO₂ y el CO vienen del tráfico de cada calle y casi nunca tienen un apoyo con
+  r ≥ 0,6. Para sus huecos largos sin apoyo se usa el ciclo de la propia estación: la mediana de cada hora local de
+  los días laborables y de los fines de semana en los 30 días anteriores, desplazada al nivel de los valores a cada
+  lado del hueco (la diferencia con el perfil se interpola a través del hueco). La hora es la de la isla, con el
+  horario de verano, porque el tráfico sigue al reloj. Confianza `r² · exp(−horas / 2 días)`, con la r de la
+  estación frente a su perfil. Solo para las métricas en las que el benchmark lo respalda (`profile.metrics`).
 - Tarea `correct_values` del DAG tras la detección. Cada ejecución recalcula los últimos 14 días: una corrección
   desaparece cuando llega el valor real, y es idempotente. Configuración en
   [config/corrections.yaml](config/corrections.yaml); a mano, `make correct DAYS=30`.
@@ -467,8 +509,19 @@ absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
   bahía, que es la que más se le parece (r = 1,00). Parece presión a la altura de la estación, sin reducir al nivel
   del mar: unos 115 m. Sin el sesgo, el apoyo se equivocaría en 14 hPa; con él, en 0,2.
 - **El NO₂** es muy local: viene del tráfico de cada calle y casi ninguna estación tiene un apoyo con r ≥ 0,6. Solo
-  S'Albufera y Sa Pobla se apoyan la una en la otra. Lo mismo pasa con PM10, PM2.5 y CO. En esas series, los huecos
-  largos se quedan sin corregir en lugar de rellenarse con un valor poco fiable.
+  S'Albufera y Sa Pobla se apoyan la una en la otra. El perfil semanal cubre el resto: en huecos de 24 horas
+  corrige 532 de las 720 horas escondidas que antes se quedaban sin valor, con un error de 3,3 µg/m³ frente a los
+  4,7 de una recta entre los dos lados del hueco. Una recta se salta las horas punta; el perfil sabe cuándo son.
+  MAE de las horas que corrige el perfil, 14 días hasta el 14 de noviembre de 2026:
+
+  | Serie | 6 h, perfil | 6 h, recta | 24 h, perfil | 24 h, recta |
+  |---|---|---|---|---|
+  | NO₂ (EEA) | 3,3 µg/m³ | 4,3 µg/m³ | 3,3 µg/m³ | 4,7 µg/m³ |
+  | CO (EEA) | 74 µg/m³ | 86 µg/m³ | 77 µg/m³ | 168 µg/m³ |
+
+- **PM10, PM2.5, ozono y las variables del tiempo** no usan el perfil: el benchmark da con él el mismo error que con
+  una recta, o más, porque los mueve el tiempo y no el reloj. Sus huecos largos sin apoyo se quedan sin corregir en
+  lugar de rellenarse con un valor poco fiable.
 - **Las rachas de viento** son el único caso en el que el sesgo no ayuda: 7,5 frente a 6,8 km/h en huecos de 6
   horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
 
@@ -515,9 +568,13 @@ navegador, y en el móvil el menú pasa a ser un cajón.
 alertas, calidad, anomalías y correcciones. Por qué una web propia y no rehacer Grafana:
 [ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md).
 
+Sus tipos salen del OpenAPI de la API (`web/src/api.gen.ts`, generado con `make web-types`), y un test falla si el
+fichero no coincide con lo que sirve la API. Un campo que cambia en `api/schemas.py` aparece así en el `tsc` de la web
+y no en una página rota.
+
 ```bash
 cd web && npm install && npm run dev   # http://localhost:5173, con /api hacia la API del stack (localhost:8000)
-npm test                               # cifras clave y estado de las fuentes (Vitest)
+npm test                               # cifras, estado de las fuentes y páginas (Vitest, Testing Library)
 ```
 
 ## Grafana
@@ -599,11 +656,13 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/mobility/daily`, `/v1/mobility/stops`, `/v1/mobility/routes` | Servicio programado de EMT y CTM por día, el de cada parada en el último día y cada línea con su recorrido (GeoJSON) y sus salidas |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Tiempo diario de cada fuente, episodios de lluvia, viento o mar, y error del modelo frente a cada estación; `stations`: cada estación en el último día publicado |
 | `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | Última hora de calidad del aire con su índice europeo, oleaje por hora y sismos |
+| `GET /v1/sea/model-bias` | Error del modelo de oleaje frente a cada boya de SOCIB: sesgo, error medio, RMSE y correlación de la altura significativa hora a hora |
 | `GET /v1/warnings`, `/v1/warnings/zones` | Avisos de AEMET en vigor o anunciados (por defecto, de ahora a 3 días) y las zonas de aviso con su polígono |
 | `GET /v1/population`, `/v1/municipalities` | Población de cada municipio por año (filtrable con `from` y `to`) y los 53 municipios con su superficie y su límite |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | Último chequeo de cada regla de calidad y anomalías por día y detector |
 | `GET /v1/series`, `/v1/series/daily` | Las series diarias de una fuente (entidad con su nombre, métrica, unidad y días que cubre) y una serie día a día: mínimo, media, máximo, completitud, sospechosos y anomalías (por defecto, un año) |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
+| `GET /v1/observations/export` | Los mismos valores como fichero, sin paginar: CSV (`format=csv`, en streaming) o Parquet (`format=parquet`, zstd, `ts` en UTC); hasta 366 días y un millón de valores |
 | `GET /v1/anomalies` | Valores marcados por los detectores, filtrados por fuente, detector y rango, paginados |
 | `GET /v1/corrections` | Valores propuestos para las horas sin valor válido de las estaciones, con el original, el método, el apoyo, el sesgo y la confianza; filtrados por fuente, estación, método y rango, paginados |
 | `GET /v1/water/reserves`, `/v1/water/aquifers` | Reservas mensuales con su anomalía y los 18 acuíferos del último mes |
@@ -611,6 +670,10 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 
 ```bash
 curl "http://localhost:8000/v1/observations?source=aemet&metric=temperature_2m_max&entity=B278&limit=2"
+```
+
+```bash
+curl -OJ "http://localhost:8000/v1/observations/export?source=socib&start=2026-01-01T00:00:00Z&format=parquet"
 ```
 
 Decisiones:
@@ -622,6 +685,14 @@ Decisiones:
   transacciones de solo lectura y un límite de 15 s por consulta. En un volumen ya creado: `make api-role`.
 - **Paginación** con `limit` (como mucho 1000) y `offset`: la respuesta trae `next_offset`, que se calcula pidiendo una
   fila de más. **Errores** con una sola forma: `{"error": {"code": "not_found", "message": "..."}}`.
+- **Caché de los marts diarios y límite por cliente** ([ADR 0023](docs/adr/0023-cache-y-limite-en-el-proceso-de-la-api.md)):
+  las respuestas de reservas, clima, turismo, recursos, población y municipios se guardan una hora en memoria
+  (`X-Cache: HIT`), con un `ETag` que devuelve 304 sin cuerpo. Cada cliente tiene 300 peticiones por minuto
+  (cabeceras `RateLimit-*`; 429 con `Retry-After` por encima). Los dos viven en cada worker, sin Redis:
+  `API_CACHE_SECONDS` y `API_RATE_LIMIT_PER_MINUTE` (0 los apaga).
+- **Exportación por lotes**: el CSV sale de un cursor del servidor de Postgres, de 10 000 en 10 000 filas, mientras
+  se escribe la respuesta; el Parquet se escribe en grupos de filas de 50 000. La memoria no crece con el tamaño del
+  fichero. El explorador de la web enlaza los dos para la serie y el periodo elegidos.
 - **Capa de acceso a datos sustituible** (`api/repository.py` sobre un protocolo `Database`): los tests unitarios usan una
   base de datos falsa y no necesitan Postgres. `make api-test`.
 

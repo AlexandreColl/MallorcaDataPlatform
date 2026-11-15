@@ -60,9 +60,11 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | — | **aqicn** (probado, no se integra) | Con token: en Mallorca hay 7 estaciones, todas de la red del Govern y atribuidas a la EEA (Foners, Bellver, Hospital Joan March, Sant Joan de Déu, Alcúdia, S'Albufera y Sa Pobla). Solo da la última hora, sin histórico, y como subíndices AQI de EE. UU., no como concentraciones. La previsión diaria (O₃, PM10, PM2.5, UV) es de modelo, como la de Open-Meteo. Sirvió para algo: sus coordenadas confirman las del Govern para Sant Joan de Déu (07040006) y Alcúdia (07003004) |
 | ✅ | — | **EEA verificados** (E1a, en `eea_air_quality`) | Cada año está en un solo conjunto: los ficheros *up-to-date* solo traen el año en curso y los verificados todos los anteriores desde 2013, en un fichero por punto de muestreo. El conector parte la ventana por años, guarda en bronze solo las filas de la ventana y descarga cada fichero verificado una vez por proceso. Backfill de julio de 2021 a 2025: `fct_air_quality_monthly` es continuo desde 2002 |
 | ✅ | — | **GOIB** (histórico de calidad del aire) | API CKAN del catálogo (`package_show`), sin clave, CC BY. 11 estaciones de Mallorca, de 2002 a junio de 2021 en tres ficheros por estación (hasta 2019, 2020 y 2021) con tres formatos distintos. El periodo 1-24 es la hora que empieza en UTC+01, comprobado contra la EEA. Conector de histórico (`enabled: false`, `make backfill`); bronze guarda las líneas de la ventana y el SHA-256 del fichero. Mart `fct_air_quality_monthly` (GOIB + EEA). Prueba real: 4,98 M valores en ~45 min; NO₂ de Foners de 52,7 µg/m³ (2002) a 31,6 (2019) y 24 (2020). Fallos de la fuente resueltos: el histórico de Menut se solapa con su fichero de 2020 y Hospital Joan March trae filas de 2002 sin periodo |
-| ⬜ | — | Plantilla `make new-connector NAME=x` que genere la carpeta, YAML y test vacíos |
-| ⬜ | — | Script `make record-fixtures CONNECTOR=x` para regrabar respuestas reales |
-| ⬜ | — | SOCIB: histórico por ficheros mensuales (`L1/<año>/..._<año>-<mes>.nc`) para ventanas anteriores al `latest`; añadir mareógrafo (Porto Cristo) y oleaje (boyas) |
+| ✅ | — | `make new-connector NAME=x`: la carpeta de un conector desactivado, con su YAML, un extractor para una API JSON, su README y un test que reproduce las grabaciones y comprueba cada valor contra el YAML |
+| ✅ | — | `make record-fixtures CONNECTOR=x`: graba las respuestas reales del `extract` en `tests/fixtures/` con un `recorded.json`, y `RecordedHttp` las reproduce sin red (una petición no grabada falla). Probado con Open-Meteo (1.440 valores) y REData (35) |
+| ✅ | — | SOCIB: histórico por ficheros mensuales (`L1/<año>/..._<año>-<mes>.nc`, uno por mes y despliegue) para los días anteriores al `latest` (`max_days` 366, `make backfill`), y oleaje de las dos boyas activas (bahía de Palma y Portocolom: altura significativa y máxima). Agosto de 2026 cargado del archivo: 744 horas por estación y métrica |
+| ✅ | — | Boyas de SOCIB frente al modelo de oleaje (Open-Meteo Marine en el punto más cercano), hora a hora: `fct_wave_model_comparison_hourly`, `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` y una tabla en la web. Bahía de Palma: 2.498 horas, r = 0,80, el modelo da un 40 % más de ola con mar en calma |
+| 🔬 | — | Mareógrafo: las carpetas `sea_level` de Mallorca en THREDDS están vacías desde 2024 y los `tide_gauge` de Porto Cristo, Colònia de Sant Pere y Sa Rápita acaban en 2019-2020. Buscar otra fuente del nivel del mar (Puertos del Estado, REDMAR) |
 
 Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtures reales · tests · aparece en Grafana · sección en README · ≤ 1 día de trabajo.
 
@@ -98,8 +100,8 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | Tabla `silver.anomalies` (serie, ts, detector, score, umbral, run_id) — **marca, no corrige** |
 | ✅ | Tarea `detect_anomalies` en el DAG tras la carga silver (`all_done`); repuntúa los últimos 14 días y es idempotente |
 | ✅ | **Plan B**: inyector de fallos en Open-Meteo (picos, congelados, deriva, desfase horario) para medir precisión/recall de cada detector: `make evaluate` y `quality.anomaly_evaluations`. Z-score: 90 % de picos, 22 % de derivas, 0 % de congelados, precisión 80 % |
-| ⬜ | Combinar detectores (unión o votación) y medirlo con el benchmark: el z-score y el bosque fallan en cosas distintas |
-| ⬜ | Desfase horario (reloj o zona horaria): ninguno pasa del 6 %; probar un detector estacional (residuo frente a la misma hora de días anteriores) |
+| ✅ | Detector estacional `seasonal_residual` para el desfase horario (reloj o zona horaria): el nivel y el cambio de cada hora frente a la misma hora de los días de alrededor. Del 6 % al 61 % de desfases, con un 81 % de precisión |
+| ✅ | Votación `vote` medida con el benchmark: la unión del residuo estacional y el bosque (98 % de picos, 50 % de congelados, 61 % de desfases, 81 % de precisión). Añadir el z-score solo resta precisión y exigir dos votos se deja la mitad de los fallos |
 | ✅ | Anomalías como anotaciones de Grafana sobre las series: en el explorador de Tiempo y entorno (la métrica y las entidades elegidas), en el NO₂ de las estaciones (desactivada por defecto: nueve estaciones) y en el antes y después de Operación. Las horas anómalas seguidas de una serie forman una sola banda, con el rango de valores y el valor esperado |
 
 ## API REST
@@ -108,8 +110,8 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 |---|---|
 | ✅ | API de solo lectura con FastAPI sobre los marts con contrato: salud, fuentes, observaciones y anomalías paginadas, reservas, acuíferos y marts mensuales; rol `api_reader`, imagen propia, tests unitarios e integración en CI, y comprobación en el E2E |
 | ✅ | `GET /v1/corrections`: las correcciones propuestas de las estaciones (`gold.fct_observations_corrected`), filtrables por fuente, estación, método y rango |
-| ⬜ | Caché de respuestas de los marts mensuales (cambian una vez al día) y límite de peticiones por cliente |
-| ⬜ | Exportar series en CSV o Parquet además de JSON |
+| ✅ | Caché de una hora de los marts que cambian una vez al día (con `ETag` y 304) y límite de 300 peticiones por minuto y cliente (429 con `Retry-After`), en la memoria de cada worker y sin Redis ([ADR 0023](docs/adr/0023-cache-y-limite-en-el-proceso-de-la-api.md)) |
+| ✅ | `GET /v1/observations/export`: una serie en CSV (en streaming desde un cursor del servidor) o Parquet (zstd), hasta 366 días y un millón de valores, enlazada desde el explorador de la web |
 
 ## Fase 4 · v0.4.0 — Correcciones con fuentes de apoyo
 
@@ -122,7 +124,8 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 | ✅ | Método 2: la serie de la misma métrica mejor correlacionada a menos de 30 km (otra estación de la red o el punto de Open-Meteo, r ≥ 0,6) con su sesgo calibrado por hora del día en los 30 días anteriores |
 | ✅ | Confianza según correlación (r²), distancia y longitud del hueco; `make evaluate-corrections` esconde valores limpios en huecos de 1-24 h y mide el error de cada método: 0,26 °C en una hora, 1,35 °C en 24 h con apoyo frente a 2,19 sin su sesgo |
 | ✅ | Modelo dbt `fct_observations_corrected` y paneles en Operación: correcciones por día y método, antes y después de la serie elegida y últimas correcciones |
-| ⬜ | NO₂, PM10, PM2.5 y CO casi nunca tienen un apoyo con r ≥ 0,6 (contaminación muy local): probar un apoyo con el ciclo semanal del tráfico o el modelo CAMS con un sesgo por día de la semana |
+| ✅ | Método 3, **perfil semanal** de la propia estación (cada hora local de laborables y de fines de semana, al nivel de los dos lados del hueco) para el NO₂ y el CO, que casi nunca tienen un apoyo con r ≥ 0,6: en huecos de 24 h, 3,3 µg/m³ de error frente a 4,7 de una recta en el NO₂ y 77 frente a 168 en el CO |
+| ⬜ | PM10 y PM2.5 siguen sin corrección en huecos largos sin apoyo: el perfil no mejora a una recta porque los mueve el tiempo. Probar el modelo CAMS con un sesgo por día de la semana, o una r calculada después del sesgo |
 
 ## Fase 5 · v0.5.0 — Calidad de ingeniería
 
@@ -152,7 +155,7 @@ despliegue real con su coste medido.
 | Estado | Tarea |
 |---|---|
 | ✅ | **Trade-offs, costes y escalado** en [docs/architecture.md](docs/architecture.md#5-trade-offs-costes-y-escalado): volumen medido, qué se paga por cada decisión y cuándo revisarla, qué se rompe a 10× y 100× y costes estimados en AWS |
-| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 21 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
+| ✅ | **ADRs** en [docs/adr](docs/adr/README.md): 23 decisiones con su estado y su fecha, la plantilla y el índice. Incluyen las sustituidas y las rechazadas (silver en Parquet → Delta, USGS → IGN, OpenAQ → EEA) y una sección "Cuándo revisarla" en cada una |
 | ✅ | **Modelo de datos documentado** ([docs/data-model.md](docs/data-model.md)): modelo conceptual, silver largo con su clave y su significado, estrella de gold con el grano y el tipo de cada hecho, dimensiones compartidas con su política de historia (snapshot SCD2 de ubicaciones), contratos en tres fronteras, convenciones de tiempo y nulos, frescura por fuente y reglas de evolución del esquema. En dbt: `dim_metrics` (una unidad por métrica como clave primaria), contrato en `dim_locations` y `dim_date` desde 2002 para cubrir todo el histórico |
 | ✅ | **Frontal web** (`web/`, http://localhost:3002): portada con cinco cifras clave frente a lo normal de cada mes, mapa de estaciones, puntos de modelo y paradas, y estado de las fuentes. React + Vite + ECharts + MapLibre, solo lee la API ([ADR 0019](docs/adr/0019-frontal-web-sobre-la-api.md)) |
 | ✅ | Seis dashboards en la web con un menú lateral (inicio, turismo y recursos, clima y agua, movilidad, tiempo y entorno, operación), modo claro y oscuro con botón, logo con la silueta de la isla y diez endpoints nuevos en la API |

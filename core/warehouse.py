@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, get_args
 
 import psycopg
 from psycopg import sql
@@ -23,6 +24,18 @@ if TYPE_CHECKING:
 DDL_PATH = Path(__file__).parent / "sql" / "warehouse.sql"
 
 SILVER_COLUMNS = (*KEY, *COMPARED, "run_id", "ingested_at")
+
+# The status of a run in ops.ingestion_runs. `failed` is our side (to fix), `unavailable` a source that was down (it
+# recovers by itself, ADR 0022). tests/test_run_statuses.py keeps the SQL CHECK, dbt, the API and Grafana in step.
+RunStatus = Literal["running", "success", "failed", "unavailable"]
+RUN_STATUSES: tuple[RunStatus, ...] = get_args(RunStatus)
+
+# A run still `running` this long after it started will never finish: far longer than any run or backfill chunk takes.
+ABANDONED_AFTER = timedelta(hours=12)
+INTERRUPTED_ERROR = (
+    "Interrupted: the run stopped before finishing"
+    f" (still running after {ABANDONED_AFTER.total_seconds() / 3600:.0f} h)"
+)
 
 
 @dataclass(frozen=True)
@@ -281,8 +294,21 @@ class Warehouse:
         return [row[0] for row in rows]
 
     def start_run(self, run_id: str, source: str, region: str, window: TimeWindow) -> None:
-        """Register a run as ``running`` (a retry of the same run resets it)."""
+        """Register a run as ``running`` (a retry of the same run resets it).
+
+        An earlier run of the source still ``running`` after :data:`ABANDONED_AFTER` was interrupted (the computer
+        was turned off, the worker killed) and nothing will finish it: it is closed as ``failed`` first, so the run
+        history does not show it running forever.
+        """
         with self.connect() as conn:
+            conn.execute(
+                """
+                UPDATE ops.ingestion_runs
+                   SET status = 'failed', finished_at = now(), error = %s
+                 WHERE source = %s AND run_id <> %s AND status = 'running' AND started_at < now() - %s
+                """,
+                (INTERRUPTED_ERROR, source, run_id, ABANDONED_AFTER),
+            )
             conn.execute(
                 """
                 INSERT INTO ops.ingestion_runs
@@ -298,7 +324,7 @@ class Warehouse:
         self,
         run_id: str,
         source: str,
-        status: str,
+        status: RunStatus,
         *,
         stats: RunStats | None = None,
         error: str | None = None,

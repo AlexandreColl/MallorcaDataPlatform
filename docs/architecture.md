@@ -196,10 +196,11 @@ orden:
 - **Un escritor a la vez en Delta.** El lock serializa los commits y la compactación. Basta para dos conectores a
   la vez, no para decenas.
 - **Silver duplicado** en Delta y en Postgres. En AWS, Athena sobre Delta podría sustituir a la copia de Postgres.
-- **Contaminantes muy locales** (NO₂, partículas): casi nunca tienen una fuente de apoyo correlacionada, y sus
-  huecos largos se quedan sin corregir a propósito.
-- **Detectores.** El desfase horario se escapa a los dos detectores; queda pendiente probar uno estacional y
-  combinar los dos que hay.
+- **Contaminantes muy locales** (NO₂, CO, partículas): casi nunca tienen una fuente de apoyo correlacionada. El NO₂
+  y el CO se corrigen con el perfil semanal de la propia estación, porque los mueve el tráfico; las partículas no,
+  porque las mueve el tiempo, y sus huecos largos se quedan sin corregir a propósito.
+- **Detectores.** El residuo estacional ve el 61 % de los desfases horarios, pero las derivas casi solo donde acaban;
+  un sensor congelado en un valor normal para esa hora sigue escapándose a la mitad de las veces.
 
 Modelo de datos: [data-model.md](data-model.md) · Decisiones: [adr](adr/README.md) · Plan completo:
 [ROADMAP.md](../ROADMAP.md) · Historial de cambios: [CHANGELOG.md](../CHANGELOG.md)
