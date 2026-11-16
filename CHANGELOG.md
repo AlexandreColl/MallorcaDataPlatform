@@ -5,6 +5,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- The anomaly detectors and the correction methods are one list each in `core` (`DETECTOR_NAMES`, `METHODS`),
+  and `tests/test_names.py` checks that the corrections CHECK and its migration, the dbt test, the API, the Grafana
+  labels and the web name the same ones. The API types the `detector` and `method` fields and filters (an unknown
+  one is a 422), and Grafana names each one instead of labelling any other as the vote or the support.
+
+### Fixed
+
+- Web tables no longer overflow their panel from 1280 px wide: headers wrap onto two lines, and the narrow panels of
+  Tiempo y entorno show fewer columns (the model against the stations at the station's height, short dates for the
+  earthquakes, the buoys' two means in one column). Narrower screens still scroll the table inside its panel.
 ## [0.17.0] - 2026-11-15
 
 ### Added

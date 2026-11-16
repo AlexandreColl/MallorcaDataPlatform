@@ -10,7 +10,7 @@ import { TemperatureZones } from "../components/TemperatureZones";
 import { WarningsMap } from "../components/WarningsMap";
 import { ready, useLoad } from "../hooks";
 import { airLayers, EAQI, environmentKpis, episodeType, localTime, temperatureSubtitle } from "../lib/environment";
-import { dayName, dayShort, number, orDash, placeName, signed } from "../lib/format";
+import { dayShort, number, orDash, placeName, signed } from "../lib/format";
 import { describe, LEVELS } from "../lib/warnings";
 
 function DailyTemperature({ days }: { days: WeatherSourceDay[] }) {
@@ -53,6 +53,9 @@ function Waves({ hours }: { hours: SeaHour[] }) {
   }, [hours]);
   return <Chart option={option} label="Altura de ola en cada punto de la costa" height={300} />;
 }
+
+/** A wave height in metres with two decimals, or a dash. */
+const metres = orDash((value) => number(value, 2));
 
 export function WeatherEnvironment() {
   const weather = useLoad(() => api.weatherDaily(daysAgo(30)));
@@ -200,9 +203,9 @@ export function WeatherEnvironment() {
                 rows={rows.slice(0, 8)}
                 empty="Ningún sismo"
                 columns={[
-                  { label: "Fecha", value: (e) => dayName(e.ts) },
-                  { label: "Magnitud", value: (e) => (e.magnitude === null ? "—" : number(e.magnitude, 1)), numeric: true },
-                  { label: "Profundidad", value: (e) => (e.depth_km === null ? "—" : `${number(e.depth_km, 0)} km`), numeric: true },
+                  { label: "Fecha", value: (e) => dayShort(e.ts) },
+                  { label: "Mag.", value: (e) => (e.magnitude === null ? "—" : number(e.magnitude, 1)), numeric: true },
+                  { label: "Prof.", value: (e) => (e.depth_km === null ? "—" : `${number(e.depth_km, 0)} km`), numeric: true },
                   { label: "A Palma", value: (e) => (e.distance_to_palma_km === null ? "—" : `${number(e.distance_to_palma_km, 0)} km`), numeric: true },
                 ]}
               />
@@ -211,7 +214,7 @@ export function WeatherEnvironment() {
         </Panel>
         <Panel
           title="Modelo frente a estaciones"
-          subtitle="Error del modelo en la temperatura media diaria de cada estación de AEMET y SOCIB, a la altura de la estación (6,5 °C por km de desnivel con su celda)."
+          subtitle="Error del modelo en la temperatura media diaria de cada estación de AEMET y SOCIB, ya corregido por la altura de la estación (6,5 °C por km de desnivel con su celda)."
         >
           <Async state={bias}>
             {(rows) => (
@@ -220,10 +223,8 @@ export function WeatherEnvironment() {
                 columns={[
                   { label: "Estación", value: (b) => b.station_name ?? b.station },
                   { label: "Desnivel", value: (b) => (b.elevation_diff_m === null ? "—" : `${signed(Number(b.elevation_diff_m), 0)} m`), numeric: true },
-                  { label: "Sesgo bruto", value: (b) => (b.temperature_bias_c === null ? "—" : `${signed(Number(b.temperature_bias_c))} °C`), numeric: true },
                   { label: "Sesgo", value: (b) => (b.temperature_bias_adjusted_c === null ? "—" : `${signed(Number(b.temperature_bias_adjusted_c))} °C`), numeric: true },
                   { label: "Error", value: (b) => (b.temperature_mae_adjusted_c === null ? "—" : `${number(Number(b.temperature_mae_adjusted_c), 1)} °C`), numeric: true },
-                  { label: "Días", value: (b) => number(b.days_compared), numeric: true },
                 ]}
               />
             )}
@@ -231,7 +232,7 @@ export function WeatherEnvironment() {
         </Panel>
         <Panel
           title="Oleaje: boyas frente al modelo"
-          subtitle="Media de la altura significativa de ola que miden las boyas de SOCIB y la que da Open-Meteo Marine en el punto más cercano, en las horas que tienen las dos; r es la correlación hora a hora."
+          subtitle="Media de la altura significativa de ola, en metros, que miden las boyas de SOCIB y la que da Open-Meteo Marine en el punto más cercano, en las horas que tienen las dos; r es la correlación hora a hora."
         >
           <Async state={waveBias}>
             {(rows) => (
@@ -240,9 +241,12 @@ export function WeatherEnvironment() {
                 empty="Sin horas comparables todavía"
                 columns={[
                   { label: "Boya", value: (b) => placeName(b.buoy, b.buoy_name) },
-                  { label: "Medida", value: (b) => (b.wave_height_buoy_mean_m === null ? "—" : `${number(Number(b.wave_height_buoy_mean_m), 2)} m`), numeric: true },
-                  { label: "Modelo", value: (b) => (b.wave_height_model_mean_m === null ? "—" : `${number(Number(b.wave_height_model_mean_m), 2)} m`), numeric: true },
-                  { label: "Sesgo", value: (b) => (b.wave_height_bias_m === null ? "—" : `${signed(Number(b.wave_height_bias_m), 2)} m`), numeric: true },
+                  {
+                    label: "Media boya / modelo",
+                    value: (b) => `${metres(b.wave_height_buoy_mean_m)} / ${metres(b.wave_height_model_mean_m)}`,
+                    numeric: true,
+                  },
+                  { label: "Sesgo", value: (b) => (b.wave_height_bias_m === null ? "—" : signed(Number(b.wave_height_bias_m), 2)), numeric: true },
                   { label: "r", value: (b) => (b.wave_height_correlation === null ? "—" : number(Number(b.wave_height_correlation), 2)), numeric: true },
                 ]}
               />

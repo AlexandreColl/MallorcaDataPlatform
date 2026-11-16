@@ -9,6 +9,10 @@ from pydantic import BaseModel, Field
 
 # The status of a connector run (core.warehouse.RunStatus: the API image does not ship the pipeline).
 RunStatus = Literal["running", "success", "failed", "unavailable"]
+# The anomaly detectors (core.anomaly.runner.DETECTORS) and the correction methods (core.corrections.methods.METHODS):
+# the API image has no `core`, so tests/test_names.py checks that these lists match.
+Detector = Literal["robust_zscore", "seasonal_residual", "isolation_forest", "vote"]
+CorrectionMethod = Literal["interpolation", "support", "profile"]
 # The two transit networks: EMT Palma (the city buses) and CTM (the island: TIB buses, train and metro).
 Network = Literal["emt_palma", "ctm"]
 # A [lon, lat] point of a GeoJSON path or polygon.
@@ -149,7 +153,7 @@ class Anomaly(BaseModel):
     entity: str
     metric: str
     ts: datetime
-    detector: str = Field(examples=["robust_zscore"])
+    detector: Detector = Field(examples=["robust_zscore"])
     value: float | None
     expected: float | None
     score: float | None
@@ -171,7 +175,7 @@ class Correction(BaseModel):
     original_quality: str = Field(examples=["missing"], description="`missing`, `suspect` or `absent` (no row)")
     original_value: float | None = Field(description="The suspect value; empty when it was missing or absent.")
     corrected_value: float
-    method: str = Field(
+    method: CorrectionMethod = Field(
         examples=["support"], description="`interpolation` (gaps up to 3 h), `support` or `profile` (weekly cycle)"
     )
     support_source: str | None = Field(examples=["open_meteo"], description="Method `support`: the series used.")
@@ -543,7 +547,7 @@ class AnomaliesDay(BaseModel):
     """How many values one detector flagged in one local day (silver.anomalies)."""
 
     local_date: date
-    detector: str = Field(examples=["robust_zscore"])
+    detector: Detector = Field(examples=["robust_zscore"])
     anomalies: int
 
 

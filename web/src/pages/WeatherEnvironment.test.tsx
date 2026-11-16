@@ -60,7 +60,7 @@ describe("WeatherEnvironment", () => {
     render(<WeatherEnvironment />);
 
     const row = within(await panel("Oleaje: boyas frente al modelo")).getAllByRole("row")[1] as HTMLElement;
-    expect(within(row).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Boya de Portocolom", "0,80 m", "0,95 m", "+0,15 m", "0,91"]);
+    expect(within(row).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Boya de Portocolom", "0,80 / 0,95", "+0,15", "0,91"]);
   });
 
   it("says when there is nothing to list", async () => {
