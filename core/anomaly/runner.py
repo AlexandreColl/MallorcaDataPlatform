@@ -33,6 +33,8 @@ log = logging.getLogger(__name__)
 DETECTORS: dict[str, type[Detector]] = {
     d.name: d for d in (RobustZScore, SeasonalResidual, IsolationForestDetector, Vote)
 }
+# Their names, in this order, are written in the API, Grafana and the web too: tests/test_names.py keeps them in step.
+DETECTOR_NAMES = tuple(DETECTORS)
 
 ENTITY_KEYS = ("source", "entity")
 SERIES_KEYS = (*ENTITY_KEYS, "metric")

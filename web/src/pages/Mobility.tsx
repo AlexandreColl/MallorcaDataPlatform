@@ -204,7 +204,7 @@ export function Mobility() {
                     { label: "Municipio", value: (r) => r.place.name },
                     { label: "Hab.", value: (r) => number(r.latest?.population ?? 0), numeric: true },
                     { label: "10 años", value: (r) => (r.growth === null ? "—" : `${signed(r.growth * 100)} %`), numeric: true },
-                    { label: "Pasos/1.000", value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
+                    { label: "Pasos por 1.000", value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
                   ]}
                 />
               ) : null
