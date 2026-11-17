@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { Loaded } from "../hooks";
+import { messages } from "../i18n";
 
 /** Shows a skeleton while the data loads, the error if it fails and the content once it is there. */
 export function Async<T>({ state, height = 280, children }: {
@@ -9,7 +10,7 @@ export function Async<T>({ state, height = 280, children }: {
   children: (data: T) => ReactNode;
 }) {
   if (state.status === "loading") return <div className="block skeleton" style={{ height }} aria-busy="true" />;
-  if (state.status === "error") return <p className="error">No se pudieron cargar los datos: {state.error}</p>;
+  if (state.status === "error") return <p className="error">{messages().data.loadError(state.error)}</p>;
   return <>{children(state.data)}</>;
 }
 
@@ -23,7 +24,7 @@ export interface Column<Row> {
  * A compact table; numeric columns are right-aligned with tabular figures. With `onSelect`, a click (or Enter) on
  * a row selects it, and `selected` marks the selected one.
  */
-export function Table<Row>({ rows, columns, empty = "Sin datos", onSelect, selected }: {
+export function Table<Row>({ rows, columns, empty = messages().data.empty, onSelect, selected }: {
   rows: Row[];
   columns: Column<Row>[];
   empty?: string;

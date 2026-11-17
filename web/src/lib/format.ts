@@ -1,13 +1,36 @@
-// Number and date formats in Spanish (decimal comma, thousands with a dot).
+// Number and date formats in the language of the page, with Intl: "1.234,5" and "4 d’ag." in Catalan, "1,234.5"
+// and "4 Aug" in English. The formatters are built once per language and options, since charts call them often.
 
-const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-const MONTHS_LONG = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
+import { locale, messages, TAGS } from "../i18n";
+
+const numberFormats = new Map<string, Intl.NumberFormat>();
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+
+function dateFormat(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale()}|${JSON.stringify(options)}`;
+  let format = dateFormats.get(key);
+  if (!format) {
+    // The dates are calendar days ("2026-11-04"): read and written in UTC, so that no time zone moves them a day.
+    format = new Intl.DateTimeFormat(TAGS[locale()], { timeZone: "UTC", ...options });
+    dateFormats.set(key, format);
+  }
+  return format;
+}
+
+/** "2026-11-04" (or "2026-11-04T10:00:00Z") -> that calendar day at midnight UTC. */
+function utcDay(iso: string): Date {
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, day ?? 1));
+}
 
 export function number(value: number, digits = 0): string {
-  return value.toLocaleString("es-ES", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const key = `${locale()}|${digits}`;
+  let format = numberFormats.get(key);
+  if (!format) {
+    format = new Intl.NumberFormat(TAGS[locale()], { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    numberFormats.set(key, format);
+  }
+  return format.format(value);
 }
 
 /**
@@ -18,10 +41,11 @@ export function orDash(format: (value: number) => string): (value: unknown) => s
   return (value) => (typeof value === "number" && Number.isFinite(value) ? format(value) : "—");
 }
 
-/** 2.596.458 -> "2,6 M"; 619,5 -> "620". */
+/** 2.596.458 -> "2,6 M"; 61.950 -> "62 mil" ("62 k" in English); 619,5 -> "620". */
 export function compact(value: number): string {
-  if (Math.abs(value) >= 1e6) return `${number(value / 1e6, 1)} M`;
-  if (Math.abs(value) >= 1e4) return `${number(value / 1e3, 0)} mil`;
+  const { thousands, millions } = messages().format;
+  if (Math.abs(value) >= 1e6) return `${number(value / 1e6, 1)} ${millions}`;
+  if (Math.abs(value) >= 1e4) return `${number(value / 1e3, 0)} ${thousands}`;
   return number(value, value < 100 ? 1 : 0);
 }
 
@@ -33,39 +57,37 @@ export function signed(value: number, digits = 1): string {
   return text;
 }
 
-/** "2026-08-01" -> "agosto de 2026". */
+/** "2026-08-01" -> "agosto de 2026", "agost del 2026", "August 2026". */
 export function monthName(isoMonth: string): string {
-  const [year, month] = isoMonth.split("-").map(Number);
-  return `${MONTHS_LONG[(month ?? 1) - 1]} de ${year}`;
+  return dateFormat({ month: "long", year: "numeric" }).format(utcDay(isoMonth));
 }
 
-/** "2026-08-01" -> "ago 26". */
+/** "2026-08-01" -> "ago 26", "ag. 26", "Aug 26": short enough for a chart axis. */
 export function monthShort(isoMonth: string): string {
-  const [year, month] = isoMonth.split("-").map(Number);
-  return `${MONTHS[(month ?? 1) - 1]} ${String(year).slice(2)}`;
+  return `${dateFormat({ month: "short" }).format(utcDay(isoMonth))} ${isoMonth.slice(2, 4)}`;
 }
 
-/** "2026-11-04" -> "4 nov". */
+/** "2026-11-04" -> "4 nov", "4 de nov.", "4 Nov". */
 export function dayShort(isoDay: string): string {
-  const [, month, day] = isoDay.slice(0, 10).split("-").map(Number);
-  return `${day} ${MONTHS[(month ?? 1) - 1]}`;
+  return dateFormat({ day: "numeric", month: "short" }).format(utcDay(isoDay));
 }
 
-/** "2026-11-04" -> "4 de noviembre de 2026". */
+/** "2026-11-04" -> "4 de noviembre de 2026", "4 de novembre del 2026", "4 November 2026". */
 export function dayName(isoDay: string): string {
-  const [year, month, day] = isoDay.slice(0, 10).split("-").map(Number);
-  return `${day} de ${MONTHS_LONG[(month ?? 1) - 1]} de ${year}`;
+  return dateFormat({ dateStyle: "long" }).format(utcDay(isoDay));
 }
 
-/** Age of a value in words: "hace 3 h", "hace 5 días". */
+/** Age of a value in words: "hace 3 h", "fa 5 dies", "5 days ago". */
 export function age(hours: number): string {
-  if (hours < 1) return "hace menos de 1 h";
-  if (hours < 48) return `hace ${Math.round(hours)} h`;
+  if (hours < 1) return messages().format.lessThanAnHourAgo;
+  const tag = TAGS[locale()];
+  if (hours < 48) return new Intl.RelativeTimeFormat(tag, { style: "short" }).format(-Math.round(hours), "hour");
+  const relative = new Intl.RelativeTimeFormat(tag);
   const days = Math.round(hours / 24);
-  if (days < 60) return `hace ${days} días`;
+  if (days < 60) return relative.format(-days, "day");
   const months = Math.round(days / 30);
-  if (months < 24) return `hace ${months} meses`;
-  return `hace ${Math.round(days / 365)} años`;
+  if (months < 24) return relative.format(-months, "month");
+  return relative.format(-Math.round(days / 365), "year");
 }
 
 /**
