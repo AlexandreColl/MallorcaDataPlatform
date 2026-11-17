@@ -557,8 +557,8 @@ En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala not
 | [![Movilidad](docs/img/web/movilidad.png)](docs/img/web/movilidad.png) | [![Tiempo y entorno](docs/img/web/tiempo-y-entorno.png)](docs/img/web/tiempo-y-entorno.png) |
 | **Explorador** | **Operación** |
 | [![Explorador](docs/img/web/explorador.png)](docs/img/web/explorador.png) | [![Operación](docs/img/web/operacion.png)](docs/img/web/operacion.png) |
-| **Modo oscuro** | |
-| [![Inicio en modo oscuro](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) | |
+| **Modo oscuro** | **En catalán** |
+| [![Inicio en modo oscuro](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) | [![Inicio en catalán](docs/img/web/inicio-catalan.png)](docs/img/web/inicio-catalan.png) |
 
 Está hecha con React, TypeScript y Vite, con ECharts para los gráficos y MapLibre con teselas de OpenStreetMap para
 los mapas. El logo es la silueta de la isla. Tiene modo claro y oscuro, con un botón en el menú que se recuerda en el

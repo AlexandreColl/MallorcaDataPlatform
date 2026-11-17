@@ -2,7 +2,8 @@
 
 Runs in the official Playwright image against the local stack (service ``web``, port 3002): each dashboard opens at
 1440 px wide in the light theme, waits for its data, charts and map tiles, and lands as a PNG of the whole page in
-``docs/img/web/``. The home page is also taken in the dark theme, to show both.
+``docs/img/web/``. The home page is also taken in the dark theme, to show both, and in Catalan and English (ADR 0024).
+The routes without a language open in Spanish: the browser's language is ``es-ES``.
 """
 
 import sys
@@ -21,6 +22,8 @@ DASHBOARDS = {
     "/tiempo-y-entorno": "tiempo-y-entorno",
     "/explorador?source=aemet&metric=temperature_2m_mean&entity=B228&range=five": "explorador",
     "/operacion": "operacion",
+    "/ca/": "inicio-catalan",
+    "/en/": "inicio-ingles",
 }
 # Every panel has finished loading: no skeleton or spinner is left.
 _LOADED = "document.querySelectorAll('.skeleton, [aria-busy=\"true\"]').length === 0"
@@ -41,7 +44,7 @@ def _shoot(page: Page, route: str, path: Path) -> None:
 
 
 def main(out_dir: Path) -> None:
-    """Write one PNG per dashboard into ``out_dir``, plus the home page in the dark theme."""
+    """Write one PNG per dashboard into ``out_dir``, plus the home page in the dark theme and in two languages."""
     out_dir.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
         # SwiftShader gives the headless browser the WebGL that MapLibre needs.

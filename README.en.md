@@ -557,8 +557,8 @@ The maps have layers that can be hidden, and clicking a point shows what it is.
 | [![Mobility](docs/img/web/movilidad.png)](docs/img/web/movilidad.png) | [![Weather and environment](docs/img/web/tiempo-y-entorno.png)](docs/img/web/tiempo-y-entorno.png) |
 | **Explorer** | **Operations** |
 | [![Explorer](docs/img/web/explorador.png)](docs/img/web/explorador.png) | [![Operations](docs/img/web/operacion.png)](docs/img/web/operacion.png) |
-| **Dark mode** | |
-| [![Home in dark mode](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) | |
+| **Dark mode** | **In English** |
+| [![Home in dark mode](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) | [![Home in English](docs/img/web/inicio-ingles.png)](docs/img/web/inicio-ingles.png) |
 
 It is built with React, TypeScript and Vite, with ECharts for the charts and MapLibre with OpenStreetMap tiles for
 the maps. The logo is the island's outline. It has light and dark modes, with a button in the menu that the browser
