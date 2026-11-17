@@ -34,6 +34,19 @@ las fichas de los mapas, que se pintan fuera del árbol de React.
   bandera es un país y no un idioma.
   - Cada idioma es un enlace con `lang` y `hreflang`.
   - `<html lang>` cambia con el idioma, para que el lector de pantalla y el corrector lean el texto correctamente.
+- **Los textos del catálogo de fuentes** (etiqueta, descripción y licencia) están en el seed `dim_source_texts`.
+  - Hay una fila por fuente e idioma, así que añadir un idioma añade filas, no columnas.
+  - El castellano sigue en `dim_sources`: es la referencia y el valor por defecto si falta una traducción.
+  - Un test de dbt exige que cada fuente tenga sus textos en cada idioma.
+- **La API elige el idioma por la cabecera `Accept-Language`** (`api/language.py`), con sus `q`, y responde
+  con `Content-Language` y `Vary: Accept-Language`.
+  - Solo cambian con el idioma las respuestas que llevan textos del catálogo: `/v1/sources`, `/v1/locations` y
+    `/v1/weather/daily`.
+  - La caché de la API guarda una respuesta por idioma en las rutas cuya respuesta dice `Vary: Accept-Language`, y
+    cada una tiene su `ETag`.
+  - La web manda el idioma de la página en cada petición.
+- **Los nombres propios no se traducen**: estaciones, municipios, paradas, zonas de aviso de AEMET, acuíferos y
+  dueños de los datos.
 
 ## Alternativas descartadas
 
@@ -44,6 +57,12 @@ las fichas de los mapas, que se pintan fuera del árbol de React.
   envía. Además, las capturas de cada idioma no se podrían pedir por dirección.
 - **Castellano sin prefijo y los otros con prefijo.** `/movilidad` no distinguiría "castellano elegido" de "sin
   elegir", y no se sabría si respetar la preferencia guardada.
+- **Una columna por idioma en `dim_sources`** (`label_ca`, `label_en`...). Cada idioma nuevo cambiaría el
+  seed, su contrato y cada consulta que lee el catálogo.
+- **El idioma en un parámetro `?lang=`.** Es la cabecera que el navegador ya manda, y la que las cachés HTTP
+  saben distinguir con `Vary`.
+- **Traducir las etiquetas en la web por el código de la fuente.** Duplicaría el catálogo en dos sitios, y Grafana,
+  la documentación de dbt o cualquier otro cliente de la API no lo verían.
 - **Cambiar de idioma sin recargar.** Obligaría a pasar el idioma a cada formateador de ECharts y de los mapas, o a
   volver a montar el árbol. Recargar cuesta volver a pedir los datos, que la API sirve desde su caché
   ([ADR 0023](0023-cache-y-limite-en-el-proceso-de-la-api.md)), y se cambia de idioma pocas veces.
@@ -54,9 +73,8 @@ las fichas de los mapas, que se pintan fuera del árbol de React.
   reglas de cada lengua, como "4 d’ag." o "4 Aug", sin escribirlas a mano.
 - **En contra.** `Intl` depende de la versión de ICU del navegador: un punto o un espacio puede variar entre
   navegadores. Los tests fijan lo que escribe el ICU de Node 26, la misma versión que usan CI y la imagen.
-- **En contra.** Los textos libres que llegan de la API, como las descripciones del catálogo de fuentes, siguen en
-  castellano hasta que el catálogo tenga una columna por idioma. Los nombres propios (estaciones, municipios,
-  paradas) no se traducen.
+- **En contra.** Una fuente nueva necesita sus textos en tres idiomas; el test de dbt lo recuerda. Grafana sigue en
+  castellano.
 
 ## Cuándo revisarla
 

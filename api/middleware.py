@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
+from api.language import negotiate
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, MutableMapping
 
@@ -133,8 +135,10 @@ class ResponseCache:
     """Keeps the successful GET answers of ``paths`` for ``seconds`` and validates them with an ``ETag``.
 
     The key is the path and the sorted query string, so ``?from=2025-01-01&to=...`` and its reordering share an
-    entry. A fresh entry is answered without touching the warehouse (``X-Cache: HIT``), or with 304 when the client
-    already holds that ``ETag``. ``Cache-Control: max-age`` tells browsers and proxies the time the entry has left.
+    entry. A path whose answer says ``Vary: Accept-Language`` gets one entry per language the client is answered
+    in (ADR 0024), so a Catalan answer never reaches a client that asked for English. A fresh entry is answered
+    without touching the warehouse (``X-Cache: HIT``), or with 304 when the client already holds that ``ETag``.
+    ``Cache-Control: max-age`` tells browsers and proxies the time the entry has left.
     """
 
     def __init__(
@@ -152,12 +156,16 @@ class ResponseCache:
         self.max_entries = max_entries
         self.clock = clock
         self.entries: OrderedDict[str, _Entry] = OrderedDict()
+        self.by_language: set[str] = set()  # paths whose answers said Vary: Accept-Language
 
-    @staticmethod
-    def key(scope: Scope) -> str:
-        """Path plus the query parameters in a fixed order."""
+    def key(self, scope: Scope) -> str:
+        """Path plus the query parameters in a fixed order, plus the language for the paths that vary with it."""
         query = scope.get("query_string", b"").decode("latin-1")
-        return scope["path"] + "?" + "&".join(sorted(p for p in query.split("&") if p))
+        key = scope["path"] + "?" + "&".join(sorted(p for p in query.split("&") if p))
+        if scope["path"] in self.by_language:
+            accept = _header(scope, b"accept-language")
+            key += "#" + negotiate(accept.decode("latin-1") if accept else None)
+        return key
 
     def fresh(self, key: str) -> _Entry | None:
         """The entry of ``key`` if it is younger than ``seconds`` (and mark it as recently used)."""
@@ -222,4 +230,7 @@ class ResponseCache:
         await self.app(scope, receive, capture)
         if start.get("status") == HTTPStatus.OK:
             headers = [(k, v) for k, v in start.get("headers", []) if k not in {b"etag", b"cache-control"}]
+            if any(k == b"vary" and b"accept-language" in v.lower() for k, v in headers):
+                self.by_language.add(scope["path"])
+                key = self.key(scope)
             await self._answer(scope, send, self.store(key, headers, b"".join(chunks)), hit=False)

@@ -31,6 +31,9 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 - Ningún campo puede quedar vacío, salvo `sla_data_age_hours`.
 - Los campos con una lista cerrada solo admiten esos valores.
 - Toda fuente que llega a silver necesita una fila en el catálogo.
+- Toda fuente necesita su etiqueta, su descripción y su licencia en catalán y en inglés en
+  `dbt/seeds/dim_source_texts.csv`: la web y la API las enseñan en el idioma de quien lee
+  ([ADR 0024](adr/0024-la-web-en-tres-idiomas.md)). El castellano se queda en `dim_sources`.
 
 ## Las fuentes hoy
 

@@ -106,9 +106,9 @@ def test_locations_with_an_optional_source(db):
     api = client(db)
 
     assert api.get("/v1/locations").json()[0]["kind"] == "observation"
-    assert db.calls[-1][1] == {"source": None}
+    assert db.calls[-1][1] == {"source": None, "language": "es"}
     api.get("/v1/locations", params={"source": "aemet"})
-    assert db.calls[-1][1] == {"source": "aemet"}
+    assert db.calls[-1][1] == {"source": "aemet", "language": "es"}
 
 
 def test_observations_are_paginated_with_one_extra_row(db):
