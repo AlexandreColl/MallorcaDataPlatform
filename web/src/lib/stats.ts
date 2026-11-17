@@ -1,5 +1,7 @@
 // Small statistics for the dashboards: trends that remove the yearly cycle and how two series move together.
 
+import { messages } from "../i18n";
+
 type Value = number | null | undefined;
 
 /**
@@ -66,9 +68,9 @@ export function pearson(xs: Value[], ys: Value[]): Correlation | null {
 
 /** The usual reading of |r|: weak below 0.3, moderate below 0.6, strong from there. */
 export function strength(r: number): string {
-  const size = Math.abs(r) < 0.3 ? "débil" : Math.abs(r) < 0.6 ? "moderada" : "fuerte";
-  if (size === "débil") return "Relación débil";
-  return `Relación ${size} ${r > 0 ? "directa" : "inversa"}`;
+  const m = messages().stats;
+  if (Math.abs(r) < 0.3) return m.weak;
+  return m.relation(Math.abs(r) >= 0.6, r > 0);
 }
 
 export interface GrowthTrend {

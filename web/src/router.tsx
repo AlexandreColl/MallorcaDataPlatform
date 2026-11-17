@@ -1,19 +1,27 @@
 import { type MouseEvent, useEffect, useState } from "react";
 
-/** The current path, kept in sync with the browser's back and forward buttons. */
+import { locale, localizedPath, splitPath } from "./i18n";
+
+/** The page's path without its language ("/ca/movilidad" -> "/movilidad"). */
+function currentPath(): string {
+  return splitPath(window.location.pathname).path;
+}
+
+/** The current path without its language, kept in sync with the browser's back and forward buttons. */
 export function usePath(): string {
-  const [path, setPath] = useState(window.location.pathname);
+  const [path, setPath] = useState(currentPath);
   useEffect(() => {
-    const onChange = () => setPath(window.location.pathname);
+    const onChange = () => setPath(currentPath());
     window.addEventListener("popstate", onChange);
     return () => window.removeEventListener("popstate", onChange);
   }, []);
   return path;
 }
 
+/** Opens a page (a path without language) in the language of the current one. */
 export function navigate(path: string) {
-  if (path === window.location.pathname) return;
-  window.history.pushState(null, "", path);
+  if (path === currentPath()) return;
+  window.history.pushState(null, "", localizedPath(locale(), path));
   window.dispatchEvent(new PopStateEvent("popstate"));
   window.scrollTo({ top: 0 });
 }
@@ -32,7 +40,12 @@ export function Link({ to, className, children, onClick }: {
     onClick?.();
   };
   return (
-    <a href={to} className={className} onClick={handle} aria-current={window.location.pathname === to ? "page" : undefined}>
+    <a
+      href={localizedPath(locale(), to)}
+      className={className}
+      onClick={handle}
+      aria-current={currentPath() === to ? "page" : undefined}
+    >
       {children}
     </a>
   );

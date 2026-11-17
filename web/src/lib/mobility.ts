@@ -2,6 +2,7 @@
 
 import type { HumanPressureDay, MobilityDay, Municipality, PopulationYear, StopService, TransitRoute } from "../api";
 import type { MapLayer } from "../components/PointMap";
+import { messages } from "../i18n";
 import { compact, dayName, dayShort, number, signed } from "./format";
 import type { Kpi } from "./kpis";
 import { busiestDay, change, islandTotals, type Service, serviceByMunicipality } from "./population";
@@ -11,12 +12,13 @@ export const FIRST_YEAR = 1996;
 export const PALMA = "07040";
 
 export const NETWORKS = {
-  emt_palma: { label: "EMT Palma", detail: "autobuses urbanos de Palma", color: "#dc2626" },
-  ctm: { label: "CTM", detail: "autobuses TIB, tren y metro de la isla", color: "#2563eb" },
+  emt_palma: { label: "EMT Palma", color: "#dc2626" },
+  ctm: { label: "CTM", color: "#2563eb" },
 } as const;
 
 /** Key figures of the latest day of each network, with its daily trend. */
 export function mobilityKpis(days: MobilityDay[]): Kpi[] {
+  const m = messages().mobility;
   return (Object.keys(NETWORKS) as (keyof typeof NETWORKS)[]).flatMap((network) => {
     const rows = days.filter((d) => d.network === network && d.scheduled_stop_calls !== null);
     const latest = rows.at(-1);
@@ -24,12 +26,12 @@ export function mobilityKpis(days: MobilityDay[]): Kpi[] {
     const { label } = NETWORKS[network];
     const history = rows.map((d) => ({ month: d.local_date, value: d.scheduled_stop_calls as number }));
     // One figure per network, so the row of key figures stays on one line next to the two of population.
-    const day = latest.is_weekend ? "fin de semana" : "laborable";
+    const day = latest.is_weekend ? m.weekend : m.weekday;
     return [
       {
-        id: `${network}-calls`, label: `${label} · pasos programados`, value: compact(latest.scheduled_stop_calls as number),
+        id: `${network}-calls`, label: m.calls(label), value: compact(latest.scheduled_stop_calls as number),
         unit: "", month: `${dayName(latest.local_date)}, ${day}`,
-        deviation: `${number(latest.stops_with_service)} de ${number(latest.stops)} paradas con servicio`,
+        deviation: m.stopsWithService(number(latest.stops_with_service), number(latest.stops)),
         tone: "neutral", history,
       },
     ];
@@ -43,18 +45,19 @@ export function populationKpis(rows: PopulationYear[], stops: StopService[]): Kp
   if (!latest) return [];
   const yearly = change(latest.population, totals.at(-2)?.population);
   const departures = stops.reduce((sum, s) => sum + (s.departures ?? 0), 0);
+  const m = messages().mobility;
   return [
     {
-      id: "population", label: "Población de Mallorca", value: number(latest.population), unit: "hab.",
-      month: `1 de enero de ${latest.year}`,
-      deviation: yearly === null ? null : `${signed(yearly * 100)} % en un año`, tone: "neutral",
+      id: "population", label: m.population, value: number(latest.population), unit: m.inhabitants,
+      month: dayName(`${latest.year}-01-01`),
+      deviation: yearly === null ? null : m.inAYear(signed(yearly * 100)), tone: "neutral",
       history: totals.slice(-15).map((t) => ({ month: String(t.year), value: t.population })),
     },
     {
-      id: "service-per-inhabitant", label: "Pasos por 1.000 habitantes",
+      id: "service-per-inhabitant", label: m.perThousand,
       value: number((departures / latest.population) * 1000), unit: "",
       month: stops[0] ? dayName(stops[0].local_date) : "",
-      deviation: `${compact(departures)} pasos de EMT y CTM`, tone: "neutral", history: [],
+      deviation: m.callsOfBoth(compact(departures)), tone: "neutral", history: [],
     },
   ];
 }
@@ -93,21 +96,20 @@ export function withSelected(rows: MunicipalityRow[], selected: string | null): 
 
 /** "Datos hasta el 31 de agosto de 2026; máximo del año: 1.517.631 personas el 11 de agosto (1,58 por residente)." */
 export function pressureSubtitle(days: HumanPressureDay[] | null): string {
-  const intro = "Residentes más visitantes en la isla cada día (Indicador de Presión Humana del Ibestat), los últimos tres años.";
+  const m = messages().mobility;
   const last = days?.at(-1);
-  if (!days || !last) return intro;
+  if (!days || !last) return m.pressureIntro;
   const year = last.local_date.slice(0, 4);
   const peak = busiestDay(days.filter((d) => d.local_date.startsWith(year)));
-  const ratio = peak?.pressure_ratio ? ` (${number(peak.pressure_ratio, 2)} por residente)` : "";
-  const top = peak ? ` Máximo de ${year}: ${number(peak.people_present)} personas el ${dayShort(peak.local_date)}${ratio}.` : "";
-  return `${intro} Datos hasta el ${dayName(last.local_date)}: el Ibestat publica con unos dos meses de retraso.${top}`;
+  const ratio = peak?.pressure_ratio ? number(peak.pressure_ratio, 2) : null;
+  const top = peak ? m.pressurePeak(year, number(peak.people_present), dayShort(peak.local_date), ratio) : null;
+  return [m.pressureIntro, m.pressureUpTo(dayName(last.local_date)), top].filter(Boolean).join(" ");
 }
 
 /** Subtitle of the lines map: the day of the timetables. */
 export function routesSubtitle(routes: TransitRoute[] | null): string {
   const day = routes?.find((r) => r.local_date)?.local_date;
-  const when = day ? `el ${dayName(day)}` : "el último día";
-  return `Recorrido de cada línea con el color de su operador; cuanto más gruesa, más salidas tiene ${when}. Pulsa una línea para ver sus cifras.`;
+  return messages().mobility.routesSubtitle(day ? dayName(day) : null);
 }
 
 export function stopLayers(stops: StopService[]): MapLayer[] {
@@ -120,7 +122,7 @@ export function stopLayers(stops: StopService[]): MapLayer[] {
         lat: s.lat, lon: s.lon,
         // Area proportional to the departures: the radius grows with their square root.
         size: 0.5 + 2 * Math.sqrt((s.departures ?? 0) / busiest),
-        popup: [s.name ?? s.stop, NETWORKS[network].label, `${number(s.departures ?? 0)} pasos · ${number(s.lines ?? 0)} líneas`],
+        popup: [s.name ?? s.stop, NETWORKS[network].label, messages().mobility.stopPopup(number(s.departures ?? 0), number(s.lines ?? 0))],
       })),
     };
   });

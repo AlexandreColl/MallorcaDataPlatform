@@ -534,7 +534,8 @@ API las sirve en `GET /v1/corrections`.
 
 La isla en cifras, para quien quiere verla y no operar la plataforma: http://localhost:3002. Un menú a la izquierda
 abre seis dashboards y un explorador de series. Cada dashboard agrupa datos que van juntos, igual que las carpetas de
-Grafana:
+Grafana. Está en castellano, catalán e inglés: el idioma va en la dirección (`/ca/movilidad`) y se cambia en el menú
+([ADR 0024](docs/adr/0024-la-web-en-tres-idiomas.md)).
 
 | Dashboard | Qué enseña |
 |---|---|

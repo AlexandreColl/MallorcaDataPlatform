@@ -534,7 +534,8 @@ at `GET /v1/corrections`.
 
 The island in figures, for people who want to see it rather than operate the platform: http://localhost:3002. A menu
 on the left opens six dashboards and a series explorer. Each dashboard groups data that belongs together, like
-Grafana's folders. The interface is in Spanish:
+Grafana's folders. It speaks Spanish, Catalan and English: the language is in the address (`/en/movilidad`) and
+changes from the menu ([ADR 0024](docs/adr/0024-la-web-en-tres-idiomas.md)). The dashboards, by their Spanish names:
 
 | Dashboard | What it shows |
 |---|---|

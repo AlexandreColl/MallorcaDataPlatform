@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { TransitRoute } from "../api";
+import { messages } from "../i18n";
 import { NETWORKS } from "../lib/mobility";
 import { routePopup, routeWidth } from "../lib/transit";
 import { type MapRoute, PointMap } from "./PointMap";
@@ -20,11 +21,12 @@ export function TransitMap({ routes }: { routes: TransitRoute[] }) {
       popup: routePopup(r, NETWORKS[r.network].label),
     }));
   }, [routes, network]);
-  const filters: [NetworkFilter, string][] = [["all", "Las dos redes"], ["emt_palma", NETWORKS.emt_palma.label], ["ctm", NETWORKS.ctm.label]];
+  const m = messages().transit;
+  const filters: [NetworkFilter, string][] = [["all", m.bothNetworks], ["emt_palma", NETWORKS.emt_palma.label], ["ctm", NETWORKS.ctm.label]];
 
   return (
     <>
-      <div className="segmented" role="group" aria-label="Red de transporte">
+      <div className="segmented" role="group" aria-label={m.network}>
         {filters.map(([value, label]) => (
           <button key={value} type="button" aria-pressed={value === network} onClick={() => setNetwork(value)}>
             {label}

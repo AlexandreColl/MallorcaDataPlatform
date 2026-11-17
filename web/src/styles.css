@@ -175,6 +175,36 @@ button {
   border-color: var(--brand);
 }
 
+.languages {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  margin: 0 -8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.languages a {
+  flex: 1;
+  padding: 5px 2px;
+  border-radius: 7px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.languages a:hover {
+  color: var(--text);
+}
+
+.languages a[aria-current="true"] {
+  background: var(--surface);
+  color: var(--brand-text);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
 .links {
   display: flex;
   gap: 14px;

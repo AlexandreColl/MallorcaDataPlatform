@@ -1,6 +1,7 @@
-import { type ReactNode, useState } from "react";
+import { type MouseEvent, type ReactNode, useState } from "react";
 
-import { Link } from "../router";
+import { LOCALES, type Locale, locale, localizedPath, messages, NATIVE_NAMES, rememberLocale } from "../i18n";
+import { Link, usePath } from "../router";
 import { useTheme } from "../theme";
 import { Icon, type IconName } from "./Icon";
 import { Logo } from "./Logo";
@@ -15,12 +16,50 @@ export interface Dashboard {
 
 function ThemeButton() {
   const { theme, toggle } = useTheme();
-  const next = theme === "dark" ? "claro" : "oscuro";
+  const m = messages().layout;
+  const dark = theme === "dark";
   return (
-    <button type="button" className="theme-button" onClick={toggle} aria-label={`Cambiar a modo ${next}`}>
-      <Icon name={theme === "dark" ? "sun" : "moon"} size={18} />
-      <span>Modo {next}</span>
+    <button type="button" className="theme-button" onClick={toggle} aria-label={dark ? m.switchToLight : m.switchToDark}>
+      <Icon name={dark ? "sun" : "moon"} size={18} />
+      <span>{dark ? m.lightMode : m.darkMode}</span>
     </button>
+  );
+}
+
+/** The same page, with its filters, in another language. */
+function pageIn(language: Locale, path: string): string {
+  return `${localizedPath(language, path)}${window.location.search}${window.location.hash}`;
+}
+
+/**
+ * Links to the same page in each language, each named in itself. Changing language loads the page again: the texts
+ * and formats are read once per load (ADR 0024). The choice is remembered for links that carry no language.
+ */
+function LanguageSelector() {
+  const path = usePath();
+  const current = locale();
+  const choose = (language: Locale) => (event: MouseEvent<HTMLAnchorElement>) => {
+    rememberLocale(language);
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    // The explorer keeps its filters in the query without rendering this again: read the address at the click.
+    if (language !== current) window.location.assign(pageIn(language, path));
+  };
+  return (
+    <nav className="languages" aria-label={messages().layout.language}>
+      {LOCALES.map((language) => (
+        <a
+          key={language}
+          href={pageIn(language, path)}
+          lang={language}
+          hrefLang={language}
+          aria-current={language === current ? "true" : undefined}
+          onClick={choose(language)}
+        >
+          {NATIVE_NAMES[language]}
+        </a>
+      ))}
+    </nav>
   );
 }
 
@@ -32,9 +71,10 @@ export function Layout({ dashboards, current, children, version }: {
   version: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const m = messages().layout;
   return (
     <div className={`shell${open ? " menu-open" : ""}`}>
-      <aside className="sidebar" aria-label="Dashboards">
+      <aside className="sidebar" aria-label={m.dashboards}>
         <Link to="/" className="brand" onClick={() => setOpen(false)}>
           <Logo size={30} />
           <span>
@@ -51,20 +91,21 @@ export function Layout({ dashboards, current, children, version }: {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <LanguageSelector />
           <ThemeButton />
           <nav className="links">
             <a href={`${window.location.protocol}//${window.location.hostname}:8000/docs`}>API</a>
-            <a href="https://alexandrecoll.github.io/MallorcaDataPlatform/">Catálogo</a>
+            <a href="https://alexandrecoll.github.io/MallorcaDataPlatform/">{m.catalogue}</a>
             <a href="https://github.com/AlexandreColl/MallorcaDataPlatform">GitHub</a>
           </nav>
           {version && <span className="version">v{version}</span>}
         </div>
       </aside>
-      <button type="button" className="scrim" aria-label="Cerrar el menú" onClick={() => setOpen(false)} />
+      <button type="button" className="scrim" aria-label={m.closeMenu} onClick={() => setOpen(false)} />
 
       <div className="content">
         <header className="mobile-bar">
-          <button type="button" className="icon-button" aria-label="Abrir el menú" onClick={() => setOpen(true)}>
+          <button type="button" className="icon-button" aria-label={m.openMenu} onClick={() => setOpen(true)}>
             <Icon name="menu" />
           </button>
           <Logo size={26} />
@@ -77,10 +118,7 @@ export function Layout({ dashboards, current, children, version }: {
           </header>
           {children}
         </main>
-        <footer className="footer">
-          Datos abiertos de AEMET, SOCIB, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, Govern de les Illes Balears y
-          Open-Meteo. Mapa © OpenStreetMap.
-        </footer>
+        <footer className="footer">{m.footer}</footer>
       </div>
     </div>
   );

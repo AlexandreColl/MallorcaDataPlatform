@@ -39,7 +39,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
     const image = new Image();
     image.crossOrigin = "anonymous"; // the pixels are read back, so the tiles must come with CORS
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`no se pudo cargar ${url}`));
+    image.onerror = () => reject(new Error(`could not load ${url}`));
     image.src = url;
   });
 }
@@ -55,7 +55,7 @@ export async function loadElevation(
   const canvas = document.createElement("canvas");
   [canvas.width, canvas.height] = [range.columns * TILE, range.rows * TILE];
   const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) throw new Error("sin canvas");
+  if (!context) throw new Error("no canvas");
   const tiles: Promise<void>[] = [];
   for (let row = 0; row < range.rows; row++) {
     for (let column = 0; column < range.columns; column++) {

@@ -9,9 +9,10 @@ import { PointMap } from "../components/PointMap";
 import { TemperatureZones } from "../components/TemperatureZones";
 import { WarningsMap } from "../components/WarningsMap";
 import { ready, useLoad } from "../hooks";
-import { airLayers, EAQI, environmentKpis, episodeType, localTime, temperatureSubtitle } from "../lib/environment";
+import { messages } from "../i18n";
+import { airLayers, eaqiBand, eaqiBands, environmentKpis, episodeType, localTime, temperatureSubtitle } from "../lib/environment";
 import { dayShort, number, orDash, placeName, signed } from "../lib/format";
-import { describe, LEVELS } from "../lib/warnings";
+import { describe, levels } from "../lib/warnings";
 
 function DailyTemperature({ days }: { days: WeatherSourceDay[] }) {
   const option = useCallback(() => {
@@ -30,7 +31,7 @@ function DailyTemperature({ days }: { days: WeatherSourceDay[] }) {
       })),
     };
   }, [days]);
-  return <Chart option={option} label="Temperatura media diaria de cada fuente" height={300} />;
+  return <Chart option={option} label={messages().weather.dailyTemperatureChart} height={300} />;
 }
 
 function Waves({ hours }: { hours: SeaHour[] }) {
@@ -51,7 +52,7 @@ function Waves({ hours }: { hours: SeaHour[] }) {
       })),
     };
   }, [hours]);
-  return <Chart option={option} label="Altura de ola en cada punto de la costa" height={300} />;
+  return <Chart option={option} label={messages().weather.wavesChart} height={300} />;
 }
 
 /** A wave height in metres with two decimals, or a dash. */
@@ -89,44 +90,46 @@ export function WeatherEnvironment() {
   const places = useLoad(api.municipalities);
   const warnings = useLoad(api.warnings);
   const zones = useLoad(api.warningZones);
+  const m = messages().weather;
+  const coast = ` (${messages().warnings.coast})`;
 
   return (
     <>
       <KpiRow kpis={kpis} colors={["#dc2626", "#0891b2", "#2563eb", "#7c3aed"]} />
       <div className="grid">
-        <Panel title="Avisos de AEMET" subtitle="Zonas de aviso de Mallorca con el nivel más alto en vigor o anunciado; pulsa una zona para ver sus avisos." wide>
+        <Panel title={m.warningsTitle} subtitle={m.warningsSubtitle} wide>
           <Async state={zones} height={420}>
             {(z) => <Async state={warnings} height={420}>{(w) => <WarningsMap zones={z} warnings={w} />}</Async>}
           </Async>
         </Panel>
-        <Panel title="Avisos en vigor y anunciados" subtitle="Los próximos 3 días, por orden de inicio (hora de Mallorca).">
+        <Panel title={m.warningsListTitle} subtitle={m.warningsListSubtitle}>
           <Async state={warnings}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 12)}
-                empty="Ningún aviso en los próximos 3 días"
+                empty={m.noWarnings}
                 columns={[
                   {
-                    label: "Aviso",
+                    label: m.warning,
                     value: (w) => (
                       <span className="source-cell">
-                        <span className="dot" style={{ background: LEVELS[w.level]?.color }} />
+                        <span className="dot" style={{ background: levels()[w.level]?.color }} />
                         <span className="stacked">
                           {describe(w)}
-                          <small>{w.zone_name ?? w.zone}{w.zone_kind === "coast" ? " (costa)" : ""}</small>
+                          <small>{w.zone_name ?? w.zone}{w.zone_kind === "coast" ? coast : ""}</small>
                         </span>
                       </span>
                     ),
                   },
-                  { label: "Desde", value: (w) => localTime(w.start_ts) },
-                  { label: "Hasta", value: (w) => localTime(w.end_ts) },
+                  { label: m.from, value: (w) => localTime(w.start_ts) },
+                  { label: m.to, value: (w) => localTime(w.end_ts) },
                 ]}
               />
             )}
           </Async>
         </Panel>
         <Panel
-          title="Temperatura por zonas"
+          title={m.zonesTitle}
           subtitle={temperatureSubtitle(ready(stations), day)}
           wide
         >
@@ -134,16 +137,16 @@ export function WeatherEnvironment() {
             {(rows) => <Async state={places} height={480}>{(p) => <TemperatureZones stations={rows} places={p} days={aemetDays} onDay={setDay} />}</Async>}
           </Async>
         </Panel>
-        <Panel title="Temperatura de los últimos 30 días" subtitle="Media diaria de la isla según cada fuente: estaciones oficiales frente al modelo.">
+        <Panel title={m.last30Title} subtitle={m.last30Subtitle}>
           <Async state={weather} height={300}>{(rows) => <DailyTemperature days={rows} />}</Async>
         </Panel>
-        <Panel title="Calidad del aire ahora" subtitle="Índice europeo de la última hora: el color es el del peor contaminante." wide>
+        <Panel title={m.airTitle} subtitle={m.airSubtitle} wide>
           <Async state={air} height={480}>
             {() => (
               <>
                 <PointMap layers={layers} height={480} />
                 <div className="scale">
-                  {EAQI.slice(0, 4).map((b) => (
+                  {eaqiBands().slice(0, 4).map((b) => (
                     <span key={b.label}>
                       <span className="dot" style={{ background: b.color }} /> {b.label}
                     </span>
@@ -153,17 +156,17 @@ export function WeatherEnvironment() {
             )}
           </Async>
         </Panel>
-        <Panel title="Estaciones de calidad del aire" subtitle="Concentraciones de la última hora en µg/m³, de la peor a la mejor.">
+        <Panel title={m.airStationsTitle} subtitle={m.airStationsSubtitle}>
           <Async state={air}>
             {(rows) => (
               <Table
                 rows={rows.filter((a) => a.source === "eea_air_quality").sort((a, b) => b.eaqi_band - a.eaqi_band)}
                 columns={[
                   {
-                    label: "Estación",
+                    label: m.station,
                     value: (a) => (
                       <span className="source-cell">
-                        <span className="dot" style={{ background: EAQI[a.eaqi_band - 1]?.color }} />
+                        <span className="dot" style={{ background: eaqiBand(a.eaqi_band)?.color }} />
                         {placeName(a.entity, a.name)}
                       </span>
                     ),
@@ -176,77 +179,77 @@ export function WeatherEnvironment() {
             )}
           </Async>
         </Panel>
-        <Panel title="Oleaje de la última semana" subtitle="Altura significativa de ola en los puntos de la costa (modelo)." wide>
+        <Panel title={m.wavesTitle} subtitle={m.wavesSubtitle} wide>
           <Async state={sea} height={300}>{(rows) => <Waves hours={rows} />}</Async>
         </Panel>
-        <Panel title="Episodios del último año" subtitle="Días seguidos de lluvia intensa, viento fuerte o mar alta en algún punto de la isla.">
+        <Panel title={m.episodesTitle} subtitle={m.episodesSubtitle}>
           <Async state={episodes}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 8)}
-                empty="Ningún episodio en el último año"
+                empty={m.noEpisodes}
                 columns={[
-                  { label: "Inicio", value: (e) => dayShort(e.start_date) },
-                  { label: "Tipo", value: (e) => episodeType(e.episode_type) },
-                  { label: "Lluvia", value: (e) => (e.peak_rain_mm === null ? "—" : `${number(e.peak_rain_mm, 0)} mm`), numeric: true },
-                  { label: "Racha", value: (e) => (e.peak_gust_kmh === null ? "—" : `${number(e.peak_gust_kmh, 0)} km/h`), numeric: true },
-                  { label: "Ola", value: (e) => (e.peak_wave_m === null ? "—" : `${number(e.peak_wave_m, 1)} m`), numeric: true },
+                  { label: m.start, value: (e) => dayShort(e.start_date) },
+                  { label: m.type, value: (e) => episodeType(e.episode_type) },
+                  { label: m.rain, value: (e) => (e.peak_rain_mm === null ? "—" : `${number(e.peak_rain_mm, 0)} mm`), numeric: true },
+                  { label: m.gust, value: (e) => (e.peak_gust_kmh === null ? "—" : `${number(e.peak_gust_kmh, 0)} km/h`), numeric: true },
+                  { label: m.wave, value: (e) => (e.peak_wave_m === null ? "—" : `${number(e.peak_wave_m, 1)} m`), numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
-        <Panel title="Sismos" subtitle="Localizados por el IGN en Mallorca y el mar que la rodea.">
+        <Panel title={m.quakesTitle} subtitle={m.quakesSubtitle}>
           <Async state={quakes}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 8)}
-                empty="Ningún sismo"
+                empty={m.noQuakes}
                 columns={[
-                  { label: "Fecha", value: (e) => dayShort(e.ts) },
-                  { label: "Mag.", value: (e) => (e.magnitude === null ? "—" : number(e.magnitude, 1)), numeric: true },
-                  { label: "Prof.", value: (e) => (e.depth_km === null ? "—" : `${number(e.depth_km, 0)} km`), numeric: true },
-                  { label: "A Palma", value: (e) => (e.distance_to_palma_km === null ? "—" : `${number(e.distance_to_palma_km, 0)} km`), numeric: true },
+                  { label: m.date, value: (e) => dayShort(e.ts) },
+                  { label: m.magnitude, value: (e) => (e.magnitude === null ? "—" : number(e.magnitude, 1)), numeric: true },
+                  { label: m.depth, value: (e) => (e.depth_km === null ? "—" : `${number(e.depth_km, 0)} km`), numeric: true },
+                  { label: m.toPalma, value: (e) => (e.distance_to_palma_km === null ? "—" : `${number(e.distance_to_palma_km, 0)} km`), numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
         <Panel
-          title="Modelo frente a estaciones"
-          subtitle="Error del modelo en la temperatura media diaria de cada estación de AEMET y SOCIB, ya corregido por la altura de la estación (6,5 °C por km de desnivel con su celda)."
+          title={m.modelTitle}
+          subtitle={m.modelSubtitle}
         >
           <Async state={bias}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 8)}
                 columns={[
-                  { label: "Estación", value: (b) => b.station_name ?? b.station },
-                  { label: "Desnivel", value: (b) => (b.elevation_diff_m === null ? "—" : `${signed(Number(b.elevation_diff_m), 0)} m`), numeric: true },
-                  { label: "Sesgo", value: (b) => (b.temperature_bias_adjusted_c === null ? "—" : `${signed(Number(b.temperature_bias_adjusted_c))} °C`), numeric: true },
-                  { label: "Error", value: (b) => (b.temperature_mae_adjusted_c === null ? "—" : `${number(Number(b.temperature_mae_adjusted_c), 1)} °C`), numeric: true },
+                  { label: m.station, value: (b) => b.station_name ?? b.station },
+                  { label: m.heightDifference, value: (b) => (b.elevation_diff_m === null ? "—" : `${signed(Number(b.elevation_diff_m), 0)} m`), numeric: true },
+                  { label: m.bias, value: (b) => (b.temperature_bias_adjusted_c === null ? "—" : `${signed(Number(b.temperature_bias_adjusted_c))} °C`), numeric: true },
+                  { label: m.error, value: (b) => (b.temperature_mae_adjusted_c === null ? "—" : `${number(Number(b.temperature_mae_adjusted_c), 1)} °C`), numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
         <Panel
-          title="Oleaje: boyas frente al modelo"
-          subtitle="Media de la altura significativa de ola, en metros, que miden las boyas de SOCIB y la que da Open-Meteo Marine en el punto más cercano, en las horas que tienen las dos; r es la correlación hora a hora."
+          title={m.buoysTitle}
+          subtitle={m.buoysSubtitle}
         >
           <Async state={waveBias}>
             {(rows) => (
               <Table
                 rows={rows}
-                empty="Sin horas comparables todavía"
+                empty={m.noBuoyHours}
                 columns={[
-                  { label: "Boya", value: (b) => placeName(b.buoy, b.buoy_name) },
+                  { label: m.buoy, value: (b) => placeName(b.buoy, b.buoy_name) },
                   {
-                    label: "Media boya / modelo",
+                    label: m.buoyModelMean,
                     value: (b) => `${metres(b.wave_height_buoy_mean_m)} / ${metres(b.wave_height_model_mean_m)}`,
                     numeric: true,
                   },
-                  { label: "Sesgo", value: (b) => (b.wave_height_bias_m === null ? "—" : signed(Number(b.wave_height_bias_m), 2)), numeric: true },
+                  { label: m.bias, value: (b) => (b.wave_height_bias_m === null ? "—" : signed(Number(b.wave_height_bias_m), 2)), numeric: true },
                   { label: "r", value: (b) => (b.wave_height_correlation === null ? "—" : number(Number(b.wave_height_correlation), 2)), numeric: true },
                 ]}
               />
