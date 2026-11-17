@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-17
+
 ### Added
 
 - The web speaks Spanish, Catalan and English (ADR 0024). The language is in the address (`/ca/movilidad`): an
@@ -26,6 +28,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   and `tests/test_names.py` checks that the corrections CHECK and its migration, the dbt test, the API, the Grafana
   labels and the web name the same ones. The API types the `detector` and `method` fields and filters (an unknown
   one is a 422), and Grafana names each one instead of labelling any other as the vote or the support.
+- The E2E checks that the API answers the catalogue in Catalan when asked and in Spanish by default, and that the
+  web serves its language paths. The screenshots in `docs/img/web` add the home page in Catalan and English.
 
 ### Fixed
 
@@ -829,7 +833,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0
 [0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1
