@@ -12,8 +12,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   A selector in the menu names each language in itself. The texts are typed dictionaries, so a text missing in one
   language fails `tsc`, and numbers and dates are formatted with `Intl`. Every text of the seven pages is translated:
   titles, tables, charts, maps, key figures, the names of the metrics, AEMET warnings, air quality bands, detectors and
-  correction methods. A test fails on a Spanish text written outside the dictionaries. What the API sends (station and
-  place names, and the catalogue's labels and licences) is still in Spanish.
+  correction methods. A test fails on a Spanish text written outside the dictionaries.
+- The catalogue's texts in Catalan and English: a `dim_source_texts` seed holds each source's label, description and
+  licence per language, with Spanish in `dim_sources` as the reference and fallback, and a dbt test that every source
+  has them. `/v1/sources`, `/v1/locations` and `/v1/weather/daily` answer them in the language of
+  `Accept-Language`, say it in `Content-Language` with `Vary: Accept-Language`, and the API's cache keeps one answer
+  per language for such paths. The web sends the language of the page. Proper names (stations, places, AEMET zones,
+  aquifers, owners) stay as they are.
 
 ### Changed
 
