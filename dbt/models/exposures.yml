@@ -124,6 +124,7 @@ exposures:
     depends_on:
       - ref('source_health')
       - ref('dim_sources')
+      - ref('dim_source_texts')
       - ref('fct_observations')
       - ref('dim_locations')
       - ref('fct_water_reserves_monthly')
@@ -168,6 +169,7 @@ exposures:
       - ref('dim_aquifers')
       - ref('dim_locations')
       - ref('dim_sources')
+      - ref('dim_source_texts')
       - ref('source_health')
       - ref('fct_bus_network_daily')
       - ref('fct_island_transit_daily')

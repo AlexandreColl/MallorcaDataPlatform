@@ -1,0 +1,31 @@
+source,language,label,description,license
+open_meteo,ca,Open-Meteo (model),Qualitat de l’aire (CAMS) i meteorologia modelitzades en 6 localitats,CC BY 4.0
+open_meteo,en,Open-Meteo (model),Modelled air quality (CAMS) and weather at 6 places,CC BY 4.0
+socib,ca,SOCIB (estacions),"Observacions reals de 3 estacions meteorològiques i de la boia de la badia de Palma, i onatge d’aquesta boia i de la de Portocolom",Accés obert amb citació obligatòria (sense llicència CC publicada)
+socib,en,SOCIB (stations),"Real observations from 3 weather stations and the Bay of Palma buoy, and waves from that buoy and the Portocolom one","Open access, citation required (no CC licence published)"
+redata,ca,REData (electricitat),"Demanda, generació i emissions del sistema elèctric balear",Reutilització amb citació (Llei 37/2007; sense llicència publicada per a l’API)
+redata,en,REData (electricity),"Demand, generation and emissions of the Balearic power system",Reuse with citation (Law 37/2007; no licence published for the API)
+ign,ca,IGN (sismes),Sismes localitzats per l’IGN a Mallorca i a la mar que l’envolta,CC BY 4.0
+ign,en,IGN (earthquakes),Earthquakes located by the IGN in Mallorca and the sea around it,CC BY 4.0
+emt_palma,ca,EMT Palma (bus),Servei d’autobús programat per parada (GTFS),Sense llicència publicada al repositori (Llei 37/2007)
+emt_palma,en,EMT Palma (bus),Scheduled bus service per stop (GTFS),No licence published in the repository (Law 37/2007)
+open_meteo_marine,ca,Open-Meteo Marine (model),"Onatge, temperatura de la mar, corrents i nivell de la mar modelitzats en 8 punts de la costa",CC BY 4.0
+open_meteo_marine,en,Open-Meteo Marine (model),"Modelled waves, sea temperature, currents and sea level at 8 points of the coast",CC BY 4.0
+aemet,ca,AEMET (estacions oficials),"Valors diaris de 33 estacions oficials d’AEMET a Mallorca: temperatura, pluja, humitat, vent, sol i pressió",Reutilització amb citació (nota legal d’AEMET; Llei 37/2007)
+aemet,en,AEMET (official stations),"Daily values from 33 official AEMET stations in Mallorca: temperature, rain, humidity, wind, sunshine and pressure",Reuse with citation (AEMET legal notice; Law 37/2007)
+ctm,ca,CTM (bus i tren interurbans),"Servei programat per parada dels autobusos TIB, el tren SFM i el metro a tota l’illa (GTFS)",CC BY 4.0
+ctm,en,CTM (intercity bus and train),"Scheduled service per stop of the TIB buses, the SFM train and the metro across the island (GTFS)",CC BY 4.0
+dataestur,ca,Dataestur (turisme),"Turistes internacionals, despesa, ocupació hotelera de les Balears i passatgers de l’aeroport de Palma, mensuals",Reutilització amb citació (Llei 37/2007; sense llicència publicada)
+dataestur,en,Dataestur (tourism),"International tourists, spending, Balearic hotel occupancy and Palma airport passengers, monthly",Reuse with citation (Law 37/2007; no licence published)
+water_reserves,ca,Reserves hídriques (Govern),"Reserves d’aigua subterrània de Mallorca per aqüífer i del conjunt de l’illa, mensuals",CC BY (política de dades obertes del Govern)
+water_reserves,en,Water reserves (Govern),"Groundwater reserves of Mallorca by aquifer and for the whole island, monthly",CC BY (the Govern’s open data policy)
+goib_air_quality,ca,GOIB (històric de qualitat de l’aire),"Històric horari de NO2, O3, PM10, PM2.5, SO2 i CO d’11 estacions oficials de Mallorca, del 2002 al juny del 2021 (catàleg de dades obertes del Govern)",CC BY (política de dades obertes del Govern)
+goib_air_quality,en,GOIB (air quality history),"Hourly history of NO2, O3, PM10, PM2.5, SO2 and CO from 11 official stations in Mallorca, 2002 to June 2021 (the Govern’s open data catalogue)",CC BY (the Govern’s open data policy)
+eea_air_quality,ca,EEA (estacions de qualitat de l’aire),"Mesures horàries de NO2, O3, PM10, PM2.5, SO2 i CO de 9 estacions oficials de Mallorca (xarxa del Govern, via l’Agència Europea de Medi Ambient)",CC BY 4.0
+eea_air_quality,en,EEA (air quality stations),"Hourly measurements of NO2, O3, PM10, PM2.5, SO2 and CO from 9 official stations in Mallorca (the Govern’s network, via the European Environment Agency)",CC BY 4.0
+aemet_warnings,ca,AEMET (avisos),"Avisos meteorològics d’AEMET (Meteoalerta) per zona de Mallorca i fenomen, hora a hora: nivell 0 sense risc, 1 groc, 2 taronja, 3 vermell",Reutilització amb citació (nota legal d’AEMET; Llei 37/2007)
+aemet_warnings,en,AEMET (warnings),"AEMET weather warnings (Meteoalerta) by Mallorca zone and phenomenon, hour by hour: level 0 no risk, 1 yellow, 2 orange, 3 red",Reuse with citation (AEMET legal notice; Law 37/2007)
+ine_population,ca,INE (padró),"Població de cada municipi de Mallorca a 1 de gener, per sexe, anual",CC BY 4.0
+ine_population,en,INE (municipal register),"Population of each municipality of Mallorca on 1 January, by sex, yearly",CC BY 4.0
+ibestat_iph,ca,Ibestat (pressió humana),"Persones presents a Mallorca cada dia, residents més visitants (IPH), diari",Reutilització amb citació (Llei 37/2007; sense llicència publicada)
+ibestat_iph,en,Ibestat (human pressure),"People present in Mallorca each day, residents plus visitors (IPH), daily",Reuse with citation (Law 37/2007; no licence published)

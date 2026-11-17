@@ -79,6 +79,37 @@ seeds:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments: {min_value: 0, max_value: 1}
+  - name: dim_source_texts
+    description: >-
+      The catalogue's texts in the other languages of the web (ADR 0024): the label, description and licence of each
+      source in Catalan and English. Spanish is the reference and stays in dim_sources; the API falls back to it.
+      One row per source and language, so adding a language adds rows, not columns.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [source, language]
+    columns:
+      - name: source
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_sources')
+                field: source
+      - name: language
+        description: "ISO 639-1 code: `ca` or `en`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["ca", "en"]
+      - name: label
+        data_tests: [not_null]
+      - name: description
+        data_tests: [not_null]
+      - name: license
+        description: The licence or reuse terms as in dim_sources, in that language (licence names stay as they are).
+        data_tests: [not_null]
   - name: dim_aquifers
     description: >-
       Groundwater bodies (MAS) of Mallorca in the water reserves spreadsheet of the Govern, with their hydrogeological
