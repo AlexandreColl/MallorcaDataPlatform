@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, type Municipality, type StationDay } from "../api";
+import { messages } from "../i18n";
 import { blur, contourLevels, contours } from "../lib/contours";
 import { type Elevation, loadElevation } from "../lib/elevation";
 import { number, placeName } from "../lib/format";
@@ -19,13 +20,14 @@ import {
 import { DaySlider } from "./DaySlider";
 import { type MapImage, type MapLayer, type MapLines, PointMap } from "./PointMap";
 
-const TEMPERATURE_FIELDS = {
-  temperature_mean: "Media",
-  temperature_max: "Máxima",
-  temperature_min: "Mínima",
-} as const;
+const TEMPERATURE_FIELDS = ["temperature_mean", "temperature_max", "temperature_min"] as const;
 
-type TemperatureField = keyof typeof TEMPERATURE_FIELDS;
+type TemperatureField = (typeof TEMPERATURE_FIELDS)[number];
+
+function fieldLabel(field: TemperatureField): string {
+  const m = messages().temperatureZones;
+  return { temperature_mean: m.mean, temperature_max: m.max, temperature_min: m.min }[field];
+}
 
 /** Pixels across the temperature image: about 160 m each, fine enough that MapLibre's smoothing hides them. */
 const IMAGE_WIDTH = 640;
@@ -155,13 +157,13 @@ export function TemperatureZones({ stations, places, days, onDay }: {
       : undefined;
     const layers: MapLayer[] = [
       {
-        id: "stations", label: "Estaciones", color: "#0a120d", radius: 4.5,
+        id: "stations", label: messages().environment.stations, color: "#0a120d", radius: 4.5,
         points: samples.map((s) => ({
           lat: s.lat, lon: s.lon, color: temperatureColor(s.value, min, max),
           popup: [
             s.name,
-            `${TEMPERATURE_FIELDS[field]}: ${number(s.value, 1)} °C`,
-            ...(s.elevation === undefined ? [] : [`${number(s.elevation)} m de altitud`]),
+            `${fieldLabel(field)}: ${number(s.value, 1)} °C`,
+            ...(s.elevation === undefined ? [] : [messages().temperatureZones.altitude(number(s.elevation))]),
           ],
         })),
       },
@@ -182,12 +184,13 @@ export function TemperatureZones({ stations, places, days, onDay }: {
 
   if (surface === null) return <div className="block skeleton" style={{ height: 520 }} aria-busy="true" />;
   const shown = stations[0]?.local_date.slice(0, 10);
+  const m = messages().temperatureZones;
   const controls = (
     <div className="controls">
-      <div className="segmented" role="group" aria-label="Temperatura">
-        {(Object.keys(TEMPERATURE_FIELDS) as TemperatureField[]).map((f) => (
+      <div className="segmented" role="group" aria-label={m.temperature}>
+        {TEMPERATURE_FIELDS.map((f) => (
           <button key={f} type="button" aria-pressed={f === field} onClick={() => setField(f)}>
-            {TEMPERATURE_FIELDS[f]}
+            {fieldLabel(f)}
           </button>
         ))}
       </div>
@@ -198,7 +201,7 @@ export function TemperatureZones({ stations, places, days, onDay }: {
     return (
       <>
         {controls}
-        <p className="empty">Sin temperaturas para ese día.</p>
+        <p className="empty">{m.noData}</p>
       </>
     );
   }
@@ -212,10 +215,7 @@ export function TemperatureZones({ stations, places, days, onDay }: {
         <span>{number(surface.max)} °C</span>
       </div>
       <p className="map-note">
-        Isotermas cada {surface.max - surface.min > 12 ? 2 : 1} °C.{" "}
-        {elevation === "failed"
-          ? "Sin corrección por altitud: no se pudo cargar el relieve."
-          : "Corregido por la altitud del terreno (relieve de Mapzen Terrain Tiles); pasa el cursor para ver la temperatura y la altura."}
+        {m.isotherms(surface.max - surface.min > 12 ? 2 : 1)} {elevation === "failed" ? m.noRelief : m.relief}
       </p>
     </>
   );

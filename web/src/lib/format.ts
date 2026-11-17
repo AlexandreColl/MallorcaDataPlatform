@@ -67,6 +67,11 @@ export function monthShort(isoMonth: string): string {
   return `${dateFormat({ month: "short" }).format(utcDay(isoMonth))} ${isoMonth.slice(2, 4)}`;
 }
 
+/** A month's short name, 1 to 12: "sept", "set.", "Sept". */
+export function monthAbbreviation(month: number): string {
+  return dateFormat({ month: "short" }).format(new Date(Date.UTC(2000, month - 1, 1)));
+}
+
 /** "2026-11-04" -> "4 nov", "4 de nov.", "4 Nov". */
 export function dayShort(isoDay: string): string {
   return dateFormat({ day: "numeric", month: "short" }).format(utcDay(isoDay));

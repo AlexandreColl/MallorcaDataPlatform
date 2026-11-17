@@ -19,6 +19,8 @@ from core.corrections.methods import METHODS
 ROOT = Path(__file__).parent.parent
 DASHBOARDS = sorted((ROOT / "dashboards" / "json").glob("*.json"))
 OPERATIONS_PAGE = (ROOT / "web" / "src" / "pages" / "Operations.tsx").read_text(encoding="utf-8")
+# The web names them in each language; Spanish is the reference, and tsc makes Catalan and English have the same keys.
+DICTIONARY = (ROOT / "web" / "src" / "i18n" / "es.ts").read_text(encoding="utf-8")
 
 
 def _queries(dashboard: Path) -> list[str]:
@@ -83,6 +85,14 @@ def test_grafana_labels_every_detector_and_method():
         assert set(labelled) == set(METHODS)
 
 
+def _dictionary_keys(table: str) -> list[str]:
+    """The keys of a `<table>: { ... },` of the operations texts in the web's Spanish dictionary."""
+    (operations,) = re.findall(r"\n  operations: \{(.*?)\n  \},", DICTIONARY, re.DOTALL)
+    (body,) = re.findall(rf"\n    {table}: \{{(.*?)\n    \}},", operations, re.DOTALL)
+    return re.findall(r"(\w+):", body)
+
+
 def test_the_web_names_every_detector_and_method():
-    assert tuple(_web_keys("DETECTORS")) == DETECTOR_NAMES
-    assert set(_web_keys("METHODS")) == set(METHODS)
+    assert tuple(_web_keys("DETECTORS")) == DETECTOR_NAMES  # their colours, in the Operations page
+    assert tuple(_dictionary_keys("detectors")) == DETECTOR_NAMES
+    assert set(_dictionary_keys("methods")) == set(METHODS)

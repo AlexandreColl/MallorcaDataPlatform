@@ -10,8 +10,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - The web speaks Spanish, Catalan and English (ADR 0024). The language is in the address (`/ca/movilidad`): an
   address without one is rewritten in the language chosen before or the browser's, and a shared link opens in its own.
   A selector in the menu names each language in itself. The texts are typed dictionaries, so a text missing in one
-  language fails `tsc`, and numbers and dates are formatted with `Intl`. This change translates the menu, the page
-  headers, the shared messages and the formats; the pages' texts come next.
+  language fails `tsc`, and numbers and dates are formatted with `Intl`. Every text of the seven pages is translated:
+  titles, tables, charts, maps, key figures, the names of the metrics, AEMET warnings, air quality bands, detectors and
+  correction methods. A test fails on a Spanish text written outside the dictionaries. What the API sends (station and
+  place names, and the catalogue's labels and licences) is still in Spanish.
 
 ### Changed
 

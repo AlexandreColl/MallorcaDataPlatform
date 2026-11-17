@@ -7,6 +7,7 @@ import { CorrelationCard } from "../components/CorrelationCard";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
+import { messages } from "../i18n";
 import { compact, monthShort, number, orDash } from "../lib/format";
 import { buildKpi, type Kpi, RESOURCE_SPECS, TOURISM_SPECS } from "../lib/kpis";
 import { deseasonalize, movingAverage, pearson } from "../lib/stats";
@@ -51,8 +52,8 @@ function PairChart({ rows, left, right, label }: {
           ? { name: left.name, type: "bar", data: left.values, color: left.color, itemStyle: { opacity: 0.55 } }
           : { name: left.name, type: "line", smooth: true, symbol: "none", data: left.values, color: left.color, lineStyle: { opacity: 0.55 } },
         { name: right.name, type: "line", smooth: true, symbol: "none", yAxisIndex: 1, data: right.values, color: right.color, lineStyle: { opacity: 0.55 } },
-        trend(`${left.name} · tendencia`, left.values, left.color),
-        trend(`${right.name} · tendencia`, right.values, right.color, 1),
+        trend(messages().tourism.trend(left.name), left.values, left.color),
+        trend(messages().tourism.trend(right.name), right.values, right.color, 1),
       ],
     }),
     [rows, left, right],
@@ -93,54 +94,55 @@ export function Tourism() {
     const res = ready(resources);
     return t && res ? correlations(res, t) : null;
   }, [tourism, resources]);
+  const m = messages().tourism;
 
   return (
     <>
       <KpiRow kpis={kpis} colors={KPI_COLORS} />
       {r && (
-        <section className="kpis correlations" aria-label="Correlaciones">
-          <CorrelationCard label="Turistas y reservas de agua" color={WATER} {...r.water} />
-          <CorrelationCard label="Turistas y demanda eléctrica" color={ELECTRICITY} {...r.electricity} />
-          <CorrelationCard label="Ocupación hotelera y gasto por turista" color={HOTELS} {...r.hotels} />
+        <section className="kpis correlations" aria-label={m.correlations}>
+          <CorrelationCard label={m.touristsWater} color={WATER} {...r.water} />
+          <CorrelationCard label={m.touristsElectricity} color={ELECTRICITY} {...r.electricity} />
+          <CorrelationCard label={m.hotelsSpending} color={HOTELS} {...r.hotels} />
         </section>
       )}
       <div className="grid">
         <Panel
-          title="Turistas y reservas de agua"
-          subtitle="Barras y líneas finas, cada mes; en discontinua, la tendencia (media de los últimos 12 meses, sin el ciclo del verano)."
+          title={m.touristsWater}
+          subtitle={m.touristsWaterSubtitle}
           full
         >
           <Async state={resources} height={320}>
             {(rows) => (
               <PairChart
                 rows={rows}
-                label="Turistas y reservas de agua, con su tendencia"
-                left={{ name: "Turistas", values: rows.map((x) => x.international_tourists), color: TOURISTS, format: compact, bars: true }}
-                right={{ name: "Reservas de agua (%)", values: rows.map((x) => x.reserves_pct), color: WATER, format: percent, max: 100 }}
+                label={m.touristsWaterChart}
+                left={{ name: m.tourists, values: rows.map((x) => x.international_tourists), color: TOURISTS, format: compact, bars: true }}
+                right={{ name: m.reservesPct, values: rows.map((x) => x.reserves_pct), color: WATER, format: percent, max: 100 }}
               />
             )}
           </Async>
         </Panel>
-        <Panel title="Turistas y demanda eléctrica" subtitle="La demanda de la isla sube con los visitantes; en discontinua, la tendencia de cada una." full>
+        <Panel title={m.touristsElectricity} subtitle={m.touristsElectricitySubtitle} full>
           <Async state={resources} height={320}>
             {(rows) => (
               <PairChart
                 rows={rows}
-                label="Turistas y demanda eléctrica, con su tendencia"
-                left={{ name: "Turistas", values: rows.map((x) => x.international_tourists), color: TOURISTS, format: compact, bars: true }}
-                right={{ name: "Demanda eléctrica (GWh)", values: rows.map((x) => x.electricity_demand_gwh), color: ELECTRICITY, format: (v) => `${number(v)} GWh` }}
+                label={m.touristsElectricityChart}
+                left={{ name: m.tourists, values: rows.map((x) => x.international_tourists), color: TOURISTS, format: compact, bars: true }}
+                right={{ name: m.demandGwh, values: rows.map((x) => x.electricity_demand_gwh), color: ELECTRICITY, format: (v) => `${number(v)} GWh` }}
               />
             )}
           </Async>
         </Panel>
-        <Panel title="Hoteles y gasto" subtitle="Ocupación de plazas hoteleras y gasto medio de cada turista internacional; en discontinua, la tendencia." full>
+        <Panel title={m.hotelsTitle} subtitle={m.hotelsSubtitle} full>
           <Async state={tourism} height={320}>
             {(rows) => (
               <PairChart
                 rows={rows}
-                label="Ocupación hotelera y gasto por turista, con su tendencia"
-                left={{ name: "Ocupación hotelera (%)", values: rows.map((x) => x.hotel_bed_occupancy_pct), color: HOTELS, format: percent }}
-                right={{ name: "Gasto por turista (€)", values: rows.map((x) => x.spending_per_tourist_eur), color: SPENDING, format: (v) => `${number(v)} €` }}
+                label={m.hotelsChart}
+                left={{ name: m.occupancyPct, values: rows.map((x) => x.hotel_bed_occupancy_pct), color: HOTELS, format: percent }}
+                right={{ name: m.spendingEur, values: rows.map((x) => x.spending_per_tourist_eur), color: SPENDING, format: (v) => `${number(v)} €` }}
               />
             )}
           </Async>

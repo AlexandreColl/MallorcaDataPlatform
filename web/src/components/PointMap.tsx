@@ -6,6 +6,7 @@ import type { GeoJSONSource, ImageSource, StyleSpecification } from "maplibre-gl
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { messages } from "../i18n";
 import { number } from "../lib/format";
 import { useTheme } from "../theme";
 
@@ -36,14 +37,17 @@ const MALLORCA: [[number, number], [number, number]] = [
   [3.5, 40.0],
 ];
 
-/** Spanish texts of the map controls. */
-const LOCALE = {
-  "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para hacer zoom",
-  "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para hacer zoom",
-  "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa",
-  "NavigationControl.ZoomIn": "Acercar",
-  "NavigationControl.ZoomOut": "Alejar",
-};
+/** The texts of the map controls, in the language of the page. */
+function controlTexts(): Record<string, string> {
+  const m = messages().map;
+  return {
+    "CooperativeGesturesHandler.WindowsHelpText": m.windowsHelp,
+    "CooperativeGesturesHandler.MacHelpText": m.macHelp,
+    "CooperativeGesturesHandler.MobileHelpText": m.mobileHelp,
+    "NavigationControl.ZoomIn": m.zoomIn,
+    "NavigationControl.ZoomOut": m.zoomOut,
+  };
+}
 
 /**
  * OpenStreetMap tiles (no key), toned down so the points stand out: greyed in light mode and inverted in dark mode
@@ -244,7 +248,7 @@ export function PointMap({
       fitBoundsOptions: { padding: 16 },
       attributionControl: { compact: true },
       cooperativeGestures: true,
-      locale: LOCALE,
+      locale: controlTexts(),
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     const pointLayers = layers.map((layer) => `points-${layer.id}`);
@@ -494,14 +498,14 @@ export function PointMap({
 
   return (
     <div className="map-wrap">
-      <div ref={container} className="map" style={{ minHeight: height }} aria-label="Mapa" />
+      <div ref={container} className="map" style={{ minHeight: height }} aria-label={messages().map.map} />
       {label && (
         <div className="map-label" style={{ left: label.x, top: label.y }} aria-hidden="true">
           {label.text}
         </div>
       )}
       {layers.length > 1 && (
-        <div className="legend" role="group" aria-label="Capas del mapa">
+        <div className="legend" role="group" aria-label={messages().map.layers}>
           {layers.map(({ id, label, color, points }) => (
             <button key={id} type="button" className="legend-item" aria-pressed={!hidden.has(id)} onClick={() => toggle(id)}>
               <span className="dot" style={{ background: color }} />

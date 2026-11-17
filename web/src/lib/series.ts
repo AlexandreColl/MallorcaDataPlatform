@@ -1,98 +1,37 @@
 import type { Series, SeriesDay } from "../api";
+import { locale, messages, TAGS } from "../i18n";
 import { dayShort, monthShort, placeName } from "./format";
 
-/** Spanish names of the metrics; any other metric is shown by its identifier. */
-const METRICS: Record<string, string> = {
-  temperature_2m: "Temperatura",
-  temperature_2m_mean: "Temperatura media",
-  temperature_2m_max: "Temperatura máxima",
-  temperature_2m_min: "Temperatura mínima",
-  relative_humidity_2m: "Humedad relativa",
-  relative_humidity_2m_mean: "Humedad relativa media",
-  precipitation: "Precipitación",
-  precipitation_sum: "Precipitación diaria",
-  wind_speed_10m: "Viento",
-  wind_speed_10m_mean: "Viento medio",
-  wind_gusts_10m: "Rachas de viento",
-  wind_gusts_10m_max: "Racha máxima",
-  surface_pressure: "Presión en superficie",
-  pressure_msl: "Presión al nivel del mar",
-  pressure_station_max: "Presión máxima",
-  pressure_station_min: "Presión mínima",
-  sunshine_duration: "Horas de sol",
-  nitrogen_dioxide: "NO₂",
-  ozone: "O₃",
-  pm10: "PM10",
-  pm2_5: "PM2,5",
-  sulphur_dioxide: "SO₂",
-  carbon_monoxide: "CO",
-  european_aqi: "Índice europeo de calidad del aire",
-  wave_height: "Altura de ola",
-  wave_period: "Periodo de ola",
-  wave_direction: "Dirección de ola",
-  swell_wave_height: "Mar de fondo",
-  sea_surface_temperature: "Temperatura del mar",
-  sea_level_height_msl: "Nivel del mar",
-  ocean_current_velocity: "Corriente",
-  scheduled_departures: "Pasos programados",
-  scheduled_trips: "Salidas programadas",
-  lines_served: "Líneas",
-  electricity_demand: "Demanda eléctrica",
-  generation_total: "Generación total",
-  co2_emissions: "Emisiones de CO₂",
-  co2_intensity: "Intensidad de CO₂",
-  water_reserves: "Reservas de agua",
-  human_pressure: "Población real presente",
-  population: "Población",
-  population_men: "Población (hombres)",
-  population_women: "Población (mujeres)",
-  airport_passengers: "Pasajeros del aeropuerto",
-  international_tourists: "Turistas internacionales",
-  international_tourist_nights: "Pernoctaciones de turistas internacionales",
-  international_tourist_spending: "Gasto de turistas internacionales",
-  hotel_guests: "Viajeros en hoteles",
-  hotel_nights: "Pernoctaciones hoteleras",
-  hotel_bed_occupancy: "Ocupación hotelera por plazas",
-  hotel_staff: "Personal de hoteles",
-  hotels_open: "Hoteles abiertos",
-};
+/** How the units are written: symbols, and words in the language of the page. Any other is shown as stored. */
+const SYMBOLS: Record<string, string> = { degC: "°C", pct: "%", "ug/m3": "µg/m³", eaqi: "", deg: "°" };
 
-/** How the units are written; any other unit is shown as it is stored. */
-const UNITS: Record<string, string> = {
-  degC: "°C",
-  pct: "%",
-  "ug/m3": "µg/m³",
-  eaqi: "",
-  deg: "°",
-  people: "personas",
-  trips: "salidas",
-  buses: "autobuses",
-  vehicles: "vehículos",
-  lines: "líneas",
-  nights: "noches",
-  passengers: "pasajeros",
-  establishments: "hoteles",
-};
-
+/** The name of a metric in the language of the page; any other metric is shown by its identifier. */
 export function metricLabel(metric: string): string {
-  return METRICS[metric] ?? metric.replace(/_/g, " ");
+  const names: Record<string, string> = messages().series.metrics;
+  return names[metric] ?? metric.replace(/_/g, " ");
 }
 
 export function unitLabel(unit: string | null | undefined): string {
   if (!unit) return "";
-  return UNITS[unit] ?? unit;
+  const words: Record<string, string> = messages().series.units;
+  return SYMBOLS[unit] ?? words[unit] ?? unit;
 }
 
-/** The metrics of a source, by their Spanish name. */
+/** Sorts names as the language of the page does. */
+export function byName(a: string, b: string): number {
+  return a.localeCompare(b, TAGS[locale()]);
+}
+
+/** The metrics of a source, by their name. */
 export function metricsOf(series: Series[]): string[] {
-  return [...new Set(series.map((s) => s.metric))].sort((a, b) => metricLabel(a).localeCompare(metricLabel(b), "es"));
+  return [...new Set(series.map((s) => s.metric))].sort((a, b) => byName(metricLabel(a), metricLabel(b)));
 }
 
 /** The series of one metric, by the name of their entity. */
 export function entitiesOf(series: Series[], metric: string): Series[] {
   return series
     .filter((s) => s.metric === metric)
-    .sort((a, b) => placeName(a.entity, a.name).localeCompare(placeName(b.entity, b.name), "es"));
+    .sort((a, b) => byName(placeName(a.entity, a.name), placeName(b.entity, b.name)));
 }
 
 /** The series to open first: the one with most days (ties by name), so the chart is not empty. */
@@ -100,8 +39,12 @@ export function longest(series: Series[]): Series | undefined {
   return [...series].sort((a, b) => b.days - a.days)[0];
 }
 
-export const RANGES = { month: "30 días", year: "1 año", five: "5 años", all: "Todo" } as const;
-export type Range = keyof typeof RANGES;
+export const RANGES = ["month", "year", "five", "all"] as const;
+export type Range = (typeof RANGES)[number];
+
+export function rangeLabel(range: Range): string {
+  return messages().series.ranges[range];
+}
 
 /** First day of a range that ends on the series' last day ("all" starts on its first day). */
 export function rangeStart(series: Series, range: Range): string {

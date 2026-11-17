@@ -1,6 +1,7 @@
 // The key figures of the dashboards: the latest month of each series and how far it is from its usual value.
 
 import type { ClimateMonth, ResourcesMonth, TourismMonth, WaterReservesMonth } from "../api";
+import { type Messages, messages } from "../i18n";
 import { compact, monthName, number, signed } from "./format";
 
 /** Whether a deviation is good news, bad news or just a fact (more tourists is neither). */
@@ -19,8 +20,9 @@ export interface Kpi {
 
 export interface Spec<Row> {
   id: string;
-  label: string;
-  unit: string;
+  /** Functions, not texts: the specs are module constants, built before the language of the page is set. */
+  label: () => string;
+  unit: string | (() => string);
   value: (row: Row) => number | null;
   format: (value: number) => string;
   /** The deviation of the row from its usual value, already as text, and whether it is good or bad. */
@@ -37,24 +39,38 @@ function tone(value: number, goodWhenUp: boolean | null): Tone {
 /** A relative anomaly (0.25 = 25 % above the mean of the same month) as text. */
 function relative(anomaly: number | null, goodWhenUp: boolean | null) {
   if (anomaly === null) return null;
-  return { text: `${signed(anomaly * 100, 0)} % sobre lo normal`, tone: tone(anomaly, goodWhenUp) };
+  return { text: messages().kpis.percentVsNormal(signed(anomaly * 100, 0)), tone: tone(anomaly, goodWhenUp) };
 }
+
+/** An anomaly of the reserves in points, as text: more water is good news. */
+function points(anomaly: number | null) {
+  if (anomaly === null) return null;
+  return { text: messages().kpis.pointsVsNormal(signed(anomaly)), tone: tone(anomaly, true) };
+}
+
+/** An anomaly of temperature, as text: a warmer month is bad news. */
+function degrees(anomaly: number | null) {
+  if (anomaly === null) return null;
+  return { text: messages().kpis.degreesVsNormal(signed(anomaly)), tone: tone(anomaly, false) };
+}
+
+type KpiText = { [K in keyof Messages["kpis"]]: Messages["kpis"][K] extends string ? K : never }[keyof Messages["kpis"]];
+
+/** A text of the KPIs, read when a KPI is built: the specs are built before the language of the page is set. */
+const text = (key: KpiText) => () => messages().kpis[key];
 
 export const RESOURCE_SPECS: Spec<ResourcesMonth>[] = [
   {
     id: "reserves",
-    label: "Reservas de agua",
+    label: text("reserves"),
     unit: "%",
     value: (r) => r.reserves_pct,
     format: (v) => number(v, 0),
-    deviation: (r) =>
-      r.reserves_anomaly_pts === null
-        ? null
-        : { text: `${signed(r.reserves_anomaly_pts)} puntos sobre lo normal`, tone: tone(r.reserves_anomaly_pts, true) },
+    deviation: (r) => points(r.reserves_anomaly_pts),
   },
   {
     id: "tourists",
-    label: "Turistas internacionales",
+    label: text("tourists"),
     unit: "",
     value: (r) => r.international_tourists,
     format: compact,
@@ -62,7 +78,7 @@ export const RESOURCE_SPECS: Spec<ResourcesMonth>[] = [
   },
   {
     id: "electricity",
-    label: "Demanda eléctrica",
+    label: text("electricity"),
     unit: "GWh",
     value: (r) => r.electricity_demand_gwh,
     format: (v) => number(v, 0),
@@ -70,27 +86,24 @@ export const RESOURCE_SPECS: Spec<ResourcesMonth>[] = [
   },
   {
     id: "temperature",
-    label: "Temperatura media",
+    label: text("temperature"),
     unit: "°C",
     value: (r) => r.temperature_mean_c,
     format: (v) => number(v, 1),
-    deviation: (r) =>
-      r.temperature_anomaly_c === null
-        ? null
-        : { text: `${signed(r.temperature_anomaly_c)} °C sobre lo normal`, tone: tone(r.temperature_anomaly_c, false) },
+    deviation: (r) => degrees(r.temperature_anomaly_c),
   },
 ];
 
 /** A change against the same month a year earlier (0.05 = 5 % more). */
 function yearOnYear(change: number | null) {
   if (change === null) return null;
-  return { text: `${signed(change * 100, 1)} % que hace un año`, tone: "neutral" as Tone };
+  return { text: messages().kpis.percentVsYearAgo(signed(change * 100, 1)), tone: "neutral" as Tone };
 }
 
 export const TOURISM_SPECS: Spec<TourismMonth>[] = [
   {
     id: "tourists",
-    label: "Turistas internacionales",
+    label: text("tourists"),
     unit: "",
     value: (r) => r.international_tourists,
     format: compact,
@@ -98,7 +111,7 @@ export const TOURISM_SPECS: Spec<TourismMonth>[] = [
   },
   {
     id: "airport",
-    label: "Pasajeros del aeropuerto",
+    label: text("airport"),
     unit: "",
     value: (r) => r.airport_passengers,
     format: compact,
@@ -106,7 +119,7 @@ export const TOURISM_SPECS: Spec<TourismMonth>[] = [
   },
   {
     id: "occupancy",
-    label: "Ocupación hotelera",
+    label: text("occupancy"),
     unit: "%",
     value: (r) => r.hotel_bed_occupancy_pct,
     format: (v) => number(v, 1),
@@ -117,40 +130,34 @@ export const TOURISM_SPECS: Spec<TourismMonth>[] = [
 export const WATER_SPECS: Spec<WaterReservesMonth>[] = [
   {
     id: "reserves",
-    label: "Reservas de agua",
+    label: text("reserves"),
     unit: "%",
     value: (r) => r.reserves_pct,
     format: (v) => number(v, 0),
-    deviation: (r) =>
-      r.anomaly_pts === null
-        ? null
-        : { text: `${signed(r.anomaly_pts)} puntos sobre lo normal`, tone: tone(r.anomaly_pts, true) },
+    deviation: (r) => points(r.anomaly_pts),
   },
   {
     id: "aquifers",
-    label: "Acuíferos bajo el 30 %",
-    unit: `de 18`,
+    label: text("aquifers"),
+    unit: text("ofAquifers"),
     value: (r) => r.aquifers_below_30_pct,
     format: (v) => number(v, 0),
-    deviation: (r) => (r.lowest_aquifer ? { text: `El más bajo: ${r.lowest_aquifer}`, tone: "neutral" } : null),
+    deviation: (r) => (r.lowest_aquifer ? { text: messages().kpis.lowestAquifer(r.lowest_aquifer), tone: "neutral" } : null),
   },
 ];
 
 export const HOT_DAYS_SPEC: Spec<ClimateMonth> = {
   id: "hot-days",
-  label: "Días de calor",
-  unit: "días",
+  label: text("hotDays"),
+  unit: text("days"),
   value: (r) => r.hot_days,
   format: (v) => number(v, 0),
-  deviation: (r) =>
-    r.temperature_anomaly_c === null
-      ? null
-      : { text: `${signed(r.temperature_anomaly_c)} °C sobre lo normal`, tone: tone(r.temperature_anomaly_c, false) },
+  deviation: (r) => degrees(r.temperature_anomaly_c),
 };
 
 export const RAIN_SPEC: Spec<ClimateMonth> = {
   id: "rain",
-  label: "Lluvia del año hidrológico",
+  label: text("rain"),
   unit: "mm",
   value: (r) => r.rain_hydrological_year_mm,
   format: (v) => number(v, 0),
@@ -173,9 +180,9 @@ export function buildKpi<Row extends { month: string }>(spec: Spec<Row>, rows: R
   const deviation = spec.deviation(latest);
   return {
     id: spec.id,
-    label: spec.label,
+    label: spec.label(),
     value: spec.format(spec.value(latest) as number),
-    unit: spec.unit,
+    unit: typeof spec.unit === "function" ? spec.unit() : spec.unit,
     month: monthName(latest.month),
     deviation: deviation?.text ?? null,
     tone: deviation?.tone ?? "neutral",

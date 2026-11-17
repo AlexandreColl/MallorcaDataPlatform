@@ -7,6 +7,7 @@ import { KpiRow } from "../components/KpiCard";
 import { type Dashboard, Panel } from "../components/Layout";
 import { type MapLayer, PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
+import { messages } from "../i18n";
 import { number } from "../lib/format";
 import { buildKpi, type Kpi, RAIN_SPEC, RESOURCE_SPECS } from "../lib/kpis";
 import { Link } from "../router";
@@ -21,17 +22,18 @@ export const SINCE_40_MONTHS = (() => {
 })();
 
 function placeLayers(locations: Location[]): MapLayer[] {
+  const m = messages().home;
   const of = (kind: string) =>
     locations
       .filter((l) => l.kind === kind)
       .map((l) => ({
         lat: l.lat,
         lon: l.lon,
-        popup: [l.name ?? l.entity, l.label ?? l.source, `${number(l.n_metrics)} ${l.n_metrics === 1 ? "métrica" : "métricas"}`],
+        popup: [l.name ?? l.entity, l.label ?? l.source, m.metrics(l.n_metrics, number(l.n_metrics))],
       }));
   return [
-    { id: "observation", label: "Estaciones oficiales", color: "#15803d", radius: 6, points: of("observation") },
-    { id: "model", label: "Puntos de modelo", color: "#d97706", radius: 5, points: of("model") },
+    { id: "observation", label: m.officialStations, color: "#15803d", radius: 6, points: of("observation") },
+    { id: "model", label: m.modelPoints, color: "#d97706", radius: 5, points: of("model") },
   ];
 }
 
@@ -49,17 +51,18 @@ export function Home({ dashboards }: { dashboards: Dashboard[] }) {
   }, [resources, climate]);
 
   const layers = useMemo(() => (locations.status === "ready" ? placeLayers(locations.data) : []), [locations]);
+  const m = messages();
 
   return (
     <>
       <KpiRow kpis={kpis} colors={KPI_COLORS} />
       <div className="grid">
-        <Panel title="Dónde se mide" subtitle="Estaciones oficiales del tiempo y del aire, y puntos del modelo meteorológico." wide>
+        <Panel title={m.home.whereTitle} subtitle={m.home.whereSubtitle} wide>
           <Async state={locations} height={480}>
             {() => <PointMap layers={layers} />}
           </Async>
         </Panel>
-        <Panel title="Dashboards" subtitle="Datos relacionados, agrupados por tema.">
+        <Panel title={m.layout.dashboards} subtitle={m.home.dashboardsSubtitle}>
           <ul className="dashboard-list">
             {dashboards.slice(1).map((d) => (
               <li key={d.path}>
