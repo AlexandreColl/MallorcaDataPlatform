@@ -32,6 +32,7 @@ import type {
   WeatherSourceDay,
   WeatherWarning,
 } from "./api.gen";
+import { locale } from "./i18n";
 
 export type * from "./api.gen";
 
@@ -41,8 +42,9 @@ interface Page<T> {
 
 const BASE = "/api/v1";
 
+/** Every request says the language of the page: the API answers the catalogue's labels and licences in it. */
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE}${path}`);
+  const response = await fetch(`${BASE}${path}`, { headers: { "Accept-Language": locale() } });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new Error(body?.error?.message ?? `${response.status} ${response.statusText}`);

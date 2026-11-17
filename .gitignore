@@ -29,8 +29,8 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Local Claude settings
-.claude/settings.local.json
+# Claude Code: local settings, launch configurations and agents, never versioned
+.claude/
 dbt/.user.yml
 
 # Terraform

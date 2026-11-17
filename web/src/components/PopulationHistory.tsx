@@ -1,9 +1,11 @@
 import { useCallback, useMemo } from "react";
 
 import type { Municipality, PopulationYear } from "../api";
+import { messages } from "../i18n";
 import { compact, number, signed } from "../lib/format";
 import { PALMA } from "../lib/mobility";
 import { islandTotals } from "../lib/population";
+import { byName } from "../lib/series";
 import { segmentedTrend } from "../lib/stats";
 import { Chart, type ChartColors } from "./Chart";
 
@@ -23,6 +25,7 @@ interface HistoryProps {
  */
 export function PopulationHistory({ rows, places, selected, onSelect }: HistoryProps) {
   const place = places.find((p) => p.municipality === selected);
+  const m = messages().mobility;
   const option = useCallback((c: ChartColors) => {
     const series: { year: number; value: number }[] = place
       ? rows
@@ -50,12 +53,12 @@ export function PopulationHistory({ rows, places, selected, onSelect }: HistoryP
       : [
           { name: "Palma", type: "bar", stack: "island", color: "#15803d", data: categories.map((y) => palma.get(y) ?? null) },
           {
-            name: "Resto de la isla", type: "bar", stack: "island", color: "#86efac", itemStyle: { borderRadius: [3, 3, 0, 0] },
+            name: m.restOfIsland, type: "bar", stack: "island", color: "#86efac", itemStyle: { borderRadius: [3, 3, 0, 0] },
             data: categories.map((y) => (value.has(y) ? (value.get(y) as number) - (palma.get(y) ?? 0) : null)),
           },
         ];
     const lines = trends.map((trend, i) => ({
-      name: `${trend.from}–${trend.to}: ${signed(trend.rate * 100)} %/año`,
+      name: m.trend(trend.from, trend.to, signed(trend.rate * 100)),
       type: "line", symbol: "none", z: 3, color: i === trends.length - 1 ? "#b45309" : "#7c3aed",
       lineStyle: { type: "dashed", width: 2 },
       data: categories.map((year) => (year >= trend.from && year <= trend.to ? Math.round(trend.at(year)) : null)),
@@ -63,7 +66,7 @@ export function PopulationHistory({ rows, places, selected, onSelect }: HistoryP
     const projection = latest
       ? [
           {
-            name: `Proyección a ${PROJECTION_YEAR}`, type: "line", symbol: "none", z: 3, color: "#b45309",
+            name: m.projection(PROJECTION_YEAR), type: "line", symbol: "none", z: 3, color: "#b45309",
             lineStyle: { type: "dotted", width: 2 },
             data: categories.map((year) => (projected(year) ? Math.round(latest.at(year)) : null)),
           },
@@ -94,21 +97,21 @@ export function PopulationHistory({ rows, places, selected, onSelect }: HistoryP
           const shown = params.filter((p) => typeof p.value === "number" && !p.seriesName.startsWith("band-"));
           const lines = shown.map((p) => `${p.marker} ${p.seriesName} <b>${number(p.value as number)}</b>`);
           const b = band[params[0]?.dataIndex ?? -1];
-          if (b) lines.push(`Intervalo del 95 %: ${number(Math.round(b[0]))} – ${number(Math.round(b[1]))}`);
+          if (b) lines.push(m.interval(number(Math.round(b[0])), number(Math.round(b[1]))));
           return [params[0]?.name ?? "", ...lines].join("<br/>");
         },
       },
       series: [...lines, ...projection, ...bars],
     };
-  }, [rows, place]);
+  }, [rows, place, m]);
 
-  const sorted = useMemo(() => [...places].sort((a, b) => a.name.localeCompare(b.name, "es")), [places]);
+  const sorted = useMemo(() => [...places].sort((a, b) => byName(a.name, b.name)), [places]);
   return (
     <>
       <label className="select-row">
-        <span>Municipio</span>
-        <select className="select" aria-label="Municipio" value={selected ?? ""} onChange={(e) => onSelect(e.target.value || null)}>
-          <option value="">Toda la isla</option>
+        <span>{m.municipality}</span>
+        <select className="select" aria-label={m.municipality} value={selected ?? ""} onChange={(e) => onSelect(e.target.value || null)}>
+          <option value="">{m.wholeIsland}</option>
           {sorted.map((p) => (
             <option key={p.municipality} value={p.municipality}>
               {p.name}
@@ -118,7 +121,7 @@ export function PopulationHistory({ rows, places, selected, onSelect }: HistoryP
       </label>
       <Chart
         option={option}
-        label={`Población de ${place?.name ?? "Mallorca"} a 1 de enero, con su tendencia y la proyección a ${PROJECTION_YEAR}`}
+        label={m.populationChart(place?.name ?? "Mallorca", PROJECTION_YEAR)}
         height={340}
       />
     </>

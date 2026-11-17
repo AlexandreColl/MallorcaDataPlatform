@@ -6,50 +6,39 @@ import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
+import { messages } from "../i18n";
 import { age, compact, dayShort, number, placeName } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
-import { ACCESS_LABELS, slaText, sourceState, STATE_LABELS } from "../lib/sources";
+import { byName, metricLabel } from "../lib/series";
+import { accessLabel, slaText, sourceState, stateLabel } from "../lib/sources";
 
-const DETECTORS: Record<string, { label: string; color: string }> = {
-  robust_zscore: { label: "Z-score robusto", color: "#d97706" },
-  seasonal_residual: { label: "Residuo estacional", color: "#0891b2" },
-  isolation_forest: { label: "Isolation Forest", color: "#7c3aed" },
-  vote: { label: "Votación (estacional o bosque)", color: "#475569" },
+/** The colour of each detector; their names are in the dictionaries (`operations.detectors`). */
+const DETECTORS: Record<string, { color: string }> = {
+  robust_zscore: { color: "#d97706" },
+  seasonal_residual: { color: "#0891b2" },
+  isolation_forest: { color: "#7c3aed" },
+  vote: { color: "#475569" },
 };
 
 /** The detector whose flags are the platform's answer: the vote, which already includes what its members flag. */
 const COMBINED = "vote";
 
-/** How a station hour was corrected (core/corrections/methods.py). */
-const METHODS: Record<string, string> = {
-  interpolation: "Interpolación", support: "Fuente de apoyo", profile: "Perfil semanal",
-};
-
-/** Why a station hour had no valid value. */
-const QUALITY: Record<string, string> = { missing: "falta", suspect: "dudoso", absent: "sin dato" };
-
-/** The quality rules in words (core/quality/rules.py). */
-const RULES: Record<string, string> = {
-  gaps: "Huecos",
-  range: "Fuera de rango",
-  duplicate: "Duplicados",
-  not_null: "Nulos",
-  source_qc: "Dudoso según la fuente",
-};
-
-/** The domains of the catalogue of sources (dim_sources) in words. */
-const DOMAINS: Record<string, string> = {
-  weather: "Tiempo", air: "Calidad del aire", sea: "Mar", energy: "Energía", seismic: "Sismos",
-  mobility: "Movilidad", tourism: "Turismo", water: "Agua", population: "Población",
-};
+/**
+ * A code in words, from one of the tables of the dictionaries: the correction methods (core/corrections/methods.py),
+ * why an hour had no valid value, the quality rules (core/quality/rules.py) and the domains of the catalogue. A code
+ * added later is shown as it is.
+ */
+function named(table: Record<string, string>, code: string): string {
+  return table[code] ?? code;
+}
 
 /** Whether a source meets its SLA, and which part it misses. */
 function SlaCell({ source }: { source: Source }) {
   const { met, age_met, success_met } = source.sla;
   if (met === null) return <span className="state state-inactive">—</span>;
-  if (met) return <span className="sla-met">Cumple</span>;
-  const missed = [age_met === false && "dato antiguo", success_met === false && "fallos"].filter(Boolean).join(" y ");
-  return <span className="sla-breached" title={slaText(source)}>Incumple ({missed})</span>;
+  const m = messages().operations;
+  if (met) return <span className="sla-met">{m.meets}</span>;
+  return <span className="sla-breached" title={slaText(source)}>{m.breaches(age_met === false, success_met === false)}</span>;
 }
 
 function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRules: number): Kpi[] {
@@ -60,25 +49,26 @@ function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRul
   const down = active.reduce((n, s) => n + s.unavailable_7d, 0);
   const combined = anomalies.filter((a) => a.detector === COMBINED);
   const flagged = (combined.length > 0 ? combined : anomalies).reduce((n, a) => n + a.anomalies, 0);
+  const m = messages().operations;
   return [
     {
-      id: "sources", label: "Fuentes al día", value: `${ok}`, unit: `de ${active.length}`, month: "Carga correcta en 36 h y dentro de su SLA",
-      deviation: ok === active.length ? "Todas al día" : `${active.length - ok} caídas, atrasadas, con fallos o fuera de SLA`,
+      id: "sources", label: m.sourcesUpToDate, value: `${ok}`, unit: m.of(String(active.length)), month: m.loadedIn36h,
+      deviation: ok === active.length ? m.allUpToDate : m.notUpToDate(active.length - ok),
       tone: ok === active.length ? "good" : "bad", history: [],
     },
     {
-      id: "values", label: "Valores en silver", value: compact(sources.reduce((n, s) => n + s.observations, 0)), unit: "",
-      month: `${sources.length} fuentes`, deviation: null, tone: "neutral", history: [],
+      id: "values", label: m.valuesInSilver, value: compact(sources.reduce((n, s) => n + s.observations, 0)), unit: "",
+      month: m.sourcesCount(sources.length), deviation: null, tone: "neutral", history: [],
     },
     {
-      id: "runs", label: "Ejecuciones fallidas", value: number(failed), unit: `de ${number(runs)}`, month: "Últimos 7 días",
+      id: "runs", label: m.failedRuns, value: number(failed), unit: m.of(number(runs)), month: m.last7Days,
       // Our failures are the bad news; a source that was down recovers by itself and is only counted aside.
-      deviation: down > 0 ? `y ${number(down)} con la fuente caída` : failed === 0 ? "Ningún fallo" : null,
+      deviation: down > 0 ? m.andDown(number(down)) : failed === 0 ? m.noFailures : null,
       tone: failed > 0 ? "bad" : down > 0 ? "neutral" : "good", history: [],
     },
     {
-      id: "anomalies", label: "Anomalías", value: number(flagged), unit: "", month: "Últimos 30 días",
-      deviation: failingRules === 0 ? "Todas las reglas de calidad pasan" : `${failingRules} reglas de calidad fallan`,
+      id: "anomalies", label: m.anomalies, value: number(flagged), unit: "", month: m.last30Days,
+      deviation: failingRules === 0 ? m.rulesPass : m.rulesFail(failingRules),
       tone: failingRules === 0 ? "good" : "bad", history: [],
     },
   ];
@@ -87,16 +77,17 @@ function operationsKpis(sources: Source[], anomalies: AnomaliesDay[], failingRul
 function AnomaliesPerDay({ rows }: { rows: AnomaliesDay[] }) {
   const option = useCallback(() => {
     const dates = [...new Set(rows.map((r) => r.local_date))].sort();
+    const names: Record<string, string> = messages().operations.detectors;
     return {
       xAxis: { type: "category", data: dates.map(dayShort) },
       yAxis: { type: "value" },
-      series: Object.entries(DETECTORS).map(([detector, { label, color }]) => ({
-        name: label, type: "bar", color, // side by side: the vote repeats what its members flag
+      series: Object.entries(DETECTORS).map(([detector, { color }]) => ({
+        name: named(names, detector), type: "bar", color, // side by side: the vote repeats what its members flag
         data: dates.map((d) => rows.find((r) => r.local_date === d && r.detector === detector)?.anomalies ?? 0),
       })),
     };
   }, [rows]);
-  return <Chart option={option} label="Valores marcados por cada detector y día" />;
+  return <Chart option={option} label={messages().operations.anomaliesChart} />;
 }
 
 export function Operations() {
@@ -112,19 +103,20 @@ export function Operations() {
     if (!s || !a || !r) return null;
     return operationsKpis(s, a, r.filter((rule) => !rule.passed).length);
   }, [sources, anomalies, rules]);
+  const m = messages().operations;
 
   return (
     <>
       <KpiRow kpis={kpis} colors={["#15803d", "#0891b2", "#dc2626", "#d97706"]} />
       <div className="grid">
-        <Panel title="Fuentes" subtitle="Estado de la última carga de cada una y antigüedad de su último dato." wide>
+        <Panel title={m.sourcesTitle} subtitle={m.sourcesSubtitle} wide>
           <Async state={sources}>
             {(rows) => (
               <Table
-                rows={[...rows].sort((a, b) => (a.label ?? a.source).localeCompare(b.label ?? b.source, "es"))}
+                rows={[...rows].sort((a, b) => byName(a.label ?? a.source, b.label ?? b.source))}
                 columns={[
                   {
-                    label: "Fuente",
+                    label: m.source,
                     value: (s) => (
                       <span className="source-cell">
                         <span className={`status status-${sourceState(s)}`} />
@@ -132,90 +124,90 @@ export function Operations() {
                       </span>
                     ),
                   },
-                  { label: "Estado", value: (s) => <span className={`state state-${sourceState(s)}`}>{STATE_LABELS[sourceState(s)]}</span> },
-                  { label: "Último dato", value: (s) => (s.data_age_hours === null ? "—" : age(s.data_age_hours)) },
-                  { label: "Sin cargar 7 días", value: (s) => `${number((s.failure_rate_7d ?? 0) * 100)} %`, numeric: true },
-                  { label: "SLA", value: (s) => <SlaCell source={s} /> },
-                  { label: "Valores", value: (s) => compact(s.observations), numeric: true },
+                  { label: m.state, value: (s) => <span className={`state state-${sourceState(s)}`}>{stateLabel(sourceState(s))}</span> },
+                  { label: m.lastValue, value: (s) => (s.data_age_hours === null ? "—" : age(s.data_age_hours)) },
+                  { label: m.notLoaded7Days, value: (s) => `${number((s.failure_rate_7d ?? 0) * 100)} %`, numeric: true },
+                  { label: m.sla, value: (s) => <SlaCell source={s} /> },
+                  { label: m.values, value: (s) => compact(s.observations), numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
         <Panel
-          title="Gobierno del dato"
-          subtitle="Dueño, licencia y acceso de cada fuente, y el SLA acordado: antigüedad máxima del último dato y cargas correctas en 7 días."
+          title={m.governanceTitle}
+          subtitle={m.governanceSubtitle}
           wide
         >
           <Async state={sources}>
             {(rows) => (
               <Table
-                rows={[...rows].sort((a, b) => a.governance.domain.localeCompare(b.governance.domain) || (a.label ?? a.source).localeCompare(b.label ?? b.source, "es"))}
+                rows={[...rows].sort((a, b) => a.governance.domain.localeCompare(b.governance.domain) || byName(a.label ?? a.source, b.label ?? b.source))}
                 columns={[
                   {
-                    label: "Fuente",
+                    label: m.source,
                     value: (s) => (
                       <span className="stacked">
                         <strong>{s.label ?? s.source}</strong>
-                        <small>{DOMAINS[s.governance.domain] ?? s.governance.domain}</small>
+                        <small>{named(m.domains, s.governance.domain)}</small>
                       </span>
                     ),
                   },
-                  { label: "Dueño", value: (s) => s.governance.owner },
+                  { label: m.owner, value: (s) => s.governance.owner },
                   {
-                    label: "Licencia",
+                    label: m.licence,
                     value: (s) => (
                       <a href={s.governance.terms_url} target="_blank" rel="noreferrer">
                         {s.governance.license}
                       </a>
                     ),
                   },
-                  { label: "Acceso", value: (s) => ACCESS_LABELS[s.governance.access] },
-                  { label: "Datos personales", value: (s) => (s.governance.personal_data ? "Sí" : "No") },
-                  { label: "SLA (dato · cargas)", value: (s) => (s.governance.lifecycle === "history" ? "Histórico" : slaText(s)) },
+                  { label: m.access, value: (s) => accessLabel(s.governance.access) },
+                  { label: m.personalData, value: (s) => (s.governance.personal_data ? m.yes : m.no) },
+                  { label: m.slaShort, value: (s) => (s.governance.lifecycle === "history" ? stateLabel("inactive") : slaText(s)) },
                 ]}
               />
             )}
           </Async>
         </Panel>
-        <Panel title="Reglas de calidad que fallan" subtitle="Último chequeo de cada regla: la fila se marca como sospechosa, no se borra.">
+        <Panel title={m.rulesTitle} subtitle={m.rulesSubtitle}>
           <Async state={rules}>
             {(rows) => (
               <Table
                 rows={rows.filter((r) => !r.passed).slice(0, 10)}
-                empty="Todas las reglas pasan"
+                empty={m.allRulesPass}
                 columns={[
                   {
-                    label: "Regla",
+                    label: m.rule,
                     value: (r) => (
                       <span className="stacked">
-                        <strong>{RULES[r.rule] ?? r.rule}</strong> · {r.target}
+                        <strong>{named(m.rules, r.rule)}</strong> · {r.target}
                         <small>{r.source}</small>
                       </span>
                     ),
                   },
-                  { label: "Fallan", value: (r) => `${number((r.failed_ratio ?? 0) * 100, 1)} %`, numeric: true },
+                  { label: m.failing, value: (r) => `${number((r.failed_ratio ?? 0) * 100, 1)} %`, numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
-        <Panel title="Anomalías por día" subtitle="Valores que marca cada detector en los últimos 30 días; marcar no cambia el dato.">
+        <Panel title={m.anomaliesTitle} subtitle={m.anomaliesSubtitle}>
           <Async state={anomalies}>{(rows) => <AnomaliesPerDay rows={rows} />}</Async>
         </Panel>
-        <Panel title="Últimas correcciones" subtitle="Valores propuestos para huecos de las estaciones, con su método y su confianza." wide>
+        <Panel title={m.correctionsTitle} subtitle={m.correctionsSubtitle} wide>
           <Async state={corrections}>
             {(rows) => (
               <Table
                 rows={rows}
-                empty="Ninguna corrección en los últimos 30 días"
+                empty={m.noCorrections}
                 columns={[
-                  { label: "Estación", value: (c) => `${placeName(c.entity, c.name)} · ${c.metric}` },
-                  { label: "Hora", value: (c) => `${dayShort(c.ts)} ${c.ts.slice(11, 16)}` },
-                  { label: "Original", value: (c) => (c.original_value === null ? (QUALITY[c.original_quality] ?? c.original_quality) : number(c.original_value, 1)), numeric: true },
-                  { label: "Corregido", value: (c) => `${number(c.corrected_value, 1)} ${c.unit ?? ""}`, numeric: true },
-                  { label: "Método", value: (c) => METHODS[c.method] ?? c.method },
-                  { label: "Confianza", value: (c) => `${number(c.confidence * 100)} %`, numeric: true },
+                  { label: m.station, value: (c) => `${placeName(c.entity, c.name)} · ${metricLabel(c.metric)}` },
+                  { label: m.hour, value: (c) => `${dayShort(c.ts)} ${c.ts.slice(11, 16)}` },
+                  { label: m.original, value: (c) => (c.original_value === null ? named(m.quality, c.original_quality) : number(c.original_value, 1)), numeric: true },
+                  { label: m.corrected, value: (c) => `${number(c.corrected_value, 1)} ${c.unit ?? ""}`, numeric: true },
+                  { label: m.method, value: (c) => named(m.methods, c.method) },
+                  { label: m.confidence, value: (c) => `${number(c.confidence * 100)} %`, numeric: true },
                 ]}
               />
             )}

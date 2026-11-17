@@ -88,7 +88,15 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
         allow_methods=["GET"],
-        expose_headers=["ETag", "Retry-After", "RateLimit-Limit", "RateLimit-Remaining", "X-Cache", "X-Total-Count"],
+        expose_headers=[
+            "Content-Language",
+            "ETag",
+            "Retry-After",
+            "RateLimit-Limit",
+            "RateLimit-Remaining",
+            "X-Cache",
+            "X-Total-Count",
+        ],
     )
     app.include_router(router)
 

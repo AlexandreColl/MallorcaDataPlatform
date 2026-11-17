@@ -1,27 +1,22 @@
 // AEMET warnings: their levels and phenomena in words, and the level of each zone over a period.
 
 import type { WeatherWarning } from "../api";
+import { messages } from "../i18n";
 
 /** Meteoalerta levels with AEMET's own colours (0 is "no risk", shown green). */
-export const LEVELS = [
-  { label: "Sin aviso", color: "#4ade80" },
-  { label: "Amarillo", color: "#facc15" },
-  { label: "Naranja", color: "#f97316" },
-  { label: "Rojo", color: "#dc2626" },
-];
+export const LEVEL_COLORS = ["#4ade80", "#facc15", "#f97316", "#dc2626"];
 
-export const PHENOMENA: Record<string, string> = {
-  rain: "Lluvias",
-  storms: "Tormentas",
-  wind: "Viento",
-  coastal: "Fenómenos costeros",
-  max_temperature: "Temperaturas máximas",
-  min_temperature: "Temperaturas mínimas",
-  snow: "Nevadas",
-  fog: "Nieblas",
-  rissaga: "Rissagas",
-  dust: "Polvo en suspensión",
-};
+/** The levels with their names in the language of the page. */
+export function levels(): { label: string; color: string }[] {
+  const names = messages().warnings.levels;
+  return LEVEL_COLORS.map((color, i) => ({ label: names[i] ?? String(i), color }));
+}
+
+/** A phenomenon in words ("Lluvias"); one AEMET adds later is shown by its code. */
+export function phenomenon(code: string): string {
+  const names: Record<string, string> = messages().warnings.phenomena;
+  return names[code] ?? code;
+}
 
 /** The warnings that overlap ``[from, to)``. */
 export function overlapping(warnings: WeatherWarning[], from: Date, to: Date): WeatherWarning[] {
@@ -37,5 +32,6 @@ export function zoneLevels(warnings: WeatherWarning[]): Map<string, number> {
 
 /** "Amarillo por lluvias": a warning in words. */
 export function describe(w: WeatherWarning): string {
-  return `${LEVELS[w.level]?.label ?? "Aviso"} por ${(PHENOMENA[w.phenomenon] ?? w.phenomenon).toLowerCase()}`;
+  const m = messages().warnings;
+  return m.describe(m.levels[w.level] ?? m.warning, phenomenon(w.phenomenon));
 }

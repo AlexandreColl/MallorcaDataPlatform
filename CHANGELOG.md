@@ -5,6 +5,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-17
+
+### Added
+
+- The web speaks Spanish, Catalan and English (ADR 0024). The language is in the address (`/ca/movilidad`): an
+  address without one is rewritten in the language chosen before or the browser's, and a shared link opens in its own.
+  A selector in the menu names each language in itself. The texts are typed dictionaries, so a text missing in one
+  language fails `tsc`, and numbers and dates are formatted with `Intl`. Every text of the seven pages is translated:
+  titles, tables, charts, maps, key figures, the names of the metrics, AEMET warnings, air quality bands, detectors and
+  correction methods. A test fails on a Spanish text written outside the dictionaries.
+- The catalogue's texts in Catalan and English: a `dim_source_texts` seed holds each source's label, description and
+  licence per language, with Spanish in `dim_sources` as the reference and fallback, and a dbt test that every source
+  has them. `/v1/sources`, `/v1/locations` and `/v1/weather/daily` answer them in the language of
+  `Accept-Language`, say it in `Content-Language` with `Vary: Accept-Language`, and the API's cache keeps one answer
+  per language for such paths. The web sends the language of the page. Proper names (stations, places, AEMET zones,
+  aquifers, owners) stay as they are.
+
+### Changed
+
+- The anomaly detectors and the correction methods are one list each in `core` (`DETECTOR_NAMES`, `METHODS`),
+  and `tests/test_names.py` checks that the corrections CHECK and its migration, the dbt test, the API, the Grafana
+  labels and the web name the same ones. The API types the `detector` and `method` fields and filters (an unknown
+  one is a 422), and Grafana names each one instead of labelling any other as the vote or the support.
+- The E2E checks that the API answers the catalogue in Catalan when asked and in Spanish by default, and that the
+  web serves its language paths. The screenshots in `docs/img/web` add the home page in Catalan and English.
+
+### Fixed
+
+- Web tables no longer overflow their panel from 1280 px wide: headers wrap onto two lines, and the narrow panels of
+  Tiempo y entorno show fewer columns (the model against the stations at the station's height, short dates for the
+  earthquakes, the buoys' two means in one column). Narrower screens still scroll the table inside its panel.
 ## [0.17.0] - 2026-11-15
 
 ### Added
@@ -802,7 +833,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0
 [0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.0...v0.16.1

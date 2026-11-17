@@ -1,6 +1,7 @@
 // The state of a source as one word, from its health and its SLA in gold.source_health.
 
 import type { Source } from "../api";
+import { messages } from "../i18n";
 
 export type SourceState = "ok" | "failed" | "down" | "late" | "breach" | "inactive";
 
@@ -27,25 +28,19 @@ export function sourceState(source: Source, now: Date = new Date()): SourceState
   return "ok";
 }
 
-export const STATE_LABELS: Record<SourceState, string> = {
-  ok: "Al día",
-  failed: "Falló",
-  down: "Fuente caída",
-  late: "Atrasada",
-  breach: "Fuera de SLA",
-  inactive: "Histórico",
-};
+export function stateLabel(state: SourceState): string {
+  return messages().sources.states[state];
+}
 
 /** The SLA of a source, short: the maximum age of its newest value and the minimum share of successful runs. */
 export function slaText(source: Source): string {
   const parts: string[] = [];
   const hours = source.sla.data_age_hours;
-  if (hours !== null) parts.push(hours < 72 ? `< ${hours} h` : `< ${Math.round(hours / 24)} días`);
+  if (hours !== null) parts.push(hours < 72 ? `< ${hours} h` : messages().sources.slaDays(Math.round(hours / 24)));
   parts.push(`${Math.round(source.sla.success_rate * 100)} % ok`);
   return parts.join(" · ");
 }
 
-export const ACCESS_LABELS: Record<Source["governance"]["access"], string> = {
-  open: "Abierto",
-  api_key: "Clave gratuita",
-};
+export function accessLabel(access: Source["governance"]["access"]): string {
+  return messages().sources.access[access];
+}

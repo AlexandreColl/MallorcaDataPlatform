@@ -22,21 +22,26 @@ MONTHLY_MARTS = {
     "resources": "gold.fct_resources_monthly",
 }
 
+# The catalogue's texts (label, licence) come in the language asked for, from gold.dim_source_texts; Spanish, the
+# reference in gold.dim_sources, fills any text that has no translation.
 _SOURCES = """
-SELECT source, label, kind, last_status, last_run_at, last_success_at, last_loaded_day, runs_7d, failed_7d,
-       unavailable_7d, failure_rate_7d,
+SELECT h.source, coalesce(t.label, h.label) AS label, kind, last_status, last_run_at, last_success_at, last_loaded_day,
+       runs_7d, failed_7d, unavailable_7d, failure_rate_7d,
        latest_observation_ts, data_age_hours, observations,
-       domain, owner, license, terms_url, access, personal_data, classification, lifecycle,
-       sla_data_age_hours, sla_success_rate, sla_age_met, sla_success_met, sla_met
-FROM gold.source_health
-WHERE %(source)s::text IS NULL OR source = %(source)s
-ORDER BY source
+       domain, owner, coalesce(t.license, h.license) AS license, terms_url, access, personal_data, classification,
+       lifecycle, sla_data_age_hours, sla_success_rate, sla_age_met, sla_success_met, sla_met
+FROM gold.source_health AS h
+LEFT JOIN gold.dim_source_texts AS t ON t.source = h.source AND t.language = %(language)s
+WHERE %(source)s::text IS NULL OR h.source = %(source)s
+ORDER BY h.source
 """
 
 _LOCATIONS = """
-SELECT l.source, s.label, s.kind, l.entity, l.name, l.lat, l.lon, l.first_seen, l.last_seen, l.n_metrics
+SELECT l.source, coalesce(t.label, s.label) AS label, s.kind, l.entity, l.name, l.lat, l.lon, l.first_seen,
+       l.last_seen, l.n_metrics
 FROM gold.dim_locations AS l
 JOIN gold.dim_sources AS s ON s.source = l.source
+LEFT JOIN gold.dim_source_texts AS t ON t.source = l.source AND t.language = %(language)s
 WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
   AND (%(source)s::text IS NULL OR l.source = %(source)s)
 ORDER BY l.source, l.entity
@@ -125,14 +130,15 @@ ORDER BY trips DESC NULLS LAST, r.source, r.route
 
 # Island-wide daily weather per source: the mean of its stations or model points.
 _WEATHER_DAILY = """
-SELECT source, source_label, source_kind, local_date, count(*) AS entities,
+SELECT w.source, coalesce(t.label, w.source_label) AS source_label, source_kind, local_date, count(*) AS entities,
        avg(temperature_mean) AS temperature_mean, max(temperature_max) AS temperature_max,
        min(temperature_min) AS temperature_min, avg(precipitation_sum) AS precipitation_mean,
        max(wind_gust_max) AS wind_gust_max
-FROM gold.fct_weather_daily
+FROM gold.fct_weather_daily AS w
+LEFT JOIN gold.dim_source_texts AS t ON t.source = w.source AND t.language = %(language)s
 WHERE local_date BETWEEN %(start)s AND %(end)s
-GROUP BY source, source_label, source_kind, local_date
-ORDER BY local_date, source
+GROUP BY w.source, coalesce(t.label, w.source_label), source_kind, local_date
+ORDER BY local_date, w.source
 """
 
 # One day of one source (by default its latest with temperatures), for every station or point of that source.
@@ -313,17 +319,17 @@ class Warehouse:
 
     db: Database
 
-    def sources(self, source: str | None = None) -> list[Row]:
-        """Every source with its health, or only ``source``."""
-        return self.db.fetch_all(_SOURCES, {"source": source})
+    def sources(self, source: str | None = None, *, language: str = "es") -> list[Row]:
+        """Every source with its health, or only ``source``; its label and licence in ``language``."""
+        return self.db.fetch_all(_SOURCES, {"source": source, "language": language})
 
     def source_exists(self, source: str) -> bool:
         """True when ``source`` is a known source (dim_sources)."""
         return bool(self.db.fetch_all("SELECT 1 FROM gold.dim_sources WHERE source = %(source)s", {"source": source}))
 
-    def locations(self, source: str | None = None) -> list[Row]:
+    def locations(self, source: str | None = None, *, language: str = "es") -> list[Row]:
         """Every place with coordinates (stations, model points, stops), or only those of ``source``."""
-        return self.db.fetch_all(_LOCATIONS, {"source": source})
+        return self.db.fetch_all(_LOCATIONS, {"source": source, "language": language})
 
     def observations(  # noqa: PLR0913 - one argument per filter, all keyword-only
         self,
@@ -422,9 +428,9 @@ class Warehouse:
         """Every line with its path and its departures on the latest day of its network, busiest first."""
         return self.db.fetch_all(_MOBILITY_ROUTES, {"network": network})
 
-    def weather_daily(self, start: date, end: date) -> list[Row]:
-        """Island-wide daily weather per source, oldest first."""
-        return self.db.fetch_all(_WEATHER_DAILY, {"start": start, "end": end})
+    def weather_daily(self, start: date, end: date, *, language: str = "es") -> list[Row]:
+        """Island-wide daily weather per source, oldest first, with the sources' labels in ``language``."""
+        return self.db.fetch_all(_WEATHER_DAILY, {"start": start, "end": end, "language": language})
 
     def weather_stations(self, source: str, day: date | None = None) -> list[Row]:
         """Every station or point of ``source`` on ``day`` (by default its latest with temperatures), warmest first."""

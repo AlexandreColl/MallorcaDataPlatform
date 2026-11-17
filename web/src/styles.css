@@ -175,6 +175,36 @@ button {
   border-color: var(--brand);
 }
 
+.languages {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  margin: 0 -8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.languages a {
+  flex: 1;
+  padding: 5px 2px;
+  border-radius: 7px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.languages a:hover {
+  color: var(--text);
+}
+
+.languages a[aria-current="true"] {
+  background: var(--surface);
+  color: var(--brand-text);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
 .links {
   display: flex;
   gap: 14px;
@@ -671,13 +701,18 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
-  padding: 0 10px 8px 0;
+  padding: 0 8px 8px 0;
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* A header may wrap onto two lines ("Sesgo", "A Palma"); a single word never breaks. */
+th.num {
+  white-space: normal;
 }
 
 td {
-  padding: 8px 10px 8px 0;
+  padding: 8px 8px 8px 0;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }

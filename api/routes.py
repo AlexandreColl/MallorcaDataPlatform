@@ -6,11 +6,12 @@ import json
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from api import __version__
 from api.export import MEDIA_TYPES, csv_chunks, parquet_bytes
+from api.language import negotiate
 from api.repository import Warehouse
 from api.schemas import (
     AirQualityNow,
@@ -19,6 +20,8 @@ from api.schemas import (
     Aquifer,
     ClimateMonth,
     Correction,
+    CorrectionMethod,
+    Detector,
     Earthquake,
     ErrorResponse,
     Health,
@@ -79,7 +82,25 @@ def get_max_page_size(request: Request) -> int:
     return request.app.state.settings.max_page_size
 
 
+def answer_language(
+    response: Response,
+    accept_language: Annotated[
+        str | None,
+        Header(description="`es`, `ca` or `en` for the catalogue's labels and licences (Spanish by default)."),
+    ] = None,
+) -> str:
+    """The language of the catalogue's texts in this answer, said in `Content-Language`.
+
+    `Vary: Accept-Language` tells the browser, any proxy and the API's own cache to keep one answer per language.
+    """
+    language = negotiate(accept_language)
+    response.headers["Content-Language"] = language
+    response.headers["Vary"] = "Accept-Language"
+    return language
+
+
 WarehouseDep = Annotated[Warehouse, Depends(get_warehouse)]
+LanguageDep = Annotated[str, Depends(answer_language)]
 Limit = Annotated[int, Query(ge=1, description="Items per page (at most API_MAX_PAGE_SIZE, 1000 by default).")]
 Offset = Annotated[int, Query(ge=0, description="Items to skip: the `next_offset` of the previous page.")]
 Start = Annotated[datetime | None, Query(description="From this instant (included). Default: `end` minus 7 days.")]
@@ -131,15 +152,15 @@ def health(request: Request) -> Health:
 
 
 @router.get("/sources", tags=["platform"])
-def sources(warehouse: WarehouseDep) -> list[Source]:
+def sources(warehouse: WarehouseDep, language: LanguageDep) -> list[Source]:
     """Every data source with its health (last run, failures, age of its newest value), owner, licence and SLA."""
-    return [Source.from_row(row) for row in warehouse.sources()]
+    return [Source.from_row(row) for row in warehouse.sources(language=language)]
 
 
 @router.get("/sources/{source}", tags=["platform"], responses={404: {"model": ErrorResponse}})
-def source(source: str, warehouse: WarehouseDep) -> Source:
+def source(source: str, warehouse: WarehouseDep, language: LanguageDep) -> Source:
     """One data source with its health, its governance and its SLA."""
-    rows = warehouse.sources(source)
+    rows = warehouse.sources(source, language=language)
     if not rows:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown source '{source}'")
     return Source.from_row(rows[0])
@@ -148,10 +169,11 @@ def source(source: str, warehouse: WarehouseDep) -> Source:
 @router.get("/locations", tags=["platform"])
 def locations(
     warehouse: WarehouseDep,
+    language: LanguageDep,
     source: Annotated[str | None, Query(description="Only this source.")] = None,
 ) -> list[Location]:
     """Every place with coordinates: stations, model points and stops. Series without a place are left out."""
-    return [Location(**row) for row in warehouse.locations(source)]
+    return [Location(**row) for row in warehouse.locations(source, language=language)]
 
 
 @router.get("/observations", tags=["series"], responses={404: {"model": ErrorResponse}})
@@ -254,10 +276,7 @@ def anomalies(  # noqa: PLR0913 - one query parameter per filter
     request: Request,
     warehouse: WarehouseDep,
     source: Annotated[str | None, Query(description="Only this source.")] = None,
-    detector: Annotated[
-        str | None,
-        Query(description="`robust_zscore`, `seasonal_residual`, `isolation_forest` or `vote`."),
-    ] = None,
+    detector: Annotated[Detector | None, Query(description="Only this detector.")] = None,
     start: Start = None,
     end: End = None,
     limit: Limit = DEFAULT_PAGE_SIZE,
@@ -276,9 +295,7 @@ def corrections(  # noqa: PLR0913 - one query parameter per filter
     warehouse: WarehouseDep,
     source: Annotated[str | None, Query(description="Only this source: `socib` or `eea_air_quality`.")] = None,
     entity: Annotated[str | None, Query(description="Only this station.")] = None,
-    method: Annotated[
-        Literal["interpolation", "support", "profile"] | None, Query(description="Only this method.")
-    ] = None,
+    method: Annotated[CorrectionMethod | None, Query(description="Only this method.")] = None,
     start: Start = None,
     end: End = None,
     limit: Limit = DEFAULT_PAGE_SIZE,
@@ -349,10 +366,12 @@ def mobility_routes(
 
 
 @router.get("/weather/daily", tags=["environment"])
-def weather_daily(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[WeatherSourceDay]:
+def weather_daily(
+    warehouse: WarehouseDep, language: LanguageDep, from_: FromDay = None, to: ToDay = None
+) -> list[WeatherSourceDay]:
     """Island-wide daily weather per source: the mean of its stations or model points (default: the last 30 days)."""
     start, end = _days(from_, to, 30)
-    return [WeatherSourceDay(**row) for row in warehouse.weather_daily(start, end)]
+    return [WeatherSourceDay(**row) for row in warehouse.weather_daily(start, end, language=language)]
 
 
 @router.get("/weather/stations", tags=["environment"])

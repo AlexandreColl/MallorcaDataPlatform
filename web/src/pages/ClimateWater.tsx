@@ -6,16 +6,18 @@ import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
-import { monthName, monthShort, number, orDash } from "../lib/format";
+import { messages } from "../i18n";
+import { monthAbbreviation, monthName, monthShort, number, orDash } from "../lib/format";
 import { buildKpi, HOT_DAYS_SPEC, type Kpi, RAIN_SPEC, WATER_SPECS } from "../lib/kpis";
 
 const SINCE = "2016-01-01";
 const KPI_COLORS = ["#0891b2", "#dc2626", "#2563eb", "#d97706"];
-/** The hydrological year starts in September. */
-const HYDRO_MONTHS = ["sep", "oct", "nov", "dic", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago"];
+/** The hydrological year starts in September: September to August. */
+const HYDRO_MONTHS = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8];
 const LOW_RESERVES_PCT = 30;
 
 function Reserves({ rows }: { rows: WaterReservesMonth[] }) {
+  const m = messages().climate;
   const option = useCallback(
     () => ({
       xAxis: { type: "category", data: rows.map((r) => monthShort(r.month)) },
@@ -23,22 +25,23 @@ function Reserves({ rows }: { rows: WaterReservesMonth[] }) {
       tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} %`) },
       series: [
         {
-          name: "Reservas", type: "line", smooth: true, symbol: "none", data: rows.map((r) => r.reserves_pct),
+          name: m.reserves, type: "line", smooth: true, symbol: "none", data: rows.map((r) => r.reserves_pct),
           color: "#0891b2", lineStyle: { width: 2.5 }, areaStyle: { opacity: 0.12 },
         },
         {
-          name: "Media de ese mes", type: "line", smooth: true, symbol: "none", color: "#94a3b8",
+          name: m.monthMean, type: "line", smooth: true, symbol: "none", color: "#94a3b8",
           lineStyle: { type: "dashed" }, data: rows.map((r) => r.same_month_mean_pct),
         },
       ],
     }),
-    [rows],
+    [rows, m],
   );
-  return <Chart option={option} label="Reservas de agua frente a la media del mes" height={320} />;
+  return <Chart option={option} label={m.reservesChart} height={320} />;
 }
 
 /** Rain accumulated since September, one line per hydrological year, against the usual accumulation. */
 function RainByYear({ rows }: { rows: ClimateMonth[] }) {
+  const m = messages().climate;
   const option = useCallback(() => {
     const years = [...new Set(rows.map((r) => r.hydrological_year))].sort().slice(-5);
     const slot = (month: string) => (Number(month.slice(5, 7)) + 3) % 12; // september -> 0
@@ -55,19 +58,20 @@ function RainByYear({ rows }: { rows: ClimateMonth[] }) {
     for (const r of rows) mean[slot(r.month)] = r.rain_hydrological_year_mean_mm;
     return {
       color: ["#94a3b8", "#a3a3a3", "#65a30d", "#0891b2", "#2563eb"],
-      xAxis: { type: "category", data: HYDRO_MONTHS },
+      xAxis: { type: "category", data: HYDRO_MONTHS.map(monthAbbreviation) },
       yAxis: { type: "value", axisLabel: { formatter: "{value} mm" } },
       tooltip: { valueFormatter: orDash((v) => `${number(v, 0)} mm`) },
       series: [
         ...series,
-        { name: "Normal", type: "line", symbol: "none", data: mean, color: "#15803d", lineStyle: { type: "dashed", width: 2 } },
+        { name: m.normal, type: "line", symbol: "none", data: mean, color: "#15803d", lineStyle: { type: "dashed", width: 2 } },
       ],
     };
-  }, [rows]);
-  return <Chart option={option} label="Lluvia acumulada en cada año hidrológico" />;
+  }, [rows, m]);
+  return <Chart option={option} label={m.rainChart} />;
 }
 
 function TemperatureAnomaly({ rows }: { rows: ClimateMonth[] }) {
+  const m = messages().climate;
   const option = useCallback(
     () => ({
       legend: { show: false },
@@ -76,7 +80,7 @@ function TemperatureAnomaly({ rows }: { rows: ClimateMonth[] }) {
       tooltip: { valueFormatter: orDash((v) => `${number(v, 2)} °C`) },
       series: [
         {
-          name: "Anomalía", type: "bar",
+          name: m.anomaly, type: "bar",
           data: rows.map((r) => ({
             value: r.temperature_anomaly_c,
             itemStyle: { color: (r.temperature_anomaly_c ?? 0) >= 0 ? "#dc2626" : "#2563eb", borderRadius: 2 },
@@ -84,13 +88,14 @@ function TemperatureAnomaly({ rows }: { rows: ClimateMonth[] }) {
         },
       ],
     }),
-    [rows],
+    [rows, m],
   );
-  return <Chart option={option} label="Anomalía de temperatura de cada mes" />;
+  return <Chart option={option} label={m.anomalyChart} />;
 }
 
 function Aquifers({ rows }: { rows: Aquifer[] }) {
   const sorted = useMemo(() => [...rows].sort((a, b) => (b.reserves_pct ?? 0) - (a.reserves_pct ?? 0)), [rows]);
+  const m = messages().climate;
   const option = useCallback(
     () => ({
       legend: { show: false },
@@ -100,7 +105,7 @@ function Aquifers({ rows }: { rows: Aquifer[] }) {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: orDash((v) => `${number(v, 0)} %`) },
       series: [
         {
-          name: "Reservas", type: "bar", barWidth: "62%",
+          name: m.reserves, type: "bar", barWidth: "62%",
           data: sorted.map((a) => ({
             value: a.reserves_pct,
             itemStyle: { color: (a.reserves_pct ?? 0) < LOW_RESERVES_PCT ? "#dc2626" : "#0891b2", borderRadius: 3 },
@@ -109,9 +114,9 @@ function Aquifers({ rows }: { rows: Aquifer[] }) {
         },
       ],
     }),
-    [sorted],
+    [sorted, m],
   );
-  return <Chart option={option} label="Reservas de cada acuífero" height={460} />;
+  return <Chart option={option} label={m.aquifersChart} height={460} />;
 }
 
 export function ClimateWater() {
@@ -129,21 +134,22 @@ export function ClimateWater() {
   }, [water, climate]);
 
   const aquiferMonth = aquifers.status === "ready" && aquifers.data[0] ? monthName(aquifers.data[0].month) : "";
+  const m = messages().climate;
 
   return (
     <>
       <KpiRow kpis={kpis} colors={KPI_COLORS} />
       <div className="grid">
-        <Panel title="Reservas de agua subterránea" subtitle="Porcentaje de llenado de los acuíferos de la isla, frente a la media de cada mes." wide>
+        <Panel title={m.groundwaterTitle} subtitle={m.groundwaterSubtitle} wide>
           <Async state={water} height={320}>{(rows) => <Reserves rows={rows} />}</Async>
         </Panel>
-        <Panel title="Acuíferos" subtitle={`Reservas de cada uno en ${aquiferMonth}. En rojo, los que están por debajo del 30 %.`}>
+        <Panel title={m.aquifersTitle} subtitle={m.aquifersSubtitle(aquiferMonth)}>
           <Async state={aquifers} height={460}>{(rows) => <Aquifers rows={rows} />}</Async>
         </Panel>
-        <Panel title="Lluvia del año hidrológico" subtitle="Lluvia acumulada desde septiembre en las estaciones de AEMET, año a año.">
+        <Panel title={m.rainTitle} subtitle={m.rainSubtitle}>
           <Async state={climate}>{(rows) => <RainByYear rows={rows} />}</Async>
         </Panel>
-        <Panel title="Temperatura frente a lo normal" subtitle="Diferencia entre la temperatura media de cada mes y la de ese mes en otros años." wide>
+        <Panel title={m.temperatureTitle} subtitle={m.temperatureSubtitle} wide>
           <Async state={climate}>{(rows) => <TemperatureAnomaly rows={rows} />}</Async>
         </Panel>
       </div>

@@ -21,7 +21,7 @@ export interface AirQualityNow {
 /** How many values one detector flagged in one local day (silver.anomalies). */
 export interface AnomaliesDay {
   local_date: string;
-  detector: string;
+  detector: "robust_zscore" | "seasonal_residual" | "isolation_forest" | "vote";
   anomalies: number;
 }
 
@@ -31,7 +31,7 @@ export interface Anomaly {
   entity: string;
   metric: string;
   ts: string;
-  detector: string;
+  detector: "robust_zscore" | "seasonal_residual" | "isolation_forest" | "vote";
   value: number | null;
   expected: number | null;
   score: number | null;
@@ -88,7 +88,7 @@ export interface Correction {
   original_value: number | null;
   corrected_value: number;
   /** `interpolation` (gaps up to 3 h), `support` or `profile` (weekly cycle) */
-  method: string;
+  method: "interpolation" | "support" | "profile";
   /** Method `support`: the series used. */
   support_source: string | null;
   support_entity: string | null;

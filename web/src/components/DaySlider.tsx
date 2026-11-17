@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { messages } from "../i18n";
 import { dayName, dayShort } from "../lib/format";
 import { Icon } from "./Icon";
 
@@ -45,9 +46,10 @@ export function DaySlider({ days, value, onChange, onPlay }: {
     setPlaying(!playing);
   };
   const day = ordered[position] ?? value;
+  const m = messages().slider;
   return (
     <div className="day-slider">
-      <button type="button" className="play" onClick={toggle} aria-label={playing ? "Pausar" : "Reproducir día a día"}>
+      <button type="button" className="play" onClick={toggle} aria-label={playing ? m.pause : m.play}>
         <Icon name={playing ? "pause" : "play"} size={16} />
       </button>
       <input
@@ -56,7 +58,7 @@ export function DaySlider({ days, value, onChange, onPlay }: {
         max={last}
         step={1}
         value={position}
-        aria-label="Día"
+        aria-label={m.day}
         aria-valuetext={dayName(day)}
         onChange={(e) => {
           setPlaying(false);

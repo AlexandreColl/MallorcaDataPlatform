@@ -1,3 +1,4 @@
+import { messages } from "../i18n";
 import { number } from "../lib/format";
 import { type Correlation, strength } from "../lib/stats";
 
@@ -15,11 +16,12 @@ export function CorrelationCard({ label, raw, deseasonalized, color }: {
   deseasonalized: Correlation | null;
   color: string;
 }) {
+  const m = messages().correlation;
   return (
     <article className="card kpi correlation" style={{ "--accent": color } as React.CSSProperties}>
       <header className="kpi-header">
         <h3>{label}</h3>
-        <span className="kpi-month">Correlación de Pearson · {raw ? `${number(raw.n)} meses` : "sin datos"}</span>
+        <span className="kpi-month">{m.pearson} · {raw ? m.months(raw.n, number(raw.n)) : m.noData}</span>
       </header>
       {raw ? (
         <>
@@ -29,12 +31,12 @@ export function CorrelationCard({ label, raw, deseasonalized, color }: {
           <p className="chip chip-neutral">{strength(raw.r)}</p>
           {deseasonalized && (
             <p className="correlation-note">
-              Sin el ciclo anual: <strong>r {signedR(deseasonalized.r)}</strong> · {strength(deseasonalized.r).toLowerCase()}
+              {m.withoutCycle} <strong>r {signedR(deseasonalized.r)}</strong> · {strength(deseasonalized.r).toLowerCase()}
             </p>
           )}
         </>
       ) : (
-        <p className="empty">No hay meses suficientes con las dos series.</p>
+        <p className="empty">{m.notEnough}</p>
       )}
     </article>
   );

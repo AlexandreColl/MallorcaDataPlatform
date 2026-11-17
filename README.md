@@ -534,7 +534,8 @@ API las sirve en `GET /v1/corrections`.
 
 La isla en cifras, para quien quiere verla y no operar la plataforma: http://localhost:3002. Un menú a la izquierda
 abre seis dashboards y un explorador de series. Cada dashboard agrupa datos que van juntos, igual que las carpetas de
-Grafana:
+Grafana. Está en castellano, catalán e inglés: el idioma va en la dirección (`/ca/movilidad`) y se cambia en el menú
+([ADR 0024](docs/adr/0024-la-web-en-tres-idiomas.md)).
 
 | Dashboard | Qué enseña |
 |---|---|
@@ -556,8 +557,8 @@ En cada cifra, la desviación sale en verde o en rojo cuando es buena o mala not
 | [![Movilidad](docs/img/web/movilidad.png)](docs/img/web/movilidad.png) | [![Tiempo y entorno](docs/img/web/tiempo-y-entorno.png)](docs/img/web/tiempo-y-entorno.png) |
 | **Explorador** | **Operación** |
 | [![Explorador](docs/img/web/explorador.png)](docs/img/web/explorador.png) | [![Operación](docs/img/web/operacion.png)](docs/img/web/operacion.png) |
-| **Modo oscuro** | |
-| [![Inicio en modo oscuro](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) | |
+| **Modo oscuro** | **En catalán** |
+| [![Inicio en modo oscuro](docs/img/web/inicio-oscuro.png)](docs/img/web/inicio-oscuro.png) | [![Inicio en catalán](docs/img/web/inicio-catalan.png)](docs/img/web/inicio-catalan.png) |
 
 Está hecha con React, TypeScript y Vite, con ECharts para los gráficos y MapLibre con teselas de OpenStreetMap para
 los mapas. El logo es la silueta de la isla. Tiene modo claro y oscuro, con un botón en el menú que se recuerda en el

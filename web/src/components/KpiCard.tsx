@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 
+import { messages } from "../i18n";
 import { monthShort, number } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
 import { Chart, type ChartColors } from "./Chart";
@@ -34,7 +35,7 @@ function Sparkline({ points, color, unit }: { points: Kpi["history"]; color: str
     }),
     [points, color, unit],
   );
-  return <Chart option={option} height={60} label="Evolución reciente" />;
+  return <Chart option={option} height={60} label={messages().kpiCard.recentTrend} />;
 }
 
 export function KpiCard({ kpi, color = "var(--brand)" }: { kpi: Kpi; color?: string }) {
@@ -71,7 +72,7 @@ export function KpiSkeleton() {
 /** A row of key figures, with skeletons while they load. */
 export function KpiRow({ kpis, colors }: { kpis: Kpi[] | null; colors?: string[] }) {
   return (
-    <section className="kpis" aria-label="Cifras clave">
+    <section className="kpis" aria-label={messages().kpiCard.keyFigures}>
       {kpis === null
         ? Array.from({ length: 4 }, (_, i) => <KpiSkeleton key={i} />)
         : kpis.map((kpi, i) => <KpiCard key={kpi.id} kpi={kpi} color={colors?.[i]} />)}

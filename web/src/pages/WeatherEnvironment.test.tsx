@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../api";
+import { MESSAGES, setLocale } from "../i18n";
 import { WeatherEnvironment } from "./WeatherEnvironment";
 
 // ECharts and MapLibre need a canvas and WebGL: the page is checked without them, and the temperature map (canvas
@@ -35,6 +36,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  setLocale("es");
   vi.restoreAllMocks();
 });
 
@@ -60,7 +62,7 @@ describe("WeatherEnvironment", () => {
     render(<WeatherEnvironment />);
 
     const row = within(await panel("Oleaje: boyas frente al modelo")).getAllByRole("row")[1] as HTMLElement;
-    expect(within(row).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Boya de Portocolom", "0,80 m", "0,95 m", "+0,15 m", "0,91"]);
+    expect(within(row).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Boya de Portocolom", "0,80 / 0,95", "+0,15", "0,91"]);
   });
 
   it("says when there is nothing to list", async () => {
@@ -68,6 +70,22 @@ describe("WeatherEnvironment", () => {
 
     expect(within(await panel("Avisos en vigor y anunciados")).getByText("Ningún aviso en los próximos 3 días")).toBeTruthy();
     expect(within(await panel("Episodios del último año")).getByText("Ningún episodio en el último año")).toBeTruthy();
+  });
+
+  it.each(["ca", "en"] as const)("speaks %s: titles, figures, empty tables and the key figures", async (language) => {
+    setLocale(language);
+    const m = MESSAGES[language];
+    render(<WeatherEnvironment />);
+
+    const row = within(await panel(m.weather.buoysTitle)).getAllByRole("row")[1] as HTMLElement;
+    const means = language === "en" ? "0.80 / 0.95" : "0,80 / 0,95";
+    expect(within(row).getAllByRole("cell").map((c) => c.textContent)).toContain(means);
+    expect(within(await panel(m.weather.warningsListTitle)).getByText(m.weather.noWarnings)).toBeTruthy();
+    expect(screen.getByText(m.environment.goodStations(1, 2))).toBeTruthy();
+    // No panel keeps its Spanish title.
+    const spanish = new Set(Object.values(MESSAGES.es.weather).filter((v) => typeof v === "string"));
+    const titles = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent ?? "");
+    expect(titles.filter((t) => spanish.has(t))).toEqual([]);
   });
 
   it("shows an error in the panel whose request failed, and the rest of the page", async () => {

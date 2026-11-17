@@ -9,7 +9,8 @@ import { MobilityMap } from "../components/MobilityMap";
 import { PopulationHistory } from "../components/PopulationHistory";
 import { TransitMap } from "../components/TransitMap";
 import { ready, useLoad } from "../hooks";
-import { compact, dayName, dayShort, number, orDash, signed } from "../lib/format";
+import { messages } from "../i18n";
+import { compact, dayName, dayShort, monthAbbreviation, number, orDash, signed } from "../lib/format";
 import {
   FIRST_YEAR,
   mobilityKpis,
@@ -22,7 +23,7 @@ import {
   withSelected,
 } from "../lib/mobility";
 import { DAYS_OF_YEAR, pressureByYear } from "../lib/population";
-import { KINDS } from "../lib/transit";
+import { kindLabel } from "../lib/transit";
 
 function DailyCalls({ days }: { days: MobilityDay[] }) {
   const option = useCallback(() => {
@@ -38,11 +39,8 @@ function DailyCalls({ days }: { days: MobilityDay[] }) {
       })),
     };
   }, [days]);
-  return <Chart option={option} label="Pasos programados por día en cada red" height={320} />;
+  return <Chart option={option} label={messages().mobilityPage.dailyCallsChart} height={320} />;
 }
-
-/** Month names for the axis of the days of the year. */
-const MONTH_LABELS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /**
  * The people present in Mallorca each day (Ibestat IPH), the last three years laid over each other, against the
@@ -63,7 +61,7 @@ function HumanPressure({ days }: { days: HumanPressureDay[] }) {
           axisLabel: {
             interval: (_: number, day: string) => day.endsWith("-01"),
             formatter: (day: string) => {
-              const month = MONTH_LABELS[Number(day.slice(0, 2)) - 1] ?? "";
+              const month = monthAbbreviation(Number(day.slice(0, 2)));
               return narrow ? month.charAt(0).toUpperCase() : month;
             },
           },
@@ -82,7 +80,7 @@ function HumanPressure({ days }: { days: HumanPressureDay[] }) {
                 markLine: {
                   symbol: "none", silent: true,
                   lineStyle: { color: c.text, type: "dashed", opacity: 0.6 },
-                  label: { formatter: `Empadronados: ${compact(residents)}`, position: "insideMiddleBottom", color: c.muted },
+                  label: { formatter: messages().mobilityPage.registered(compact(residents)), position: "insideMiddleBottom", color: c.muted },
                   data: [{ yAxis: residents }],
                 },
               }
@@ -92,7 +90,7 @@ function HumanPressure({ days }: { days: HumanPressureDay[] }) {
     },
     [days],
   );
-  return <Chart option={option} label="Personas presentes en Mallorca cada día, por año, frente a los empadronados" height={340} />;
+  return <Chart option={option} label={messages().mobilityPage.pressureChart} height={340} />;
 }
 
 export function Mobility() {
@@ -116,7 +114,8 @@ export function Mobility() {
     return { rows: municipalityRows(m, p, s, year), year };
   }, [places, population, stops]);
   const layers = useMemo(() => (stops.status === "ready" ? stopLayers(stops.data) : []), [stops]);
-  const stopDay = stops.status === "ready" && stops.data[0] ? dayName(stops.data[0].local_date) : "el último día";
+  const m = messages().mobilityPage;
+  const stopDay = stops.status === "ready" && stops.data[0] ? dayName(stops.data[0].local_date) : m.lastDay;
 
   return (
     <>
@@ -126,8 +125,8 @@ export function Mobility() {
       />
       <div className="grid">
         <Panel
-          title="Población y servicio por municipio"
-          subtitle={`Padrón del INE a 1 de enero de ${municipalities?.year ?? "—"} y pasos programados en cada parada el ${stopDay} (cuanto más grande, más servicio); pulsa un municipio o una parada para ver sus cifras.`}
+          title={m.mapTitle}
+          subtitle={m.mapSubtitle(String(municipalities?.year ?? "—"), stopDay)}
           wide
         >
           <Async state={places} height={600}>
@@ -144,41 +143,41 @@ export function Mobility() {
             }
           </Async>
         </Panel>
-        <Panel title="Paradas con más servicio" subtitle="Las diez con más pasos programados de las dos redes.">
+        <Panel title={m.busiestStopsTitle} subtitle={m.busiestStopsSubtitle}>
           <Async state={stops}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 10)}
                 columns={[
-                  { label: "Parada", value: (s) => s.name ?? s.stop },
-                  { label: "Red", value: (s) => NETWORKS[s.network].label },
-                  { label: "Pasos", value: (s) => number(s.departures ?? 0), numeric: true },
-                  { label: "Líneas", value: (s) => number(s.lines ?? 0), numeric: true },
+                  { label: m.stop, value: (s) => s.name ?? s.stop },
+                  { label: m.network, value: (s) => NETWORKS[s.network].label },
+                  { label: m.calls, value: (s) => number(s.departures ?? 0), numeric: true },
+                  { label: m.lines, value: (s) => number(s.lines ?? 0), numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
-        <Panel title="Líneas de autobús, tren y metro" subtitle={routesSubtitle(ready(routes))} wide>
+        <Panel title={m.linesTitle} subtitle={routesSubtitle(ready(routes))} wide>
           <Async state={routes} height={600}>{(rows) => <TransitMap routes={rows} />}</Async>
         </Panel>
-        <Panel title="Líneas con más salidas" subtitle="Las diez con más salidas programadas de las dos redes.">
+        <Panel title={m.busiestLinesTitle} subtitle={m.busiestLinesSubtitle}>
           <Async state={routes}>
             {(rows) => (
               <Table
                 rows={rows.slice(0, 10)}
                 columns={[
-                  { label: "Línea", value: (r) => r.name },
-                  { label: "Red", value: (r) => `${NETWORKS[r.network].label} · ${KINDS[r.kind] ?? r.kind}` },
-                  { label: "Salidas", value: (r) => (r.trips === null ? "—" : number(r.trips)), numeric: true },
+                  { label: m.line, value: (r) => r.name },
+                  { label: m.network, value: (r) => `${NETWORKS[r.network].label} · ${kindLabel(r.kind)}` },
+                  { label: m.departures, value: (r) => (r.trips === null ? "—" : number(r.trips)), numeric: true },
                 ]}
               />
             )}
           </Async>
         </Panel>
         <Panel
-          title="Población desde 1996"
-          subtitle="A 1 de enero (no hubo padrón en 1997). En discontinua, el crecimiento medio anual de cada tramo; en punteado, la proyección a 2030 si sigue la tendencia del último, con su intervalo del 95 %."
+          title={m.historyTitle}
+          subtitle={m.historySubtitle}
           wide
         >
           <Async state={population} height={360}>
@@ -190,8 +189,8 @@ export function Mobility() {
           </Async>
         </Panel>
         <Panel
-          title="Municipios más poblados"
-          subtitle="Habitantes, cambio en diez años y pasos programados por cada 1.000 habitantes; pulsa uno para verlo en el mapa y en el gráfico."
+          title={m.placesTitle}
+          subtitle={m.placesSubtitle}
         >
           <Async state={places}>
             {() =>
@@ -201,20 +200,20 @@ export function Mobility() {
                   onSelect={(r) => setSelected(r.place.municipality === selected ? null : r.place.municipality)}
                   selected={(r) => r.place.municipality === selected}
                   columns={[
-                    { label: "Municipio", value: (r) => r.place.name },
-                    { label: "Hab.", value: (r) => number(r.latest?.population ?? 0), numeric: true },
-                    { label: "10 años", value: (r) => (r.growth === null ? "—" : `${signed(r.growth * 100)} %`), numeric: true },
-                    { label: "Pasos/1.000", value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
+                    { label: m.municipality, value: (r) => r.place.name },
+                    { label: m.inhabitants, value: (r) => number(r.latest?.population ?? 0), numeric: true },
+                    { label: m.tenYears, value: (r) => (r.growth === null ? "—" : `${signed(r.growth * 100)} %`), numeric: true },
+                    { label: m.callsPerThousand, value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
                   ]}
                 />
               ) : null
             }
           </Async>
         </Panel>
-        <Panel title="Población real presente" subtitle={pressureSubtitle(ready(pressure))} full>
+        <Panel title={m.pressureTitle} subtitle={pressureSubtitle(ready(pressure))} full>
           <Async state={pressure} height={340}>{(rows) => <HumanPressure days={rows} />}</Async>
         </Panel>
-        <Panel title="Pasos programados por día" subtitle="Suma de los vehículos que pasan por cada parada, según los horarios GTFS." full>
+        <Panel title={m.dailyCallsTitle} subtitle={m.dailyCallsSubtitle} full>
           <Async state={daily} height={320}>{(rows) => <DailyCalls days={rows} />}</Async>
         </Panel>
       </div>
