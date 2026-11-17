@@ -170,4 +170,23 @@ cache=$(for _ in 1 2 3 4 5 6; do curl -sf -o /dev/null -D - "$api/climate/monthl
 echo "REST API: /v1/climate/monthly cache $cache"
 [[ "$cache" == *HIT* ]] || { echo "the monthly marts are not cached"; false; }
 
-echo "E2E OK: data in bronze/silver/gold, reruns are idempotent and the REST API serves, exports and caches them"
+# The catalogue's texts come in the language asked for (ADR 0024): the dbt seed of translations is loaded and the API
+# picks it from Accept-Language, with Spanish when none is asked for.
+language_of() {
+  curl -sf -D - -o /dev/null ${1:+-H "Accept-Language: $1"} "$api/sources/ctm" | grep -i '^content-language:' | tr -d '\r' | cut -d' ' -f2
+}
+ctm_label() { curl -sf ${1:+-H "Accept-Language: $1"} "$api/sources/ctm" | grep -o '"label":"[^"]*"'; }
+echo "REST API: CTM is $(ctm_label ca) in $(language_of ca-ES,ca\;q=0.9), $(ctm_label) in $(language_of)"
+[[ "$(language_of ca-ES,ca\;q=0.9)" == ca && "$(ctm_label ca)" == *interurbans* ]] || { echo "the catalogue is not in Catalan"; false; }
+[[ "$(language_of)" == es && "$(ctm_label)" == *interurbanos* ]] || { echo "the catalogue is not in Spanish by default"; false; }
+
+# The web serves every page in each language: nginx answers the language paths with the single-page app.
+web=http://localhost:${WEB_PORT:-3002}
+wait_for "web" "curl -sf $web/healthz"
+for path in /es/ /ca/movilidad /en/tiempo-y-entorno /operacion; do
+  status=$(curl -s -o /dev/null -w '%{http_code}' "$web$path")
+  [[ "$status" == 200 ]] || { echo "the web answered $status for $path"; false; }
+done
+echo "web: /es/, /ca/movilidad, /en/tiempo-y-entorno and /operacion answer 200"
+
+echo "E2E OK: data in bronze/silver/gold, reruns are idempotent, the REST API serves, exports and caches them in each language, and the web serves every language"
