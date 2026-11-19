@@ -26,7 +26,7 @@ class Health(BaseModel):
 
     status: str = Field(examples=["ok"])
     database: str = Field(examples=["ok"], description="`ok` or `unavailable`")
-    version: str = Field(examples=["0.17.0"])
+    version: str = Field(examples=["0.18.0"])
 
 
 class Governance(BaseModel):
