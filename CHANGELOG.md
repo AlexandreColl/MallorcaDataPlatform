@@ -7,6 +7,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- The anomaly benchmark measures real stations too: `evaluation.sources` takes Open-Meteo (a smooth model), SOCIB
+  weather stations and EEA air quality stations, each judged on its own. Frozen payloads and wrong clocks hit every
+  metric of a station at the same hours (`scope: station`), as a shared logger would. On the stations, precision
+  drops from 81-83 % to 62-74 % for the residual and the vote, and the residual catches 29-33 % of clock shifts
+  instead of 50 %. `quality.anomaly_evaluations` is keyed by source too, with a migration for existing warehouses.
 - The data model names its methods: the medallion architecture, a lakehouse beside a relational warehouse, an EAV
   silver table and Kimball dimensional marts with conformed dimensions, and why Data Vault, One Big Table and
   accumulating snapshots are not used. It records the choice of natural keys over surrogate keys, the naming
