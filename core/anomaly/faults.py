@@ -7,12 +7,16 @@ series on purpose gives exactly that: every injected value is known to be wrong 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import pandas as pd
+
+type Scope = Literal["series", "station"]
 
 # Scales the MAD to the standard deviation of normally distributed data.
 _MAD_TO_SIGMA = 1.4826
@@ -24,23 +28,33 @@ class FaultSpec:
 
     ``length`` is in values and ``size`` in robust standard deviations of the series, both drawn uniformly
     from their ``(min, max)`` range. ``lag`` (values) only applies to ``shift``.
+
+    ``scope: station`` puts the fault on every metric of a station at the same hours, as a real one would be: a
+    payload repeated by the logger freezes all its sensors, and a wrong clock shifts all of them. Only ``frozen`` and
+    ``shift`` take it; a spike or a drift belongs to one sensor.
     """
 
     count: int
     length: tuple[int, int] = (1, 1)
     size: tuple[float, float] = (0.0, 0.0)
     lag: int = 12
+    scope: Scope = "series"
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FaultSpec:
         """Build from a YAML mapping such as ``{count: 1, length: [6, 24]}``."""
         length = data.get("length", 1)
         size = data.get("size", 0.0)
+        scope = data.get("scope", "series")
+        if scope not in ("series", "station"):
+            msg = f"scope must be 'series' or 'station', not {scope!r}"
+            raise ValueError(msg)
         return cls(
             count=int(data["count"]),
             length=tuple(length) if isinstance(length, list) else (int(length), int(length)),
             size=tuple(size) if isinstance(size, list) else (float(size), float(size)),
             lag=int(data.get("lag", 12)),
+            scope=scope,
         )
 
 
@@ -61,21 +75,52 @@ class FaultInjector:
     """
 
     KINDS = ("spike", "frozen", "drift", "shift")
+    STATION_KINDS = ("frozen", "shift")
 
     def __init__(self, specs: dict[str, FaultSpec], margin: int = 6, max_attempts: int = 200) -> None:
         unknown = sorted(set(specs) - set(self.KINDS))
         if unknown:
             msg = f"unknown fault kinds {unknown}; available {list(self.KINDS)}"
             raise ValueError(msg)
+        per_station = sorted(k for k, s in specs.items() if s.scope == "station" and k not in self.STATION_KINDS)
+        if per_station:
+            msg = f"only {list(self.STATION_KINDS)} can have scope 'station', not {per_station}"
+            raise ValueError(msg)
         self.specs = specs
         self.margin = margin  # clean values kept between two faults so each one is judged on its own
         self.max_attempts = max_attempts
 
-    def inject(self, series: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+    def place_station(self, timeline: int, rng: np.random.Generator) -> list[tuple[str, int, int]]:
+        """Spans of the station-wide faults on a station's timeline of ``timeline`` instants: ``(kind, start, stop)``.
+
+        The evaluation draws them once per station and hands each of its series the span in its own positions.
+        """
+        taken = np.zeros(timeline, dtype=bool)
+        spans = []
+        for kind in self.STATION_KINDS:
+            spec = self.specs.get(kind)
+            if spec is None or spec.scope != "station":
+                continue
+            for _ in range(spec.count):
+                span = self._place(spec, taken, rng, first=spec.lag if kind == "shift" else 1)
+                if span is None:
+                    break
+                spans.append((kind, *span))
+                taken[max(0, span[0] - self.margin) : span[1] + self.margin] = True
+        return spans
+
+    def inject(
+        self,
+        series: pd.DataFrame,
+        rng: np.random.Generator,
+        station: Sequence[tuple[str, int, int]] = (),
+    ) -> pd.DataFrame:
         """Return a copy of ``series`` (``ts``, ``value``) with the faults applied.
 
-        Adds ``fault`` (kind, or None for clean values) and ``event`` (id of the fault, -1 for clean values).
-        A constant series is returned unchanged: no fault size can be defined on it.
+        ``station`` are the station-wide faults of this series, ``(kind, start, stop)`` in its positions
+        (``place_station``): they go first, and the faults of the series itself are placed around them. Adds
+        ``fault`` (kind, or None for clean values) and ``event`` (id of the fault, -1 for clean values). A constant
+        series is returned unchanged: no fault size can be defined on it.
         """
         out = series.reset_index(drop=True).copy()
         clean = out["value"].to_numpy(dtype=float)
@@ -86,9 +131,21 @@ class FaultInjector:
         if sigma > 0:
             taken = np.zeros(len(values), dtype=bool)
             event_id = 0
+            for kind, start, stop in station:
+                lag = self.specs[kind].lag
+                if stop <= start or start < (lag if kind == "shift" else 1):
+                    continue  # the series has no values there, or not enough before them
+                if kind == "shift":
+                    values[start:stop] = clean[start - lag : stop - lag]
+                else:
+                    values[start:stop] = values[start - 1]
+                fault[start:stop] = kind
+                event[start:stop] = event_id
+                taken[max(0, start - self.margin) : stop + self.margin] = True
+                event_id += 1
             for kind in self.KINDS:
                 spec = self.specs.get(kind)
-                if spec is None:
+                if spec is None or spec.scope == "station":
                     continue
                 for _ in range(spec.count):
                     span = self._place(spec, taken, rng, first=spec.lag if kind == "shift" else 1)
