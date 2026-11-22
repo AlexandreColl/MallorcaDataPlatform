@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Anomaly detection scores each detector once per entity, in one Spark pass: the vote counts what its members
+  already flagged (`Vote.combine`) instead of scoring the seasonal residual and the Isolation Forest again. Detecting
+  30 days goes from 113 s to 77 s with the same anomalies.
+
 ### Added
 
 - The data model names its methods: the medallion architecture, a lakehouse beside a relational warehouse, an EAV
