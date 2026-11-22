@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- The data model names its methods: the medallion architecture, a lakehouse beside a relational warehouse, an EAV
+  silver table and Kimball dimensional marts with conformed dimensions, and why Data Vault, One Big Table and
+  accumulating snapshots are not used. It records the choice of natural keys over surrogate keys, the naming
+  convention of models and columns with its documented exceptions, and the dimensions and facts that were missing
+  (waves against the model, AEMET warnings, population, the domain seeds). `tests/test_data_model_docs.py` fails
+  when a model, seed, snapshot, contract or dbt unit test is left out of the docs, or a mart breaks the naming
+  convention without being a documented exception.
+
 ## [0.18.0] - 2026-11-17
 
 ### Added

@@ -2,7 +2,9 @@
 
 El pipeline de Python deja en PostgreSQL las observaciones limpias (`silver.observations`), los resultados de las
 reglas de calidad (`quality.check_results`), la auditoría de ejecuciones (`ops.ingestion_runs`) y las correcciones
-propuestas para las estaciones (`silver.corrections`). dbt construye encima, en tres capas, todo lo que lee Grafana.
+propuestas para las estaciones (`silver.corrections`). dbt construye encima, en tres capas, todo lo que leen Grafana, la
+API REST y la web. La metodología (Kimball, dimensiones conformadas, claves naturales) y las convenciones de nombres
+están en [docs/data-model.md](../docs/data-model.md).
 
 ```mermaid
 flowchart LR
@@ -19,11 +21,11 @@ flowchart LR
         SC[stg_silver__corrections]
     end
     subgraph intermediate[intermediate · vistas]
-        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_weather_extremes__daily]
+        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_buoy_wave_model_pairs<br/>int_weather_extremes__daily]
     end
     subgraph marts[marts · gold]
         C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_metrics · dim_date · dim_sources]
-        D[dominios: weather · marine · energy<br/>mobility · air_quality · seismic]
+        D[dominios: weather · marine · energy · mobility<br/>air_quality · seismic · population · climate<br/>water · tourism]
         Q[quality: data_quality_summary · source_health<br/>fct_observations_corrected]
     end
     S1 --> ST --> IW --> D
@@ -38,7 +40,7 @@ flowchart LR
 | Capa | Materialización | Esquema | Qué hace |
 |---|---|---|---|
 | `staging` | vista | `dbt_staging` | Un modelo por tabla de origen y conector: la misma proyección (macro `staging_observations`), día local y marcas de dato ausente o sospechoso. |
-| `intermediate` | vista | `dbt_intermediate` | Lógica que reutilizan varios marts. `int_weather__daily` pone en las mismas columnas el tiempo diario de AEMET (diario de origen), SOCIB y Open-Meteo (horarios agregados al día local). |
+| `intermediate` | vista | `dbt_intermediate` | Lógica que reutilizan varios marts. `int_weather__daily` pone en las mismas columnas el tiempo diario de AEMET (diario de origen), SOCIB y Open-Meteo (horarios agregados al día local). `int_station_model_pairs` e `int_buoy_wave_model_pairs` emparejan cada estación o boya con el punto del modelo más cercano, e `int_weather_extremes__daily` saca los extremos de cada día. |
 | `marts` | tabla / incremental | `gold` | Lo que se consulta, por dominio. |
 
 ## Marts
@@ -47,13 +49,18 @@ flowchart LR
 |---|---|---|
 | core | `fct_observations` (**incremental, merge**) | fuente, entidad, métrica, hora |
 | core | `agg_daily_metrics` (**incremental, delete+insert**) | serie y día local |
-| core | `dim_locations`, `dim_metrics`, `dim_date` (con contrato), `dim_sources` (seed); snapshot `snap_locations` (SCD2) | fuente y entidad / fuente y métrica / día. El modelo dimensional completo está en [docs/data-model.md](../docs/data-model.md) |
+| core | `dim_locations`, `dim_metrics`, `dim_date` (con contrato), `dim_sources` y `dim_source_texts` (seeds); snapshot `snap_locations` (SCD2) | fuente y entidad / fuente y métrica / día / fuente / fuente e idioma. El modelo dimensional completo está en [docs/data-model.md](../docs/data-model.md) |
 | weather | `fct_weather_daily` | estación o punto de modelo y día: observación real junto al modelo |
 | weather | `fct_model_bias_daily`, `agg_model_bias_by_station` (contrato) | estación y día / estación: error del modelo |
 | weather | `fct_weather_episodes` (contrato) | episodio de lluvia, viento o mar |
+| weather | `fct_weather_warnings` (contrato), `dim_warning_zones` (seed) | aviso de AEMET: zona, fenómeno y periodo seguido al mismo nivel / zona de aviso |
 | marine | `fct_sea_conditions_hourly` | punto de costa y hora |
+| marine | `fct_wave_model_comparison_hourly`, `agg_wave_model_bias_by_buoy` (contrato) | boya y hora / boya: la ola de las boyas de SOCIB frente a Open-Meteo Marine |
 | energy | `fct_electricity_daily` | día: demanda, mix, % renovable, CO₂ e importación por el enlace con la península |
 | mobility | `fct_bus_network_daily` (EMT), `fct_island_transit_daily` (CTM) | día: paradas con servicio, pasos programados, parada con más servicio |
+| mobility | `dim_routes` (contrato) | línea de bus, tren o metro, con su recorrido |
+| population | `fct_population_yearly` (contrato), `dim_municipalities` (seed) | municipio y año: padrón, densidad y cambio / municipio, con su límite |
+| population | `fct_human_pressure_daily` (contrato) | día: personas presentes en la isla frente a las empadronadas |
 | core | `fct_resources_monthly` (contrato) | mes: turismo, reservas, lluvia, temperatura y demanda eléctrica, cada una con su anomalía frente al mismo mes |
 | climate | `fct_climate_monthly` (contrato) | mes: lluvia y temperatura de las estaciones de AEMET, anomalía frente al mismo mes, días calurosos y lluvia acumulada del año hidrológico |
 | water | `fct_water_reserves_monthly` (contrato), `dim_aquifers` (seed) | mes: reservas de la isla, variación y anomalía frente al mismo mes de otros años, acuíferos bajo el 30 % |
@@ -119,12 +126,17 @@ columnas de `dbt_expectations`.
 
 ## Contratos
 
-Las dimensiones compartidas (`dim_date`, `dim_locations`, `dim_metrics`) y los marts que se consumen fuera (`fct_electricity_daily`, `fct_bus_network_daily`,
-`fct_island_transit_daily`, `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`,
-`agg_model_bias_by_station`,
-`fct_weather_episodes`) tienen
-`contract: {enforced: true}`: nombres y tipos de columna fijos, `not_null` y clave primaria creados en
-PostgreSQL. Un cambio que rompa el contrato falla en el build, no en Grafana.
+Las dimensiones compartidas y los marts que se consumen fuera tienen `contract: {enforced: true}`: nombres y tipos de
+columna fijos, `not_null` y clave primaria creados en PostgreSQL. Un cambio que rompa el contrato falla en el build,
+no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta lista es la de `_marts.yml`:
+
+- Dimensiones: `dim_date`, `dim_locations`, `dim_metrics`, `dim_routes`.
+- Tiempo y mar: `agg_model_bias_by_station`, `fct_weather_episodes`, `fct_weather_warnings`,
+  `agg_wave_model_bias_by_buoy`.
+- Calidad del aire: `fct_air_quality_model_bias_daily`, `fct_air_quality_monthly`.
+- Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`.
+- Población: `fct_population_yearly`, `fct_human_pressure_daily`.
+- Mensuales: `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly`.
 
 ## Tests
 
@@ -133,12 +145,20 @@ PostgreSQL. Un cambio que rompa el contrato falla en el build, no en Grafana.
   físicos y de porcentajes).
 - De paquetes: `dbt_utils.recency` (aviso si no hay datos de los últimos 4 días), `dbt_utils.expression_is_true`,
   `dbt_expectations.expect_column_values_to_be_between` y `expect_column_pair_values_A_to_be_greater_than_B`.
-- Singulares: completitud entre 0 y 1 y que toda fuente de silver tenga su fila en `dim_sources`.
+- Singulares: completitud entre 0 y 1, que toda fuente de silver tenga su fila en `dim_sources` y que toda fuente
+  tenga sus textos en cada idioma de `dim_source_texts`.
 - **Unit tests** de dbt (datos de entrada fijos y salida esperada, sin depender del warehouse):
   - `eaqi_band_is_the_worst_pollutant`: la banda del índice europeo es la del peor contaminante.
   - `earthquake_distance_and_latest_revision`: distancia Haversine (1° de latitud = 111,2 km) y que un sismo
     revisado conserve solo su última versión.
   - `consecutive_episode_days_form_one_episode`: un día tranquilo separa dos episodios.
+  - `tourism_change_is_against_the_same_month_a_year_earlier`: el interanual compara con el mismo mes del año
+    anterior.
+  - `water_reserve_anomaly_is_against_the_same_calendar_month`: la anomalía de las reservas es frente al mismo mes
+    de otros años.
+  - `climate_month_needs_a_complete_station`: un mes solo cuenta con estaciones que informan casi todos sus días.
+  - `model_bias_is_compared_at_the_height_of_the_station`: el sesgo del modelo se corrige por la altura de la
+    estación.
 
 ```bash
 make dbt                # source freshness (avisos) + dbt build
