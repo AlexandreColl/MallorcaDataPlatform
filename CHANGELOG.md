@@ -20,6 +20,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   (waves against the model, AEMET warnings, population, the domain seeds). `tests/test_data_model_docs.py` fails
   when a model, seed, snapshot, contract or dbt unit test is left out of the docs, or a mart breaks the naming
   convention without being a documented exception.
+- `make sqlfluff` lints the dbt models locally as CI does, from the dev image, which now carries sqlfluff and its
+  dbt templater with the pins of `requirements/dbt.txt`. `SQL=` checks one model and `make sqlfluff-fix` applies the
+  fixes.
 
 ## [0.18.0] - 2026-11-17
 

@@ -185,6 +185,9 @@ usa el slim CI.
 - **sqlfluff** con el templater de dbt (compila cada modelo con dbt: refs, macros, paquetes e incrementales). Los
   avisos salen como anotaciones en el PR. Reglas en `.sqlfluff`; se excluyen ST06 (orden de columnas) y ST07
   (`USING`), que son decisiones de estilo del proyecto.
+  En local, con la pila levantada, `make sqlfluff` hace lo mismo desde la imagen de desarrollo, con las versiones
+  de CI (`requirements/dbt.txt`). `make sqlfluff SQL=models/marts/x.sql` revisa un solo modelo, y `make sqlfluff-fix`
+  aplica las correcciones que sqlfluff sabe hacer.
 - **Slim CI**: en un PR, `dbt build --select +state:modified+ --state state` construye solo lo que cambia, sus
   hijos y, como el warehouse de CI está vacío, sus padres. El estado de referencia es el manifest de `develop`. Si no
   existe (primera vez o artefacto caducado), se construye todo.
