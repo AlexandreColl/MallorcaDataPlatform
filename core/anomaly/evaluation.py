@@ -1,8 +1,9 @@
-"""Benchmark the detectors against injected faults: precision, and recall per fault kind.
+"""Benchmark the detectors against injected faults: precision, and recall per fault kind and source.
 
 Each series is scored twice: clean, to know what the detector already flags (real events, which cannot be
 judged right or wrong), and corrupted by the `FaultInjector`. Flags on injected values are true positives;
-new flags on clean values are false alarms.
+new flags on clean values are false alarms. Every source of the benchmark is judged on its own: a smooth model
+(Open-Meteo) flatters the detectors, and real stations (SOCIB, the EEA) are what they have to work on.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ log = logging.getLogger(__name__)
 class EvaluationConfig:
     """The ``evaluation`` block of ``config/anomaly.yaml``."""
 
-    source: str
+    sources: tuple[str, ...]
     days: int
     seed: int
     faults: dict[str, FaultSpec]
@@ -38,8 +39,12 @@ class EvaluationConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> EvaluationConfig:
         """Build from the parsed YAML block."""
+        sources = data["sources"]
+        if not sources:
+            msg = "the benchmark needs at least one source"
+            raise ValueError(msg)
         return cls(
-            source=data["source"],
+            sources=tuple(sources),
             days=int(data["days"]),
             seed=int(data["seed"]),
             faults={kind: FaultSpec.from_dict(spec) for kind, spec in data["faults"].items()},
@@ -138,17 +143,26 @@ class Evaluation:
 def evaluate(detector: Detector, observations: pd.DataFrame, injector: FaultInjector, seed: int) -> Evaluation:
     """Inject faults into every series of ``observations``, then score each entity clean and corrupted.
 
-    Entities are scored whole so multivariate detectors see all their metrics. The random generator of each
-    series derives from ``seed`` and its position, so a run is reproducible and every detector gets the same faults.
+    Entities are scored whole so multivariate detectors see all their metrics. Station-wide faults are drawn once
+    per entity, on the timeline of all its metrics, and each series gets them at the same instants. The random
+    generators derive from ``seed`` and the position of each entity and series, so a run is reproducible and every
+    detector gets the same faults.
     """
     result = Evaluation(detector.name)
     position = 0
-    for _, entity in observations.sort_values([*SERIES_KEYS, "ts"]).groupby(list(ENTITY_KEYS)):
+    entities = observations.sort_values([*SERIES_KEYS, "ts"]).groupby(list(ENTITY_KEYS))
+    for station, (_, entity) in enumerate(entities):
+        timeline = np.sort(entity["ts"].unique())
+        spans = injector.place_station(len(timeline), np.random.default_rng([seed, 1, station]))
         clean, corrupted = [], []
         for metric, series in entity.groupby("metric"):
             values = series[["ts", "value"]].reset_index(drop=True)
+            own = [
+                (kind, *_positions(values["ts"], timeline[start], timeline[stop - 1])) for kind, start, stop in spans
+            ]
+            rng = np.random.default_rng([seed, 0, position])
             clean.append(values.assign(metric=metric))
-            corrupted.append(injector.inject(values, np.random.default_rng([seed, position])).assign(metric=metric))
+            corrupted.append(injector.inject(values, rng, station=own).assign(metric=metric))
             position += 1
         baseline = _flags_by_value(detector.score_entity(pd.concat(clean, ignore_index=True)))
         flagged = _flags_by_value(detector.score_entity(pd.concat(corrupted, ignore_index=True)[clean[0].columns]))
@@ -160,6 +174,12 @@ def evaluate(detector: Detector, observations: pd.DataFrame, injector: FaultInje
                 series,
             )
     return result
+
+
+def _positions(ts: pd.Series, first: np.datetime64, last: np.datetime64) -> tuple[int, int]:
+    """``(start, stop)``: the positions of a sorted series between two instants of its station's timeline."""
+    index = pd.DatetimeIndex(ts)
+    return int(index.searchsorted(first, side="left")), int(index.searchsorted(last, side="right"))
 
 
 def _flags_by_value(scored: pd.DataFrame) -> pd.Series:
@@ -184,26 +204,36 @@ def load_series(settings: Settings, source: str, window: TimeWindow, skip_metric
 def run_evaluation(
     *, run_id: str, days: int | None = None, seed: int | None = None, settings: Settings | None = None
 ) -> list[dict[str, Any]]:
-    """Benchmark every configured detector and store the result in ``quality.anomaly_evaluations``."""
+    """Benchmark every configured detector on every source and store the result in ``quality.anomaly_evaluations``.
+
+    A source without values in the window is left out with a warning; none at all is an error.
+    """
     settings = settings or Settings.from_env()
     config = AnomalyConfig.load(settings.anomaly_config)
     evaluation = EvaluationConfig.from_dict(config.evaluation)
     window = TimeWindow.last_days(days or evaluation.days)
     seed = evaluation.seed if seed is None else seed
 
-    observations = load_series(settings, evaluation.source, window, config.skip_metrics)
-    if observations.empty:
-        msg = f"no '{evaluation.source}' values in {window.start}..{window.end} to inject faults into"
-        raise ValueError(msg)
     injector = FaultInjector(evaluation.faults)
     rows = []
-    for detector in config.build():
-        result = evaluate(detector, observations, injector, seed)
-        rows += [
-            {**row, "source": evaluation.source, "window_start": window.start, "window_end": window.end}
-            for row in result.rows()
-        ]
-        log.info("run %s: %s precision %s, recall %s", run_id, detector.name, result.precision, result.total.recall)
+    for source in evaluation.sources:
+        observations = load_series(settings, source, window, config.skip_metrics)
+        if observations.empty:
+            log.warning("run %s: no '%s' values in %s..%s, left out", run_id, source, window.start, window.end)
+            continue
+        for detector in config.build():
+            result = evaluate(detector, observations, injector, seed)
+            rows += [
+                {**row, "source": source, "window_start": window.start, "window_end": window.end}
+                for row in result.rows()
+            ]
+            log.info(
+                "run %s: %s on %s: precision %s, recall %s",
+                run_id, detector.name, source, result.precision, result.total.recall,
+            )  # fmt: skip
+    if not rows:
+        msg = f"no values of {list(evaluation.sources)} in {window.start}..{window.end} to inject faults into"
+        raise ValueError(msg)
 
     warehouse = Warehouse(settings)
     warehouse.ensure_schema()

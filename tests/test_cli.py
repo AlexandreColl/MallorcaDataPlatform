@@ -112,6 +112,7 @@ def test_detect_and_evaluate_print_their_summaries(monkeypatch, capsys):
         seen["evaluate"] = (run_id, days, seed)
         return [
             {
+                "source": "socib",
                 "detector": "robust_zscore",
                 "fault": "spike",
                 "recall": 0.9,
@@ -121,6 +122,7 @@ def test_detect_and_evaluate_print_their_summaries(monkeypatch, capsys):
                 "false_alarms": 3,
             },
             {
+                "source": "socib",
                 "detector": "robust_zscore",
                 "fault": "drift",
                 "recall": None,
@@ -140,9 +142,9 @@ def test_detect_and_evaluate_print_their_summaries(monkeypatch, capsys):
     assert seen == {"detect": (30, ["aemet"], "d1"), "evaluate": ("e1", 60, 7)}
     lines = capsys.readouterr().out.splitlines()
     assert json.loads(lines[0]) == {"start": "2026-10-01", "end": "2026-10-30"}
-    assert lines[1].split() == ["detector", "fault", "recall", "events", "precision", "false", "alarms"]
-    assert lines[2].split() == ["robust_zscore", "spike", "90%", "9/10", "75%", "3"]
-    assert lines[3].split() == ["robust_zscore", "drift", "0/0"]
+    assert lines[1].split() == ["source", "detector", "fault", "recall", "events", "precision", "false", "alarms"]
+    assert lines[2].split() == ["socib", "robust_zscore", "spike", "90%", "9/10", "75%", "3"]
+    assert lines[3].split() == ["socib", "robust_zscore", "drift", "0/0"]
 
 
 def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):

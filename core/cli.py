@@ -117,10 +117,11 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     from core.pipeline import new_run_id
 
     rows = run_evaluation(run_id=args.run_id or new_run_id(), days=args.days, seed=args.seed)
-    print(f"{'detector':<15} {'fault':<7} {'recall':>7} {'events':>7} {'precision':>9} {'false alarms':>12}")
+    header = f"{'source':<16} {'detector':<17} {'fault':<7} {'recall':>7} {'events':>7} {'precision':>9}"
+    print(f"{header} {'false alarms':>12}")
     for r in rows:
         print(
-            f"{r['detector']:<15} {r['fault']:<7} {_pct(r['recall']):>7}"
+            f"{r['source']:<16} {r['detector']:<17} {r['fault']:<7} {_pct(r['recall']):>7}"
             f" {r['events_detected']:>3}/{r['events']:<3} {_pct(r['precision']):>9} {r['false_alarms'] or '':>12}"
         )
     return 0
