@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Anomaly detection scores each detector once per entity, in one Spark pass: the vote counts what its members
+  already flagged (`Vote.combine`) instead of scoring the seasonal residual and the Isolation Forest again. Detecting
+  30 days goes from 113 s to 77 s with the same anomalies.
+
 ### Added
 
 - The anomaly benchmark measures real stations too: `evaluation.sources` takes Open-Meteo (a smooth model), SOCIB
@@ -19,6 +25,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   (waves against the model, AEMET warnings, population, the domain seeds). `tests/test_data_model_docs.py` fails
   when a model, seed, snapshot, contract or dbt unit test is left out of the docs, or a mart breaks the naming
   convention without being a documented exception.
+- `make sqlfluff` lints the dbt models locally as CI does, from the dev image, which now carries sqlfluff and its
+  dbt templater with the pins of `requirements/dbt.txt`. `SQL=` checks one model and `make sqlfluff-fix` applies the
+  fixes.
 
 ## [0.18.0] - 2026-11-17
 

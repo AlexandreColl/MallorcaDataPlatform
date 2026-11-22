@@ -24,6 +24,7 @@ from core.spark import build_spark
 from core.warehouse import Warehouse
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from core.anomaly.base import Detector
@@ -43,6 +44,12 @@ ANOMALY_SCHEMA = (
     "source string, entity string, metric string, ts timestamp, detector string,"
     " value double, expected double, score double, threshold double"
 )
+# Text as plain Python strings: pandas 3 backs its string columns with Arrow, and concatenating them leaves chunked
+# arrays that PySpark cannot turn back into a record batch.
+_ANOMALY_TYPES = {
+    **dict.fromkeys(("source", "entity", "metric", "detector"), object),
+    **dict.fromkeys(("value", "expected", "score", "threshold"), "float64"),
+}
 _PANDAS3_WARNING = "PySpark does not yet fully support pandas"
 
 
@@ -78,14 +85,19 @@ class AnomalyConfig:
         )
 
     def build(self) -> list[Detector]:
-        """One configured instance per detector; a vote's members take the parameters of their own entry."""
+        """One configured instance per detector, in the order of the file.
+
+        A vote's members are the same instances as the detectors that also run on their own, so the runner scores
+        each of them once (``score_entities``). A member with no entry of its own takes the defaults.
+        """
+        alone = {name: DETECTORS[name](**params) for name, params in self.detectors.items() if name != Vote.name}
         detectors: list[Detector] = []
         for name, params in self.detectors.items():
             if name == Vote.name:
-                members = [DETECTORS[m](**self.detectors.get(m, {})) for m in params["members"]]
+                members = [alone.get(m) or DETECTORS[m]() for m in params["members"]]
                 detectors.append(Vote(members, min_votes=int(params.get("min_votes", 1))))
             else:
-                detectors.append(DETECTORS[name](**params))
+                detectors.append(alone[name])
         return detectors
 
 
@@ -105,16 +117,42 @@ class DetectionSummary:
         return asdict(self)
 
 
-def score_entity(observations: pd.DataFrame, detector: Detector, window: TimeWindow) -> pd.DataFrame:
-    """Score every series of one entity and keep the anomalies inside ``window`` (earlier values are only context)."""
+def score_entities(observations: pd.DataFrame, detectors: Sequence[Detector], window: TimeWindow) -> pd.DataFrame:
+    """Score every series of one entity with every detector and keep the anomalies inside ``window``.
+
+    Earlier values are only context. Each detector scores once: a vote counts what its members already flagged
+    (``Vote.combine``) instead of scoring them again, which used to double the cost of the seasonal residual and
+    the forest.
+    """
     observations = observations.assign(ts=pd.to_datetime(observations["ts"], utc=True))
-    scored = detector.score_entity(observations[["metric", "ts", "value"]])
-    in_window = scored["ts"].ge(pd.Timestamp(window.start_dt())) & scored["ts"].lt(
-        pd.Timestamp(window.end_dt_exclusive())
-    )
-    flagged = scored[scored["is_anomaly"] & in_window]
+    values = observations[["metric", "ts", "value"]]
+    scores: dict[int, pd.DataFrame] = {}  # by instance: build() shares the members with the detectors run alone
+
+    def scored(detector: Detector) -> pd.DataFrame:
+        if id(detector) not in scores:
+            if isinstance(detector, Vote):
+                scores[id(detector)] = detector.combine(values, [scored(member) for member in detector.members])
+            else:
+                scores[id(detector)] = detector.score_entity(values)
+        return scores[id(detector)]
+
+    start, end = pd.Timestamp(window.start_dt()), pd.Timestamp(window.end_dt_exclusive())
     first = observations.iloc[0]
-    return flagged.assign(**{k: first[k] for k in ENTITY_KEYS}, detector=detector.name)[list(ANOMALY_COLUMNS)]
+    flagged = []
+    for detector in detectors:
+        frame = scored(detector)
+        keep = frame["is_anomaly"] & frame["ts"].ge(start) & frame["ts"].lt(end)
+        flagged.append(frame[keep].assign(**{k: first[k] for k in ENTITY_KEYS}, detector=detector.name))
+    # A detector with nothing to flag may return untyped columns, which would turn `ts` and the numbers into objects:
+    # empty parts are left out. The result gets the types Spark expects (_ANOMALY_TYPES).
+    parts = [part for part in flagged if len(part)] or flagged[:1]
+    result = pd.concat(parts, ignore_index=True)[list(ANOMALY_COLUMNS)]
+    return result.astype(_ANOMALY_TYPES).assign(ts=pd.to_datetime(result["ts"], utc=True))
+
+
+def score_entity(observations: pd.DataFrame, detector: Detector, window: TimeWindow) -> pd.DataFrame:
+    """``score_entities`` with one detector."""
+    return score_entities(observations, [detector], window)
 
 
 def _quoted(values: list[str]) -> str:
@@ -177,14 +215,17 @@ def detect_anomalies(
 
     warehouse = Warehouse(settings)
     warehouse.ensure_schema()
-    grouped = observations.groupBy(*ENTITY_KEYS)  # multivariate detectors see every metric of a location
-    for detector in detectors:
-        flagged = grouped.applyInPandas(partial(score_entity, detector=detector, window=window), ANOMALY_SCHEMA)
-        # Anomalies are rare (a handful per series), so collecting them is cheap. Spark returns naive local
-        # datetimes: going through the epoch makes them explicit UTC whatever the container's time zone.
-        rows = [(*r[:3], datetime.fromtimestamp(r.ts.timestamp(), UTC), *r[4:]) for r in flagged.collect()]
-        summary.anomalies[detector.name] = warehouse.replace_anomalies(detector.name, names, window, rows, run_id)
-        log.info("run %s: %s flagged %s values", run_id, detector.name, summary.anomalies[detector.name])
+    # One pass over the entities scores every detector (multivariate ones see every metric of a location).
+    grouped = observations.groupBy(*ENTITY_KEYS)
+    flagged = grouped.applyInPandas(partial(score_entities, detectors=detectors, window=window), ANOMALY_SCHEMA)
+    # Anomalies are rare (a handful per series), so collecting them is cheap. Spark returns naive local datetimes:
+    # going through the epoch makes them explicit UTC whatever the container's time zone.
+    by_detector: dict[str, list[tuple]] = {d.name: [] for d in detectors}
+    for r in flagged.collect():
+        by_detector[r.detector].append((*r[:3], datetime.fromtimestamp(r.ts.timestamp(), UTC), *r[4:]))
+    for name, rows in by_detector.items():  # every detector, so one with no flags left clears its old ones
+        summary.anomalies[name] = warehouse.replace_anomalies(name, names, window, rows, run_id)
+        log.info("run %s: %s flagged %s values", run_id, name, summary.anomalies[name])
     observations.unpersist()
     log.info("detection summary: %s", summary.as_dict())
     return summary
