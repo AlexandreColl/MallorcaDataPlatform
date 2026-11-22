@@ -40,15 +40,26 @@ class Vote(Detector):
 
     def score_entity(self, observations: pd.DataFrame) -> pd.DataFrame:
         """Score with every member and count, per value, how many flag it."""
+        return self.combine(observations, [member.score_entity(observations) for member in self.members])
+
+    def combine(self, observations: pd.DataFrame, scored: Sequence[pd.DataFrame]) -> pd.DataFrame:
+        """Count the votes from what the members already scored: one ``score_entity`` frame per member, in order.
+
+        The runner scores each detector once per entity and hands the vote its members' frames, so a member that also
+        runs on its own (the usual case) is not scored twice.
+        """
+        if len(scored) != len(self.members):
+            msg = f"a vote of {len(self.members)} members got {len(scored)} scored frames"
+            raise ValueError(msg)
         out = observations[["metric", "ts", "value"]].reset_index(drop=True)
         keys = pd.MultiIndex.from_arrays([out["metric"], out["ts"]])
         votes = np.zeros(len(out), dtype=int)
         expected = pd.Series(np.nan, index=out.index)
-        for member in self.members:
-            scored = member.score_entity(observations).set_index(["metric", "ts"])
-            scored = scored[~scored.index.duplicated()].reindex(keys)
-            votes += scored["is_anomaly"].fillna(value=False).astype(bool).to_numpy()
-            expected = expected.fillna(pd.Series(scored["expected"].to_numpy(dtype=float), index=out.index))
+        for member_scores in scored:
+            indexed = member_scores.set_index(["metric", "ts"])
+            aligned = indexed[~indexed.index.duplicated()].reindex(keys)
+            votes += aligned["is_anomaly"].fillna(value=False).astype(bool).to_numpy()
+            expected = expected.fillna(pd.Series(aligned["expected"].to_numpy(dtype=float), index=out.index))
         out = out.assign(expected=expected, score=votes.astype(float), threshold=float(self.min_votes))
         out["is_anomaly"] = votes >= self.min_votes
         return out[list(ENTITY_SCORE_COLUMNS)]

@@ -6,7 +6,15 @@ import pandas as pd
 import pytest
 
 from core.anomaly import SCORE_COLUMNS, IsolationForestDetector, RobustZScore, SeasonalResidual, Vote
-from core.anomaly.runner import ANOMALY_COLUMNS, ANOMALY_SCHEMA, ENTITY_KEYS, AnomalyConfig, score_entity
+from core.anomaly.base import ENTITY_SCORE_COLUMNS, Detector
+from core.anomaly.runner import (
+    ANOMALY_COLUMNS,
+    ANOMALY_SCHEMA,
+    ENTITY_KEYS,
+    AnomalyConfig,
+    score_entities,
+    score_entity,
+)
 from core.config import PROJECT_ROOT
 from core.models import TimeWindow
 
@@ -134,7 +142,8 @@ def test_project_config_loads():
     assert isinstance(vote, Vote)
     members = {type(m): m for m in vote.members}
     assert set(members) == {SeasonalResidual, IsolationForestDetector}
-    assert members[SeasonalResidual].threshold == seasonal.threshold  # a member takes its own entry's parameters
+    assert members[SeasonalResidual] is seasonal  # the same instance as the detector run alone: scored once
+    assert members[IsolationForestDetector] is forest
     assert vote.min_votes == 1
 
 
@@ -175,3 +184,100 @@ def test_apply_in_pandas_scores_each_entity_separately(spark):
         .collect()
     )
     assert [(r.entity, r.value) for r in flagged] == [("soller", 45.0)]
+
+
+class Counting(Detector):
+    """A detector that flags values above 30 and counts how many times it scores an entity."""
+
+    name = "counting"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    @property
+    def context(self) -> pd.Timedelta:
+        return pd.Timedelta(0)
+
+    def score_entity(self, observations: pd.DataFrame) -> pd.DataFrame:
+        self.calls += 1
+        out = observations[["metric", "ts", "value"]].reset_index(drop=True)
+        return out.assign(expected=np.nan, score=out["value"], threshold=30.0, is_anomaly=out["value"] > 30)
+
+
+def test_a_vote_counts_what_its_members_already_scored():
+    member = Counting()
+    vote = Vote([member])
+    values = temperature()
+    values[150] = 45.0
+    observations = hourly(values).assign(source="socib", entity="soller", metric="temperature_2m")
+    window = TimeWindow(date(2026, 10, 1), date(2026, 10, 10))
+
+    flagged = score_entities(observations, [member, vote], window)
+
+    assert member.calls == 1  # not once more inside the vote
+    assert flagged.groupby("detector")["value"].apply(list).to_dict() == {"counting": [45.0], "vote": [45.0]}
+
+
+def test_scoring_every_detector_at_once_flags_what_scoring_each_alone_does():
+    values = temperature()
+    values[120] = 45.0
+    values[180:186] += 6.0  # a shift the seasonal residual sees
+    observations = hourly(values).assign(source="socib", entity="soller", metric="temperature_2m")
+    window = TimeWindow(date(2026, 10, 3), date(2026, 10, 10))
+    detectors = AnomalyConfig.load(PROJECT_ROOT / "config" / "anomaly.yaml").build()
+
+    together = score_entities(observations, detectors, window)
+    alone = pd.concat([score_entity(observations, d, window) for d in detectors], ignore_index=True)
+
+    def by_key(frame: pd.DataFrame) -> pd.DataFrame:
+        return frame.sort_values(["detector", "ts"], ignore_index=True)
+
+    pd.testing.assert_frame_equal(by_key(together), by_key(alone))
+    assert set(together["detector"]) >= {"robust_zscore", "vote"}
+
+
+def test_a_vote_needs_one_scored_frame_per_member():
+    with pytest.raises(ValueError, match="2 members got 1"):
+        Vote([Counting(), Counting()]).combine(hourly(temperature()).assign(metric="t"), [pd.DataFrame()])
+
+
+class Silent(Counting):
+    """Flags nothing, with the untyped empty frame a univariate detector returns for an entity without series."""
+
+    name = "silent"
+
+    def score_entity(self, observations: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame(columns=list(ENTITY_SCORE_COLUMNS))
+
+
+def test_an_empty_untyped_result_does_not_turn_the_others_into_objects():
+    values = temperature()
+    values[150] = 45.0
+    observations = hourly(values).assign(source="socib", entity="soller", metric="temperature_2m")
+
+    flagged = score_entities(observations, [Silent(), Counting()], TimeWindow(date(2026, 10, 1), date(2026, 10, 10)))
+
+    assert flagged["value"].tolist() == [45.0]
+    assert str(flagged["ts"].dtype).startswith("datetime64")
+    assert str(flagged["ts"].dt.tz) == "UTC"
+    assert flagged["score"].dtype == "float64"
+
+
+@pytest.mark.spark
+def test_every_detector_of_the_project_scores_in_one_spark_pass(spark):
+    window = TimeWindow(date(2026, 10, 3), date(2026, 10, 10))
+    calm = hourly(temperature(seed=1)).assign(source="socib", entity="palma", metric="temperature_2m")
+    spiky_values = temperature(seed=2)
+    spiky_values[150] = 45.0
+    spiky = hourly(spiky_values).assign(source="socib", entity="soller", metric="temperature_2m")
+    df = spark.createDataFrame(pd.concat([calm, spiky])[["source", "entity", "metric", "ts", "value"]])
+    detectors = AnomalyConfig.load(PROJECT_ROOT / "config" / "anomaly.yaml").build()
+
+    flagged = (
+        df.groupBy(*ENTITY_KEYS)
+        .applyInPandas(partial(score_entities, detectors=detectors, window=window), ANOMALY_SCHEMA)
+        .collect()
+    )
+
+    spike = {r.detector for r in flagged if r.entity == "soller" and r.value == 45.0}
+    assert {"robust_zscore", "vote"} <= spike
