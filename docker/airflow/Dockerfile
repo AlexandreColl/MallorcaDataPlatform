@@ -79,3 +79,7 @@ ARG RUFF_VERSION=0.17.4
 ARG AIRFLOW_PIN
 ARG AIRFLOW_CONSTRAINTS
 RUN pip install --no-cache-dir "${AIRFLOW_PIN}" pytest pytest-cov "ruff==${RUFF_VERSION}" mypy types-PyYAML mypy-boto3-s3 --constraint "${AIRFLOW_CONSTRAINTS}"
+# sqlfluff for `make sqlfluff`, in the dbt venv: its dbt templater compiles the models with the image's own dbt. The
+# pins are CI's (requirements/dbt.txt), whose dbt versions equal the image's, so pip only adds sqlfluff.
+COPY requirements/dbt.txt /tmp/requirements-dbt.txt
+RUN /opt/dbt-venv/bin/pip install --no-cache-dir -r /tmp/requirements-dbt.txt
