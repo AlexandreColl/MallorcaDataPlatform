@@ -22,6 +22,7 @@ from api.schemas import (
     Correction,
     CorrectionMethod,
     Detector,
+    DetectorBenchmark,
     Earthquake,
     ErrorResponse,
     Health,
@@ -483,3 +484,13 @@ def anomalies_daily(warehouse: WarehouseDep, start: Start = None, end: End = Non
     """Flagged values per local day and detector (default: the last 7 days)."""
     start, end = _window(start, end)
     return [AnomaliesDay(**row) for row in warehouse.anomalies_daily(start, end)]
+
+
+@router.get("/anomalies/benchmark", tags=["series"])
+def detector_benchmark(warehouse: WarehouseDep) -> list[DetectorBenchmark]:
+    """How well each detector catches injected faults, from the latest ``make evaluate`` of every source.
+
+    Real anomalies come unlabelled, so the benchmark injects known faults (spikes, frozen sensors, drifts, wrong
+    clocks) into recent series and counts how many each detector flags. Empty until the benchmark has run.
+    """
+    return [DetectorBenchmark(**row) for row in warehouse.detector_benchmark()]

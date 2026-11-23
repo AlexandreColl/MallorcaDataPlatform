@@ -1,8 +1,9 @@
 # dbt: de silver a gold
 
 El pipeline de Python deja en PostgreSQL las observaciones limpias (`silver.observations`), los resultados de las
-reglas de calidad (`quality.check_results`), la auditoría de ejecuciones (`ops.ingestion_runs`) y las correcciones
-propuestas para las estaciones (`silver.corrections`). dbt construye encima, en tres capas, todo lo que leen Grafana, la
+reglas de calidad (`quality.check_results`), el benchmark de los detectores de anomalías
+(`quality.anomaly_evaluations`), la auditoría de ejecuciones (`ops.ingestion_runs`) y las correcciones propuestas
+para las estaciones (`silver.corrections`). dbt construye encima, en tres capas, todo lo que leen Grafana, la
 API REST y la web. La metodología (Kimball, dimensiones conformadas, claves naturales) y las convenciones de nombres
 están en [docs/data-model.md](../docs/data-model.md).
 
@@ -10,13 +11,13 @@ están en [docs/data-model.md](../docs/data-model.md).
 flowchart LR
     subgraph sources[sources]
         S1[(silver.observations<br/>una tabla por conector)]
-        S2[(quality.check_results)]
+        S2[(quality.check_results<br/>quality.anomaly_evaluations)]
         S3[(ops.ingestion_runs)]
         S4[(silver.corrections)]
     end
     subgraph staging[staging · vistas]
         ST[stg_&lt;conector&gt;__observations]
-        SQ[stg_quality__check_results]
+        SQ[stg_quality__check_results<br/>stg_quality__anomaly_evaluations]
         SO[stg_ops__ingestion_runs]
         SC[stg_silver__corrections]
     end
@@ -26,7 +27,7 @@ flowchart LR
     subgraph marts[marts · gold]
         C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_metrics · dim_date · dim_sources]
         D[dominios: weather · marine · energy · mobility<br/>air_quality · seismic · population · climate<br/>water · tourism]
-        Q[quality: data_quality_summary · source_health<br/>fct_observations_corrected]
+        Q[quality: data_quality_summary · source_health<br/>fct_observations_corrected · fct_anomaly_evaluations]
     end
     S1 --> ST --> IW --> D
     ST --> C --> D
@@ -70,6 +71,7 @@ flowchart LR
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
 | seismic | `fct_earthquakes` | sismo |
 | quality | `data_quality_summary`, `source_health` | regla / fuente |
+| quality | `fct_anomaly_evaluations` (contrato) | ejecución, fuente, detector y tipo de fallo del benchmark de anomalías (`make evaluate`): fallos inyectados, detectados y precisión, con la ejecución más reciente de cada fuente marcada |
 | quality | `fct_observations_corrected` | serie y hora de las estaciones desde la primera corrección: valor original, corregido y `value` (el corregido donde lo hay), con método, apoyo, sesgo y confianza |
 
 ## Incrementales
@@ -137,6 +139,7 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
 - Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`.
 - Población: `fct_population_yearly`, `fct_human_pressure_daily`.
 - Mensuales: `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly`.
+- Calidad: `fct_anomaly_evaluations`.
 
 ## Tests
 
@@ -159,6 +162,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   - `climate_month_needs_a_complete_station`: un mes solo cuenta con estaciones que informan casi todos sus días.
   - `model_bias_is_compared_at_the_height_of_the_station`: el sesgo del modelo se corrige por la altura de la
     estación.
+  - `anomaly_benchmark_latest_run_per_source`: cada fuente conserva su ejecución más reciente del benchmark, aunque
+    una posterior no la incluya.
 
 ```bash
 make dbt                # source freshness (avisos) + dbt build
