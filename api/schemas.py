@@ -551,6 +551,27 @@ class AnomaliesDay(BaseModel):
     anomalies: int
 
 
+class DetectorBenchmark(BaseModel):
+    """How one detector did against one kind of injected fault, in the latest benchmark of a source.
+
+    From ``make evaluate`` (gold.fct_anomaly_evaluations). ``fault = "all"`` holds the totals, the precision and the
+    false alarms; the rows of each fault kind only say how many of its faults were caught.
+    """
+
+    source: str = Field(examples=["socib"])
+    detector: Detector = Field(examples=["vote"])
+    fault: Literal["spike", "frozen", "drift", "shift", "all"]
+    events: int = Field(description="Faults injected.")
+    events_detected: int = Field(description="Faults with at least one of their values flagged.")
+    event_recall: float | None = Field(description="Share of the faults caught.")
+    recall: float | None = Field(description="Share of the changed values flagged.")
+    precision: float | None = Field(description="Flags on injected values over all new flags (fault = all only).")
+    false_alarms: int | None = Field(description="New flags on clean values (fault = all only).")
+    window_start: date
+    window_end: date
+    evaluated_at: datetime
+
+
 class Error(BaseModel):
     """Every error has the same shape."""
 

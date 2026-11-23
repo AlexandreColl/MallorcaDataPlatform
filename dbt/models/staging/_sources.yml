@@ -75,6 +75,10 @@ sources:
     tables:
       - name: check_results
         description: One row per run, source, rule and target with checked and failed counts.
+      - name: anomaly_evaluations
+        description: >-
+          Fault-injection benchmark of the anomaly detectors (make evaluate): one row per run, source, detector and
+          fault kind, plus fault = 'all' with the totals and the precision. Written on demand, so no freshness.
 
   - name: ops
     tables:

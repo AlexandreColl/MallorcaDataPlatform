@@ -550,6 +550,15 @@ export const en: Messages = {
     failing: "Failing",
     anomaliesTitle: "Anomalies per day",
     anomaliesSubtitle: "Values each detector flags over the last 30 days; flagging does not change the value.",
+    benchmarkTitle: "Detector benchmark",
+    benchmarkSubtitle: (from: string, to: string) =>
+      `Known faults injected into the series from ${from} to ${to}: the share each detector catches and the share ` +
+      "of its flags that are real faults. Open-Meteo is a model; SOCIB and the EEA are real stations.",
+    noBenchmark: "No benchmark yet: make evaluate creates it.",
+    detector: "Detector",
+    faults: { spike: "Spikes", drift: "Drifts", frozen: "Frozen", shift: "Clock shift" },
+    precision: "Precision",
+    falseAlarms: "False alarms",
     correctionsTitle: "Latest corrections",
     correctionsSubtitle: "Values proposed for the stations’ gaps, with their method and confidence.",
     noCorrections: "No corrections in the last 30 days",

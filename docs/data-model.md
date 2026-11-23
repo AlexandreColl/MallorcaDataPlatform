@@ -228,6 +228,7 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_population_yearly` | municipio y año | Snapshot periódico: padrón a 1 de enero, densidad y cambio frente al padrón anterior | Tabla | ✅ |
 | `fct_human_pressure_daily` | día | Snapshot periódico: personas presentes en la isla frente a las empadronadas | Tabla | ✅ |
 | `data_quality_summary`, `source_health` | regla / fuente | Estado actual | Tabla | — |
+| `fct_anomaly_evaluations` | ejecución del benchmark, fuente, detector y tipo de fallo | Transacción (evento): cada ejecución de `make evaluate`, con la más reciente de cada fuente marcada (`is_latest`) | Tabla | ✅ |
 
 Cada grano está declarado como test: `unique_combination` en los modelos sin contrato y clave primaria en los que
 lo tienen. Un hecho que pierde su grano falla el build.

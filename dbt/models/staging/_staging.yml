@@ -60,6 +60,8 @@ models:
     description: IGN earthquakes (events), one row per event and metric.
   - name: stg_quality__check_results
     description: Results of the quality rules per run.
+  - name: stg_quality__anomaly_evaluations
+    description: Benchmark runs of the anomaly detectors, per source, detector and fault kind.
   - name: stg_ops__ingestion_runs
     description: Connector runs with their duration and the exception type of failures.
     columns:

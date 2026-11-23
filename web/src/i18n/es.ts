@@ -551,6 +551,15 @@ export const es = {
     failing: "Fallan",
     anomaliesTitle: "Anomalías por día",
     anomaliesSubtitle: "Valores que marca cada detector en los últimos 30 días; marcar no cambia el dato.",
+    benchmarkTitle: "Benchmark de los detectores",
+    benchmarkSubtitle: (from: string, to: string) =>
+      `Fallos conocidos inyectados en las series del ${from} al ${to}: qué parte detecta cada detector y qué parte de ` +
+      "sus avisos es un fallo de verdad. Open-Meteo es un modelo; SOCIB y la EEA, estaciones reales.",
+    noBenchmark: "Aún no hay benchmark: lo crea make evaluate.",
+    detector: "Detector",
+    faults: { spike: "Picos", drift: "Derivas", frozen: "Congelados", shift: "Desfase horario" },
+    precision: "Precisión",
+    falseAlarms: "Falsas alarmas",
     correctionsTitle: "Últimas correcciones",
     correctionsSubtitle: "Valores propuestos para huecos de las estaciones, con su método y su confianza.",
     noCorrections: "Ninguna corrección en los últimos 30 días",

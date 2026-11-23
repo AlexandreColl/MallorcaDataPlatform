@@ -554,6 +554,15 @@ export const ca: Messages = {
     failing: "Fallen",
     anomaliesTitle: "Anomalies per dia",
     anomaliesSubtitle: "Valors que marca cada detector en els darrers 30 dies; marcar no canvia la dada.",
+    benchmarkTitle: "Benchmark dels detectors",
+    benchmarkSubtitle: (from: string, to: string) =>
+      `Errors coneguts injectats a les sèries del ${from} al ${to}: quina part detecta cada detector i quina part ` +
+      "dels seus avisos és un error de debò. Open-Meteo és un model; SOCIB i l'EEA, estacions reals.",
+    noBenchmark: "Encara no hi ha benchmark: el crea make evaluate.",
+    detector: "Detector",
+    faults: { spike: "Pics", drift: "Derives", frozen: "Congelats", shift: "Desfasament horari" },
+    precision: "Precisió",
+    falseAlarms: "Falses alarmes",
     correctionsTitle: "Darreres correccions",
     correctionsSubtitle: "Valors proposats per als buits de les estacions, amb el seu mètode i la seva confiança.",
     noCorrections: "Cap correcció en els darrers 30 dies",

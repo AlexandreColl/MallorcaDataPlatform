@@ -237,7 +237,7 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/population",
         "/v1/population/pressure",
         "/v1/municipalities",
-        "/v1/quality/rules", "/v1/anomalies/daily",
+        "/v1/quality/rules", "/v1/anomalies/daily", "/v1/anomalies/benchmark",
     }  # fmt: skip
 
 
@@ -276,6 +276,7 @@ def test_settings_from_environment():
         ("/v1/earthquakes", "gold.fct_earthquakes"),
         ("/v1/quality/rules", "gold.data_quality_summary"),
         ("/v1/anomalies/daily", "silver.anomalies"),
+        ("/v1/anomalies/benchmark", "gold.fct_anomaly_evaluations"),
     ],
 )
 def test_every_dashboard_endpoint_reads_its_mart(path, table):
@@ -389,3 +390,18 @@ def test_sea_model_bias_names_the_buoy_and_the_model_point():
     assert bias["buoy_name"] == "Boya de Portocolom"
     assert bias["wave_height_bias_m"] == 0.15
     assert bias["wave_height_correlation"] == 0.912
+
+
+def test_the_benchmark_answers_the_latest_run_of_every_source():
+    row = {
+        "source": "socib", "detector": "vote", "fault": "all", "events": 144, "events_detected": 104,
+        "event_recall": 0.722, "recall": 0.07, "precision": 0.74, "false_alarms": 71,
+        "window_start": date(2026, 10, 23), "window_end": date(2026, 11, 22), "evaluated_at": TS,
+    }  # fmt: skip
+    db = FakeDatabase({"gold.fct_anomaly_evaluations": [row]})
+
+    body = client(db).get("/v1/anomalies/benchmark").json()
+
+    dates = {"window_start": "2026-10-23", "window_end": "2026-11-22", "evaluated_at": "2026-10-27T10:00:00Z"}
+    assert body == [{**row, **dates}]
+    assert "WHERE is_latest" in db.calls[-1][0]

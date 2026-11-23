@@ -7,6 +7,7 @@ import type {
   Aquifer,
   ClimateMonth,
   Correction,
+  DetectorBenchmark,
   Earthquake,
   Health,
   HumanPressureDay,
@@ -108,6 +109,7 @@ export const api = {
   earthquakes: () => get<Earthquake[]>("/earthquakes"),
   qualityRules: () => get<QualityRule[]>("/quality/rules"),
   anomaliesDaily: (start: string) => get<AnomaliesDay[]>(`/anomalies/daily?start=${start}T00:00:00Z`),
+  detectorBenchmark: () => get<DetectorBenchmark[]>("/anomalies/benchmark"),
   corrections: (start: string) =>
     get<Page<Correction>>(`/corrections?start=${start}T00:00:00Z&limit=8`).then((page) => page.items),
 };

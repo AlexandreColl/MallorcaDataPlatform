@@ -691,6 +691,7 @@ Airflow, Spark or Java. The OpenAPI documentation is at http://localhost:8000/do
 | `GET /v1/warnings`, `/v1/warnings/zones` | AEMET warnings in force or announced (by default, from now to 3 days ahead) and the warning zones with their polygons |
 | `GET /v1/population`, `/v1/municipalities` | The population of each municipality per year (filterable with `from` and `to`) and the 53 municipalities with their area and boundary |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | The latest check of each quality rule and anomalies per day and detector |
+| `GET /v1/anomalies/benchmark` | The latest benchmark of each source: the injected faults each detector catches, and its precision |
 | `GET /v1/series`, `/v1/series/daily` | A source's daily series (entity with its name, metric, unit and days covered) and one series day by day: minimum, mean, maximum, completeness, suspect values and anomalies (one year by default) |
 | `GET /v1/observations` | A source's values filtered by metric, entity and time range (the last 7 days by default), paginated |
 | `GET /v1/observations/export` | The same values as a file, unpaginated: CSV (`format=csv`, streamed) or Parquet (`format=parquet`, zstd, `ts` in UTC); up to 366 days and a million values |

@@ -62,6 +62,7 @@ def test_health(api):
         "/v1/earthquakes",
         "/v1/quality/rules",
         "/v1/anomalies/daily?start=2016-01-01T00:00:00Z",
+        "/v1/anomalies/benchmark",
     ],
 )
 def test_every_endpoint_runs_its_sql(api, path):

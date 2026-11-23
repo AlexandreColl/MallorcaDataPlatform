@@ -98,6 +98,33 @@ export interface Correction {
   confidence: number;
 }
 
+/**
+ * How one detector did against one kind of injected fault, in the latest benchmark of a source.
+ *
+ * From ``make evaluate`` (gold.fct_anomaly_evaluations). ``fault = "all"`` holds the totals, the precision and the
+ * false alarms; the rows of each fault kind only say how many of its faults were caught.
+ */
+export interface DetectorBenchmark {
+  source: string;
+  detector: "robust_zscore" | "seasonal_residual" | "isolation_forest" | "vote";
+  fault: "spike" | "frozen" | "drift" | "shift" | "all";
+  /** Faults injected. */
+  events: number;
+  /** Faults with at least one of their values flagged. */
+  events_detected: number;
+  /** Share of the faults caught. */
+  event_recall: number | null;
+  /** Share of the changed values flagged. */
+  recall: number | null;
+  /** Flags on injected values over all new flags (fault = all only). */
+  precision: number | null;
+  /** New flags on clean values (fault = all only). */
+  false_alarms: number | null;
+  window_start: string;
+  window_end: string;
+  evaluated_at: string;
+}
+
 /** One earthquake located by the IGN, in its latest revision (gold.fct_earthquakes). */
 export interface Earthquake {
   event_id: string;
