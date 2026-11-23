@@ -13,6 +13,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- The Operations page shows the detector benchmark: for the latest `make evaluate` of each source, the share of
+  spikes, drifts, frozen sensors and clock shifts each detector caught, its precision and its false alarms, in the
+  three languages. It reads `GET /v1/anomalies/benchmark`, served from the new contracted mart
+  `gold.fct_anomaly_evaluations` (one row per run, source, detector and fault, with `is_latest` per source and a dbt
+  unit test for it).
 - The anomaly benchmark measures real stations too: `evaluation.sources` takes Open-Meteo (a smooth model), SOCIB
   weather stations and EEA air quality stations, each judged on its own. Frozen payloads and wrong clocks hit every
   metric of a station at the same hours (`scope: station`), as a shared logger would. On the stations, precision
