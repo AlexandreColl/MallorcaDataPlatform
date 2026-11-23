@@ -130,6 +130,11 @@ Una petición por dataset con todas las localidades de la región. 10 métricas 
 (PM10, PM2.5, NO₂, O₃, EAQI, temperatura, humedad, precipitación, viento, presión).
 Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de estación.
 
+La API de previsión solo sirve 92 días, pero `make backfill CONNECTORS=open_meteo` carga los años anteriores: la
+calidad del aire sale del mismo modelo CAMS (desde 2013) y la meteorología del archivo de las mismas previsiones, que
+coincide hora a hora con la serie en vivo desde noviembre de 2022 y es el reanálisis ERA5 antes. Así las estaciones
+de SOCIB y de la EEA se comparan con el modelo desde 2017, como el histórico de SOCIB.
+
 ### Open-Meteo Marine
 
 La misma API con modelos de oleaje y océano en 8 puntos de mar alrededor de la isla: altura, periodo y dirección de

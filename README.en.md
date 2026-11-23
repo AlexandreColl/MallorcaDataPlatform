@@ -133,6 +133,11 @@ One request per dataset with every location of the region. 10 hourly metrics (PM
 temperature, humidity, precipitation, wind, pressure). With `DAYS=1` that is 6 × 24 × 10 = 1,440 observations. This
 is model data, not station data.
 
+The forecast API serves 92 days only, but `make backfill CONNECTORS=open_meteo` loads the earlier years: air quality
+comes from the same CAMS model (since 2013) and the weather from the archive of the same forecasts, which matches the
+live series hour by hour since November 2022 and is the ERA5 reanalysis before. So the SOCIB and EEA stations are
+compared with the model since 2017, like the SOCIB history.
+
 ### Open-Meteo Marine
 
 The same API with wave and ocean models at 8 sea points around the island: wave height, period and direction, swell,

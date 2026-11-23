@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Open-Meteo loads its history: `make backfill CONNECTORS=open_meteo` asks for a year per run (`max_days` 366, the
+  catch-up stays at 92 days). Air quality comes from the same CAMS API, which serves any window since 2013. Weather
+  windows that start before the 92 days of the forecast API ask the archive of the same forecasts
+  (`history_url`), which matches the live series hour by hour since 2022-11-16 and serves ERA5 before that day.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added
