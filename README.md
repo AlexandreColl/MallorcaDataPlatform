@@ -28,7 +28,7 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Arquitectura: 15 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+  <img alt="Arquitectura: 16 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
 </picture>
 
 El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
@@ -111,6 +111,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 | [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS) y meteorología, horario, 6 localidades | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
+| [redmar](connectors/redmar/README.md) | ✅ | Nivel del mar horario en los mareógrafos de Palma y Alcúdia de Puertos del Estado (red REDMAR, desde 2009) | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Oleaje, temperatura del mar, corrientes y nivel del mar (modelo) en 8 puntos de la costa | No |
@@ -220,6 +221,19 @@ por boya en `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` y la web). D
 En la bahía, con mar en calma (menos de 0,5 m), el modelo da un 40 % más de ola de la que mide la boya: su celda de
 unos 5 km se asoma a mar abierto y la boya está en una bahía resguardada. En Portocolom pasa al revés con la mar
 pequeña, y el RMSE (0,45 m), muy por encima del error medio, delata unas pocas horas con fallos grandes.
+
+### Mareógrafos (Puertos del Estado)
+
+Los mareógrafos de Palma y Alcúdia de la red REDMAR, leídos del servidor THREDDS de Puertos del Estado sin clave.
+Cada día es un fichero NetCDF con el nivel del mar cada medio segundo; el conector pide por OPeNDAP, en texto, un
+valor por minuto (unos 60 KB por día en lugar de 5,4 MB) y hace la media horaria de los que la fuente marca como
+buenos.
+
+- **El nivel es la altura sobre el cero de cada puerto**, unos 4,2 m. Sirve para seguir la marea y los temporales
+  en cada mareógrafo, no para compararlo con el modelo de Open-Meteo Marine, que mide sobre el nivel medio del mar.
+- **En 2026 faltan horas enteras**, unas 6 de cada 24 y las mismas en los dos mareógrafos; en 2024 y antes los
+  ficheros están casi completos. Una hora sin ningún minuto bueno se guarda como `missing`.
+- Sustituye a los mareógrafos de SOCIB, que dejaron de publicar en Mallorca entre 2019 y 2024.
 
 ### IGN (sismos)
 

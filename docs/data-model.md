@@ -301,7 +301,7 @@ Hay tres controles, de lo más técnico a lo acordado:
 | Fuente | Publica | Aviso sin datos nuevos en | Error (SLA) |
 |---|---|---|---|
 | Open-Meteo, Open-Meteo Marine | Cada hora (modelo) | 36 h | 48 h |
-| SOCIB, EEA | Cada hora (estación) | 36 h | 48 h |
+| SOCIB, REDMAR, EEA | Cada hora (estación) | 36 h | 48 h |
 | REData | Cada hora (demanda) y cada día (mix y CO₂) | 36 h | 48 h |
 | EMT Palma, CTM | Feed GTFS diario | 36 h | 48 h |
 | AEMET (avisos) | Cada emisión de avisos | 36 h | 48 h |

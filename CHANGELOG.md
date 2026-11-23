@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- REDMAR connector (`redmar`): hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado, read
+  from its THREDDS server without a key, since 2009. Each day is a 2 Hz NetCDF file; the connector asks OPeNDAP
+  for one value a minute as text (about 60 KB a day instead of 5.4 MB) and averages the minutes the source flags as
+  good. It replaces the SOCIB tide gauges, which stopped publishing in Mallorca between 2019 and 2024. In the catalogue in three languages, in dbt
+  (`stg_redmar__observations`, freshness at the SLA), in the E2E and in the architecture diagram.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added

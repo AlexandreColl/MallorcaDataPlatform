@@ -136,14 +136,14 @@ function sources(t) {
   const groups = [
     ["Tiempo y aire", ["AEMET (33 estaciones)", "SOCIB · Open-Meteo", "EEA · Govern (2002-2021)"]],
     ["Avisos", ["AEMET Meteoalerta (CAP)"]],
-    ["Mar y sismos", ["Open-Meteo Marine · IGN"]],
+    ["Mar y sismos", ["Open-Meteo Marine · IGN", "Mareógrafos (Puertos del Estado)"]],
     ["Movilidad", ["EMT Palma · CTM (GTFS)"]],
     ["Turismo, agua y energía", ["Dataestur · REData", "Reservas hídricas (Govern)"]],
     ["Población", ["INE, padrón desde 1996", "Ibestat, presión humana diaria"]],
   ];
   let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${t.card}" stroke="${t.border}"/>`;
   s += `<path d="M${x} ${y + 14} a14 14 0 0 1 14 -14 h${w - 28} a14 14 0 0 1 14 14 v-8 h-${w} z" fill="${ROLE.source.color}"/>`;
-  s += text(x + 20, y + 44, "15 fuentes abiertas", { size: 17, weight: 700, fill: t.text });
+  s += text(x + 20, y + 44, "16 fuentes abiertas", { size: 17, weight: 700, fill: t.text });
   s += text(x + 20, y + 64, "APIs REST, GTFS, CAP, CKAN y ficheros", { size: 11.5, fill: t.muted });
   let gy = y + 104;
   for (const [title, items] of groups) {
@@ -261,7 +261,7 @@ function diagram(t) {
 
   // Header
   s += text(30, 44, "MALLORCA DATA PLATFORM", { size: 12, weight: 700, fill: ROLE.orchestration.color, spacing: 1.6 });
-  s += text(30, 80, "De 15 fuentes abiertas a la isla en cifras", { size: 28, weight: 750, fill: t.text });
+  s += text(30, 80, "De 16 fuentes abiertas a la isla en cifras", { size: 28, weight: 750, fill: t.text });
   s += text(W - 30, 80, "Un docker compose up levanta la plataforma entera, en local", { size: 13, fill: t.muted, anchor: "end" });
 
   s += sources(t);
