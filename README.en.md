@@ -570,8 +570,9 @@ for the support source, the error it would have without its bias:
   | PM2.5, 12 h gaps | 0 of 144 | 120 of 144 | 2.7 µg/m³ | 3.9 µg/m³ |
   | PM2.5, 24 h gaps | 0 of 240 | 208 of 240 | 3.9 µg/m³ | 5.6 µg/m³ |
 
-  The confidence keeps the same formula, with `r²` below 0.36, so it is low: the value beats a straight line but does not match the
-  station hour by hour. The hours left uncorrected belong to stations where no support passes the test.
+  The confidence keeps the same formula, with `r²` below 0.36, so it is low: the value beats a straight line but
+  does not match the station hour by hour. The hours left uncorrected belong to stations where no support passes
+  the test.
   `make evaluate-corrections` now also shows the line for the support's hours (column `line`).
 - **Wind gusts** are the one case where the bias does not help: 7.5 against 6.8 km/h in 6-hour gaps. A gust is a
   momentary maximum and keeps no stable difference with another station.

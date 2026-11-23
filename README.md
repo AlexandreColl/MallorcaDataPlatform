@@ -570,7 +570,8 @@ absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
   | PM2.5, huecos de 24 h | 0 de 240 | 208 de 240 | 3,9 µg/m³ | 5,6 µg/m³ |
 
   La confianza sigue la misma fórmula, con `r²` por debajo de 0,36, así que es baja: el valor es mejor que una
-  recta, pero no se parece a la estación hora a hora. Las horas que no se corrigen son de estaciones donde ningún apoyo pasa la prueba.
+  recta, pero no se parece a la estación hora a hora. Las horas que no se corrigen son de estaciones donde ningún
+  apoyo pasa la prueba.
   `make evaluate-corrections` muestra ahora también la recta de las horas del apoyo (columna `line`).
 - **Las rachas de viento** son el único caso en el que el sesgo no ayuda: 7,5 frente a 6,8 km/h en huecos de 6
   horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
