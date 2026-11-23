@@ -402,5 +402,6 @@ def test_the_benchmark_answers_the_latest_run_of_every_source():
 
     body = client(db).get("/v1/anomalies/benchmark").json()
 
-    assert body == [{**row, "window_start": "2026-10-23", "window_end": "2026-11-22", "evaluated_at": "2026-10-27T10:00:00Z"}]
+    dates = {"window_start": "2026-10-23", "window_end": "2026-11-22", "evaluated_at": "2026-10-27T10:00:00Z"}
+    assert body == [{**row, **dates}]
     assert "WHERE is_latest" in db.calls[-1][0]
