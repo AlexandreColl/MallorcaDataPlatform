@@ -5,11 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
-### Changed
-
-- Anomaly detection scores each detector once per entity, in one Spark pass: the vote counts what its members
-  already flagged (`Vote.combine`) instead of scoring the seasonal residual and the Isolation Forest again. Detecting
-  30 days goes from 113 s to 77 s with the same anomalies.
+## [0.19.0] - 2026-11-23
 
 ### Added
 
@@ -33,6 +29,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - `make sqlfluff` lints the dbt models locally as CI does, from the dev image, which now carries sqlfluff and its
   dbt templater with the pins of `requirements/dbt.txt`. `SQL=` checks one model and `make sqlfluff-fix` applies the
   fixes.
+- The SOCIB history is loaded: the monthly archive goes back to March 2017 for Cala Millor and to 2022 for Platja de
+  Muro, about 712,000 hourly values more. The READMEs say how far back each station goes.
+
+### Changed
+
+- Anomaly detection scores each detector once per entity, in one Spark pass: the vote counts what its members
+  already flagged (`Vote.combine`) instead of scoring the seasonal residual and the Isolation Forest again. Detecting
+  30 days goes from 113 s to 77 s with the same anomalies.
 
 ## [0.18.0] - 2026-11-17
 
@@ -862,7 +866,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0
 [0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2

@@ -205,7 +205,8 @@ estación real y modelo en la misma gráfica.
 También lee el **oleaje** de las dos boyas activas, la de la bahía de Palma y la de Portocolom: la altura
 significativa y la máxima cada media hora, agregadas por hora (`wave_height`, como en Open-Meteo Marine, y
 `wave_height_max`). Los días anteriores al fichero `latest` salen de los ficheros mensuales del archivo, uno por mes
-y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico.
+y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico: llega a marzo de 2017 en Cala Millor y a
+2022 en Platja de Muro; las demás estaciones empiezan en 2025 y 2026.
 
 **Boyas frente al modelo de oleaje**: cada boya se empareja con el punto de Open-Meteo Marine más cercano (a menos
 de 2 km) y se comparan las alturas significativas hora a hora (`fct_wave_model_comparison_hourly`, y el resumen

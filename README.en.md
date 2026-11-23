@@ -206,7 +206,8 @@ samples. The metrics are named as in Open-Meteo, so Grafana compares the real st
 It also reads the **waves** of the two active buoys, in the Bay of Palma and off Portocolom: the significant and the
 maximum height every half hour, aggregated by hour (`wave_height`, as in Open-Meteo Marine, and `wave_height_max`).
 The days before the `latest` file come from the monthly files of the archive, one per month and deployment, so
-`make backfill CONNECTORS=socib` loads the history.
+`make backfill CONNECTORS=socib` loads the history: it goes back to March 2017 at Cala Millor and to 2022 at Platja
+de Muro; the other stations start in 2025 and 2026.
 
 **Buoys against the wave model**: each buoy is paired with the nearest Open-Meteo Marine point (under 2 km away) and
 their significant heights are compared hour by hour (`fct_wave_model_comparison_hourly`, and the summary per buoy
