@@ -1,0 +1,20 @@
+select
+    run_id,
+    source,
+    detector,
+    fault,
+    window_start,
+    window_end,
+    seed,
+    series,
+    events,
+    events_detected,
+    points,
+    points_detected,
+    recall,
+    event_recall,
+    false_alarms,
+    baseline_flags,
+    precision,
+    evaluated_at
+from {{ source('quality', 'anomaly_evaluations') }}

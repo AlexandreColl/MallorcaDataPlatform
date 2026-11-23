@@ -10,6 +10,32 @@ complementan:
 La documentación de cada columna y el grafo de linaje se publican con `dbt docs`, en
 [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/).
 
+## Metodología
+
+Cada capa sigue un patrón conocido del sector. Esta tabla da su nombre propio, para poder buscarlo y compararlo.
+
+| Dónde | Patrón | Qué significa aquí |
+|---|---|---|
+| Toda la plataforma | **Arquitectura medallion** (bronze, silver, gold) | Tres capas de calidad creciente: el dato crudo, el dato limpio en un esquema común y el dato listo para consultar ([ADR 0002](adr/0002-medallion.md)) |
+| Almacenamiento | **Lakehouse** más **data warehouse**, en un esquema híbrido | El lake es una tabla Delta Lake sobre almacenamiento de objetos compatible con S3 (MinIO): ficheros baratos con transacciones ACID, historial y *time travel*. El warehouse es PostgreSQL: consultas en milisegundos, cruces con SQL y el estado operativo ([ADR 0006](adr/0006-postgres-y-dbt.md), [ADR 0016](adr/0016-silver-en-delta.md)) |
+| Bronze | **Zona cruda** (*raw* o *landing zone*), inmutable y versionada | La respuesta de la fuente tal como llegó. Permite reprocesar cualquier cambio del modelo sin volver a llamar a la fuente |
+| Silver | **Modelo canónico** en formato largo, con el patrón **EAV** (*entity-attribute-value*) aplicado a series temporales | Una sola tabla estrecha (*narrow* o *tall table*) para todas las fuentes: la entidad (`entity`), el atributo (`metric`), el valor (`value`) y el instante (`ts`), con la calidad de cada fila ([sección 2](#2-silver-un-modelo-largo-y-común)) |
+| Gold | **Modelado dimensional de Kimball**: esquemas en estrella por dominio (*data marts*) | Tablas de hechos con un grano declarado alrededor de **dimensiones conformadas** (*conformed dimensions*), las mismas para todos los dominios ([sección 3](#3-gold-estrellas-por-dominio)) |
+| Gold, para los consumidores | **Tablas anchas desnormalizadas** | Los marts de dominio pivotan el formato largo a una columna por medida (`temperature_mean`, `demand_mwh`), para que Grafana y la API no tengan que conocer las métricas |
+| Historia de las dimensiones | **SCD** (*slowly changing dimensions*) de tipo 1 y tipo 2 | Tipo 1 sobrescribe el valor; tipo 2 cierra la versión anterior y abre una nueva (el snapshot `snap_locations`) |
+| Capas de dbt | **staging, intermediate y marts**, de la guía de estilo de dbt Labs | Limpiar, combinar y servir ([convenciones de nombres](#8-convenciones-de-nombres)) |
+| Cargas | **Incremental con marca de agua** (*watermark*) y **upsert** idempotente | `updated_at` dice qué ha cambiado; `MERGE` en Delta y en dbt, e `INSERT … ON CONFLICT` en Postgres. Relanzar nunca duplica ([ADR 0003](adr/0003-idempotencia.md)) |
+| Cambios en silver | **CDF** (*Change Data Feed*) de Delta | La lista de filas que cambió en cada versión (`make silver-changes`) |
+| Fronteras | **Contratos de datos** (*data contracts*) | Nombres, tipos y claves fijos en los marts que se leen fuera (`contract: enforced` de dbt) |
+| Periodos | **Huecos e islas** (*gaps and islands*) | Agrupar días u horas seguidos en episodios y avisos: la fecha menos el número de fila da el mismo grupo |
+
+**Patrones que no se usan, y por qué:**
+
+- **Data Vault** (*hubs*, *links* y *satellites*). Está pensado para muchas fuentes que cambian de forma y para auditar cada cambio. Aquí la auditoría ya la dan bronze versionado y el historial de Delta, y una sola persona mantiene el modelo.
+- **One Big Table** para todo. Los marts anchos lo son por dominio; una sola tabla con todas las medidas tendría cientos de columnas casi vacías.
+- **Snapshots acumulativos** (*accumulating snapshots*). Sirven para procesos con hitos, como un pedido que se paga, se envía y se entrega. Ningún dato de la plataforma tiene esa forma.
+- **Claves subrogadas** en las dimensiones. Ver [claves naturales](#claves-naturales-no-subrogadas).
+
 ## 1. Modelo conceptual
 
 La plataforma mide cosas en sitios a lo largo del tiempo.
@@ -65,7 +91,7 @@ tabla Delta del lake, con la misma clave ([ADR 0002](adr/0002-medallion.md)).
 **Clave primaria:** `(source, entity, metric, ts)`. Está definida una sola vez, en `core/models.py`, y la usan el
 `MERGE` de Delta, el upsert de Postgres, la regla de duplicados y la deduplicación.
 
-**Por qué es largo.** Catorce fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
+**Por qué es largo.** Quince fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
 cambia ninguna tabla, y la calidad, la idempotencia y la frescura se resuelven una vez para todas
 ([ADR 0001](adr/0001-nucleo-fijo-y-conectores.md)). El precio es que una consulta que cruza métricas tiene que
 pivotar. Eso se hace una sola vez, en gold.
@@ -99,6 +125,18 @@ con un grano declarado y dimensiones compartidas entre dominios.
 | `dim_routes` | `source, route` | `silver.routes`: nombre, tipo (bus, tren, metro), color y recorrido en GeoJSON | Tipo 1: cada ejecución sustituye las líneas de la red |
 | `dim_metrics` | `source, metric` | Derivada de silver: unidad, número de entidades y cobertura | Tipo 1. La clave primaria impide que una métrica tenga dos unidades |
 | `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde 1996 (el primer padrón) hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
+
+### Dimensiones de un dominio
+
+No las comparten todos los dominios, pero siguen las mismas reglas. Todas son seeds, CSV que viven en git y que dbt
+carga como tablas, salvo `dim_routes`, que sale de silver.
+
+| Dimensión | Clave | Origen | Historia |
+|---|---|---|---|
+| `dim_source_texts` | `source, language` | Seed: etiqueta, descripción y licencia de cada fuente en catalán e inglés. Amplía `dim_sources`, que guarda el castellano ([ADR 0024](adr/0024-la-web-en-tres-idiomas.md)) | Tipo 1 |
+| `dim_aquifers` | `entity` (`aquifer_<código>`, la entidad de la fuente) | Seed: las masas de agua subterránea (MAS) de Mallorca, con su nombre y su unidad hidrogeológica | Tipo 1 |
+| `dim_warning_zones` | `zone` | Seed: las zonas de aviso de AEMET (cinco de tierra y sus aguas costeras), con su polígono | Fija: solo cambia si AEMET las redibuja |
+| `dim_municipalities` | `municipality` | Seed: los 53 municipios, con su código INE, su superficie y su límite simplificado | Fija |
 
 `dim_sources.kind` clasifica las fuentes por el tipo de dato: `observation` (una medida real), `model` (un modelo
 numérico), `system` (el sistema eléctrico), `schedule` (un servicio programado), `statistic` (estadística oficial),
@@ -177,6 +215,9 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `agg_model_bias_by_station` | estación | Agregado | Tabla | ✅ |
 | `fct_weather_episodes` | episodio de lluvia, viento o mar | Agregado por episodio: días seguidos sobre un umbral, con inicio, fin y extremos | Tabla | ✅ |
 | `fct_sea_conditions_hourly` | punto de costa y hora | Snapshot periódico, ancho | Tabla | — |
+| `fct_wave_model_comparison_hourly` | boya y hora | Snapshot periódico: la ola medida por la boya junto a la del modelo en el punto más cercano | Tabla | — |
+| `agg_wave_model_bias_by_buoy` | boya | Agregado: sesgo, MAE, RMSE y correlación del modelo de oleaje | Tabla | ✅ |
+| `fct_weather_warnings` | aviso: zona, fenómeno y periodo seguido al mismo nivel | Agregado por periodo (*gaps and islands* sobre las horas de AEMET) | Tabla | ✅ |
 | `air_quality_hourly` | localidad y hora | Snapshot periódico, con la banda del índice europeo | Tabla | — |
 | `fct_air_quality_model_bias_daily` | estación, contaminante y día | Snapshot periódico | Tabla | ✅ |
 | `fct_air_quality_monthly` | fuente, estación, contaminante y mes | Snapshot periódico, con cobertura | Tabla | ✅ |
@@ -184,10 +225,34 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_bus_network_daily`, `fct_island_transit_daily` | día | Snapshot periódico | Tabla | ✅ |
 | `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly` | mes | Snapshot periódico, con la anomalía frente al mismo mes | Tabla | ✅ |
 | `fct_earthquakes` | sismo, en su última revisión | Transacción (evento) | Tabla | — |
+| `fct_population_yearly` | municipio y año | Snapshot periódico: padrón a 1 de enero, densidad y cambio frente al padrón anterior | Tabla | ✅ |
+| `fct_human_pressure_daily` | día | Snapshot periódico: personas presentes en la isla frente a las empadronadas | Tabla | ✅ |
 | `data_quality_summary`, `source_health` | regla / fuente | Estado actual | Tabla | — |
+| `fct_anomaly_evaluations` | ejecución del benchmark, fuente, detector y tipo de fallo | Transacción (evento): cada ejecución de `make evaluate`, con la más reciente de cada fuente marcada (`is_latest`) | Tabla | ✅ |
 
 Cada grano está declarado como test: `unique_combination` en los modelos sin contrato y clave primaria en los que
 lo tienen. Un hecho que pierde su grano falla el build.
+
+### Claves naturales, no subrogadas
+
+Kimball recomienda que cada dimensión tenga una **clave subrogada**: un entero sin significado que los hechos usan en
+lugar de la clave de la fuente. Aquí las dimensiones y los hechos usan las **claves naturales**, compuestas cuando
+hace falta: `(source, entity)`, `(source, metric)`, `date_day`.
+
+- **Por qué.**
+  - Los identificadores de las fuentes son estables: el indicativo de una estación de AEMET o el código de una
+    parada no cambian.
+  - La misma clave viaja de silver a gold y a la API sin traducirla en cada paso.
+  - Los incrementales y el upsert fusionan por esa clave.
+  - Con este volumen, un join por dos columnas de texto indexadas cuesta milisegundos en Postgres.
+- **Lo que cuesta.** Un hecho apunta a la versión actual de su dimensión. Para cruzarlo con la versión de
+  `snap_locations` que valía en su momento hay que comparar fechas (`ts` entre `dbt_valid_from` y
+  `dbt_valid_to`), en lugar de usar una clave por versión.
+- **Excepciones.** Un episodio o un aviso no tiene identificador en la fuente. `episode_id` y `warning_id` son
+  claves subrogadas: un hash de las columnas que lo definen (`dbt_utils.generate_surrogate_key`), estable entre
+  builds.
+- **Cuándo revisarla.** Si un dominio necesitara cruzar a menudo hechos con la historia de una dimensión de tipo 2, o
+  si las claves de texto empezaran a pesar en los índices.
 
 ## 4. Contratos: tres fronteras
 
@@ -260,3 +325,42 @@ Hay tres controles, de lo más técnico a lo acordado:
 
 Bronze guarda cada respuesta tal cual llegó. Por eso cualquier cambio del modelo, incluido uno de la clave, se
 puede aplicar al histórico sin volver a llamar a las fuentes.
+
+## 8. Convenciones de nombres
+
+Los modelos siguen la guía de estilo de dbt Labs. El prefijo dice qué es cada tabla, y el sufijo, su grano.
+
+| Prefijo | Qué es | Esquema | Materialización | Ejemplos |
+|---|---|---|---|---|
+| `stg_<fuente>__<tabla>` | Staging: una vista por tabla de origen, con el doble guion bajo entre la fuente y la tabla | `dbt_staging` | Vista | `stg_aemet__observations`, `stg_ops__ingestion_runs` |
+| `int_<tema>` o `int_<tema>__<grano>` | Intermediate: lógica que reutilizan varios marts | `dbt_intermediate` | Vista | `int_weather__daily`, `int_station_model_pairs` |
+| `fct_<tema>_<grano>` | Hecho, con el grano en el sufijo (`_hourly`, `_daily`, `_monthly`, `_yearly`) o sin sufijo si cada fila es un suceso | `gold` | Tabla o incremental | `fct_weather_daily`, `fct_earthquakes` |
+| `agg_<tema>_by_<dimensión>` | Agregado: resume un hecho por la dimensión que nombra, sin tiempo | `gold` | Tabla | `agg_model_bias_by_station`, `agg_wave_model_bias_by_buoy` |
+| `dim_<entidad>` | Dimensión, sea un modelo o un seed | `gold` | Tabla o seed | `dim_locations`, `dim_sources` |
+| `snap_<entidad>` | Snapshot de tipo 2 | `snapshots` | Snapshot | `snap_locations` |
+
+Fuera de dbt, los esquemas de Postgres dicen quién escribe: `silver`, `quality` y `ops` los escribe el pipeline de
+Python; `dbt_staging`, `dbt_intermediate`, `gold` y `snapshots`, dbt.
+
+**Columnas:**
+
+| Convención | Ejemplos |
+|---|---|
+| Inglés y `snake_case` | `source`, `local_date`, `hydrological_year` |
+| `ts` es el instante medido, en UTC; `local_date`, su día en Mallorca; `month` y `year`, el periodo | `ts`, `local_date`, `month` |
+| `_at` es un instante de la plataforma, no del dato | `ingested_at`, `updated_at`, `last_run_at` |
+| La unidad va en el sufijo cuando el nombre no la deja clara | `demand_mwh`, `reserves_pct`, `rain_mm`, `distance_km`, `elevation_m` |
+| `is_` para los booleanos | `is_missing`, `is_weekend`, `is_heavy_rain` |
+| `n_` para los recuentos | `n_metrics`, `n_entities` |
+| `_id` solo para las claves subrogadas | `episode_id`, `warning_id` |
+
+**Excepciones, y por qué se quedan.** Renombrar un mart rompe su contrato, la API, Grafana y los exposures que lo
+leen, así que estas excepciones se documentan en lugar de corregirse:
+
+| Modelo | Por la regla sería | Por qué tiene otro nombre |
+|---|---|---|
+| `agg_daily_metrics` | `fct_metrics_daily` | Es un snapshot periódico diario de todas las series. Nació como el agregado diario de `fct_observations` y lo leen Grafana y la API |
+| `air_quality_hourly` | `fct_air_quality_hourly` | Es anterior a la convención y lo leen los dashboards de calidad del aire |
+| `source_health`, `data_quality_summary` | — | No son hechos ni dimensiones: son informes del estado actual de las fuentes y las reglas, una fila por fuente o regla |
+| `fct_resources_monthly` | — | Sigue la regla, pero está en `core` y no en un dominio porque cruza turismo, agua, clima y electricidad |
+

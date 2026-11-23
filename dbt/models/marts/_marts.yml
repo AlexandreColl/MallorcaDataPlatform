@@ -382,6 +382,59 @@ models:
           - value_between:
               arguments: {min_value: 0, max_value: 1}
 
+  - name: fct_anomaly_evaluations
+    description: >-
+      Fault-injection benchmark of the anomaly detectors (make evaluate): per run, source, detector and fault kind,
+      the injected faults and values, how many the detector flagged and, on the fault = 'all' row, its precision and
+      false alarms. `is_latest` marks the newest run of each source, the one the API and the web show.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [run_id, source, detector, fault]
+    columns:
+      - {name: run_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: source, data_type: text, constraints: [{type: not_null}]}
+      - {name: detector, data_type: text, constraints: [{type: not_null}]}
+      - name: fault
+        data_type: text
+        constraints: [{type: not_null}]
+        description: The kind of injected fault (core/anomaly/faults.py), or `all` for the totals.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["spike", "frozen", "drift", "shift", "all"]
+      - {name: window_start, data_type: date}
+      - {name: window_end, data_type: date}
+      - {name: seed, data_type: integer}
+      - {name: series, data_type: integer, description: Series of the source that were corrupted.}
+      - {name: events, data_type: integer, description: Faults injected.}
+      - {name: events_detected, data_type: integer, description: Faults with at least one of their values flagged.}
+      - {name: points, data_type: integer, description: Values changed by the faults.}
+      - {name: points_detected, data_type: integer}
+      - name: recall
+        data_type: double precision
+        description: Share of the changed values that were flagged.
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 1}
+      - name: event_recall
+        data_type: double precision
+        description: Share of the faults with some value flagged.
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 1}
+      - {name: false_alarms, data_type: integer, description: New flags on clean values (fault = 'all' only).}
+      - {name: baseline_flags, data_type: integer, description: Flags already on the clean series, real events not judged.}
+      - name: precision
+        data_type: double precision
+        description: Flags on injected values over all new flags (fault = 'all' only).
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 1}
+      - {name: evaluated_at, data_type: timestamp with time zone}
+      - {name: is_latest, data_type: boolean, description: The row belongs to the newest run of its source.}
+
   # --- station vs model and weather episodes -------------------------------------------------------------
   - name: fct_model_bias_daily
     description: >
@@ -773,6 +826,23 @@ models:
         description: The corrected value where there is one, the original elsewhere (NULL when neither exists).
 
 unit_tests:
+  - name: anomaly_benchmark_latest_run_per_source
+    description: >-
+      Each source keeps its own newest run: a later run that left a source out does not make the older run of
+      that source stale.
+    model: fct_anomaly_evaluations
+    given:
+      - input: ref('stg_quality__anomaly_evaluations')
+        rows:
+          - {run_id: r1, source: socib, detector: vote, fault: all, evaluated_at: "2026-11-01 10:00:00+00"}
+          - {run_id: r1, source: open_meteo, detector: vote, fault: all, evaluated_at: "2026-11-01 10:00:00+00"}
+          - {run_id: r2, source: open_meteo, detector: vote, fault: all, evaluated_at: "2026-11-20 10:00:00+00"}
+    expect:
+      rows:
+        - {run_id: r1, source: socib, is_latest: true}
+        - {run_id: r1, source: open_meteo, is_latest: false}
+        - {run_id: r2, source: open_meteo, is_latest: true}
+
   - name: eaqi_band_is_the_worst_pollutant
     description: The European AQI band of an hour is the worst band among PM2.5, PM10, NO2 and O3.
     model: air_quality_hourly

@@ -206,7 +206,8 @@ samples. The metrics are named as in Open-Meteo, so Grafana compares the real st
 It also reads the **waves** of the two active buoys, in the Bay of Palma and off Portocolom: the significant and the
 maximum height every half hour, aggregated by hour (`wave_height`, as in Open-Meteo Marine, and `wave_height_max`).
 The days before the `latest` file come from the monthly files of the archive, one per month and deployment, so
-`make backfill CONNECTORS=socib` loads the history.
+`make backfill CONNECTORS=socib` loads the history: it goes back to March 2017 at Cala Millor and to 2022 at Platja
+de Muro; the other stations start in 2025 and 2026.
 
 **Buoys against the wave model**: each buoy is paired with the nearest Open-Meteo Marine point (under 2 km away) and
 their significant heights are compared hour by hour (`fct_wave_model_comparison_hourly`, and the summary per buoy
@@ -429,40 +430,70 @@ value, so a storm is one mark, not thirty. The Operación tables list them one b
 ### Measuring the detectors with injected faults
 
 Real anomalies do not come labelled, so there is no way to know how many are missed. `make evaluate` creates that
-ground truth: it takes recent Open-Meteo series (model data, complete and smooth), **injects known faults** with a
-fixed seed and scores each clean and corrupted series (`core/anomaly/faults.py` and `evaluation.py`):
+ground truth: it takes recent series from three sources, **injects known faults** with a fixed seed and scores each
+clean and corrupted series (`core/anomaly/faults.py` and `evaluation.py`). Each source is measured on its own,
+because they are not equally easy:
 
-| Fault | What it simulates | Shape |
-|---|---|---|
-| `spike` | a wrong reading, a decimal comma | one value ± 4-8 robust σ |
-| `frozen` | a frozen sensor, a repeated payload | 6-24 hours with the last good value |
-| `drift` | a sensor going out of calibration | a ramp of 2-4 σ over 48-120 hours |
-| `shift` | a wrong clock or time zone | 6-24 hours with the values of 12 hours earlier |
+- **Open-Meteo**: a model, with complete and smooth series. The easy case.
+- **SOCIB**: real weather stations, with the noise of their sensors.
+- **EEA**: air quality stations, with pollutants that rise and fall with traffic.
+
+| Fault | What it simulates | Shape | Scope |
+|---|---|---|---|
+| `spike` | a wrong reading, a decimal comma | one value ± 4-8 robust σ | one series |
+| `frozen` | a repeated payload, a hung logger | 6-24 hours with the last good value | the whole station |
+| `drift` | a sensor going out of calibration | a ramp of 2-4 σ over 48-120 hours | one series |
+| `shift` | a wrong clock or time zone | 6-24 hours with the values of 12 hours earlier | the whole station |
+
+A wrong clock or a repeated payload does not hit one sensor alone: the logger is the same for the whole station. So
+`frozen` and `shift` fall on every metric of the station at once, at the same hours (`scope: station` in
+`config/anomaly.yaml`).
 
 A flag on an injected value is a hit; a new flag on a clean value, a false alarm. What the detector already flagged
 in the clean series (real episodes) is counted separately and not penalised. Gaps are not injected: a missing value
-cannot be flagged, and the `gaps` rule already counts them. Results in `quality.anomaly_evaluations`; faults detected
-(some value flagged) in the 35,000 Open-Meteo values of the 30 days to 14 November 2026:
+cannot be flagged, and the `gaps` rule already counts them. Results in `quality.anomaly_evaluations`; faults
+detected (some value flagged) in the 30 days to 22 November 2026, with 39,720 Open-Meteo values, 13,332 SOCIB values
+and 21,859 EEA values:
 
-| Detector | Spikes | Drifts | Frozen | Shift | Precision |
-|---|---|---|---|---|---|
-| `robust_zscore` | 88 % | 19 % | 2 % | 6 % | 70 % |
-| `seasonal_residual` | 98 % | 81 % | 30 % | 61 % | 81 % |
-| `isolation_forest` | 33 % | 17 % | 31 % | 6 % | 83 % |
-| `vote` (seasonal or forest) | 98 % | 83 % | 50 % | 61 % | 81 % |
+| Source | Detector | Spikes | Drifts | Frozen | Shift | Precision |
+|---|---|---|---|---|---|---|
+| Open-Meteo | `robust_zscore` | 88 % | 11 % | 0 % | 6 % | 87 % |
+| Open-Meteo | `seasonal_residual` | 97 % | 83 % | 24 % | 50 % | 81 % |
+| Open-Meteo | `isolation_forest` | 24 % | 11 % | 24 % | 0 % | 87 % |
+| Open-Meteo | `vote` (seasonal or forest) | 98 % | 83 % | 44 % | 50 % | 83 % |
+| SOCIB | `robust_zscore` | 86 % | 29 % | 0 % | 4 % | 70 % |
+| SOCIB | `seasonal_residual` | 96 % | 75 % | 17 % | 29 % | 65 % |
+| SOCIB | `isolation_forest` | 33 % | 8 % | 33 % | 0 % | 89 % |
+| SOCIB | `vote` | 96 % | 75 % | 42 % | 29 % | 74 % |
+| EEA | `robust_zscore` | 88 % | 44 % | 3 % | 19 % | 76 % |
+| EEA | `seasonal_residual` | 95 % | 69 % | 11 % | 33 % | 62 % |
+| EEA | `isolation_forest` | 49 % | 25 % | 42 % | 11 % | 86 % |
+| EEA | `vote` | 97 % | 72 % | 44 % | 36 % | 69 % |
 
 The z-score sees what strays from its neighbours and is blind to what stays at a normal level: a sensor frozen at
 18 °C is close to the median, and in a smooth model the values of 12 hours earlier look like a mild night. The forest
 sees that a series that always moves has stopped (through the "equal values in a row" feature; a rolling spread is
 not enough, because near the daily maximum or minimum there is hardly any spread anyway), but with its 5 % quota it
-misses two thirds of the spikes. The seasonal residual sees the shift because it compares each hour with the same
-hour on other days, and above all because it compares the change: with a wrong clock, the series cools when it
-should warm. Scoring only the level, even at the z-score's threshold (3.5), it saw 22 % of the shifts. Mind its
-81 % of drifts: it nearly always sees them where they end, in the jump back, not while they grow.
+misses half the spikes or more. The seasonal residual sees the shift because it compares each hour with the same hour
+on other days, and above all because it compares the change: with a wrong clock, the series cools when it should
+warm. Mind its drifts: it nearly always sees them where they end, in the jump back, not while they grow.
 
-The vote joins the two that fail on different things: it adds the forest's frozen sensors to what the residual sees,
-without losing precision. Adding the z-score only lowers the precision (74 %) without catching more faults, and
-requiring two votes raises the precision to 86 % at the cost of missing half of them. `contamination` moves the
+**What changes with real stations.**
+
+- **Precision drops.** The residual and the vote go from 81-83 % on the model to 62-74 % on the stations: real noise
+  and short episodes, such as an NO₂ peak at rush hour, look more like a fault. The forest keeps it best (86-89 %),
+  because it only flags its quota.
+- **A wrong clock is the hardest fault away from the model.** The residual goes from 50 % to 29-33 %: a station's
+  daily curve is less regular than a model's, so twelve shifted hours stand out less.
+- **Station-wide frozen sensors are mostly seen by the forest** (24-42 %), which looks at every metric together. The
+  vote reaches 42-44 % on all three sources.
+- **On air quality, the z-score sees more drifts** (44 %) than on weather: pollutants have a weaker daily cycle, so a
+  ramp leaves the normal range sooner.
+
+The vote joins the two that fail on different things: it adds the forest's frozen sensors to what the residual sees
+and, on the stations, wins back part of the precision the residual loses on its own. On Open-Meteo, before the
+stations were measured, adding the z-score only lowered the precision (74 %) without catching more faults, and
+requiring two votes raised the precision to 86 % at the cost of missing half of them. `contamination` moves the
 forest's balance: at 0.10 it catches more spikes and frozen sensors with somewhat less precision.
 
 ## Corrections with support sources
@@ -661,6 +692,7 @@ Airflow, Spark or Java. The OpenAPI documentation is at http://localhost:8000/do
 | `GET /v1/warnings`, `/v1/warnings/zones` | AEMET warnings in force or announced (by default, from now to 3 days ahead) and the warning zones with their polygons |
 | `GET /v1/population`, `/v1/municipalities` | The population of each municipality per year (filterable with `from` and `to`) and the 53 municipalities with their area and boundary |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | The latest check of each quality rule and anomalies per day and detector |
+| `GET /v1/anomalies/benchmark` | The latest benchmark of each source: the injected faults each detector catches, and its precision |
 | `GET /v1/series`, `/v1/series/daily` | A source's daily series (entity with its name, metric, unit and days covered) and one series day by day: minimum, mean, maximum, completeness, suspect values and anomalies (one year by default) |
 | `GET /v1/observations` | A source's values filtered by metric, entity and time range (the last 7 days by default), paginated |
 | `GET /v1/observations/export` | The same values as a file, unpaginated: CSV (`format=csv`, streamed) or Parquet (`format=parquet`, zstd, `ts` in UTC); up to 366 days and a million values |

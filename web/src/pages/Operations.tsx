@@ -1,12 +1,13 @@
 import { useCallback, useMemo } from "react";
 
-import { type AnomaliesDay, api, daysAgo, type Source } from "../api";
+import { type AnomaliesDay, api, daysAgo, type DetectorBenchmark, type Source } from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
 import { ready, useLoad } from "../hooks";
 import { messages } from "../i18n";
+import { type BenchmarkRow, benchmarkRows, benchmarkWindow, FAULTS } from "../lib/benchmark";
 import { age, compact, dayShort, number, placeName } from "../lib/format";
 import type { Kpi } from "../lib/kpis";
 import { byName, metricLabel } from "../lib/series";
@@ -90,11 +91,48 @@ function AnomaliesPerDay({ rows }: { rows: AnomaliesDay[] }) {
   return <Chart option={option} label={messages().operations.anomaliesChart} />;
 }
 
+function percent(share: number | null): string {
+  return share === null ? "—" : `${number(share * 100)} %`;
+}
+
+/** The days the latest benchmark covered, once it has loaded. */
+function benchmarkSubtitle(rows: DetectorBenchmark[] | null): string {
+  const window = rows ? benchmarkWindow(rows) : null;
+  return messages().operations.benchmarkSubtitle(window ? dayShort(window.from) : "…", window ? dayShort(window.to) : "…");
+}
+
+/** How each detector did against the injected faults, one row per source and detector. */
+function Benchmark({ rows, sources }: { rows: DetectorBenchmark[]; sources: Source[] | null }) {
+  const m = messages().operations;
+  const labels = new Map((sources ?? []).map((s) => [s.source, s.label ?? s.source]));
+  return (
+    <Table
+      rows={benchmarkRows(rows)}
+      empty={m.noBenchmark}
+      columns={[
+        {
+          label: m.detector,
+          value: (r) => (
+            <span className="stacked">
+              <strong>{named(m.detectors, r.detector)}</strong>
+              <small>{labels.get(r.source) ?? r.source}</small>
+            </span>
+          ),
+        },
+        ...FAULTS.map((fault) => ({ label: m.faults[fault], value: (r: BenchmarkRow) => percent(r.caught[fault]), numeric: true })),
+        { label: m.precision, value: (r) => percent(r.precision), numeric: true },
+        { label: m.falseAlarms, value: (r) => (r.falseAlarms === null ? "—" : number(r.falseAlarms)), numeric: true },
+      ]}
+    />
+  );
+}
+
 export function Operations() {
   const sources = useLoad(api.sources);
   const anomalies = useLoad(() => api.anomaliesDaily(daysAgo(30)));
   const rules = useLoad(api.qualityRules);
   const corrections = useLoad(() => api.corrections(daysAgo(30)));
+  const benchmark = useLoad(api.detectorBenchmark);
 
   const kpis = useMemo(() => {
     const s = ready(sources);
@@ -194,6 +232,9 @@ export function Operations() {
         </Panel>
         <Panel title={m.anomaliesTitle} subtitle={m.anomaliesSubtitle}>
           <Async state={anomalies}>{(rows) => <AnomaliesPerDay rows={rows} />}</Async>
+        </Panel>
+        <Panel title={m.benchmarkTitle} subtitle={benchmarkSubtitle(ready(benchmark))} wide>
+          <Async state={benchmark}>{(rows) => <Benchmark rows={rows} sources={ready(sources)} />}</Async>
         </Panel>
         <Panel title={m.correctionsTitle} subtitle={m.correctionsSubtitle} wide>
           <Async state={corrections}>

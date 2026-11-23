@@ -131,8 +131,20 @@ CREATE TABLE IF NOT EXISTS quality.anomaly_evaluations (
     baseline_flags   integer,                  -- flags on the clean series: real events, not judged
     precision        double precision,
     evaluated_at     timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (run_id, detector, fault)
+    PRIMARY KEY (run_id, source, detector, fault)
 );
+-- Warehouses created before the benchmark covered several sources keyed it without the source.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'anomaly_evaluations_pkey' AND pg_get_constraintdef(oid) LIKE '%source%'
+    ) THEN
+        ALTER TABLE quality.anomaly_evaluations DROP CONSTRAINT IF EXISTS anomaly_evaluations_pkey;
+        ALTER TABLE quality.anomaly_evaluations ADD PRIMARY KEY (run_id, source, detector, fault);
+    END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS quality.check_results (
     run_id        text        NOT NULL,

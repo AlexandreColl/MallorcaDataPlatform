@@ -205,7 +205,8 @@ estación real y modelo en la misma gráfica.
 También lee el **oleaje** de las dos boyas activas, la de la bahía de Palma y la de Portocolom: la altura
 significativa y la máxima cada media hora, agregadas por hora (`wave_height`, como en Open-Meteo Marine, y
 `wave_height_max`). Los días anteriores al fichero `latest` salen de los ficheros mensuales del archivo, uno por mes
-y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico.
+y despliegue, así que `make backfill CONNECTORS=socib` carga el histórico: llega a marzo de 2017 en Cala Millor y a
+2022 en Platja de Muro; las demás estaciones empiezan en 2025 y 2026.
 
 **Boyas frente al modelo de oleaje**: cada boya se empareja con el punto de Open-Meteo Marine más cercano (a menos
 de 2 km) y se comparan las alturas significativas hora a hora (`fct_wave_model_comparison_hourly`, y el resumen
@@ -428,42 +429,71 @@ el valor esperado, así que un temporal es una marca y no treinta. Las tablas de
 ### Medir los detectores con fallos inyectados
 
 Las anomalías reales no vienen etiquetadas, así que no se puede saber cuántas se escapan. `make evaluate` crea esa
-verdad: toma las series recientes de Open-Meteo (modelo, completas y suaves), les **inyecta fallos conocidos** con
-una semilla fija y puntúa cada serie limpia y corrompida (`core/anomaly/faults.py` y `evaluation.py`):
+verdad: toma las series recientes de tres fuentes, les **inyecta fallos conocidos** con una semilla fija y puntúa cada
+serie limpia y corrompida (`core/anomaly/faults.py` y `evaluation.py`). Cada fuente se mide por separado, porque no
+son igual de fáciles:
 
-| Fallo | Qué simula | Forma |
-|---|---|---|
-| `spike` | lectura errónea, coma decimal | un valor ± 4-8 σ robustas |
-| `frozen` | sensor congelado, payload repetido | 6-24 horas con el último valor bueno |
-| `drift` | sensor que se descalibra | rampa de 2-4 σ durante 48-120 horas |
-| `shift` | reloj o zona horaria mal | 6-24 horas con los valores de 12 horas antes |
+- **Open-Meteo**: un modelo, con series completas y suaves. Es el caso fácil.
+- **SOCIB**: estaciones meteorológicas reales, con el ruido de sus sensores.
+- **EEA**: estaciones de calidad del aire, con contaminantes que suben y bajan con el tráfico.
+
+| Fallo | Qué simula | Forma | Alcance |
+|---|---|---|---|
+| `spike` | lectura errónea, coma decimal | un valor ± 4-8 σ robustas | una serie |
+| `frozen` | payload repetido, registrador colgado | 6-24 horas con el último valor bueno | toda la estación |
+| `drift` | sensor que se descalibra | rampa de 2-4 σ durante 48-120 horas | una serie |
+| `shift` | reloj o zona horaria mal | 6-24 horas con los valores de 12 horas antes | toda la estación |
+
+Un reloj mal o un payload repetido no afectan a un solo sensor: el registrador es el mismo para toda la estación. Por
+eso `frozen` y `shift` caen a la vez, y en las mismas horas, en todas sus métricas (`scope: station` en
+`config/anomaly.yaml`).
 
 Un aviso sobre un valor inyectado es un acierto; uno nuevo sobre un valor limpio, una falsa alarma. Lo que el
 detector ya marcaba en la serie limpia (episodios reales) se cuenta aparte y no penaliza. Los huecos no se inyectan:
 un valor que falta no se puede marcar, y ya los cuenta la regla `gaps`. Resultados en
-`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en los 35 000 valores de Open-Meteo de los
-30 días hasta el 14 de noviembre de 2026:
+`quality.anomaly_evaluations`; fallos detectados (algún valor marcado) en los 30 días hasta el 22 de noviembre de
+2026, con 39.720 valores de Open-Meteo, 13.332 de SOCIB y 21.859 de la EEA:
 
-| Detector | Picos | Derivas | Congelados | Desfase | Precisión |
-|---|---|---|---|---|---|
-| `robust_zscore` | 88 % | 19 % | 2 % | 6 % | 70 % |
-| `seasonal_residual` | 98 % | 81 % | 30 % | 61 % | 81 % |
-| `isolation_forest` | 33 % | 17 % | 31 % | 6 % | 83 % |
-| `vote` (estacional o bosque) | 98 % | 83 % | 50 % | 61 % | 81 % |
+| Fuente | Detector | Picos | Derivas | Congelados | Desfase | Precisión |
+|---|---|---|---|---|---|---|
+| Open-Meteo | `robust_zscore` | 88 % | 11 % | 0 % | 6 % | 87 % |
+| Open-Meteo | `seasonal_residual` | 97 % | 83 % | 24 % | 50 % | 81 % |
+| Open-Meteo | `isolation_forest` | 24 % | 11 % | 24 % | 0 % | 87 % |
+| Open-Meteo | `vote` (estacional o bosque) | 98 % | 83 % | 44 % | 50 % | 83 % |
+| SOCIB | `robust_zscore` | 86 % | 29 % | 0 % | 4 % | 70 % |
+| SOCIB | `seasonal_residual` | 96 % | 75 % | 17 % | 29 % | 65 % |
+| SOCIB | `isolation_forest` | 33 % | 8 % | 33 % | 0 % | 89 % |
+| SOCIB | `vote` | 96 % | 75 % | 42 % | 29 % | 74 % |
+| EEA | `robust_zscore` | 88 % | 44 % | 3 % | 19 % | 76 % |
+| EEA | `seasonal_residual` | 95 % | 69 % | 11 % | 33 % | 62 % |
+| EEA | `isolation_forest` | 49 % | 25 % | 42 % | 11 % | 86 % |
+| EEA | `vote` | 97 % | 72 % | 44 % | 36 % | 69 % |
 
 El z-score ve lo que se aleja de sus vecinos y es ciego a lo que se queda en un nivel normal: un sensor congelado en
 18 °C está cerca de la mediana, y en un modelo suave los valores de 12 horas antes parecen una noche templada. El
 bosque ve que una serie que siempre se mueve se ha parado (con la variable "valores seguidos iguales"; una
 dispersión móvil no basta, porque cerca del máximo o el mínimo diario casi no hay dispersión de todos modos), pero
-con su cupo del 5 % se deja dos tercios de los picos. El residuo estacional ve el desfase porque compara cada hora
+con su cupo del 5 % se deja la mitad o más de los picos. El residuo estacional ve el desfase porque compara cada hora
 con la misma hora de otros días, y sobre todo porque compara el cambio: con el reloj mal, la serie se enfría cuando
-debería calentarse. Puntuando solo el nivel, incluso con el umbral del z-score (3,5), veía un 22 % de desfases.
-Ojo con su 81 % de derivas: casi siempre las ve donde acaban, en el salto de vuelta, no mientras crecen.
+debería calentarse. Ojo con sus derivas: casi siempre las ve donde acaban, en el salto de vuelta, no mientras crecen.
 
-La votación une los dos que fallan en cosas distintas: suma los congelados del bosque a lo que ve el residuo, sin
-perder precisión. Añadir el z-score solo le quita precisión (74 %) sin ganar fallos, y exigir dos votos sube la
-precisión al 86 % a cambio de dejarse la mitad. `contamination` mueve el equilibrio del bosque: con 0,10 llega a
-más picos y congelados con algo menos de precisión.
+**Lo que cambia con estaciones reales.**
+
+- **La precisión baja.** El residuo y la votación pasan del 81-83 % en el modelo al 62-74 % en las estaciones: el
+  ruido real y los episodios cortos, como un pico de NO₂ en hora punta, se parecen más a un fallo. El bosque es el que
+  mejor la conserva (86-89 %), porque solo marca su cupo.
+- **El desfase de reloj es el fallo más difícil fuera del modelo.** El residuo pasa del 50 % al 29-33 %: la curva
+  diaria de una estación es menos regular que la de un modelo, así que doce horas corridas destacan menos.
+- **Los congelados de toda la estación los ve sobre todo el bosque** (24-42 %), que mira todas las métricas juntas.
+  La votación llega al 42-44 % en las tres fuentes.
+- **En calidad del aire, el z-score ve más derivas** (44 %) que en el tiempo: los contaminantes no tienen un ciclo
+  diario tan marcado, así que una rampa se sale antes de lo normal.
+
+La votación une los dos que fallan en cosas distintas: suma los congelados del bosque a lo que ve el residuo y, en las
+estaciones, recupera parte de la precisión que pierde el residuo solo. Con Open-Meteo, antes de medir las estaciones,
+añadir el z-score solo le quitaba precisión (74 %) sin ganar fallos, y exigir dos votos subía la precisión al 86 % a
+cambio de dejarse la mitad. `contamination` mueve el equilibrio del bosque: con 0,10 llega a más picos y congelados
+con algo menos de precisión.
 
 ## Correcciones con fuentes de apoyo
 
@@ -661,6 +691,7 @@ imagen, pequeña: sin Airflow, Spark ni Java. La documentación OpenAPI está en
 | `GET /v1/warnings`, `/v1/warnings/zones` | Avisos de AEMET en vigor o anunciados (por defecto, de ahora a 3 días) y las zonas de aviso con su polígono |
 | `GET /v1/population`, `/v1/municipalities` | Población de cada municipio por año (filtrable con `from` y `to`) y los 53 municipios con su superficie y su límite |
 | `GET /v1/quality/rules`, `/v1/anomalies/daily` | Último chequeo de cada regla de calidad y anomalías por día y detector |
+| `GET /v1/anomalies/benchmark` | El último benchmark de cada fuente: fallos inyectados que detecta cada detector, y su precisión |
 | `GET /v1/series`, `/v1/series/daily` | Las series diarias de una fuente (entidad con su nombre, métrica, unidad y días que cubre) y una serie día a día: mínimo, media, máximo, completitud, sospechosos y anomalías (por defecto, un año) |
 | `GET /v1/observations` | Valores de una fuente filtrados por métrica, entidad y rango de tiempo (por defecto, los últimos 7 días), paginados |
 | `GET /v1/observations/export` | Los mismos valores como fichero, sin paginar: CSV (`format=csv`, en streaming) o Parquet (`format=parquet`, zstd, `ts` en UTC); hasta 366 días y un millón de valores |

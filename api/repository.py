@@ -257,6 +257,14 @@ GROUP BY 1, 2
 ORDER BY 1, 2
 """
 
+_DETECTOR_BENCHMARK = """
+SELECT source, detector, fault, events, events_detected, event_recall, recall, precision, false_alarms,
+       window_start, window_end, evaluated_at
+FROM gold.fct_anomaly_evaluations
+WHERE is_latest
+ORDER BY source, detector, fault
+"""
+
 _OBSERVATIONS = """
 SELECT o.source, o.entity, o.metric, o.ts, o.value, o.unit, o.quality, l.lat, l.lon
 FROM gold.fct_observations AS o
@@ -487,3 +495,7 @@ class Warehouse:
     def anomalies_daily(self, start: datetime, end: datetime) -> list[Row]:
         """Flagged values per local day and detector."""
         return self.db.fetch_all(_ANOMALIES_DAILY, {"start": start, "end": end})
+
+    def detector_benchmark(self) -> list[Row]:
+        """The latest fault-injection benchmark of every source, per detector and fault kind."""
+        return self.db.fetch_all(_DETECTOR_BENCHMARK)

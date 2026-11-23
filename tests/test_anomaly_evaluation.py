@@ -147,8 +147,9 @@ def test_robust_zscore_catches_spikes_but_not_frozen_values():
 def test_project_config_has_a_valid_evaluation_block():
     config = AnomalyConfig.load(PROJECT_ROOT / "config" / "anomaly.yaml")
     evaluation = EvaluationConfig.from_dict(config.evaluation)
-    assert evaluation.source == "open_meteo"
+    assert evaluation.sources == ("open_meteo", "socib", "eea_air_quality")  # a model and real stations
     assert set(evaluation.faults) == set(FaultInjector.KINDS)
+    assert {k for k, s in evaluation.faults.items() if s.scope == "station"} == {"frozen", "shift"}
     assert evaluation.faults["frozen"].length[0] >= 2
     FaultInjector(evaluation.faults)
 
@@ -161,3 +162,80 @@ def test_shift_copies_values_from_lag_steps_earlier():
     assert len(shifted) == 10
     assert shifted[0] >= 12
     np.testing.assert_array_equal(out.loc[shifted, "value"], clean.loc[shifted - 12, "value"])
+
+
+STATION = {
+    "frozen": FaultSpec(count=1, length=(10, 10), scope="station"),
+    "shift": FaultSpec(count=1, length=(8, 8), lag=12, scope="station"),
+    "spike": FaultSpec(count=2, size=(6, 8)),
+}
+
+
+def station(metrics=("t", "rh"), drop=()):
+    """One station with several metrics on the same hours; `drop` removes those hours from the last metric."""
+    frames = []
+    for i, metric in enumerate(metrics):
+        series = hourly(temperature(seed=10 + i)).assign(source="socib", entity="parcbit", metric=metric)
+        frames.append(series.drop(index=list(drop)) if i == len(metrics) - 1 else series)
+    return pd.concat(frames, ignore_index=True)
+
+
+def corrupted_by_metric(injector, data, seed=3):
+    """What `evaluate` injects in each series of a station, keyed by metric."""
+    seen = {}
+
+    class Recording(FlagIndexes):
+        def score_entity(self, observations):
+            seen.update({m: s.reset_index(drop=True) for m, s in observations.groupby("metric")})
+            return super().score_entity(observations)
+
+    evaluate(Recording([]), data, injector, seed=seed)
+    return seen
+
+
+def test_station_wide_faults_hit_every_metric_at_the_same_hours():
+    injector = FaultInjector(STATION)
+    data = station()
+    clean = {m: s.reset_index(drop=True) for m, s in data.groupby("metric")}
+    corrupted = corrupted_by_metric(injector, data)
+
+    changed = {
+        m: set(corrupted[m]["ts"][corrupted[m]["value"].to_numpy() != clean[m]["value"].to_numpy()]) for m in clean
+    }
+    spans = injector.place_station(len(clean["t"]), np.random.default_rng([3, 1, 0]))
+    assert [kind for kind, *_ in spans] == ["frozen", "shift"]
+    for kind, start, stop in spans:
+        hours = set(clean["t"]["ts"][start:stop])
+        if kind == "shift":  # every value of the span comes from 12 hours earlier, in both metrics
+            for m in clean:
+                assert hours <= changed[m]
+        else:  # frozen: all but the first may equal the value before by chance
+            for m in clean:
+                assert len(hours & changed[m]) >= len(hours) - 1
+
+
+def test_a_station_fault_is_placed_where_each_series_has_values():
+    injector = FaultInjector({"frozen": FaultSpec(count=1, length=(10, 10), scope="station")})
+    spans = injector.place_station(720, np.random.default_rng([3, 1, 0]))
+    (_, start, _) = spans[0]
+    missing = range(start + 2, start + 5)  # the humidity sensor lost three of those hours
+    data = station(drop=missing)
+    corrupted = corrupted_by_metric(injector, data)
+
+    rh = corrupted["rh"]
+    lost = set(station()["ts"].iloc[list(missing)])
+    frozen_hours = set(rh["ts"][rh["value"].diff().eq(0)])
+    assert not frozen_hours & lost  # nothing is written where the series has no value
+    assert len(rh) == 720 - 3
+
+
+def test_only_frozen_and_shift_can_be_station_wide():
+    with pytest.raises(ValueError, match="can have scope 'station'"):
+        FaultInjector({"spike": FaultSpec(count=1, size=(4, 8), scope="station")})
+    with pytest.raises(ValueError, match="scope must be"):
+        FaultSpec.from_dict({"count": 1, "scope": "island"})
+
+
+def test_a_benchmark_needs_a_source():
+    with pytest.raises(ValueError, match="at least one source"):
+        EvaluationConfig.from_dict({"sources": [], "days": 30, "seed": 1, "faults": {}})

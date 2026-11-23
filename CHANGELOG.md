@@ -5,6 +5,39 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-23
+
+### Added
+
+- The Operations page shows the detector benchmark: for the latest `make evaluate` of each source, the share of
+  spikes, drifts, frozen sensors and clock shifts each detector caught, its precision and its false alarms, in the
+  three languages. It reads `GET /v1/anomalies/benchmark`, served from the new contracted mart
+  `gold.fct_anomaly_evaluations` (one row per run, source, detector and fault, with `is_latest` per source and a dbt
+  unit test for it).
+- The anomaly benchmark measures real stations too: `evaluation.sources` takes Open-Meteo (a smooth model), SOCIB
+  weather stations and EEA air quality stations, each judged on its own. Frozen payloads and wrong clocks hit every
+  metric of a station at the same hours (`scope: station`), as a shared logger would. On the stations, precision
+  drops from 81-83 % to 62-74 % for the residual and the vote, and the residual catches 29-33 % of clock shifts
+  instead of 50 %. `quality.anomaly_evaluations` is keyed by source too, with a migration for existing warehouses.
+- The data model names its methods: the medallion architecture, a lakehouse beside a relational warehouse, an EAV
+  silver table and Kimball dimensional marts with conformed dimensions, and why Data Vault, One Big Table and
+  accumulating snapshots are not used. It records the choice of natural keys over surrogate keys, the naming
+  convention of models and columns with its documented exceptions, and the dimensions and facts that were missing
+  (waves against the model, AEMET warnings, population, the domain seeds). `tests/test_data_model_docs.py` fails
+  when a model, seed, snapshot, contract or dbt unit test is left out of the docs, or a mart breaks the naming
+  convention without being a documented exception.
+- `make sqlfluff` lints the dbt models locally as CI does, from the dev image, which now carries sqlfluff and its
+  dbt templater with the pins of `requirements/dbt.txt`. `SQL=` checks one model and `make sqlfluff-fix` applies the
+  fixes.
+- The SOCIB history is loaded: the monthly archive goes back to March 2017 for Cala Millor and to 2022 for Platja de
+  Muro, about 712,000 hourly values more. The READMEs say how far back each station goes.
+
+### Changed
+
+- Anomaly detection scores each detector once per entity, in one Spark pass: the vote counts what its members
+  already flagged (`Vote.combine`) instead of scoring the seasonal residual and the Isolation Forest again. Detecting
+  30 days goes from 113 s to 77 s with the same anomalies.
+
 ## [0.18.0] - 2026-11-17
 
 ### Added
@@ -833,7 +866,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0
 [0.16.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.1...v0.16.2
