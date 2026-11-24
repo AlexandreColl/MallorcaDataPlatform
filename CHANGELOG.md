@@ -21,6 +21,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   instead of 279, and PM2.5 208 of 240 instead of none, 8-41 % below the error of a line. The run summary names the
   backtest of each such support, and `make evaluate-corrections` shows the line for the support's hours too.
 
+### Changed
+
+- Dependabot also watches the web (npm, with minors and patches grouped in one monthly PR), the base images of the
+  API and the web, and the AWS provider of `infra/terraform`. Until now it covered only the GitHub Actions, the pip
+  requirements and the Airflow image.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added
