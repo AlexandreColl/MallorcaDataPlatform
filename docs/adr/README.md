@@ -46,6 +46,7 @@ cambio.
 | [0022](0022-fuente-caida-no-es-un-fallo.md) | Una fuente caída no es un fallo de la plataforma | Aceptada | 2026-11-11 |
 | [0023](0023-cache-y-limite-en-el-proceso-de-la-api.md) | Caché y límite de peticiones en la memoria de cada proceso de la API | Aceptada | 2026-11-14 |
 | [0024](0024-la-web-en-tres-idiomas.md) | La web en castellano, catalán e inglés, con el idioma en la URL y sin librería | Aceptada | 2026-11-17 |
+| [0025](0025-variante-en-databricks-free-edition.md) | Una variante en Databricks Free Edition con el mismo código de los conectores | Aceptada | 2026-11-24 |
 
 Las fechas son las del commit que llevó la decisión a `develop`. Las ADR se escribieron a la vez el 3 de
 noviembre de 2026, a partir del historial y de las notas de cada PR.

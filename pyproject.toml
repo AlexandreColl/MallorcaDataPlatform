@@ -47,6 +47,10 @@ ignore = [
 "scripts/**" = [
     "INP001",  # stand-alone scripts, not a package
 ]
+"databricks/tasks/**" = [
+    "INP001",  # the entry point of the Databricks job tasks, run as a file, not a package
+    "E402",    # imports after the sys.path setup that makes core and connectors importable on Databricks
+]
 "api/routes.py" = [
     "PLR0917", # FastAPI endpoints: one keyword query parameter per filter
 ]
@@ -65,15 +69,15 @@ runtime-evaluated-decorators = ["api.routes.router.get"]
 convention = "google"
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "connectors", "api"]
+known-first-party = ["core", "connectors", "api", "mdp_databricks"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "connectors", "api"]
-pythonpath = ["."]
+testpaths = ["tests", "connectors", "api", "databricks"]
+pythonpath = [".", "databricks/src"]
 addopts = "-ra --import-mode=importlib"
 markers = [
     "spark: needs a local SparkSession (Java required)",

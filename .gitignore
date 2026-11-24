@@ -44,3 +44,8 @@ infra/terraform/.terraform/
 # Web front end
 web/node_modules/
 web/dist/
+
+# Databricks: CLI profiles and tokens live in ~/.databrickscfg; bundle state is local
+.databrickscfg
+.databricks/
+databricks/.databricks/

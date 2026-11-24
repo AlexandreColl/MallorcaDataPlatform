@@ -25,6 +25,13 @@ jobs:
       - run: scripts/ci/retry.sh pip install ruff==0.17.4
       - run: ruff check --no-fix --output-format=github .
       - run: ruff format --check .
+      # Databricks serverless runs Python 3.12 (every environment version from 3 to 6): the code the job shares with
+      # the local stack must still compile there (databricks/README.md).
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Shared code compiles on Python 3.12 (Databricks serverless)
+        run: python3.12 -m compileall -q core connectors databricks
 
   web:
     name: Web (types, tests, build)
