@@ -12,6 +12,9 @@ options:
   stride: 120                # one sample in 120 of the 2 Hz series: one a minute, about 60 KB per station and day
   good_qc_flags: [1, 2]      # OceanSITES QC: 1 good, 2 probably good, 3-4 bad, 9 missing
   min_good_share: 0.5        # an hour with fewer good samples is labelled suspect (reason source_qc)
+  # A day the server cannot read (5xx) is skipped: Palma's file of 2012-06-01 always answers 500. More days in a row
+  # are the server down, and the run fails as unavailable.
+  max_unreadable_days: 3
   # The REDMAR gauges of Mallorca, with their THREDDS folder and the station part of their file names. Both have a
   # file per day since 2009.
   stations:
@@ -21,7 +24,8 @@ options:
 datasets:
   sea_level: {}
 
-# Height above the harbour datum, about 4 m at both gauges; the tide adds or takes 10-30 cm and a storm surge a
-# few more. The source's own valid range is -10 to 20 m.
+# Height above the harbour datum, about 4.4 m at both gauges: 3.9-4.9 m in every year since 2009, the tide and the
+# storm surges included. Samples outside 3-6 m are left out of the hourly mean: Alcúdia has a few spikes of 5-9 m
+# flagged as good (2009-09-09, 2010-01-20, 2011-08-25). The source's own valid range is -10 to 20 m.
 metrics:
-  sea_level: {dataset: sea_level, unit: m, min: 0, max: 10}
+  sea_level: {dataset: sea_level, unit: m, min: 3, max: 6}

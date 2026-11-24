@@ -57,24 +57,48 @@ def parse_ascii(text: str) -> dict[str, list[float]]:
     return arrays
 
 
+def _server_error(error: requests.RequestException) -> bool:
+    """Whether the server failed to answer (5xx, or still 5xx after the retries), not the request itself."""
+    if isinstance(error, requests.exceptions.RetryError):
+        return True
+    response = error.response
+    return response is not None and response.status_code >= requests.codes.internal_server_error
+
+
 class RedmarConnector(BaseConnector):
     """Hourly sea level at the tide gauges of Puertos del Estado inside the region."""
 
     def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:
         """One payload per station with the sampled sea level of every day of the window that has a file.
 
+        A day the server cannot read (a 5xx, as for the broken file of Palma on 2012-06-01) is skipped, unless more
+        than ``max_unreadable_days`` follow one another: that is the server down, not a file.
+
         Raises:
             ConnectorError: if no station lies in the region.
+            requests.HTTPError: on a client error, or on server errors for too many days in a row.
+            requests.exceptions.RetryError: likewise, when the retries of the HTTP client ran out.
         """
         payloads = []
         stride = int(self.config.options["stride"])
+        max_unreadable = int(self.config.options["max_unreadable_days"])
         for station in self._stations(region):
             days: dict[str, str] = {}
             urls: dict[str, str] = {}
+            unreadable = 0  # consecutive days the server failed to read: one is a broken file, many an outage
             day = window.start
             while day <= window.end:
                 url = self._file_url(station, day)
-                body = self._sampled_day(url, stride)
+                try:
+                    body = self._sampled_day(url, stride)
+                except (requests.HTTPError, requests.exceptions.RetryError) as error:
+                    if not _server_error(error) or unreadable >= max_unreadable:
+                        raise
+                    unreadable += 1
+                    log.warning("%s: the server cannot read %s, day skipped: %s", self.name, url, error)
+                    body = None
+                else:
+                    unreadable = 0
                 if body is not None:
                     days[day.isoformat()], urls[day.isoformat()] = body, url
                 day += _DAY

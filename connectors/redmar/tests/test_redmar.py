@@ -156,13 +156,50 @@ def test_a_file_of_another_length_is_asked_again_with_its_size():
     assert "%5B0:120:3%5D" in http.calls[2]
 
 
-def test_other_errors_and_arrays_of_different_lengths_fail():
-    class Broken(FakeHttp):
-        def get_text(self, url, params=None, headers=None):
-            raise _http_error(requests.codes.internal_server_error)
+class Unreadable(FakeHttp):
+    """Answers ``error`` for the days in ``broken``, like a file the server cannot read."""
 
+    def __init__(self, days, broken, error):
+        super().__init__(days)
+        self.broken, self.error = set(broken), error
+
+    def get_text(self, url, params=None, headers=None):
+        if any(day in url for day in self.broken):
+            self.calls.append(url)
+            raise self.error
+        return super().get_text(url, params, headers)
+
+
+def test_a_day_the_server_cannot_read_is_skipped():
+    window = TimeWindow(date(2026, 11, 20), date(2026, 11, 22))
+    for error in (_http_error(requests.codes.internal_server_error), requests.exceptions.RetryError()):
+        http = Unreadable({"20261120": ANSWER, "20261122": ANSWER}, broken={"20261121"}, error=error)
+
+        payloads = registry.load("redmar", http=http).extract(window, PALMA_ONLY)
+
+        assert list(payloads[0].body) == ["2026-11-20", "2026-11-22"]
+
+
+def test_the_server_down_for_more_days_in_a_row_fails():
+    days = [f"202611{d:02}" for d in range(18, 23)]
+    error = _http_error(requests.codes.internal_server_error)
+    three = TimeWindow(date(2026, 11, 20), date(2026, 11, 22))
+    assert registry.load("redmar", http=Unreadable({}, days, error)).extract(three, PALMA_ONLY) == []
+
+    four = TimeWindow(date(2026, 11, 19), date(2026, 11, 22))
     with pytest.raises(requests.HTTPError):
-        registry.load("redmar", http=Broken({})).extract(DAY, PALMA_ONLY)
+        registry.load("redmar", http=Unreadable({}, days, error)).extract(four, PALMA_ONLY)
+
+    # a day read between them starts the count again
+    five = TimeWindow(date(2026, 11, 18), date(2026, 11, 22))
+    http = Unreadable({"20261120": ANSWER}, [d for d in days if d != "20261120"], error)
+    assert list(registry.load("redmar", http=http).extract(five, PALMA_ONLY)[0].body) == ["2026-11-20"]
+
+
+def test_other_errors_and_arrays_of_different_lengths_fail():
+    forbidden = Unreadable({}, ["20261122"], _http_error(requests.codes.forbidden))
+    with pytest.raises(requests.HTTPError):
+        registry.load("redmar", http=forbidden).extract(DAY, PALMA_ONLY)
 
     connector = registry.load("redmar", http=FakeHttp({"20261122": ANSWER.replace("[3], 4\n", "")}))
     with pytest.raises(ConnectorError, match="4 times, 4 levels and 3 flags"):
