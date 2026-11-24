@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Changed
+
+- Dependabot also watches the web (npm, with minors and patches grouped in one monthly PR), the base images of the
+  API and the web, and the AWS provider of `infra/terraform`. Until now it covered only the GitHub Actions, the pip
+  requirements and the Airflow image.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added

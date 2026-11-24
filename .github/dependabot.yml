@@ -15,8 +15,26 @@ updates:
       # and Delta 4.4.1 supports pyspark <= 4.2. Patches of the same minor still come.
       - dependency-name: pyspark
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+  # The base images of the pipeline (Airflow), the REST API (Python) and the web (Node to build, nginx to serve).
   - package-ecosystem: docker
-    directory: /docker/airflow
+    directories: [/docker/airflow, /docker/api, /docker/web]
+    target-branch: develop
+    schedule: { interval: monthly }
+    commit-message: { prefix: "⬆️ build", include: scope }
+  # The web (React, Vite, MapLibre, ECharts...). Minors and patches come together in one monthly PR; each major comes
+  # on its own, since it may need code changes.
+  - package-ecosystem: npm
+    directory: /web
+    target-branch: develop
+    schedule: { interval: monthly }
+    commit-message: { prefix: "⬆️ build", include: scope }
+    groups:
+      web:
+        update-types: [minor, patch]
+  # The AWS provider of infra/terraform (its lock file). The root pins patch releases only (~> 6.69.0), so a minor is
+  # proposed as a change of that line, to review with `make tf-check`.
+  - package-ecosystem: terraform
+    directory: /infra/terraform
     target-branch: develop
     schedule: { interval: monthly }
     commit-message: { prefix: "⬆️ build", include: scope }
