@@ -26,6 +26,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   good. It replaces the SOCIB tide gauges, which stopped publishing in Mallorca between 2019 and 2024. In the catalogue in three languages, in dbt
   (`stg_redmar__observations`, freshness at the SLA), in the E2E and in the architecture diagram.
 
+### Changed
+
+- Dependabot also watches the web (npm, with minors and patches grouped in one monthly PR), the base images of the
+  API and the web, and the AWS provider of `infra/terraform`. Until now it covered only the GitHub Actions, the pip
+  requirements and the Airflow image.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added
