@@ -133,7 +133,9 @@ Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de
 La API de previsión solo sirve 92 días, pero `make backfill CONNECTORS=open_meteo` carga los años anteriores: la
 calidad del aire sale del mismo modelo CAMS (desde 2013) y la meteorología del archivo de las mismas previsiones, que
 coincide hora a hora con la serie en vivo desde noviembre de 2022 y es el reanálisis ERA5 antes. Así las estaciones
-de SOCIB y de la EEA se comparan con el modelo desde 2017, como el histórico de SOCIB.
+de SOCIB y de la EEA se comparan con el modelo desde 2017, como el histórico de SOCIB. El sesgo cambia de nivel el
+16-11-2022, el día que el archivo pasa de ERA5 a las previsiones: en Cala Millor, de −0,92 a −1,54 °C en la
+temperatura media diaria.
 
 ### Open-Meteo Marine
 

@@ -27,7 +27,9 @@
   - Desde el 16-11-2022 coincide hora a hora con la serie en vivo: probado del 20 al 23-11-2026 en Palma, 96 de 96
     horas iguales, y las alturas de los 6 puntos son las mismas.
   - Antes de ese día el archivo sirve ERA5, el reanálisis del ECMWF (~25 km): es igual, hora a hora, que
-    `archive-api.open-meteo.com`. El sesgo del modelo frente a una estación puede cambiar de nivel ese día.
+    `archive-api.open-meteo.com`. El sesgo del modelo frente a una estación cambia de nivel ese día: en la
+    temperatura media diaria (`fct_model_bias_daily`, ajustada por altitud), Cala Millor pasa de −0,92 °C con ERA5
+    (1.989 días desde 2017) a −1,54 °C con las previsiones (1.433 días), y Platja de Muro de 0,02 a 0,65 °C.
 - Un año de los 6 puntos son 8.760 horas sin nulos en las dos APIs y tarda menos de un segundo por petición.
 
 **Limitación**: son datos de modelo, no medidas de estación. Sirven como referencia y para inyectar

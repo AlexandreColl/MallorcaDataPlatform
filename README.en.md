@@ -136,7 +136,8 @@ is model data, not station data.
 The forecast API serves 92 days only, but `make backfill CONNECTORS=open_meteo` loads the earlier years: air quality
 comes from the same CAMS model (since 2013) and the weather from the archive of the same forecasts, which matches the
 live series hour by hour since November 2022 and is the ERA5 reanalysis before. So the SOCIB and EEA stations are
-compared with the model since 2017, like the SOCIB history.
+compared with the model since 2017, like the SOCIB history. The bias changes level on 16-11-2022, the day the
+archive switches from ERA5 to the forecasts: at Cala Millor, from −0.92 to −1.54 °C in the daily mean temperature.
 
 ### Open-Meteo Marine
 
