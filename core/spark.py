@@ -1,31 +1,16 @@
-"""SparkSession factory (local mode, with Delta Lake) and the silver DataFrame schema."""
+"""SparkSession factory (local mode, with Delta Lake). The silver schema lives in ``core/silver.py``."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
-from pyspark.sql import types as T
 
 from core.credentials import spark_s3a_config
 from core.lake import DELTA_SPARK_CONFIG
 
 if TYPE_CHECKING:
     from core.config import Settings
-
-SILVER_SCHEMA = T.StructType(
-    [
-        T.StructField("source", T.StringType(), False),
-        T.StructField("entity", T.StringType(), False),
-        T.StructField("metric", T.StringType(), False),
-        T.StructField("ts", T.TimestampType(), False),
-        T.StructField("value", T.DoubleType(), True),
-        T.StructField("unit", T.StringType(), False),
-        T.StructField("quality", T.StringType(), False),
-        T.StructField("lat", T.DoubleType(), True),
-        T.StructField("lon", T.DoubleType(), True),
-    ]
-)
 
 
 def build_spark(settings: Settings, app_name: str = "mallorca-data-platform") -> SparkSession:
