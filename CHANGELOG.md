@@ -7,6 +7,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Open-Meteo loads its history: `make backfill CONNECTORS=open_meteo` asks for a year per run (`max_days` 366, the
+  catch-up stays at 92 days). Air quality comes from the same CAMS API, which serves any window since 2013. Weather
+  windows that start before the 92 days of the forecast API ask the archive of the same forecasts
+  (`history_url`), which matches the live series hour by hour since 2022-11-16 and serves ERA5 before that day.
+  The station against model bias changes level that day (Cala Millor, daily mean temperature: −0.92 °C with ERA5,
+  −1.54 °C with the forecasts). On the stack: 10 yearly runs in 17 minutes, 5.1 million values since 2017, and
+  `fct_model_bias_daily` from 2017 for SOCIB and AEMET.
+- PM10 and PM2.5 gaps of 12 hours or more are corrected with the CAMS model, whose r stays at 0.2-0.6. For the
+  metrics of `support.backtest`, when no support reaches `min_correlation`, 24-hour gaps are cut from the station's
+  history and filled with each support and with a straight line. The support that errs least is used, if it errs
+  less than the line over at least 7 gaps. Over 28 days, PM10 corrects 765 of 960 hidden hours in 24-hour gaps
+  instead of 279, and PM2.5 208 of 240 instead of none, 8-41 % below the error of a line. The run summary names the
+  backtest of each such support, and `make evaluate-corrections` shows the line for the support's hours too.
 - REDMAR connector (`redmar`): hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado, read
   from its THREDDS server without a key, since 2009. Each day is a 2 Hz NetCDF file; the connector asks OPeNDAP
   for one value a minute as text (about 60 KB a day instead of 5.4 MB) and averages the minutes the source flags as

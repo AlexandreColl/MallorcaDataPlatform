@@ -1,16 +1,20 @@
-"""Open-Meteo connector: one request per dataset with every region location at once."""
+"""Open-Meteo connector: one request per dataset with every region location at once.
+
+A dataset may declare a ``history_url`` for the days its live API no longer serves (older than ``past_days``): the
+weather forecast API keeps 92 days, and the archive of the same forecasts goes back decades.
+"""
 
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from datetime import UTC, date, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from core.connectors import BaseConnector, ConnectorError
 from core.models import Entity, Location, Observation, Quality, RawPayload, Region, TimeWindow
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +33,17 @@ class OpenMeteoConnector(BaseConnector):
             raise ConnectorError(msg)
         return region.locations
 
+    @staticmethod
+    def url_for(spec: Mapping[str, Any], window: TimeWindow, today: date | None = None) -> str:
+        """The dataset's live URL, or its ``history_url`` when the window starts before the live API's ``past_days``."""
+        history = spec.get("history_url")
+        today = today or datetime.now(UTC).date()
+        if history and window.start < today - timedelta(days=int(spec["past_days"])):
+            return str(history)
+        return str(spec["url"])
+
     def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:
-        """One request per dataset with all the points at once."""
+        """One request per dataset with all the points at once, to its live or its history URL."""
         locations = self.locations(region)
         payloads = []
         for dataset, spec in self.config.datasets.items():
@@ -43,14 +56,15 @@ class OpenMeteoConnector(BaseConnector):
                 "end_date": window.end.isoformat(),
                 "timezone": "UTC",
             }
-            body = self.http.get_json(spec["url"], params=params)
+            url = self.url_for(spec, window)
+            body = self.http.get_json(url, params=params)
             payloads.append(
                 RawPayload(
                     source=self.name,
                     dataset=dataset,
                     window=window,
                     request={
-                        "url": spec["url"],
+                        "url": url,
                         "params": params,
                         "locations": [loc.name for loc in locations],
                     },

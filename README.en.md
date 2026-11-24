@@ -134,6 +134,12 @@ One request per dataset with every location of the region. 10 hourly metrics (PM
 temperature, humidity, precipitation, wind, pressure). With `DAYS=1` that is 6 × 24 × 10 = 1,440 observations. This
 is model data, not station data.
 
+The forecast API serves 92 days only, but `make backfill CONNECTORS=open_meteo` loads the earlier years: air quality
+comes from the same CAMS model (since 2013) and the weather from the archive of the same forecasts, which matches the
+live series hour by hour since November 2022 and is the ERA5 reanalysis before. So the SOCIB and EEA stations are
+compared with the model since 2017, like the SOCIB history. The bias changes level on 16-11-2022, the day the
+archive switches from ERA5 to the forecasts: at Cala Millor, from −0.92 to −1.54 °C in the daily mean temperature.
+
 ### Open-Meteo Marine
 
 The same API with wave and ocean models at 8 sea points around the island: wave height, period and direction, swell,
@@ -527,6 +533,11 @@ by side, and `value` is the corrected one where there is one and the original el
   r ≥ 0.6. The support value is shifted by its bias, the median of "station minus support", calibrated **per hour of
   the day** with the previous 30 days. That way it captures the sea breeze, the altitude and the model's daily cycle.
   Confidence `r² · exp(−distance / 100 km) · exp(−hours / 7 days)`.
+  - **PM10 and PM2.5 are tested instead of required to reach the r** (`support.backtest`). The CAMS model follows
+    their days of dust, wind or rain but not their hour-by-hour noise, so its r stays between 0.2 and 0.6. When no
+    support reaches 0.6, 24-hour gaps are cut from the station's own history and filled with each support and with a
+    straight line. The support that errs least wins, and only if it errs less than the line over at least 7 gaps.
+  - That support fills only gaps of 12 hours or more: over 6 hours, a straight line errs less than the model.
 - **Method 3, weekly profile**: NO₂ and CO come from each street's traffic and almost never have a support with
   r ≥ 0.6. Their long gaps without a support take the station's own cycle: the median of each local hour on weekdays
   and on weekends over the previous 30 days, moved to the level of the values on each side of the gap (the
@@ -564,8 +575,24 @@ for the support source, the error it would have without its bias:
   | CO (EEA) | 74 µg/m³ | 86 µg/m³ | 77 µg/m³ | 168 µg/m³ |
 
 - **PM10, PM2.5, ozone and the weather variables** do not use the profile: the benchmark gives the same error as a
-  straight line, or more, because the weather moves them, not the clock. Their long gaps without a support stay
-  uncorrected instead of being filled with an unreliable value.
+  straight line, or more, because the weather moves them, not the clock.
+- **For PM10 and PM2.5, the CAMS model does help even when its r is below 0.6**. With the test on each station's
+  history, over 28 days up to 22 November 2026 (6 hidden gaps per series and length):
+  - PM10 corrects 765 of the 960 hidden hours in 24-hour gaps, instead of 279.
+  - PM2.5, which had no support at all, corrects 208 of 240.
+  - The mean absolute error is 8 % to 41 % below that of a straight line:
+
+  | Series | Corrected hours, before | Corrected hours, now | MAE, support | MAE, line |
+  |---|---|---|---|---|
+  | PM10, 12 h gaps | 144 of 504 | 426 of 504 | 4.3 µg/m³ | 4.7 µg/m³ |
+  | PM10, 24 h gaps | 279 of 960 | 765 of 960 | 3.8 µg/m³ | 6.4 µg/m³ |
+  | PM2.5, 12 h gaps | 0 of 144 | 120 of 144 | 2.7 µg/m³ | 3.9 µg/m³ |
+  | PM2.5, 24 h gaps | 0 of 240 | 208 of 240 | 3.9 µg/m³ | 5.6 µg/m³ |
+
+  The confidence keeps the same formula, with `r²` below 0.36, so it is low: the value beats a straight line but
+  does not match the station hour by hour. The hours left uncorrected belong to stations where no support passes
+  the test.
+  `make evaluate-corrections` now also shows the line for the support's hours (column `line`).
 - **Wind gusts** are the one case where the bias does not help: 7.5 against 6.8 km/h in 6-hour gaps. A gust is a
   momentary maximum and keeps no stable difference with another station.
 
