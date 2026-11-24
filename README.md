@@ -130,6 +130,13 @@ Una petición por dataset con todas las localidades de la región. 10 métricas 
 (PM10, PM2.5, NO₂, O₃, EAQI, temperatura, humedad, precipitación, viento, presión).
 Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de estación.
 
+La API de previsión solo sirve 92 días, pero `make backfill CONNECTORS=open_meteo` carga los años anteriores: la
+calidad del aire sale del mismo modelo CAMS (desde 2013) y la meteorología del archivo de las mismas previsiones, que
+coincide hora a hora con la serie en vivo desde noviembre de 2022 y es el reanálisis ERA5 antes. Así las estaciones
+de SOCIB y de la EEA se comparan con el modelo desde 2017, como el histórico de SOCIB. El sesgo cambia de nivel el
+16-11-2022, el día que el archivo pasa de ERA5 a las previsiones: en Cala Millor, de −0,92 a −1,54 °C en la
+temperatura media diaria.
+
 ### Open-Meteo Marine
 
 La misma API con modelos de oleaje y océano en 8 puntos de mar alrededor de la isla: altura, periodo y dirección de
@@ -513,6 +520,11 @@ lado a lado, y `value` es el corregido donde lo hay y el original en el resto.
   de horas en común y una r ≥ 0,6. El valor de apoyo se desplaza con su sesgo, la mediana de "estación menos apoyo",
   calibrado **por hora del día** con los 30 días anteriores. Así recoge la brisa, la altitud y el ciclo diario del
   modelo. Confianza `r² · exp(−distancia / 100 km) · exp(−horas / 7 días)`.
+  - **PM10 y PM2.5 se prueban en lugar de exigir la r** (`support.backtest`). El modelo CAMS sigue sus días de
+    polvo, viento o lluvia, pero no su ruido hora a hora, así que su r se queda entre 0,2 y 0,6. Cuando ningún apoyo
+    llega a 0,6, se cortan huecos de 24 horas en el histórico de la propia estación y se rellenan con cada apoyo y con
+    una recta. Gana el apoyo que menos se equivoca, y solo si se equivoca menos que la recta en al menos 7 huecos.
+  - Ese apoyo solo rellena huecos de 12 horas o más: en los de 6 horas, una recta se equivoca menos que el modelo.
 - **Método 3, perfil semanal**: el NO₂ y el CO vienen del tráfico de cada calle y casi nunca tienen un apoyo con
   r ≥ 0,6. Para sus huecos largos sin apoyo se usa el ciclo de la propia estación: la mediana de cada hora local de
   los días laborables y de los fines de semana en los 30 días anteriores, desplazada al nivel de los valores a cada
@@ -550,8 +562,24 @@ absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
   | CO (EEA) | 74 µg/m³ | 86 µg/m³ | 77 µg/m³ | 168 µg/m³ |
 
 - **PM10, PM2.5, ozono y las variables del tiempo** no usan el perfil: el benchmark da con él el mismo error que con
-  una recta, o más, porque los mueve el tiempo y no el reloj. Sus huecos largos sin apoyo se quedan sin corregir en
-  lugar de rellenarse con un valor poco fiable.
+  una recta, o más, porque los mueve el tiempo y no el reloj.
+- **En PM10 y PM2.5, el modelo CAMS sí sirve aunque su r no llegue a 0,6**. Con la prueba sobre el histórico de cada
+  estación, en 28 días hasta el 22 de noviembre de 2026 (6 huecos escondidos por serie y longitud):
+  - PM10 corrige 765 de las 960 horas escondidas en huecos de 24 horas, en lugar de 279.
+  - PM2.5, que no tenía ningún apoyo, corrige 208 de 240.
+  - El error medio absoluto queda entre un 8 % y un 41 % por debajo del de una recta:
+
+  | Serie | Horas corregidas, antes | Horas corregidas, ahora | MAE, apoyo | MAE, recta |
+  |---|---|---|---|---|
+  | PM10, huecos de 12 h | 144 de 504 | 426 de 504 | 4,3 µg/m³ | 4,7 µg/m³ |
+  | PM10, huecos de 24 h | 279 de 960 | 765 de 960 | 3,8 µg/m³ | 6,4 µg/m³ |
+  | PM2.5, huecos de 12 h | 0 de 144 | 120 de 144 | 2,7 µg/m³ | 3,9 µg/m³ |
+  | PM2.5, huecos de 24 h | 0 de 240 | 208 de 240 | 3,9 µg/m³ | 5,6 µg/m³ |
+
+  La confianza sigue la misma fórmula, con `r²` por debajo de 0,36, así que es baja: el valor es mejor que una
+  recta, pero no se parece a la estación hora a hora. Las horas que no se corrigen son de estaciones donde ningún
+  apoyo pasa la prueba.
+  `make evaluate-corrections` muestra ahora también la recta de las horas del apoyo (columna `line`).
 - **Las rachas de viento** son el único caso en el que el sesgo no ayuda: 7,5 frente a 6,8 km/h en huecos de 6
   horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
 

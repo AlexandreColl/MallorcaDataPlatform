@@ -5,7 +5,8 @@ A series is corrected on its hourly grid between its first and last valid value.
 
 * up to ``max_gap_hours``: time interpolation between the station's own values around the gap;
 * longer: the best correlated nearby series of the same metric (another station or a model point), shifted by its
-  bias calibrated per hour of the day on the hours both series share;
+  bias calibrated per hour of the day on the hours both series share. For the metrics with a backtest (PM and the
+  CAMS model) it is the nearby series that best fills gaps cut from the station's history, if it beats a line;
 * longer and without such a support: the station's own weekly profile (the median of each local hour on weekdays
   and on weekends), moved to the level of the values around the gap.
 
@@ -16,7 +17,7 @@ correction carries a confidence between 0 and 1.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -84,6 +85,23 @@ class SupportParams:
 
 
 @dataclass(frozen=True)
+class BacktestParams:
+    """``support.backtest`` block of ``config/corrections.yaml``."""
+
+    metrics: frozenset[str]  # where the support is chosen by its backtest instead of its correlation
+    gap_hours: int
+    min_gaps: int
+    min_gap_hours: int  # shorter gaps are not filled by such a support: a straight line errs less there
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BacktestParams:
+        """Build from the parsed YAML block."""
+        return cls(
+            frozenset(data["metrics"]), int(data["gap_hours"]), int(data["min_gaps"]), int(data["min_gap_hours"])
+        )
+
+
+@dataclass(frozen=True)
 class ProfileParams:
     """``profile`` block of ``config/corrections.yaml``."""
 
@@ -148,6 +166,15 @@ class Candidate:
 
 
 @dataclass(frozen=True)
+class Backtest:
+    """How a support would have filled gaps cut from the station's own history, and how a straight line would."""
+
+    gaps: int
+    mae: float
+    line_mae: float
+
+
+@dataclass(frozen=True)
 class Calibration:
     """How a candidate relates to the station over the hours both have a valid value."""
 
@@ -155,6 +182,7 @@ class Calibration:
     pairs: int
     correlation: float
     bias_by_hour: pd.Series  # station minus candidate, indexed by the UTC hour 0-23
+    backtest: Backtest | None = None  # only for the metrics whose support is chosen by its backtest
 
     def corrected(self, ts: pd.DatetimeIndex) -> pd.Series:
         """The candidate's values at ``ts`` shifted by the bias of their hour (NaN where it has none)."""
@@ -186,14 +214,49 @@ def calibrate(station: pd.Series, candidate: Candidate, params: SupportParams) -
     return Calibration(candidate, len(pairs), float(pairs["station"].corr(pairs["support"])), bias)
 
 
-def best_support(station: pd.Series, candidates: Sequence[Candidate], params: SupportParams) -> Calibration | None:
-    """The calibrated candidate with the highest correlation, if it reaches ``min_correlation``."""
-    calibrations = [
-        c
-        for c in (calibrate(station, candidate, params) for candidate in candidates)
-        if c is not None and c.correlation >= params.min_correlation
-    ]
-    return max(calibrations, key=lambda c: c.correlation, default=None)
+def backtest_support(station: pd.Series, calibration: Calibration, params: BacktestParams) -> Backtest | None:
+    """Fill runs of ``gap_hours`` valid hours of the station with the support and with a straight line, and compare.
+
+    The runs follow one another without overlapping, each between two valid hours, and the support fills them with
+    its bias calibrated on the same history. None with fewer than ``min_gaps`` runs that both can fill.
+    """
+    grid = pd.date_range(station.index.min(), station.index.max(), freq=_HOUR)
+    values = station.reindex(grid).to_numpy()
+    support = calibration.corrected(grid).to_numpy()
+    n = params.gap_hours
+    steps = np.arange(1, n + 1) / (n + 1)
+    support_errors, line_errors = [], []
+    for first in range(1, len(grid) - n, n + 1):  # the hour after a run is the hour before the next one
+        truth, filled = values[first : first + n], support[first : first + n]
+        before, after = values[first - 1], values[first + n]
+        if np.isnan(before) or np.isnan(after) or np.isnan(truth).any() or np.isnan(filled).any():
+            continue
+        support_errors.append(np.abs(filled - truth).mean())
+        line_errors.append(np.abs(before + (after - before) * steps - truth).mean())
+    if len(support_errors) < params.min_gaps:
+        return None
+    return Backtest(len(support_errors), float(np.mean(support_errors)), float(np.mean(line_errors)))
+
+
+def best_support(
+    station: pd.Series,
+    candidates: Sequence[Candidate],
+    params: SupportParams,
+    backtest: BacktestParams | None = None,
+) -> Calibration | None:
+    """The calibrated candidate with the highest correlation, if it reaches ``min_correlation``.
+
+    Without such a candidate and with ``backtest``, the candidate whose backtest errs least, if it errs less than a
+    straight line. That is a support that follows the days of the station but not its hourly noise, as the CAMS model
+    follows the PM of a station.
+    """
+    calibrations = [c for c in (calibrate(station, candidate, params) for candidate in candidates) if c is not None]
+    correlated = [c for c in calibrations if c.correlation >= params.min_correlation]
+    if correlated or backtest is None:
+        return max(correlated, key=lambda c: c.correlation, default=None)
+    tested = [replace(c, backtest=backtest_support(station, c, backtest)) for c in calibrations]
+    better = [c for c in tested if c.backtest is not None and c.backtest.mae < c.backtest.line_mae]
+    return min(better, key=lambda c: c.backtest.mae if c.backtest else math.inf, default=None)
 
 
 def correct_series(  # noqa: PLR0913 - keyword-only: the window and the parameters of each method
@@ -205,6 +268,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
     interpolation: InterpolationParams,
     support: SupportParams,
     profile: ProfileParams | None = None,
+    backtest: BacktestParams | None = None,
 ) -> tuple[pd.DataFrame, Calibration | None]:
     """Correct the hours of one series in ``[start, end)``.
 
@@ -216,6 +280,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
         interpolation: parameters of method 1.
         support: parameters of method 2.
         profile: parameters of method 3 (None: long gaps without a support stay uncorrected).
+        backtest: choose the support of method 2 by its backtest instead of its correlation (None: by correlation).
 
     Returns:
         ``CORRECTION_COLUMNS``, one row per corrected hour, and the support used (None when there was none).
@@ -231,7 +296,7 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
     run = gap.ne(gap.shift()).cumsum()
     gap_hours = run.map(run[gap].value_counts()).where(gap)
 
-    calibration = best_support(valid, candidates, support)
+    calibration = best_support(valid, candidates, support, backtest)
     interpolated = values.interpolate(method="time", limit_area="inside")
     short = gap & gap_hours.le(interpolation.max_gap_hours)
     corrected = interpolated.where(short)
@@ -240,6 +305,8 @@ def correct_series(  # noqa: PLR0913 - keyword-only: the window and the paramete
     if calibration is not None:
         substituted = calibration.corrected(grid)
         long = gap & ~short & substituted.notna()
+        if backtest is not None and calibration.backtest is not None:
+            long &= gap_hours.ge(backtest.min_gap_hours)
         corrected = corrected.mask(long, substituted)
         method = method.mask(long, SUPPORT)
         confidence = confidence.mask(long, calibration.confidence(gap_hours, support))

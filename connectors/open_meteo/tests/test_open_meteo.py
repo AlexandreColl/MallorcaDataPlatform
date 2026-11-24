@@ -1,9 +1,10 @@
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
+from connectors.open_meteo.extractor import OpenMeteoConnector
 from core.connectors import registry
 from core.models import Location, Quality, Region, TimeWindow
 
@@ -55,6 +56,33 @@ def test_extract_builds_one_request_per_dataset(connector):
         "european_aqi",
     ]
     assert payloads[0].key == "open_meteo/air_quality/window=20261023_20261023/payload.json"
+
+
+def test_old_windows_ask_the_archive_of_the_weather_forecasts(connector):
+    payloads = connector.extract(TimeWindow(date(2017, 3, 22), date(2017, 12, 31)), REGION)
+
+    urls = {p.dataset: p.request["url"] for p in payloads}
+    assert urls == {
+        "air_quality": "https://air-quality-api.open-meteo.com/v1/air-quality",  # CAMS serves any window
+        "weather": "https://historical-forecast-api.open-meteo.com/v1/forecast",
+    }
+    assert [url for url, _ in connector.http.calls] == list(urls.values())
+
+
+def test_recent_windows_ask_the_live_forecast(connector):
+    today = datetime.now(UTC).date()
+    payloads = connector.extract(TimeWindow(today - timedelta(days=92), today - timedelta(days=1)), REGION)
+
+    assert payloads[1].request["url"] == "https://api.open-meteo.com/v1/forecast"
+
+
+def test_the_history_starts_the_day_the_live_api_stops_serving():
+    spec = {"url": "live", "history_url": "history", "past_days": 92}
+    today = date(2026, 11, 23)
+
+    assert OpenMeteoConnector.url_for(spec, TimeWindow(date(2026, 8, 23), date(2026, 8, 23)), today) == "live"
+    assert OpenMeteoConnector.url_for(spec, TimeWindow(date(2026, 8, 22), date(2026, 11, 22)), today) == "history"
+    assert OpenMeteoConnector.url_for({"url": "live"}, TimeWindow(date(2017, 1, 1), date(2017, 1, 1)), today) == "live"
 
 
 def test_normalize_emits_common_schema(connector):
