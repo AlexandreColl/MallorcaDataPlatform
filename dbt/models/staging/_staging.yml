@@ -34,6 +34,8 @@ models:
     description: Open-Meteo Marine sea state (model), hourly.
   - name: stg_socib__observations
     description: SOCIB weather stations and buoy (observation), hourly.
+  - name: stg_redmar__observations
+    description: Puertos del Estado tide gauges of Palma and Alcúdia (observation), hourly sea level.
   - name: stg_aemet__observations
     description: AEMET official stations (observation), daily.
   - name: stg_redata__observations

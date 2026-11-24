@@ -31,7 +31,7 @@ written in Spanish; this page is the English overview.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Architecture: 15 open sources enter through Python connectors into bronze (MinIO); PySpark normalises them into silver (Delta Lake and Postgres); Python flags anomalies and proposes corrections; dbt builds gold in Postgres; the API, the web front end and Grafana serve it. Airflow orchestrates every step." src="docs/img/architecture.svg">
+  <img alt="Architecture: 16 open sources enter through Python connectors into bronze (MinIO); PySpark normalises them into silver (Delta Lake and Postgres); Python flags anomalies and proposes corrections; dbt builds gold in Postgres; the API, the web front end and Grafana serve it. Airflow orchestrates every step." src="docs/img/architecture.svg">
 </picture>
 
 The diagram is generated with `node scripts/architecture/diagram.mjs` (light and dark versions, Simple Icons logos).
@@ -114,6 +114,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [open_meteo](connectors/open_meteo/README.md) | ✅ | Air quality (CAMS) and weather, hourly, 6 towns | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Hourly electricity demand, daily generation mix and CO₂ of the Balearic system | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Real observations from 3 stations and 1 buoy (temperature, humidity, pressure, wind), hourly with the source's QC | No |
+| [redmar](connectors/redmar/README.md) | ✅ | Hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado (REDMAR network, since 2009) | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Earthquakes located by the IGN in Mallorca and the surrounding sea (magnitude, depth, epicentre) | No |
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Scheduled buses and lines per stop and day (875 stops, static GTFS) | No |
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Waves, sea temperature, currents and sea level (model) at 8 points along the coast | No |
@@ -227,6 +228,18 @@ in `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` and the web). From Au
 In the bay, with a calm sea (under 0.5 m), the model gives 40 % more sea than the buoy measures: its ~5 km cell looks
 out to open water and the buoy sits in a sheltered bay. Off Portocolom it is the other way round with a small sea,
 and the RMSE (0.45 m), well above the mean error, gives away a few hours with large misses.
+
+### Tide gauges (Puertos del Estado)
+
+The Palma and Alcúdia tide gauges of the REDMAR network, read from the THREDDS server of Puertos del Estado without
+a key. Each day is a NetCDF file with the sea level every half second; the connector asks OPeNDAP, as text, for one
+value a minute (about 60 KB a day instead of 5.4 MB) and averages per hour the ones the source marks as good.
+
+- **The level is the height above each harbour's datum**, about 4.2 m. It follows the tide and the storms at each
+  gauge, but cannot be compared with the Open-Meteo Marine model, which measures above the mean sea level.
+- **In 2026 whole hours are missing**, about 6 in 24 and the same at both gauges; in 2024 and before the files are
+  almost complete. An hour without a single good minute is stored as `missing`.
+- It replaces the SOCIB tide gauges, which stopped publishing in Mallorca between 2019 and 2024.
 
 ### IGN (earthquakes)
 

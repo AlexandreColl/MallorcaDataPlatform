@@ -20,6 +20,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   less than the line over at least 7 gaps. Over 28 days, PM10 corrects 765 of 960 hidden hours in 24-hour gaps
   instead of 279, and PM2.5 208 of 240 instead of none, 8-41 % below the error of a line. The run summary names the
   backtest of each such support, and `make evaluate-corrections` shows the line for the support's hours too.
+- REDMAR connector (`redmar`): hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado, read
+  from its THREDDS server without a key, since 2009. Each day is a 2 Hz NetCDF file; the connector asks OPeNDAP
+  for one value a minute as text (about 60 KB a day instead of 5.4 MB) and averages the minutes the source flags as
+  good. It replaces the SOCIB tide gauges, which stopped publishing in Mallorca between 2019 and 2024. In the catalogue in three languages, in dbt
+  (`stg_redmar__observations`, freshness at the SLA), in the E2E and in the architecture diagram.
 
 ### Changed
 

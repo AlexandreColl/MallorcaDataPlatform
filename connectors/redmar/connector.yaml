@@ -1,0 +1,31 @@
+name: redmar
+description: Puertos del Estado tide gauges (REDMAR) in Mallorca, hourly sea level from 2 Hz samples, no API key
+entrypoint: connectors.redmar.extractor:RedmarConnector
+enabled: true
+frequency: 1h          # the files have a sample every half second; normalize() averages them per hour
+max_days: 366          # one small request per station and day: a year of both gauges is 732 requests
+catch_up_days: 31
+secrets: []
+
+options:
+  thredds_url: https://opendap.puertos.es/thredds
+  stride: 120                # one sample in 120 of the 2 Hz series: one a minute, about 60 KB per station and day
+  good_qc_flags: [1, 2]      # OceanSITES QC: 1 good, 2 probably good, 3-4 bad, 9 missing
+  min_good_share: 0.5        # an hour with fewer good samples is labelled suspect (reason source_qc)
+  # A day the server cannot read (5xx) is skipped: Palma's file of 2012-06-01 always answers 500. More days in a row
+  # are the server down, and the run fails as unavailable.
+  max_unreadable_days: 3
+  # The REDMAR gauges of Mallorca, with their THREDDS folder and the station part of their file names. Both have a
+  # file per day since 2009.
+  stations:
+    - {entity: palma, name: Mareógrafo de Palma, folder: tidegauge_mall, code: Mallorca_Mall_3851, lat: 39.56015, lon: 2.63748}
+    - {entity: alcudia, name: Mareógrafo de Alcúdia, folder: tidegauge_alcu, code: Alcudia_Alcu_3853, lat: 39.83456, lon: 3.13898}
+
+datasets:
+  sea_level: {}
+
+# Height above the harbour datum, about 4.4 m at both gauges: 3.9-4.9 m in every year since 2009, the tide and the
+# storm surges included. Samples outside 3-6 m are left out of the hourly mean: Alcúdia has a few spikes of 5-9 m
+# flagged as good (2009-09-09, 2010-01-20, 2011-08-25). The source's own valid range is -10 to 20 m.
+metrics:
+  sea_level: {dataset: sea_level, unit: m, min: 3, max: 6}
