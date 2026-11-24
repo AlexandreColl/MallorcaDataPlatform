@@ -11,7 +11,7 @@
 
 | Métrica | Unidad | Rango válido |
 |---|---|---|
-| sea_level | m | 0-10 |
+| sea_level | m | 3-6 |
 
 ## Cómo lee los datos
 
@@ -20,8 +20,11 @@
   valores (`stride`), uno por minuto. Son unos 60 KB por día en 0,15 s, en lugar de los 5,4 MB del fichero.
   - Un fichero de otra longitud responde 400 a esa petición: el conector lee su tamaño (`.dds`) y la repite.
   - Un día sin fichero (404) se salta.
-- **Media horaria de los minutos buenos**: banderas OceanSITES 1 y 2. Con menos de la mitad buenos, la hora es
-  `suspect`; sin ninguno, `missing`.
+  - Un día que el servidor no puede leer (5xx) también se salta: el fichero de Palma del 1-6-2012 responde siempre
+    500. Más de 3 días seguidos (`max_unreadable_days`) son el servidor caído, y la ejecución falla.
+- **Media horaria de los minutos buenos**: banderas OceanSITES 1 y 2, entre 3 y 6 m. Con menos de la mitad buenos,
+  la hora es `suspect`; sin ninguno, `missing`. El rango deja fuera unos picos de 5 a 9 m de Alcúdia con bandera
+  buena (9-9-2009, 20-1-2010 y 25-8-2011); en todos los años desde 2009 el nivel está entre 3,9 y 4,9 m.
 - **Un payload por mareógrafo y ventana** en bronze, con el texto de cada día.
 
 ## Qué hay que saber del dato
@@ -40,3 +43,10 @@ Prueba real (22-11-2026): 2 mareógrafos × 24 horas, 36 horas con valor (entre 
 Fixtures en `tests/fixtures/` (`make record-fixtures CONNECTOR=redmar`).
 
 **Histórico**: `make backfill CONNECTORS=redmar START=2009-01-01 END=...`, un año por ejecución (732 peticiones).
+Cargado hasta el 23-11-2026 en 18 ejecuciones (unos 30 min): 273.000 horas, el 97,9 % con valor bueno. Los dos
+empiezan en septiembre de 2009; Palma no tiene ficheros de 2016 (la carpeta no existe en el servidor) y a Alcúdia
+le faltan unos meses de 2010. Desde 2023 faltan más horas cada año (en Palma, de 272 en 2023 a 888 en 2026).
+
+**Anomalías**: los detectores no confunden la marea con un fallo. En los 30 días hasta el 23-11-2026 el z-score
+marca 2 horas y el residuo estacional ninguna; el isolation forest marca el 7,7 %, casi todo el 12 y el 13-11-2026,
+un nivel bajo real (3,89 m en Palma) en los dos mareógrafos a la vez.
