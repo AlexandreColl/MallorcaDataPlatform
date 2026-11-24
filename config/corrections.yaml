@@ -30,6 +30,15 @@ support:
                                 # that hour has this many pairs; otherwise the median of all pairs
   distance_scale_km: 100        # confidence r^2 * exp(-distance / 100 km) * exp(-gap / 7 days)
   gap_scale_hours: 168
+  # PM10 and PM2.5 follow the weather: the CAMS model sees their days of dust, wind or rain but not their hourly noise,
+  # so its r stays at 0.2-0.6 and min_correlation rejects it. For these metrics, when no series reaches min_correlation,
+  # the support is the one that errs least when it fills gaps of gap_hours cut from the station's own history, and
+  # only if it errs less there than a straight line across the same gaps.
+  backtest:
+    metrics: [pm10, pm2_5]
+    gap_hours: 24
+    min_gaps: 7                 # a week of such gaps in the calibration history
+    min_gap_hours: 12           # shorter gaps stay as they are: over 6 hours a straight line errs less than the model
 
 # Method 3: for long gaps without such a support (NO2 and CO are very local), the station's own weekly profile: the
 # median of each local hour on weekdays and on weekends over the calibration history, moved to the level of the

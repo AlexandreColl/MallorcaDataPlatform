@@ -14,6 +14,8 @@ import yaml
 from core.config import Settings
 from core.corrections.methods import (
     CORRECTION_COLUMNS,
+    BacktestParams,
+    Calibration,
     Candidate,
     InterpolationParams,
     ProfileParams,
@@ -44,6 +46,7 @@ class CorrectionConfig:
     interpolation: InterpolationParams
     support: SupportParams
     profile: ProfileParams | None = None  # method 3; without the block, long gaps without a support stay as they are
+    backtest: BacktestParams | None = None  # metrics whose support is chosen by its backtest (``support.backtest``)
     evaluation: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -57,12 +60,17 @@ class CorrectionConfig:
             interpolation=InterpolationParams.from_dict(data["interpolation"]),
             support=SupportParams.from_dict(data["support"]),
             profile=ProfileParams.from_dict(data["profile"]) if data.get("profile") else None,
+            backtest=BacktestParams.from_dict(data["support"]["backtest"]) if data["support"].get("backtest") else None,
             evaluation=data.get("evaluation") or {},
         )
 
     def profile_for(self, metric: str) -> ProfileParams | None:
         """The profile parameters if ``metric`` is corrected with its weekly profile, else None."""
         return self.profile if self.profile is not None and metric in self.profile.metrics else None
+
+    def backtest_for(self, metric: str) -> BacktestParams | None:
+        """The backtest parameters if the support of ``metric`` is chosen by its backtest, else None."""
+        return self.backtest if self.backtest is not None and metric in self.backtest.metrics else None
 
     def only(self, sources: list[str]) -> CorrectionConfig:
         """The same configuration correcting only these targets (their supports are still read)."""
@@ -83,7 +91,8 @@ class CorrectionSummary:
     sources: list[str]
     series: int = 0
     corrections: dict[str, int] = field(default_factory=dict)  # per method
-    supports: dict[str, str] = field(default_factory=dict)  # "source/entity/metric" -> "source/entity r=0.93"
+    # "source/entity/metric" -> "source/entity r=0.93", and "backtest 4.10 < line 5.30 (21 gaps)" if chosen by it
+    supports: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         """Plain dict (JSON-serialisable)."""
@@ -127,6 +136,13 @@ class Neighbours:
         return candidates
 
 
+def describe_support(calibration: Calibration) -> str:
+    """The support of a series in words, for the run summary."""
+    c, test = calibration.candidate, calibration.backtest
+    text = f"{c.source}/{c.entity} r={calibration.correlation:.2f}"
+    return text if test is None else f"{text} backtest {test.mae:.2f} < line {test.line_mae:.2f} ({test.gaps} gaps)"
+
+
 def with_utc(observations: pd.DataFrame) -> pd.DataFrame:
     """Timestamps as UTC pandas datetimes."""
     return observations.assign(ts=pd.to_datetime(observations["ts"], utc=True))
@@ -161,10 +177,10 @@ def correct_all(
             interpolation=config.interpolation,
             support=config.support,
             profile=config.profile_for(metric),
+            backtest=config.backtest_for(metric),
         )
         if calibration is not None:
-            c = calibration.candidate
-            supports[f"{source}/{entity}/{metric}"] = f"{c.source}/{c.entity} r={calibration.correlation:.2f}"
+            supports[f"{source}/{entity}/{metric}"] = describe_support(calibration)
         if not corrected.empty:
             unit = series["unit"].iloc[-1]
             parts.append(corrected.assign(source=source, entity=entity, metric=metric, unit=unit))

@@ -14,6 +14,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   The station against model bias changes level that day (Cala Millor, daily mean temperature: −0.92 °C with ERA5,
   −1.54 °C with the forecasts). On the stack: 10 yearly runs in 17 minutes, 5.1 million values since 2017, and
   `fct_model_bias_daily` from 2017 for SOCIB and AEMET.
+- PM10 and PM2.5 gaps of 12 hours or more are corrected with the CAMS model, whose r stays at 0.2-0.6. For the
+  metrics of `support.backtest`, when no support reaches `min_correlation`, 24-hour gaps are cut from the station's
+  history and filled with each support and with a straight line. The support that errs least is used, if it errs
+  less than the line over at least 7 gaps. Over 28 days, PM10 corrects 765 of 960 hidden hours in 24-hour gaps
+  instead of 279, and PM2.5 208 of 240 instead of none, 8-41 % below the error of a line. The run summary names the
+  backtest of each such support, and `make evaluate-corrections` shows the line for the support's hours too.
 
 ## [0.19.0] - 2026-11-23
 

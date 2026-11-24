@@ -4,7 +4,8 @@ Each target series gets ``gaps_per_series`` artificial gaps of every length in `
 clean hours of the window and surrounded by clean hours, so each is a gap of exactly that length. The hidden values
 are the truth. Per source, metric and gap length the benchmark reports how many hidden hours were corrected, the
 mean absolute error and, for the support method, the error the support would have without its calibrated bias. For
-the profile method it also reports the error of a straight line between the values around the gap, its baseline.
+the support and the profile methods it also reports the error of a straight line between the values around the gap,
+their baseline.
 """
 
 from __future__ import annotations
@@ -94,6 +95,7 @@ def evaluate(
             interpolation=config.interpolation,
             support=config.support,
             profile=config.profile_for(metric),
+            backtest=config.backtest_for(metric),
         )
         compared = truth.merge(corrected[["ts", "corrected_value", "method", "bias"]], on="ts", how="left")
         # What a straight line between the values around each gap would give: the baseline of the long gaps.
@@ -111,7 +113,7 @@ def evaluate(
     )
     by_profile = compared["method"].eq(PROFILE)
     compared["profile_error"] = compared["error"].where(by_profile)
-    compared["line_error"] = (compared["interpolated"] - compared["truth"]).abs().where(by_profile)
+    compared["line_error"] = (compared["interpolated"] - compared["truth"]).abs().where(by_profile | by_support)
     return (
         compared.groupby(["source", "metric", "gap_hours"])
         .agg(
