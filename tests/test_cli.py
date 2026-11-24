@@ -157,7 +157,7 @@ def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):
         [
             "backfill",
             "--connectors",
-            "open_meteo",
+            "open_meteo_marine",
             "--start",
             "2026-01-01",
             "--end",
@@ -167,7 +167,7 @@ def test_backfill_chunks_never_exceed_the_connector_max_days(monkeypatch):
         ]
     )
 
-    assert max(w.n_days for w in windows) == 92  # Open-Meteo serves 92 days per request
+    assert max(w.n_days for w in windows) == 92  # Open-Meteo Marine serves 92 days per request
 
 
 def test_correct_and_evaluate_corrections_print_their_results(monkeypatch, capsys):
