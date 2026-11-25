@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-25
+
 ### Added
 
 - Databricks Free Edition variant (`databricks/`, ADR 0025): a Lakeflow Job defined as a bundle, on serverless
@@ -905,7 +907,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0
