@@ -782,6 +782,28 @@ No se despliega. El CI lo valida y lo prueba con `terraform test` contra un prov
 ni coste (`make tf-check` en local). El diagrama local frente a AWS, los costes y lo que faltaría para correr en
 AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/README.md).
 
+## Databricks
+
+`databricks/` es la misma plataforma en un espacio de trabajo de Databricks Free Edition: un Lakeflow Job,
+descrito como bundle, que corre en cómputo serverless y guarda cada capa en Unity Catalog. La pila local no cambia.
+
+- **Extracción:** Open-Meteo y la EEA, con los mismos conectores que Airflow, a un Volume con las claves de MinIO.
+- **Bronze:** Auto Loader.
+- **Silver:** el `normalize()` y las reglas de calidad del núcleo, y un `MERGE` en la clave.
+- **Gold:** cuatro tablas diarias en Databricks SQL, entre ellas el sesgo del modelo CAMS frente a las estaciones.
+- **Permisos:** un esquema por capa, y lectura solo sobre gold para `account users`.
+
+```bash
+cd databricks
+databricks bundle deploy -p mallorca
+databricks bundle run mallorca_pipeline -p mallorca
+```
+
+Una ejecución tarda unos 2 minutos. Con la ventana de 3 días carga 6.912 filas en silver, y al relanzarla no
+inserta ni actualiza ninguna. Cómo se instala la CLI, la comparación con la pila local y los resultados están en
+[databricks/README.md](databricks/README.md). La decisión está en la
+[ADR 0025](docs/adr/0025-variante-en-databricks-free-edition.md).
+
 ## Estructura
 
 ```
@@ -796,6 +818,7 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 ├── web/                  # frontal web (React + Vite) que lee la API
 ├── docker/               # Dockerfiles de Airflow+Spark+dbt, de la API y de la web, init de Postgres
 ├── infra/terraform/      # AWS: S3, IAM, Glue Catalog, Athena y presupuesto, con tests sobre un AWS simulado
+├── databricks/           # Databricks Free Edition: bundle del Lakeflow Job, tareas y paquete mdp_databricks
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/
 ```
@@ -804,7 +827,7 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG. Las descargas van con caché y reintentos, así que una caída de GitHub de unos minutos no tumba la ejecución |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · el código compartido con Databricks compila con Python 3.12 · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG. Las descargas van con caché y reintentos, así que una caída de GitHub de unos minutos no tumba la ejecución |
 | `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/), el [informe de cobertura](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/) del CI de ese commit con el badge del README, y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |

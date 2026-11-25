@@ -7,6 +7,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Databricks Free Edition variant (`databricks/`, ADR 0025): a Lakeflow Job defined as a bundle, on serverless
+  environment 6 (Python 3.12). It extracts Open-Meteo and the EEA with the same connectors into a Unity Catalog
+  Volume, keeping the MinIO keys. Auto Loader loads them into `mallorca.bronze.payloads`. Silver reuses the
+  connectors' `normalize()` and the quality engine, then `MERGE`s on the key into `mallorca.silver.observations`.
+  Gold is four daily tables in Databricks SQL, including the CAMS model bias against the stations. The catalog has
+  one schema per layer, and `account users` can only read gold. A run of the 3-day window takes about
+  2 minutes, with 38 payloads and 6,912 silver rows. Running it again inserted and updated nothing. CI now compiles
+  the shared code with Python 3.12.
+
 - Open-Meteo loads its history: `make backfill CONNECTORS=open_meteo` asks for a year per run (`max_days` 366, the
   catch-up stays at 92 days). Air quality comes from the same CAMS API, which serves any window since 2013. Weather
   windows that start before the 92 days of the forecast API ask the archive of the same forecasts
@@ -31,6 +40,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Dependabot also watches the web (npm, with minors and patches grouped in one monthly PR), the base images of the
   API and the web, and the AWS provider of `infra/terraform`. Until now it covered only the GitHub Actions, the pip
   requirements and the Airflow image.
+- The silver schema, `to_dataframe`, `deduplicate` and `apply_quality` moved from `core/pipeline.py` and
+  `core/spark.py` to `core/silver.py`, which imports only PySpark and the quality engine, so the Databricks job can
+  import them without boto3 or psycopg. The local pipeline behaves the same.
 
 ## [0.19.0] - 2026-11-23
 
