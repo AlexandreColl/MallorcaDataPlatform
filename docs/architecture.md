@@ -17,7 +17,7 @@ agua?
 
 | Restricción | Consecuencia |
 |---|---|
-| Coste cero y 100 % local | Todo corre en un `docker compose up` en un portátil; la nube se describe con Terraform, pero no se despliega |
+| Coste cero y 100 % local | Todo corre en un `docker compose up` en un portátil; la nube se describe con Terraform, pero no se despliega. La variante en Databricks usa la Free Edition, también sin coste |
 | ~8 GB de RAM para toda la pila | Spark en modo local, como mucho dos conectores a la vez y servicios opcionales tras perfiles de Compose |
 | Fuentes poco fiables | Ninguna fuente puede tumbar a las demás; los días perdidos se recuperan solos |
 | Datos que se revisan y llegan tarde | Toda escritura es idempotente: relanzar una ventana nunca duplica |
@@ -38,6 +38,7 @@ flowchart LR
     PG --> API["API REST<br/>solo lectura"] --> WEB["Web<br/>la isla en cifras"]
     AF -.->|OpenLineage| MQ["Marquez<br/>opcional"]
     MINIO -.->|"Terraform, sin desplegar"| AWS["S3 · Glue · Athena"]
+    SRC -.->|"Open-Meteo y EEA,<br/>los mismos conectores"| DBX["Databricks Free Edition<br/>variante"]
 ```
 
 | Capa | Dónde | Para qué |
@@ -46,6 +47,25 @@ flowchart LR
 | **silver** | Tabla Delta en `s3://silver/observations` y `silver.observations` en Postgres | Esquema común `source, entity, metric, ts, value, unit, quality, lat, lon`, con calidad marcada |
 | **gold** | Esquema `gold` (dbt) | Hechos incrementales, marts por dominio con contrato y salud de las fuentes |
 | **servicio** | Web, Grafana y FastAPI | La web para quien quiere ver la isla; Grafana para operar la plataforma; la API para leer gold desde un programa. Grafana y la API tienen su usuario de solo lectura, y la web solo habla con la API |
+
+### Variante en Databricks
+
+La misma plataforma, reducida, corre también en Databricks Free Edition ([detalle](../databricks/README.md),
+[0025](adr/0025-variante-en-databricks-free-edition.md)). Es un Lakeflow Job descrito como bundle que importa
+`connectors/`, `core/silver.py` y `config/` sin copiarlos, así que un cambio en un conector o en una regla de calidad
+llega a las dos pilas.
+
+| Pieza | Pila local | Databricks |
+|---|---|---|
+| Orquestación | Airflow, `mallorca_pipeline` | Lakeflow Job (`databricks/databricks.yml`), horario en pausa |
+| Fuentes | 16 | 2, las que no piden clave: Open-Meteo y la EEA |
+| bronze | MinIO, con versionado del bucket | Volume de Unity Catalog y Auto Loader a `mallorca.bronze.payloads` |
+| silver | `MERGE` en Delta y upsert en Postgres | `MERGE` en `mallorca.silver.observations`, con las mismas reglas de calidad |
+| gold | dbt en Postgres | Cuatro tablas diarias en Databricks SQL, entre ellas el sesgo del modelo CAMS frente a las estaciones |
+| Acceso | Usuarios de Postgres de solo lectura | `GRANT` de Unity Catalog: `account users` solo lee `gold` |
+
+No tiene anomalías, correcciones, API, web ni Grafana. Una ejecución de 3 días tarda unos 2 minutos y repetirla no
+inserta ni actualiza nada.
 
 ### Una ejecución, paso a paso
 
@@ -99,6 +119,12 @@ evolucionó la plataforma. Este es el resumen de las que están en vigor:
 | [0017](adr/0017-observabilidad-y-linaje.md) | Observabilidad y linaje | Las alertas leen el estado de las tablas; un solo grafo de linaje de la ingesta a gold |
 | [0018](adr/0018-sin-cache-de-extraccion.md) | Sin caché aparte (Redis) | Bronze ya hace de caché, y extraer cuesta 1 s de los 45 s que tarda cada conector |
 | [0019](adr/0019-frontal-web-sobre-la-api.md) | Un frontal web propio sobre la API | La isla en cifras para quien no opera la plataforma; solo lee la API, así que no toca el warehouse |
+| [0020](adr/0020-gobierno-del-dato-en-el-catalogo-de-fuentes.md) | El gobierno del dato vive en el catálogo de fuentes | Dueño, licencia, acceso y SLA en la misma fila que la fuente, obligatorios por tests de dbt y evaluados en `gold.source_health` |
+| [0021](adr/0021-solo-los-dias-que-faltan.md) | Un DAG diario que solo descarga los días que faltan | Si no falta ningún día, no se llama a la fuente ni se arranca Spark |
+| [0022](adr/0022-fuente-caida-no-es-un-fallo.md) | Una fuente caída no es un fallo de la plataforma | El estado `unavailable` separa los cortes de la fuente de los errores propios, que son los únicos que alertan |
+| [0023](adr/0023-cache-y-limite-en-el-proceso-de-la-api.md) | Caché y límite de peticiones en cada proceso de la API | Gold cambia una vez al día; sin un almacén compartido que mantener |
+| [0024](adr/0024-la-web-en-tres-idiomas.md) | La web en castellano, catalán e inglés | El idioma en la URL y diccionarios tipados: `tsc` falla si falta un texto |
+| [0025](adr/0025-variante-en-databricks-free-edition.md) | Una variante en Databricks Free Edition | Los mismos conectores y reglas de calidad en un lakehouse gestionado con Unity Catalog, sin coste |
 
 Sustituidas y rechazadas:
 
@@ -196,6 +222,8 @@ orden:
 - **Un escritor a la vez en Delta.** El lock serializa los commits y la compactación. Basta para dos conectores a
   la vez, no para decenas.
 - **Silver duplicado** en Delta y en Postgres. En AWS, Athena sobre Delta podría sustituir a la copia de Postgres.
+- **Gold escrito dos veces** en la variante de Databricks: en dbt y en el SQL del job. El código compartido queda
+  además atado a Python 3.12, que es lo que llevan los entornos serverless.
 - **Contaminantes muy locales** (NO₂, CO, partículas): casi nunca tienen una fuente de apoyo correlacionada. El NO₂
   y el CO se corrigen con el perfil semanal de la propia estación, porque los mueve el tráfico; las partículas no,
   porque las mueve el tiempo, y sus huecos largos se quedan sin corregir a propósito.
