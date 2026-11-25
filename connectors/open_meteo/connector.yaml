@@ -3,14 +3,19 @@ description: Open-Meteo air quality (CAMS model) and weather, hourly, no API key
 entrypoint: connectors.open_meteo.extractor:OpenMeteoConnector
 enabled: true
 frequency: 1h          # expected spacing between samples (used by the gaps rule)
-max_days: 92           # API limit for past data
+max_days: 366          # one year per run, for make backfill (the live weather API alone serves 92 days)
+catch_up_days: 92      # what a daily run recovers after missed days, as before
 secrets: []            # names of env vars required in .env (none for Open-Meteo)
 
 datasets:
   air_quality:
-    url: https://air-quality-api.open-meteo.com/v1/air-quality
+    url: https://air-quality-api.open-meteo.com/v1/air-quality   # CAMS Europe, any window since 2013
   weather:
     url: https://api.open-meteo.com/v1/forecast
+    # The forecast API serves its last 92 days only. Older windows ask the archive of the same forecasts: hour by
+    # hour it is the live series since 2022-11-16, and ERA5 (the ECMWF reanalysis, ~25 km) before that day.
+    history_url: https://historical-forecast-api.open-meteo.com/v1/forecast
+    past_days: 92
 
 # metric name (as returned by the API) -> dataset, canonical unit, valid physical range
 metrics:

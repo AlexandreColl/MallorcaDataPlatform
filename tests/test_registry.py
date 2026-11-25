@@ -107,7 +107,9 @@ def test_invalid_dataset_frequency_fails_on_load(tmp_path):
 
 
 def test_catch_up_days_defaults_to_max_days_and_is_validated(tmp_path):
-    assert registry.discover()["open_meteo"].catch_up_days == registry.discover()["open_meteo"].max_days
+    marine = registry.discover()["open_meteo_marine"]
+    assert marine.catch_up_days == marine.max_days
+    assert registry.discover()["open_meteo"].catch_up_days == 92  # a year per backfill run, 92 days per catch-up
     assert registry.discover()["socib"].catch_up_days == 28
     root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nmax_days: 10\ncatch_up_days: 20\n")
     with pytest.raises(ConnectorError, match="catch_up_days"):
@@ -115,7 +117,7 @@ def test_catch_up_days_defaults_to_max_days_and_is_validated(tmp_path):
 
 
 def test_recover_days_defaults_to_catch_up_days_and_is_validated(tmp_path):
-    assert registry.discover()["open_meteo"].recover_days == 92  # the API serves no older past data
+    assert registry.discover()["open_meteo"].recover_days == 92  # older days are loaded with make backfill
     assert registry.discover()["socib"].recover_days == 28
     assert registry.discover()["aemet"].recover_days == 1095
     root = _write(tmp_path, "foo", "name: foo\nentrypoint: x:Y\nmax_days: 10\nrecover_days: 5\n")

@@ -57,8 +57,8 @@ export const es = {
     language: "Idioma",
     catalogue: "Catálogo",
     footer:
-      "Datos abiertos de AEMET, SOCIB, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, Govern de les Illes Balears y " +
-      "Open-Meteo. Mapa © OpenStreetMap.",
+      "Datos abiertos de AEMET, SOCIB, Puertos del Estado, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
+      "Govern de les Illes Balears y Open-Meteo. Mapa © OpenStreetMap.",
   },
   data: {
     loadError: (error: string) => `No se pudieron cargar los datos: ${error}`,

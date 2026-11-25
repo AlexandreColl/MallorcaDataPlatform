@@ -60,8 +60,8 @@ export const ca: Messages = {
     language: "Llengua",
     catalogue: "Catàleg",
     footer:
-      "Dades obertes d’AEMET, SOCIB, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, Govern de les Illes Balears i " +
-      "Open-Meteo. Mapa © OpenStreetMap.",
+      "Dades obertes d’AEMET, SOCIB, Ports de l’Estat, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
+      "Govern de les Illes Balears i Open-Meteo. Mapa © OpenStreetMap.",
   },
   data: {
     loadError: (error: string) => `No s’han pogut carregar les dades: ${error}`,

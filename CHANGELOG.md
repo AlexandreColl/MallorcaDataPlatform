@@ -5,6 +5,47 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-25
+
+### Added
+
+- Databricks Free Edition variant (`databricks/`, ADR 0025): a Lakeflow Job defined as a bundle, on serverless
+  environment 6 (Python 3.12). It extracts Open-Meteo and the EEA with the same connectors into a Unity Catalog
+  Volume, keeping the MinIO keys. Auto Loader loads them into `mallorca.bronze.payloads`. Silver reuses the
+  connectors' `normalize()` and the quality engine, then `MERGE`s on the key into `mallorca.silver.observations`.
+  Gold is four daily tables in Databricks SQL, including the CAMS model bias against the stations. The catalog has
+  one schema per layer, and `account users` can only read gold. A run of the 3-day window takes about
+  2 minutes, with 38 payloads and 6,912 silver rows. Running it again inserted and updated nothing. CI now compiles
+  the shared code with Python 3.12.
+
+- Open-Meteo loads its history: `make backfill CONNECTORS=open_meteo` asks for a year per run (`max_days` 366, the
+  catch-up stays at 92 days). Air quality comes from the same CAMS API, which serves any window since 2013. Weather
+  windows that start before the 92 days of the forecast API ask the archive of the same forecasts
+  (`history_url`), which matches the live series hour by hour since 2022-11-16 and serves ERA5 before that day.
+  The station against model bias changes level that day (Cala Millor, daily mean temperature: −0.92 °C with ERA5,
+  −1.54 °C with the forecasts). On the stack: 10 yearly runs in 17 minutes, 5.1 million values since 2017, and
+  `fct_model_bias_daily` from 2017 for SOCIB and AEMET.
+- PM10 and PM2.5 gaps of 12 hours or more are corrected with the CAMS model, whose r stays at 0.2-0.6. For the
+  metrics of `support.backtest`, when no support reaches `min_correlation`, 24-hour gaps are cut from the station's
+  history and filled with each support and with a straight line. The support that errs least is used, if it errs
+  less than the line over at least 7 gaps. Over 28 days, PM10 corrects 765 of 960 hidden hours in 24-hour gaps
+  instead of 279, and PM2.5 208 of 240 instead of none, 8-41 % below the error of a line. The run summary names the
+  backtest of each such support, and `make evaluate-corrections` shows the line for the support's hours too.
+- REDMAR connector (`redmar`): hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado, read
+  from its THREDDS server without a key, since 2009. Each day is a 2 Hz NetCDF file; the connector asks OPeNDAP
+  for one value a minute as text (about 60 KB a day instead of 5.4 MB) and averages the minutes the source flags as
+  good. It replaces the SOCIB tide gauges, which stopped publishing in Mallorca between 2019 and 2024. In the catalogue in three languages, in dbt
+  (`stg_redmar__observations`, freshness at the SLA), in the E2E and in the architecture diagram.
+
+### Changed
+
+- Dependabot also watches the web (npm, with minors and patches grouped in one monthly PR), the base images of the
+  API and the web, and the AWS provider of `infra/terraform`. Until now it covered only the GitHub Actions, the pip
+  requirements and the Airflow image.
+- The silver schema, `to_dataframe`, `deduplicate` and `apply_quality` moved from `core/pipeline.py` and
+  `core/spark.py` to `core/silver.py`, which imports only PySpark and the quality engine, so the Databricks job can
+  import them without boto3 or psycopg. The local pipeline behaves the same.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added
@@ -866,7 +907,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.16.2...v0.17.0

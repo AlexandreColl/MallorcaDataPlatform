@@ -13,15 +13,18 @@ from core.corrections.methods import (
     INTERPOLATION,
     PROFILE,
     SUPPORT,
+    BacktestParams,
     Candidate,
     InterpolationParams,
     ProfileParams,
     SupportParams,
+    backtest_support,
+    best_support,
     calibrate,
     correct_series,
     weekly_profile,
 )
-from core.corrections.runner import CorrectionConfig, Neighbours, correct_all, haversine_km
+from core.corrections.runner import CorrectionConfig, Neighbours, correct_all, describe_support, haversine_km
 from core.models import Quality, TimeWindow
 
 INTERPOLATE = InterpolationParams(max_gap_hours=3, confidence_scale_hours=6)
@@ -337,6 +340,8 @@ def test_the_repository_config_loads():
     assert config.only(["socib"]).targets == {"socib": ("socib", "open_meteo")}
     assert config.profile_for("nitrogen_dioxide") is not None
     assert config.profile_for("pm10") is None  # the weather, not the clock, drives it
+    assert config.backtest_for("pm10") is not None
+    assert config.backtest_for("nitrogen_dioxide") is None  # its supports need a correlation
 
 
 PROFILE_PARAMS = ProfileParams(
@@ -431,3 +436,97 @@ def test_benchmark_compares_the_profile_with_a_straight_line():
 
     assert result.loc[24, "by_profile"] == result.loc[24, "hidden"] == 72
     assert result.loc[24, "mae_profile"] < result.loc[24, "mae_line"]
+
+
+BACKTEST = BacktestParams(metrics=frozenset({"pm10"}), gap_hours=24, min_gaps=7, min_gap_hours=12)
+
+
+def _dust(hours: pd.DatetimeIndex, seed: int = 0) -> tuple[pd.Series, pd.Series]:
+    """PM10 at a station and in the model: both follow days of dust and rain, the station with a lot of hourly noise."""
+    days = np.arange(len(hours)) / 24
+    level = 25 + 10 * np.sin(2 * np.pi * days / 5)
+    noise = np.random.default_rng(seed).normal(0, 12, len(hours))
+    return pd.Series(level + 8 + noise, index=hours), pd.Series(level, index=hours)  # the model is 8 ug/m3 low
+
+
+def _correct_dust(observations, candidates, backtest=BACKTEST):
+    return correct_series(
+        observations,
+        list(candidates),
+        start=WINDOW_START,
+        end=WINDOW_END,
+        interpolation=INTERPOLATE,
+        support=SUPPORT_PARAMS,
+        backtest=backtest,
+    )
+
+
+def test_a_weakly_correlated_support_fills_long_gaps_when_it_beats_a_line_in_its_backtest():
+    station, model = _dust(HOURS)
+    gap = _hours("2026-10-04 00:00", 24)
+    cams = Candidate("open_meteo", "palma", 1.5, model)
+    corrected, support = _correct_dust(_observations(station, missing=gap), [cams])
+
+    assert support is not None
+    assert support.correlation < SUPPORT_PARAMS.min_correlation
+    assert support.backtest is not None
+    assert support.backtest.gaps >= BACKTEST.min_gaps
+    assert support.backtest.mae < support.backtest.line_mae
+    assert set(corrected["method"]) == {SUPPORT}
+    assert corrected["bias"].mean() == pytest.approx(8, abs=1.5)  # per hour it is noisier: about 29 pairs each
+    assert _correct_dust(_observations(station, missing=gap), [cams], backtest=None)[1] is None  # by correlation
+
+
+def test_a_backtested_support_leaves_the_gaps_shorter_than_min_gap_hours():
+    station, model = _dust(HOURS)
+    corrected, support = _correct_dust(
+        _observations(station, missing=_hours("2026-10-04 00:00", 6)), [Candidate("open_meteo", "palma", 1.5, model)]
+    )
+
+    assert support is not None
+    assert corrected.empty
+
+
+def test_a_support_that_errs_more_than_a_line_in_its_backtest_is_not_used():
+    station, _ = _dust(HOURS)
+    unrelated = pd.Series(np.random.default_rng(7).normal(25, 12, len(HOURS)), index=HOURS)
+
+    assert best_support(station, [Candidate("open_meteo", "palma", 1.5, unrelated)], SUPPORT_PARAMS, BACKTEST) is None
+
+
+def test_a_correlated_support_is_chosen_as_before_and_without_a_backtest():
+    _, model = _dust(HOURS)
+    twin = Candidate("eea_air_quality", "twin", 4, STATION)
+    calibration = best_support(STATION, [twin, Candidate("open_meteo", "palma", 1.5, model)], SUPPORT_PARAMS, BACKTEST)
+
+    assert calibration is not None
+    assert calibration.candidate.entity == "twin"
+    assert calibration.backtest is None
+
+
+def test_the_backtest_needs_enough_gaps_and_names_itself_in_the_summary():
+    station, model = _dust(HOURS)
+    calibration = calibrate(station, Candidate("open_meteo", "palma", 1.5, model), SUPPORT_PARAMS)
+    assert calibration is not None
+
+    assert backtest_support(station.iloc[: 24 * 5], calibration, BACKTEST) is None
+    tested = replace(calibration, backtest=backtest_support(station, calibration, BACKTEST))
+    assert describe_support(tested).startswith("open_meteo/palma r=0.")
+    assert " backtest " in describe_support(tested)
+    assert " backtest " not in describe_support(calibration)
+
+
+def test_benchmark_compares_the_support_with_a_straight_line_too():
+    coords = {("eea_air_quality", "foners"): (39.57, 2.66), ("open_meteo", "palma"): (39.57, 2.65)}
+    station, model = _dust(HOURS)
+    silver = _silver({("eea_air_quality", "foners", "pm10"): station, ("open_meteo", "palma", "pm10"): model}, coords)
+    config = replace(
+        CONFIG,
+        targets={"eea_air_quality": ("open_meteo",)},
+        backtest=BACKTEST,
+        evaluation={"gap_hours": [24], "gaps_per_series": 3},
+    )
+    result = evaluate(silver, config, WINDOW_START, WINDOW_END, seed=0).set_index("gap_hours")
+
+    assert result.loc[24, "by_support"] == result.loc[24, "hidden"] == 72
+    assert result.loc[24, "mae"] < result.loc[24, "mae_line"]

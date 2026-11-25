@@ -1,0 +1,103 @@
+# Declarative Automation Bundle (formerly Databricks Asset Bundle): the Lakeflow Job of the Mallorca Data Platform
+# on Databricks Free Edition, as code. Deploy and run it from this folder:
+#
+#   databricks bundle validate
+#   databricks bundle deploy
+#   databricks bundle run mallorca_pipeline
+#
+# The workspace host and the credentials come from your Databricks CLI profile (~/.databrickscfg, outside the
+# repository): nothing here names a workspace. See README.md in this folder.
+
+bundle:
+  name: mallorca-data-platform
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the bronze, silver and gold schemas
+    default: mallorca
+  readers:
+    description: Principal (user or group) granted read access to the gold schema
+    default: account users
+  days:
+    description: Days each extract task asks for, ending at the last published day of its source
+    default: "3"
+
+# Upload the shared code with the job: the same connectors and core as the local stack, not a copy.
+sync:
+  paths:
+    - ../core
+    - ../connectors
+    - ../config
+    - .
+  exclude:
+    - "**/tests/**"
+    - "**/__pycache__/**"
+
+targets:
+  dev:
+    mode: development
+    default: true
+
+resources:
+  jobs:
+    mallorca_pipeline:
+      name: mallorca_pipeline
+      description: Open data of Mallorca, bronze to gold, with the connectors of the local stack.
+      max_concurrent_runs: 1
+      # Defined but paused: Free Edition has a daily compute quota. Development mode pauses it too.
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: Europe/Madrid
+        pause_status: PAUSED
+      parameters:
+        - name: days
+          default: ${var.days}
+      environments:
+        - environment_key: serverless
+          spec:
+            # Serverless environment 6: Python 3.12.3, the newest one. Every environment from 3 to 6 has Python 3.12.
+            environment_version: "6"
+      tasks:
+        - task_key: setup
+          environment_key: serverless
+          spark_python_task:
+            python_file: ./tasks/main.py
+            parameters: [setup, --catalog, "${var.catalog}", --readers, "${var.readers}"]
+
+        - task_key: extract_open_meteo
+          depends_on: [{task_key: setup}]
+          environment_key: serverless
+          spark_python_task:
+            python_file: ./tasks/main.py
+            parameters: [extract, --catalog, "${var.catalog}", --source, open_meteo, --days, "{{job.parameters.days}}"]
+
+        - task_key: extract_eea_air_quality
+          depends_on: [{task_key: setup}]
+          environment_key: serverless
+          spark_python_task:
+            python_file: ./tasks/main.py
+            parameters:
+              [extract, --catalog, "${var.catalog}", --source, eea_air_quality, --days, "{{job.parameters.days}}"]
+
+        # One source that fails does not stop the others, as in the Airflow DAG.
+        - task_key: bronze
+          depends_on: [{task_key: extract_open_meteo}, {task_key: extract_eea_air_quality}]
+          run_if: AT_LEAST_ONE_SUCCESS
+          environment_key: serverless
+          spark_python_task:
+            python_file: ./tasks/main.py
+            parameters: [bronze, --catalog, "${var.catalog}"]
+
+        - task_key: silver
+          depends_on: [{task_key: bronze}]
+          environment_key: serverless
+          spark_python_task:
+            python_file: ./tasks/main.py
+            parameters: [silver, --catalog, "${var.catalog}", --run-id, "{{job.run_id}}"]
+
+        - task_key: gold
+          depends_on: [{task_key: silver}]
+          environment_key: serverless
+          spark_python_task:
+            python_file: ./tasks/main.py
+            parameters: [gold, --catalog, "${var.catalog}"]

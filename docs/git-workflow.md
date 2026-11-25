@@ -19,7 +19,7 @@ feature/connector-redata ──PR(squash)──► develop ──PR(release/v0.2
 
 `<emoji> tipo(ámbito): descripción` — el emoji en Unicode (✨, no `:sparkles:`) para que se vea igual en
 GitHub, en la terminal y en el IDE. Ámbitos: `core`, `connector`, `anomaly`, `airflow`, `api`, `web`, `dbt`, `grafana`,
-`infra`, `deps`, `release`.
+`infra`, `databricks`, `deps`, `release`.
 
 | Emoji | Tipo | Cuándo |
 |---|---|---|

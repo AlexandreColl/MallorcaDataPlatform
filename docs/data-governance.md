@@ -41,6 +41,7 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 |---|---|---|---|---|---|
 | Open-Meteo, Open-Meteo Marine | Open-Meteo | CC BY 4.0 | Abierto | 48 h | 90 % |
 | SOCIB | SOCIB | Acceso abierto con cita obligatoria | Abierto | 48 h | 80 % |
+| REDMAR (mareógrafos) | Puertos del Estado | Datos públicos y gratuitos con cita obligatoria | Abierto | 48 h | 80 % |
 | EEA | Agencia Europea de Medio Ambiente (datos del Govern) | CC BY 4.0 | Abierto | 48 h | 90 % |
 | REData | Red Eléctrica | Reutilización con cita | Abierto | 48 h | 80 % |
 | AEMET (estaciones) | AEMET | Reutilización con cita (nota legal) | Clave | 5 días | 90 % |
@@ -54,11 +55,11 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 | IGN (sismos) | Instituto Geográfico Nacional | CC BY 4.0 | Abierto | Sin SLA: solo hay datos cuando hay sismos | 90 % |
 | GOIB (histórico) | Govern de les Illes Balears | CC BY (política de datos abiertos del Govern) | Abierto | Histórico cerrado en 2021 | 90 % |
 
-**Licencias.** Algunos dueños no publican una licencia concreta: EMT Palma, Dataestur, Ibestat, REData y SOCIB. En
-esos casos la ficha lo dice en lugar de inventarla. Se aplican las condiciones por defecto de la reutilización de
-información del sector público (Ley 37/2007): citar la fuente, no desnaturalizar el dato y no sugerir que el dueño
-patrocina el uso. SOCIB exige además citar su repositorio. Antes de un uso comercial habría que confirmarlo con
-cada dueño.
+**Licencias.** Algunos dueños no publican una licencia concreta: EMT Palma, Dataestur, Ibestat, Puertos del Estado,
+REData y SOCIB. En esos casos la ficha lo dice en lugar de inventarla. Se aplican las condiciones por defecto de la
+reutilización de información del sector público (Ley 37/2007): citar la fuente, no desnaturalizar el dato y no
+sugerir que el dueño patrocina el uso. SOCIB exige además citar su repositorio, y Puertos del Estado, que se le
+avise antes de un uso comercial; en los demás casos también habría que confirmarlo con cada dueño.
 
 **Datos personales.** Ninguna fuente tiene datos personales:
 

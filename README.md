@@ -28,7 +28,7 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Arquitectura: 15 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+  <img alt="Arquitectura: 16 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
 </picture>
 
 El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
@@ -111,6 +111,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 | [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS) y meteorología, horario, 6 localidades | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
+| [redmar](connectors/redmar/README.md) | ✅ | Nivel del mar horario en los mareógrafos de Palma y Alcúdia de Puertos del Estado (red REDMAR, desde 2009) | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Oleaje, temperatura del mar, corrientes y nivel del mar (modelo) en 8 puntos de la costa | No |
@@ -129,6 +130,13 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 Una petición por dataset con todas las localidades de la región. 10 métricas horarias
 (PM10, PM2.5, NO₂, O₃, EAQI, temperatura, humedad, precipitación, viento, presión).
 Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de estación.
+
+La API de previsión solo sirve 92 días, pero `make backfill CONNECTORS=open_meteo` carga los años anteriores: la
+calidad del aire sale del mismo modelo CAMS (desde 2013) y la meteorología del archivo de las mismas previsiones, que
+coincide hora a hora con la serie en vivo desde noviembre de 2022 y es el reanálisis ERA5 antes. Así las estaciones
+de SOCIB y de la EEA se comparan con el modelo desde 2017, como el histórico de SOCIB. El sesgo cambia de nivel el
+16-11-2022, el día que el archivo pasa de ERA5 a las previsiones: en Cala Millor, de −0,92 a −1,54 °C en la
+temperatura media diaria.
 
 ### Open-Meteo Marine
 
@@ -220,6 +228,19 @@ por boya en `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` y la web). D
 En la bahía, con mar en calma (menos de 0,5 m), el modelo da un 40 % más de ola de la que mide la boya: su celda de
 unos 5 km se asoma a mar abierto y la boya está en una bahía resguardada. En Portocolom pasa al revés con la mar
 pequeña, y el RMSE (0,45 m), muy por encima del error medio, delata unas pocas horas con fallos grandes.
+
+### Mareógrafos (Puertos del Estado)
+
+Los mareógrafos de Palma y Alcúdia de la red REDMAR, leídos del servidor THREDDS de Puertos del Estado sin clave.
+Cada día es un fichero NetCDF con el nivel del mar cada medio segundo; el conector pide por OPeNDAP, en texto, un
+valor por minuto (unos 60 KB por día en lugar de 5,4 MB) y hace la media horaria de los que la fuente marca como
+buenos.
+
+- **El nivel es la altura sobre el cero de cada puerto**, unos 4,2 m. Sirve para seguir la marea y los temporales
+  en cada mareógrafo, no para compararlo con el modelo de Open-Meteo Marine, que mide sobre el nivel medio del mar.
+- **En 2026 faltan horas enteras**, unas 6 de cada 24 y las mismas en los dos mareógrafos; en 2024 y antes los
+  ficheros están casi completos. Una hora sin ningún minuto bueno se guarda como `missing`.
+- Sustituye a los mareógrafos de SOCIB, que dejaron de publicar en Mallorca entre 2019 y 2024.
 
 ### IGN (sismos)
 
@@ -513,6 +534,11 @@ lado a lado, y `value` es el corregido donde lo hay y el original en el resto.
   de horas en común y una r ≥ 0,6. El valor de apoyo se desplaza con su sesgo, la mediana de "estación menos apoyo",
   calibrado **por hora del día** con los 30 días anteriores. Así recoge la brisa, la altitud y el ciclo diario del
   modelo. Confianza `r² · exp(−distancia / 100 km) · exp(−horas / 7 días)`.
+  - **PM10 y PM2.5 se prueban en lugar de exigir la r** (`support.backtest`). El modelo CAMS sigue sus días de
+    polvo, viento o lluvia, pero no su ruido hora a hora, así que su r se queda entre 0,2 y 0,6. Cuando ningún apoyo
+    llega a 0,6, se cortan huecos de 24 horas en el histórico de la propia estación y se rellenan con cada apoyo y con
+    una recta. Gana el apoyo que menos se equivoca, y solo si se equivoca menos que la recta en al menos 7 huecos.
+  - Ese apoyo solo rellena huecos de 12 horas o más: en los de 6 horas, una recta se equivoca menos que el modelo.
 - **Método 3, perfil semanal**: el NO₂ y el CO vienen del tráfico de cada calle y casi nunca tienen un apoyo con
   r ≥ 0,6. Para sus huecos largos sin apoyo se usa el ciclo de la propia estación: la mediana de cada hora local de
   los días laborables y de los fines de semana en los 30 días anteriores, desplazada al nivel de los valores a cada
@@ -550,8 +576,24 @@ absoluto (MAE) y, para la fuente de apoyo, el que tendría sin su sesgo:
   | CO (EEA) | 74 µg/m³ | 86 µg/m³ | 77 µg/m³ | 168 µg/m³ |
 
 - **PM10, PM2.5, ozono y las variables del tiempo** no usan el perfil: el benchmark da con él el mismo error que con
-  una recta, o más, porque los mueve el tiempo y no el reloj. Sus huecos largos sin apoyo se quedan sin corregir en
-  lugar de rellenarse con un valor poco fiable.
+  una recta, o más, porque los mueve el tiempo y no el reloj.
+- **En PM10 y PM2.5, el modelo CAMS sí sirve aunque su r no llegue a 0,6**. Con la prueba sobre el histórico de cada
+  estación, en 28 días hasta el 22 de noviembre de 2026 (6 huecos escondidos por serie y longitud):
+  - PM10 corrige 765 de las 960 horas escondidas en huecos de 24 horas, en lugar de 279.
+  - PM2.5, que no tenía ningún apoyo, corrige 208 de 240.
+  - El error medio absoluto queda entre un 8 % y un 41 % por debajo del de una recta:
+
+  | Serie | Horas corregidas, antes | Horas corregidas, ahora | MAE, apoyo | MAE, recta |
+  |---|---|---|---|---|
+  | PM10, huecos de 12 h | 144 de 504 | 426 de 504 | 4,3 µg/m³ | 4,7 µg/m³ |
+  | PM10, huecos de 24 h | 279 de 960 | 765 de 960 | 3,8 µg/m³ | 6,4 µg/m³ |
+  | PM2.5, huecos de 12 h | 0 de 144 | 120 de 144 | 2,7 µg/m³ | 3,9 µg/m³ |
+  | PM2.5, huecos de 24 h | 0 de 240 | 208 de 240 | 3,9 µg/m³ | 5,6 µg/m³ |
+
+  La confianza sigue la misma fórmula, con `r²` por debajo de 0,36, así que es baja: el valor es mejor que una
+  recta, pero no se parece a la estación hora a hora. Las horas que no se corrigen son de estaciones donde ningún
+  apoyo pasa la prueba.
+  `make evaluate-corrections` muestra ahora también la recta de las horas del apoyo (columna `line`).
 - **Las rachas de viento** son el único caso en el que el sesgo no ayuda: 7,5 frente a 6,8 km/h en huecos de 6
   horas. Una racha es un máximo puntual y no guarda una diferencia estable con otra estación.
 
@@ -740,6 +782,28 @@ No se despliega. El CI lo valida y lo prueba con `terraform test` contra un prov
 ni coste (`make tf-check` en local). El diagrama local frente a AWS, los costes y lo que faltaría para correr en
 AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/README.md).
 
+## Databricks
+
+`databricks/` es la misma plataforma en un espacio de trabajo de Databricks Free Edition: un Lakeflow Job,
+descrito como bundle, que corre en cómputo serverless y guarda cada capa en Unity Catalog. La pila local no cambia.
+
+- **Extracción:** Open-Meteo y la EEA, con los mismos conectores que Airflow, a un Volume con las claves de MinIO.
+- **Bronze:** Auto Loader.
+- **Silver:** el `normalize()` y las reglas de calidad del núcleo, y un `MERGE` en la clave.
+- **Gold:** cuatro tablas diarias en Databricks SQL, entre ellas el sesgo del modelo CAMS frente a las estaciones.
+- **Permisos:** un esquema por capa, y lectura solo sobre gold para `account users`.
+
+```bash
+cd databricks
+databricks bundle deploy -p mallorca
+databricks bundle run mallorca_pipeline -p mallorca
+```
+
+Una ejecución tarda unos 2 minutos. Con la ventana de 3 días carga 6.912 filas en silver, y al relanzarla no
+inserta ni actualiza ninguna. Cómo se instala la CLI, la comparación con la pila local y los resultados están en
+[databricks/README.md](databricks/README.md). La decisión está en la
+[ADR 0025](docs/adr/0025-variante-en-databricks-free-edition.md).
+
 ## Estructura
 
 ```
@@ -754,6 +818,7 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 ├── web/                  # frontal web (React + Vite) que lee la API
 ├── docker/               # Dockerfiles de Airflow+Spark+dbt, de la API y de la web, init de Postgres
 ├── infra/terraform/      # AWS: S3, IAM, Glue Catalog, Athena y presupuesto, con tests sobre un AWS simulado
+├── databricks/           # Databricks Free Edition: bundle del Lakeflow Job, tareas y paquete mdp_databricks
 ├── scripts/e2e.sh        # prueba de punta a punta (CI)
 └── docs/
 ```
@@ -762,7 +827,7 @@ AWS de punta a punta están en [infra/terraform/README.md](infra/terraform/READM
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `ci.yml` | push a `main`/`develop`, PRs | ruff · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG. Las descargas van con caché y reintentos, así que una caída de GitHub de unos minutos no tumba la ejecución |
+| `ci.yml` | push a `main`/`develop`, PRs | ruff · el código compartido con Databricks compila con Python 3.12 · pytest con PySpark (cobertura de `core/` ≥ 80 %, ramas incluidas) · Terraform (`fmt`, `validate`, tflint y `terraform test` contra un AWS simulado) · sqlfluff · dbt build sobre Postgres vacío (slim CI en PRs) · build de la imagen + test de integridad del DAG. Las descargas van con caché y reintentos, así que una caída de GitHub de unos minutos no tumba la ejecución |
 | `dbt-docs.yml` | push a `develop` | `dbt docs` en [GitHub Pages](https://alexandrecoll.github.io/MallorcaDataPlatform/), el [informe de cobertura](https://alexandrecoll.github.io/MallorcaDataPlatform/coverage/) del CI de ese commit con el badge del README, y manifest de `develop` para el slim CI |
 | `e2e.yml` | PR a `main`, semanal | `docker compose up`, DAG dos veces con la API real, comprueba bronze/silver/gold e idempotencia |
 | `release.yml` | tag `vX.Y.Z` (o a mano con un tag existente) | Release con notas del CHANGELOG + imágenes de Airflow y de la API REST en GHCR (`airflow:X.Y.Z` y `api:X.Y.Z`, también `X.Y`) |

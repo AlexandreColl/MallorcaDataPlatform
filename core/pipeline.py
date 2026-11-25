@@ -12,22 +12,22 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from pyspark.sql import DataFrame, SparkSession, Window
-from pyspark.sql import functions as F
-
 from core.config import Settings, load_region
 from core.connectors import BaseConnector, is_outage, registry
 from core.lake import open_silver
-from core.models import KEY, TimeWindow
-from core.quality import QualityEngine, RuleResult, rules_for
-from core.spark import SILVER_SCHEMA, build_spark
+from core.models import TimeWindow
+from core.silver import apply_quality, to_dataframe
+from core.spark import build_spark
 from core.storage import BronzeStore, ensure_bucket
 from core.warehouse import RunStats, Warehouse
 
 if TYPE_CHECKING:
     from datetime import date
 
+    from pyspark.sql import DataFrame
+
     from core.models import Entity, Observation, Region, Route
+    from core.quality import RuleResult
     from core.warehouse import RunStatus
 
 log = logging.getLogger(__name__)
@@ -165,25 +165,6 @@ def bronze_to_silver(connector: BaseConnector, keys: list[str], region: Region, 
         names.update((e.entity, e) for e in connector.describe(payload, region))
         routes.update((r.route, r) for r in connector.routes(payload, region))
     return Normalized(observations, list(names.values()), list(routes.values()))
-
-
-def to_dataframe(spark: SparkSession, observations: list[Observation], run_id: str) -> DataFrame:
-    """Build the silver DataFrame with lineage columns (`run_id`, `ingested_at`)."""
-    rows = [o.as_row() for o in observations]
-    df = spark.createDataFrame(rows, schema=SILVER_SCHEMA)
-    return df.withColumn("run_id", F.lit(run_id)).withColumn("ingested_at", F.current_timestamp())
-
-
-def deduplicate(df: DataFrame) -> DataFrame:
-    """Keep one row per key; prefer a non-null value."""
-    w = Window.partitionBy(*KEY).orderBy(F.col("value").isNull().asc())
-    return df.withColumn("_rn", F.row_number().over(w)).where("_rn = 1").drop("_rn")
-
-
-def apply_quality(df: DataFrame, connector: BaseConnector, window: TimeWindow) -> tuple[DataFrame, list[RuleResult]]:
-    """Label rows with the connector's rule set, then collapse duplicates."""
-    flagged, results = QualityEngine(rules_for(connector.config, window)).run(df)
-    return deduplicate(flagged), results
 
 
 def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:

@@ -1,0 +1,22 @@
+{
+  "connector": "redmar",
+  "region": "mallorca",
+  "window": {
+    "start": "2026-11-22",
+    "end": "2026-11-22"
+  },
+  "requests": [
+    {
+      "method": "get_text",
+      "url": "https://opendap.puertos.es/thredds/dodsC/tidegauge_mall/2026/11/MIR2Z_Mallorca_Mall_3851_20261122.nc4.ascii?TIME%5B0:120:172799%5D,SLEV%5B0:120:172799%5D%5B0:0%5D,SLEV_QC%5B0:120:172799%5D%5B0:0%5D",
+      "params": {},
+      "file": "01_mir2z_mallorca_mall_3851_20261122_nc4_as.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://opendap.puertos.es/thredds/dodsC/tidegauge_alcu/2026/11/MIR2Z_Alcudia_Alcu_3853_20261122.nc4.ascii?TIME%5B0:120:172799%5D,SLEV%5B0:120:172799%5D%5B0:0%5D,SLEV_QC%5B0:120:172799%5D%5B0:0%5D",
+      "params": {},
+      "file": "02_mir2z_alcudia_alcu_3853_20261122_nc4_asc.txt"
+    }
+  ]
+}
