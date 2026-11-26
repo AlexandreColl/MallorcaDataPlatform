@@ -18,7 +18,7 @@ function show(language: Locale, address: string) {
   window.history.replaceState(null, "", address);
   const all = dashboards(language);
   render(
-    <Layout dashboards={all} current={all[1]!} version="0.20.1">
+    <Layout dashboards={all} current={all[1]!} version="0.20.2">
       <p>page</p>
     </Layout>,
   );
