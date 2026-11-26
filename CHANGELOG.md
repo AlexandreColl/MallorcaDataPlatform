@@ -16,10 +16,29 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
   since the previous count and the dwellings per 1,000 inhabitants of the register), in the API
   (`GET /v1/tourism/dwellings`, cached), in the E2E and in the architecture diagram.
 - Web: a *Tourist dwellings* layer in the municipality map of Mobility and a column in its table of municipalities.
+- Connector `bicipalma`: free bikes, e-bikes and docks of the 106 BiciPalma stations of Palma, from the GBFS 2.3
+  feed Nextbike publishes for the system `nextbike_ea` (CC0, no key), hour by hour: the mean, minimum and maximum of
+  each hour and the mean occupancy. CityBikes serves the same numbers from the same feed, so it is no fallback.
+- Live sources ([ADR 0026](docs/adr/0026-fuentes-en-vivo-sin-historico.md)): a source that only publishes its current
+  state is polled every 5 minutes by a new DAG, `live_poll` (`MDP_LIVE_SCHEDULE`, `make poll`), which keeps each
+  answer untouched in bronze under the source's own timestamp (`<source>/snapshots/<dataset>/day=<day>/`), without
+  Spark (about 2 s and 75 MB per poll). The daily connector reads its window from those snapshots, never from the
+  API (`core/connectors/live.py`, `LiveConnector`). `poll_every` per dataset in the YAML; `make record-fixtures`
+  records one poll of each.
+- Core: `first_day()` and `observed_span()` on every connector. The hours before a live source's first snapshot are
+  not gaps, and a window made only of them is skipped without recording a run.
+- dbt: `stg_bicipalma__observations` (freshness at 48 h), `fct_bike_stations_hourly` (incremental, with whether the
+  station ran out of bikes or docks in the hour) and `fct_bike_stations_daily`; in the catalogue in three languages.
+- API: `GET /v1/mobility/bike-stations` and `GET /v1/mobility/bikes/hourly`.
+- Web: the BiciPalma stations as a layer of the Mobility map, with their card on click, the network hour by hour and
+  the stations that run out most. Grafana: *BiciPalma hora a hora* in the Mobility dashboard.
 
 ### Fixed
 
-- The home description and the data model said fifteen sources: there are seventeen with this one.
+- The home description and the data model said fifteen sources: there are eighteen with `ine_tourist_housing` and
+  `bicipalma`.
+- `only_missing` took a day as loaded when a successful run had read it before it was over (a manual run of today):
+  that day stays missing, and the next run reads it whole.
 
 ## [0.20.2] - 2026-11-26
 

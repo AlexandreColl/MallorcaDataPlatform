@@ -27,12 +27,13 @@ agua?
 
 ```mermaid
 flowchart LR
-    SRC["17 fuentes abiertas"] --> AF
+    SRC["18 fuentes abiertas"] --> AF
     subgraph AF["Airflow (con PySpark y dbt)"]
         direction TB
         ING["ingest<br/>una tarea por conector, 2 a la vez"] --> DET[detect_anomalies] --> COR[correct_values] --> DBT[dbt_build]
     end
     AF --> MINIO[("MinIO<br/>bronze · silver en Delta")]
+    SRC -->|"BiciPalma, cada 5 min"| POLL["live_poll<br/>sin Spark"] --> MINIO
     AF --> PG[("PostgreSQL<br/>silver · quality · ops · gold")]
     PG --> GF["Grafana<br/>dashboards y alertas"]
     PG --> API["API REST<br/>solo lectura"] --> WEB["Web<br/>la isla en cifras"]
@@ -43,7 +44,7 @@ flowchart LR
 
 | Capa | Dónde | Para qué |
 |---|---|---|
-| **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json` | Guardar la respuesta tal cual llegó, para poder reprocesar sin volver a llamar a la fuente |
+| **bronze** | `s3://bronze/<fuente>/<dataset>/window=<desde>_<hasta>/payload.json`, y las instantáneas de las fuentes en vivo en `<fuente>/snapshots/<dataset>/day=<día>/<instante>.json` | Guardar la respuesta tal cual llegó, para poder reprocesar sin volver a llamar a la fuente |
 | **silver** | Tabla Delta en `s3://silver/observations` y `silver.observations` en Postgres | Esquema común `source, entity, metric, ts, value, unit, quality, lat, lon`, con calidad marcada |
 | **gold** | Esquema `gold` (dbt) | Hechos incrementales, marts por dominio con contrato y salud de las fuentes |
 | **servicio** | Web, Grafana y FastAPI | La web para quien quiere ver la isla; Grafana para operar la plataforma; la API para leer gold desde un programa. Grafana y la API tienen su usuario de solo lectura, y la web solo habla con la API |
@@ -125,6 +126,7 @@ evolucionó la plataforma. Este es el resumen de las que están en vigor:
 | [0023](adr/0023-cache-y-limite-en-el-proceso-de-la-api.md) | Caché y límite de peticiones en cada proceso de la API | Gold cambia una vez al día; sin un almacén compartido que mantener |
 | [0024](adr/0024-la-web-en-tres-idiomas.md) | La web en castellano, catalán e inglés | El idioma en la URL y diccionarios tipados: `tsc` falla si falta un texto |
 | [0025](adr/0025-variante-en-databricks-free-edition.md) | Una variante en Databricks Free Edition | Los mismos conectores y reglas de calidad en un lakehouse gestionado con Unity Catalog, sin coste |
+| [0026](adr/0026-fuentes-en-vivo-sin-historico.md) | Una fuente sin histórico se sondea cada 5 minutos y su serie sale de bronze | BiciPalma solo publica su estado actual: un sondeo sin Spark guarda instantáneas en bronze y el conector diario las resume por hora |
 
 Sustituidas y rechazadas:
 
@@ -176,7 +178,7 @@ coste fijo por conector, no el volumen.
 | Silver en Delta y en Postgres ([0002](adr/0002-medallion.md)) | Lake auditable y consultas en milisegundos | Doble escritura y 2,6 GB repetidos | El warehouse pasa a un motor que lea el lake | Athena (o Redshift Spectrum) sobre Delta; Postgres solo para marts pequeños |
 | Esquema largo, una fila por valor ([0001](adr/0001-nucleo-fijo-y-conectores.md)) | Una fuente nueva no toca ni el núcleo ni el esquema | Los marts tienen que pivotar; los datos que no son series se resumen | Hacen falta tipos que no son números (texto, geometría) | Tablas anchas por dominio en silver, con el esquema largo solo para las series |
 | Postgres como warehouse ([0006](adr/0006-postgres-y-dbt.md)) | Un solo servicio para dbt, Grafana, la API y el estado | Almacenamiento por filas: gold ocupa más que silver | Gold pasa de unos 100 millones de filas o las consultas de Grafana tardan segundos | Particionar `fct_observations` por mes; después, un motor columnar con el mismo dbt |
-| Lotes diarios | Ventanas de días completos, idempotencia simple | Un día de retraso | Una fuente publica en continuo y alguien necesita actuar en minutos | Streaming solo para esa fuente; las fuentes de hoy publican cada hora como mucho |
+| Lotes diarios ([0026](adr/0026-fuentes-en-vivo-sin-historico.md) para las fuentes en vivo) | Ventanas de días completos, idempotencia simple | Un día de retraso, también en BiciPalma, que se sondea cada 5 minutos | Alguien necesita actuar en minutos sobre una fuente en vivo | Cargar cada hora desde bronze, o un consumidor en streaming que escriba las mismas instantáneas |
 | Recalcular 14 días de anomalías y correcciones ([0003](adr/0003-idempotencia.md)) | Sin estado incremental que mantener | Se repite trabajo cada día (57 s) | Muchas más series: el tiempo crece con series × días | Recalcular solo las series que cambiaron (el Change Data Feed de Delta ya lo dice) |
 
 ### Qué se rompe primero al crecer

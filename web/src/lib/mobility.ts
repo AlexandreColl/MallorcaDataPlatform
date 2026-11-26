@@ -1,6 +1,16 @@
 // The figures of the mobility page: key figures, the rows of the municipalities, the stop layers and subtitles.
 
-import type { HumanPressureDay, MobilityDay, Municipality, PopulationYear, StopService, TouristDwellings, TransitRoute } from "../api";
+import type {
+  BikesHour,
+  BikeStation,
+  HumanPressureDay,
+  MobilityDay,
+  Municipality,
+  PopulationYear,
+  StopService,
+  TouristDwellings,
+  TransitRoute,
+} from "../api";
 import type { MapLayer } from "../components/PointMap";
 import { messages } from "../i18n";
 import { compact, dayName, dayShort, number, signed } from "./format";
@@ -137,4 +147,43 @@ export function stopLayers(stops: StopService[]): MapLayer[] {
       })),
     };
   });
+}
+
+/** BiciPalma's colour on the map and in the charts: orange, apart from the red EMT and the blue CTM. */
+export const BIKES = { label: "BiciPalma", color: "#ea580c" } as const;
+
+/**
+ * The BiciPalma stations of the latest day: sized by their working docks, with a card of their day (mean bikes,
+ * e-bikes, occupancy and the hours they ran out of bikes or of docks).
+ */
+export function bikeLayer(stations: BikeStation[]): MapLayer {
+  const m = messages().mobility;
+  const largest = Math.max(1, ...stations.map((s) => s.working_docks ?? 0));
+  return {
+    id: "bicipalma", label: BIKES.label, color: BIKES.color, radius: 2.2,
+    points: stations.map((s) => ({
+      lat: s.lat, lon: s.lon,
+      size: 0.6 + 1.4 * Math.sqrt((s.working_docks ?? 0) / largest),
+      popup: [
+        s.name ?? s.station,
+        m.bikePopup(number(s.bikes_available ?? 0, 1), number(s.ebikes_available ?? 0, 1)),
+        m.bikeOccupancy(number(s.occupancy_pct ?? 0), number(s.working_docks ?? 0)),
+        m.bikeEmptyFull(number(s.hours_empty), number(s.hours_full), number(s.hours_observed)),
+      ],
+    })),
+  };
+}
+
+/** The stations that ran out of bikes for the most hours on the latest day, then the fullest ones. */
+export function emptiestStations(stations: BikeStation[], n = 10): BikeStation[] {
+  return [...stations]
+    .sort((a, b) => b.hours_empty - a.hours_empty || b.hours_full - a.hours_full || (a.name ?? "").localeCompare(b.name ?? ""))
+    .slice(0, n);
+}
+
+/** Subtitle of the BiciPalma chart: the hours shown and the latest one. */
+export function bikesSubtitle(hours: BikesHour[] | null): string {
+  const m = messages().mobility;
+  const last = hours?.at(-1);
+  return last ? `${m.bikesIntro} ${m.bikesUpTo(dayName(last.local_date))}` : m.bikesIntro;
 }

@@ -47,6 +47,7 @@ cambio.
 | [0023](0023-cache-y-limite-en-el-proceso-de-la-api.md) | Caché y límite de peticiones en la memoria de cada proceso de la API | Aceptada | 2026-11-14 |
 | [0024](0024-la-web-en-tres-idiomas.md) | La web en castellano, catalán e inglés, con el idioma en la URL y sin librería | Aceptada | 2026-11-17 |
 | [0025](0025-variante-en-databricks-free-edition.md) | Una variante en Databricks Free Edition con el mismo código de los conectores | Aceptada | 2026-11-24 |
+| [0026](0026-fuentes-en-vivo-sin-historico.md) | Una fuente sin histórico se sondea cada 5 minutos y su serie sale de bronze | Aceptada | 2026-11-26 |
 
 Las fechas son las del commit que llevó la decisión a `develop`. Las ADR se escribieron a la vez el 3 de
 noviembre de 2026, a partir del historial y de las notas de cada PR.

@@ -16,6 +16,8 @@ from core.models import KEY
 from core.quality import QualityEngine, rules_for
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from pyspark.sql import DataFrame, SparkSession
 
     from core.connectors import BaseConnector
@@ -50,7 +52,12 @@ def deduplicate(df: DataFrame) -> DataFrame:
     return df.withColumn("_rn", F.row_number().over(w)).where("_rn = 1").drop("_rn")
 
 
-def apply_quality(df: DataFrame, connector: BaseConnector, window: TimeWindow) -> tuple[DataFrame, list[RuleResult]]:
-    """Label rows with the connector's rule set, then collapse duplicates."""
-    flagged, results = QualityEngine(rules_for(connector.config, window)).run(df)
+def apply_quality(
+    df: DataFrame, connector: BaseConnector, window: TimeWindow, span: tuple[datetime, datetime] | None = None
+) -> tuple[DataFrame, list[RuleResult]]:
+    """Label rows with the connector's rule set, then collapse duplicates.
+
+    ``span`` narrows the time steps the gaps rule expects to the part of the window the source could cover.
+    """
+    flagged, results = QualityEngine(rules_for(connector.config, window, span)).run(df)
     return deduplicate(flagged), results

@@ -276,7 +276,11 @@ class Warehouse:
         return row[0] if row else None
 
     def missing_days(self, source: str, region: str, window: TimeWindow) -> list[date]:
-        """Days of ``window`` that no successful run of ``source`` for ``region`` has covered yet, oldest first."""
+        """Days of ``window`` that no successful run of ``source`` for ``region`` has covered yet, oldest first.
+
+        A run that started before a day was over (a manual run of today, a live source read at noon) only loaded part
+        of it: the day stays missing, and the next run reads it whole.
+        """
         with self.connect() as conn:
             rows = conn.execute(
                 """
@@ -286,6 +290,7 @@ class Warehouse:
                     SELECT 1 FROM ops.ingestion_runs AS r
                     WHERE r.source = %s AND r.region = %s AND r.status = 'success'
                       AND day::date BETWEEN r.window_start AND r.window_end
+                      AND r.started_at >= (day::date + 1)::timestamp AT TIME ZONE 'UTC'
                 )
                 ORDER BY 1
                 """,

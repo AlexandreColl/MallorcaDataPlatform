@@ -134,6 +134,23 @@ def _to_download(
     return remaining
 
 
+def _from_first_day(connector: BaseConnector, window: TimeWindow, run_id: str) -> TimeWindow | None:
+    """``window`` from the connector's first day on (a live source's first snapshot); None if it ends before it.
+
+    The days before a live source was first polled are not missing: there was nothing to keep. A window made only
+    of them is skipped without recording a run, so it counts neither as a load nor as a failure.
+    """
+    first = connector.first_day()
+    if first is None or first <= window.start:
+        return window
+    if first > window.end:
+        log.info("run %s: %s has nothing before %s (its first snapshot), window %s..%s skipped", run_id,
+                 connector.name, first, window.start, window.end)  # fmt: skip
+        return None
+    log.info("run %s: %s starts on %s, its first snapshot", run_id, connector.name, first)
+    return TimeWindow(first, window.end)
+
+
 def new_run_id() -> str:
     """Run id for executions launched outside Airflow."""
     return f"manual__{datetime.now(UTC):%Y%m%dT%H%M%S}_{uuid.uuid4().hex[:6]}"
@@ -147,11 +164,16 @@ def extract_to_bronze(connector: BaseConnector, window: TimeWindow, region: Regi
 
 @dataclass
 class Normalized:
-    """What the payloads of a run hold: the observations, the names of their entities and the transit lines."""
+    """What the payloads of a run hold: the observations, the names of their entities and the transit lines.
+
+    ``span`` is the part of the window the source could have values for, when it is not all of it (a live source:
+    from its first snapshot to when the window was read). The gaps rule expects only the time steps inside it.
+    """
 
     observations: list[Observation]
     entities: list[Entity]
     routes: list[Route]
+    span: tuple[datetime, datetime] | None = None
 
 
 def bronze_to_silver(connector: BaseConnector, keys: list[str], region: Region, store: BronzeStore) -> Normalized:
@@ -159,12 +181,16 @@ def bronze_to_silver(connector: BaseConnector, keys: list[str], region: Region, 
     observations: list[Observation] = []
     names: dict[str, Entity] = {}  # one name per entity: the same station is in several payloads
     routes: dict[str, Route] = {}  # one path per line: the latest payload wins
+    spans: list[tuple[datetime, datetime]] = []
     for key in keys:
         payload = store.get(key)
         observations.extend(connector.normalize(payload, region))
         names.update((e.entity, e) for e in connector.describe(payload, region))
         routes.update((r.route, r) for r in connector.routes(payload, region))
-    return Normalized(observations, list(names.values()), list(routes.values()))
+        if (span := connector.observed_span(payload)) is not None:
+            spans.append(span)
+    span = (min(s for s, _ in spans), max(e for _, e in spans)) if spans else None
+    return Normalized(observations, list(names.values()), list(routes.values()), span)
 
 
 def write_silver(df: DataFrame, settings: Settings, landing_table: str) -> None:
@@ -197,12 +223,13 @@ def _load_observations(
 
 
 def _load_silver(
-    connector: BaseConnector, observations: list[Observation], window: TimeWindow, run_id: str, warehouse: Warehouse
+    connector: BaseConnector, normalized: Normalized, window: TimeWindow, run_id: str, warehouse: Warehouse
 ) -> tuple[int, int, list[RuleResult]]:
     """Quality-label the observations and load them into silver. Returns (rows, upserted, rule results)."""
     settings = warehouse.settings
     spark = build_spark(settings, app_name=f"mdp-{connector.name}")
-    silver, results = apply_quality(to_dataframe(spark, observations, run_id), connector, window)
+    df = to_dataframe(spark, normalized.observations, run_id)
+    silver, results = apply_quality(df, connector, window, span=normalized.span)
     silver = silver.cache()
     try:
         rows_silver = silver.count()
@@ -244,6 +271,10 @@ def run_connector(  # noqa: PLR0913 - everything after `days` is keyword-only
 
     warehouse = Warehouse(settings)
     warehouse.ensure_schema()
+    clipped = _from_first_day(connector, window, run_id)
+    if clipped is None:
+        return RunSummary.of(run_id, name, region.name, window, skipped=True)
+    window = clipped
     if only_missing:
         remaining = _to_download(warehouse, connector, region, window, run_id)
         if remaining is None:
@@ -313,7 +344,7 @@ def _load_window(
             log.info("run %s: %d of %d %s routes new, changed or gone", run_id, changed, len(normalized.routes), name)
         if observations:
             ensure_bucket(store.client, settings.silver_bucket)
-            rows_silver, upserted, results = _load_silver(connector, observations, window, run_id, warehouse)
+            rows_silver, upserted, results = _load_silver(connector, normalized, window, run_id, warehouse)
             warehouse.record_quality(run_id, name, window, results)
         else:  # event source with no events in the window: raw response kept in bronze, nothing to load
             log.info("run %s: no %s events in %s..%s", run_id, name, window.start, window.end)

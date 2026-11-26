@@ -1,0 +1,1635 @@
+{
+ "last_updated": 1795708239,
+ "ttl": 60,
+ "data": {
+  "stations": [
+   {
+    "station_id": "91733840",
+    "name": "01 PARC DE SES VELES",
+    "short_name": "34200",
+    "lat": 39.566056,
+    "lon": 2.659389,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91733840",
+     "ios": "https://bicipalma.nextbike.app/station?id=91733840",
+     "web": "https://nxtb.it/p/91733840"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91734157",
+    "name": "02 MANUEL AZAÑA",
+    "short_name": "34201",
+    "lat": 39.56625,
+    "lon": 2.663083,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91734157",
+     "ios": "https://bicipalma.nextbike.app/station?id=91734157",
+     "web": "https://nxtb.it/p/91734157"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91734419",
+    "name": "05 BABIECA / SON FERRIOL",
+    "short_name": "34204",
+    "lat": 39.571846,
+    "lon": 2.711458,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91734419",
+     "ios": "https://bicipalma.nextbike.app/station?id=91734419",
+     "web": "https://nxtb.it/p/91734419"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "91734790",
+    "name": "06 MANACOR-MANUEL AZAÑA",
+    "short_name": "34205",
+    "lat": 39.57125,
+    "lon": 2.66575,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91734790",
+     "ios": "https://bicipalma.nextbike.app/station?id=91734790",
+     "web": "https://nxtb.it/p/91734790"
+    },
+    "is_virtual_station": false,
+    "capacity": 10
+   },
+   {
+    "station_id": "91735985",
+    "name": "07 ARAGÓ / NUREDDUNA",
+    "short_name": "34206",
+    "lat": 39.572861,
+    "lon": 2.657194,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91735985",
+     "ios": "https://bicipalma.nextbike.app/station?id=91735985",
+     "web": "https://nxtb.it/p/91735985"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91736224",
+    "name": "08 MIRADOR D'EL TERRENO",
+    "short_name": "34207",
+    "lat": 39.561086,
+    "lon": 2.624927,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91736224",
+     "ios": "https://bicipalma.nextbike.app/station?id=91736224",
+     "web": "https://nxtb.it/p/91736224"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91736444",
+    "name": "09 FAUST MORELL / PERE GARAU",
+    "short_name": "34208",
+    "lat": 39.575154,
+    "lon": 2.66349,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91736444",
+     "ios": "https://bicipalma.nextbike.app/station?id=91736444",
+     "web": "https://nxtb.it/p/91736444"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91736585",
+    "name": "10 MARQUÈS DE LA SÉNIA",
+    "short_name": "34209",
+    "lat": 39.56843,
+    "lon": 2.630049,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91736585",
+     "ios": "https://bicipalma.nextbike.app/station?id=91736585",
+     "web": "https://nxtb.it/p/91736585"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91736983",
+    "name": "12 PLAÇA SON ESPANYOLET",
+    "short_name": "34211",
+    "lat": 39.573098,
+    "lon": 2.631787,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91736983",
+     "ios": "https://bicipalma.nextbike.app/station?id=91736983",
+     "web": "https://nxtb.it/p/91736983"
+    },
+    "is_virtual_station": false,
+    "capacity": 17
+   },
+   {
+    "station_id": "91737131",
+    "name": "13 PARC DE SES ESTACIONS",
+    "short_name": "34212",
+    "lat": 39.575667,
+    "lon": 2.654778,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91737131",
+     "ios": "https://bicipalma.nextbike.app/station?id=91737131",
+     "web": "https://nxtb.it/p/91737131"
+    },
+    "is_virtual_station": false,
+    "capacity": 30
+   },
+   {
+    "station_id": "91737288",
+    "name": "14 CAMÍ DE SON RAPINYA",
+    "short_name": "34213",
+    "lat": 39.579603,
+    "lon": 2.6256,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91737288",
+     "ios": "https://bicipalma.nextbike.app/station?id=91737288",
+     "web": "https://nxtb.it/p/91737288"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "91737459",
+    "name": "15 JACINT VERDAGUER-JAUME BALMES",
+    "short_name": "34214",
+    "lat": 39.580056,
+    "lon": 2.660194,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91737459",
+     "ios": "https://bicipalma.nextbike.app/station?id=91737459",
+     "web": "https://nxtb.it/p/91737459"
+    },
+    "is_virtual_station": false,
+    "capacity": 18
+   },
+   {
+    "station_id": "91737581",
+    "name": "16 PARC DE SA RIERA",
+    "short_name": "34215",
+    "lat": 39.581722,
+    "lon": 2.644139,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91737581",
+     "ios": "https://bicipalma.nextbike.app/station?id=91737581",
+     "web": "https://nxtb.it/p/91737581"
+    },
+    "is_virtual_station": false,
+    "capacity": 24
+   },
+   {
+    "station_id": "91737759",
+    "name": "17 ARAGÓ / JAUME BALMES",
+    "short_name": "34216",
+    "lat": 39.578722,
+    "lon": 2.662611,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91737759",
+     "ios": "https://bicipalma.nextbike.app/station?id=91737759",
+     "web": "https://nxtb.it/p/91737759"
+    },
+    "is_virtual_station": false,
+    "capacity": 21
+   },
+   {
+    "station_id": "91737907",
+    "name": "18 JOSEP DARDER METGE",
+    "short_name": "34217",
+    "lat": 39.577278,
+    "lon": 2.66725,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91737907",
+     "ios": "https://bicipalma.nextbike.app/station?id=91737907",
+     "web": "https://nxtb.it/p/91737907"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91738090",
+    "name": "19 ARXIDUC LLUIS SALVADOR-MÚSIC JOSEP BALAGUER",
+    "short_name": "34218",
+    "lat": 39.584611,
+    "lon": 2.657444,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91738090",
+     "ios": "https://bicipalma.nextbike.app/station?id=91738090",
+     "web": "https://nxtb.it/p/91738090"
+    },
+    "is_virtual_station": false,
+    "capacity": 19
+   },
+   {
+    "station_id": "91738284",
+    "name": "20 PASCUAL RIBOT / SON PISÀ",
+    "short_name": "34219",
+    "lat": 39.579646,
+    "lon": 2.635951,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91738284",
+     "ios": "https://bicipalma.nextbike.app/station?id=91738284",
+     "web": "https://nxtb.it/p/91738284"
+    },
+    "is_virtual_station": false,
+    "capacity": 25
+   },
+   {
+    "station_id": "91738529",
+    "name": "22 SALVADOR DALÍ",
+    "short_name": "34221",
+    "lat": 39.585028,
+    "lon": 2.634639,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91738529",
+     "ios": "https://bicipalma.nextbike.app/station?id=91738529",
+     "web": "https://nxtb.it/p/91738529"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "91738697",
+    "name": "23 SON MOIX",
+    "short_name": "34222",
+    "lat": 39.586577,
+    "lon": 2.626992,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91738697",
+     "ios": "https://bicipalma.nextbike.app/station?id=91738697",
+     "web": "https://nxtb.it/p/91738697"
+    },
+    "is_virtual_station": false,
+    "capacity": 18
+   },
+   {
+    "station_id": "91738832",
+    "name": "24 BLANQUERNA / COMTE DE SALLENT",
+    "short_name": "34223",
+    "lat": 39.578028,
+    "lon": 2.651278,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91738832",
+     "ios": "https://bicipalma.nextbike.app/station?id=91738832",
+     "web": "https://nxtb.it/p/91738832"
+    },
+    "is_virtual_station": false,
+    "capacity": 28
+   },
+   {
+    "station_id": "91739003",
+    "name": "25 BLANQUERNA-PARE BARTOMEU POU",
+    "short_name": "34224",
+    "lat": 39.580722,
+    "lon": 2.649167,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91739003",
+     "ios": "https://bicipalma.nextbike.app/station?id=91739003",
+     "web": "https://nxtb.it/p/91739003"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91739129",
+    "name": "26 SON FLOR",
+    "short_name": "34225",
+    "lat": 39.589466,
+    "lon": 2.625752,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91739129",
+     "ios": "https://bicipalma.nextbike.app/station?id=91739129",
+     "web": "https://nxtb.it/p/91739129"
+    },
+    "is_virtual_station": false,
+    "capacity": 17
+   },
+   {
+    "station_id": "91739301",
+    "name": "27 PLAÇA PARÍS",
+    "short_name": "34226",
+    "lat": 39.584222,
+    "lon": 2.649194,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91739301",
+     "ios": "https://bicipalma.nextbike.app/station?id=91739301",
+     "web": "https://nxtb.it/p/91739301"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91739533",
+    "name": "28 CAMÍ DELS REIS-SON RAPINYA",
+    "short_name": "34227",
+    "lat": 39.585417,
+    "lon": 2.618917,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91739533",
+     "ios": "https://bicipalma.nextbike.app/station?id=91739533",
+     "web": "https://nxtb.it/p/91739533"
+    },
+    "is_virtual_station": false,
+    "capacity": 21
+   },
+   {
+    "station_id": "91739675",
+    "name": "29 INSTITUT BALEAR",
+    "short_name": "34228",
+    "lat": 39.577389,
+    "lon": 2.646472,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91739675",
+     "ios": "https://bicipalma.nextbike.app/station?id=91739675",
+     "web": "https://nxtb.it/p/91739675"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91740520",
+    "name": "30 CAMÍ DELS REIS-CAN VALERO",
+    "short_name": "34229",
+    "lat": 39.592889,
+    "lon": 2.633778,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91740520",
+     "ios": "https://bicipalma.nextbike.app/station?id=91740520",
+     "web": "https://nxtb.it/p/91740520"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91741064",
+    "name": "31 PLAÇA MADRID",
+    "short_name": "34230",
+    "lat": 39.5775,
+    "lon": 2.640889,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91741064",
+     "ios": "https://bicipalma.nextbike.app/station?id=91741064",
+     "web": "https://nxtb.it/p/91741064"
+    },
+    "is_virtual_station": false,
+    "capacity": 24
+   },
+   {
+    "station_id": "91741239",
+    "name": "32 PLAÇA BARCELONA",
+    "short_name": "34231",
+    "lat": 39.580028,
+    "lon": 2.639389,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91741239",
+     "ios": "https://bicipalma.nextbike.app/station?id=91741239",
+     "web": "https://nxtb.it/p/91741239"
+    },
+    "is_virtual_station": false,
+    "capacity": 18
+   },
+   {
+    "station_id": "91741462",
+    "name": "33 GENERAL RIERA",
+    "short_name": "34232",
+    "lat": 39.587373,
+    "lon": 2.64571,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91741462",
+     "ios": "https://bicipalma.nextbike.app/station?id=91741462",
+     "web": "https://nxtb.it/p/91741462"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91745591",
+    "name": "34 LLIBERTAT / SANT FERRAN",
+    "short_name": "34233",
+    "lat": 39.577583,
+    "lon": 2.633417,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91745591",
+     "ios": "https://bicipalma.nextbike.app/station?id=91745591",
+     "web": "https://nxtb.it/p/91745591"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91745720",
+    "name": "35 CONSERVATORI",
+    "short_name": "34234",
+    "lat": 39.589667,
+    "lon": 2.653417,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91745720",
+     "ios": "https://bicipalma.nextbike.app/station?id=91745720",
+     "web": "https://nxtb.it/p/91745720"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91745876",
+    "name": "36 SON HUGO",
+    "short_name": "34235",
+    "lat": 39.592639,
+    "lon": 2.661361,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91745876",
+     "ios": "https://bicipalma.nextbike.app/station?id=91745876",
+     "web": "https://nxtb.it/p/91745876"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91745979",
+    "name": "37 AVINGUDA ARGENTINA",
+    "short_name": "34236",
+    "lat": 39.574472,
+    "lon": 2.640778,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91745979",
+     "ios": "https://bicipalma.nextbike.app/station?id=91745979",
+     "web": "https://nxtb.it/p/91745979"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91746115",
+    "name": "38 CAS CAPISCOL",
+    "short_name": "34237",
+    "lat": 39.595833,
+    "lon": 2.652889,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91746115",
+     "ios": "https://bicipalma.nextbike.app/station?id=91746115",
+     "web": "https://nxtb.it/p/91746115"
+    },
+    "is_virtual_station": false,
+    "capacity": 19
+   },
+   {
+    "station_id": "91746239",
+    "name": "39 AVINGUDA TOMÀS DE VILLANUEVA CORTÉS",
+    "short_name": "34238",
+    "lat": 39.587056,
+    "lon": 2.663389,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91746239",
+     "ios": "https://bicipalma.nextbike.app/station?id=91746239",
+     "web": "https://nxtb.it/p/91746239"
+    },
+    "is_virtual_station": false,
+    "capacity": 21
+   },
+   {
+    "station_id": "91749502",
+    "name": "40 PREVERE RAFAEL BARRERA",
+    "short_name": "34239",
+    "lat": 39.583722,
+    "lon": 2.669889,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91749502",
+     "ios": "https://bicipalma.nextbike.app/station?id=91749502",
+     "web": "https://nxtb.it/p/91749502"
+    },
+    "is_virtual_station": false,
+    "capacity": 23
+   },
+   {
+    "station_id": "91753076",
+    "name": "42 CAMÍ SALARD",
+    "short_name": "34241",
+    "lat": 39.582694,
+    "lon": 2.682806,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91753076",
+     "ios": "https://bicipalma.nextbike.app/station?id=91753076",
+     "web": "https://nxtb.it/p/91753076"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "91753321",
+    "name": "43 TER",
+    "short_name": "34242",
+    "lat": 39.589583,
+    "lon": 2.676472,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91753321",
+     "ios": "https://bicipalma.nextbike.app/station?id=91753321",
+     "web": "https://nxtb.it/p/91753321"
+    },
+    "is_virtual_station": false,
+    "capacity": 21
+   },
+   {
+    "station_id": "91753528",
+    "name": "44 GERMANS ESCALAS",
+    "short_name": "34243",
+    "lat": 39.578111,
+    "lon": 2.678472,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91753528",
+     "ios": "https://bicipalma.nextbike.app/station?id=91753528",
+     "web": "https://nxtb.it/p/91753528"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91754642",
+    "name": "45 JAUME III",
+    "short_name": "34244",
+    "lat": 39.572528,
+    "lon": 2.643278,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91754642",
+     "ios": "https://bicipalma.nextbike.app/station?id=91754642",
+     "web": "https://nxtb.it/p/91754642"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91754796",
+    "name": "46 REI JOAN CARLES I",
+    "short_name": "34245",
+    "lat": 39.571,
+    "lon": 2.647,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91754796",
+     "ios": "https://bicipalma.nextbike.app/station?id=91754796",
+     "web": "https://nxtb.it/p/91754796"
+    },
+    "is_virtual_station": false,
+    "capacity": 24
+   },
+   {
+    "station_id": "91755353",
+    "name": "48 PARC DE L' ESPERANÇA",
+    "short_name": "34247",
+    "lat": 39.578917,
+    "lon": 2.673611,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91755353",
+     "ios": "https://bicipalma.nextbike.app/station?id=91755353",
+     "web": "https://nxtb.it/p/91755353"
+    },
+    "is_virtual_station": false,
+    "capacity": 17
+   },
+   {
+    "station_id": "91755522",
+    "name": "49 PLAÇA DE LA REINA",
+    "short_name": "34248",
+    "lat": 39.568611,
+    "lon": 2.646278,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91755522",
+     "ios": "https://bicipalma.nextbike.app/station?id=91755522",
+     "web": "https://nxtb.it/p/91755522"
+    },
+    "is_virtual_station": false,
+    "capacity": 24
+   },
+   {
+    "station_id": "91755715",
+    "name": "50 BENET PONS I FÀBREGUES",
+    "short_name": "34249",
+    "lat": 39.571556,
+    "lon": 2.670722,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91755715",
+     "ios": "https://bicipalma.nextbike.app/station?id=91755715",
+     "web": "https://nxtb.it/p/91755715"
+    },
+    "is_virtual_station": false,
+    "capacity": 24
+   },
+   {
+    "station_id": "91755930",
+    "name": "51 VIA ROMA",
+    "short_name": "34250",
+    "lat": 39.575222,
+    "lon": 2.647972,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91755930",
+     "ios": "https://bicipalma.nextbike.app/station?id=91755930",
+     "web": "https://nxtb.it/p/91755930"
+    },
+    "is_virtual_station": false,
+    "capacity": 30
+   },
+   {
+    "station_id": "91756194",
+    "name": "53 GENERAL RICARDO ORTEGA",
+    "short_name": "34252",
+    "lat": 39.569972,
+    "lon": 2.658389,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91756194",
+     "ios": "https://bicipalma.nextbike.app/station?id=91756194",
+     "web": "https://nxtb.it/p/91756194"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "91758240",
+    "name": "55 SANTA EULALIA",
+    "short_name": "34254",
+    "lat": 39.569083,
+    "lon": 2.650667,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91758240",
+     "ios": "https://bicipalma.nextbike.app/station?id=91758240",
+     "web": "https://nxtb.it/p/91758240"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91758393",
+    "name": "56 BALUARD DES PRÍNCEP",
+    "short_name": "34255",
+    "lat": 39.564915,
+    "lon": 2.656384,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91758393",
+     "ios": "https://bicipalma.nextbike.app/station?id=91758393",
+     "web": "https://nxtb.it/p/91758393"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "91758518",
+    "name": "57 PORTO PI",
+    "short_name": "34256",
+    "lat": 39.551944,
+    "lon": 2.620944,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91758518",
+     "ios": "https://bicipalma.nextbike.app/station?id=91758518",
+     "web": "https://nxtb.it/p/91758518"
+    },
+    "is_virtual_station": false,
+    "capacity": 27
+   },
+   {
+    "station_id": "91758929",
+    "name": "58 PASCUAL RIBOT / SON COTONER",
+    "short_name": "34257",
+    "lat": 39.582333,
+    "lon": 2.63225,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91758929",
+     "ios": "https://bicipalma.nextbike.app/station?id=91758929",
+     "web": "https://nxtb.it/p/91758929"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "91759105",
+    "name": "59 MATEU ENRIC LLADÓ",
+    "short_name": "34258",
+    "lat": 39.567722,
+    "lon": 2.656056,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91759105",
+     "ios": "https://bicipalma.nextbike.app/station?id=91759105",
+     "web": "https://nxtb.it/p/91759105"
+    },
+    "is_virtual_station": false,
+    "capacity": 9
+   },
+   {
+    "station_id": "91759299",
+    "name": "60 TRAVESSA D'EN BALLESTER",
+    "short_name": "34259",
+    "lat": 39.570278,
+    "lon": 2.655833,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91759299",
+     "ios": "https://bicipalma.nextbike.app/station?id=91759299",
+     "web": "https://nxtb.it/p/91759299"
+    },
+    "is_virtual_station": false,
+    "capacity": 10
+   },
+   {
+    "station_id": "91759456",
+    "name": "61 PLAÇA PONT",
+    "short_name": "34260",
+    "lat": 39.570361,
+    "lon": 2.633639,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91759456",
+     "ios": "https://bicipalma.nextbike.app/station?id=91759456",
+     "web": "https://nxtb.it/p/91759456"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91759725",
+    "name": "62 SON SARDINA",
+    "short_name": "34261",
+    "lat": 39.616996,
+    "lon": 2.654924,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91759725",
+     "ios": "https://bicipalma.nextbike.app/station?id=91759725",
+     "web": "https://nxtb.it/p/91759725"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91760007",
+    "name": "64 PARC DE S'ESCORXADOR",
+    "short_name": "34263",
+    "lat": 39.584892,
+    "lon": 2.651291,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91760007",
+     "ios": "https://bicipalma.nextbike.app/station?id=91760007",
+     "web": "https://nxtb.it/p/91760007"
+    },
+    "is_virtual_station": false,
+    "capacity": 18
+   },
+   {
+    "station_id": "91760176",
+    "name": "65 ALEXANDRE JAUME",
+    "short_name": "34264",
+    "lat": 39.5725,
+    "lon": 2.655389,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91760176",
+     "ios": "https://bicipalma.nextbike.app/station?id=91760176",
+     "web": "https://nxtb.it/p/91760176"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "91760582",
+    "name": "66 ARAGÓ/TORRENT DE NA BÀRBARA",
+    "short_name": "34265",
+    "lat": 39.585639,
+    "lon": 2.673056,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91760582",
+     "ios": "https://bicipalma.nextbike.app/station?id=91760582",
+     "web": "https://nxtb.it/p/91760582"
+    },
+    "is_virtual_station": false,
+    "capacity": 17
+   },
+   {
+    "station_id": "91760681",
+    "name": "67 PARC SON SERRA PARERA",
+    "short_name": "34266",
+    "lat": 39.598766,
+    "lon": 2.640719,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91760681",
+     "ios": "https://bicipalma.nextbike.app/station?id=91760681",
+     "web": "https://nxtb.it/p/91760681"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "91761204",
+    "name": "68 POLÍGON DE SON ROSSINYOL",
+    "short_name": "34267",
+    "lat": 39.601792,
+    "lon": 2.655212,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91761204",
+     "ios": "https://bicipalma.nextbike.app/station?id=91761204",
+     "web": "https://nxtb.it/p/91761204"
+    },
+    "is_virtual_station": false,
+    "capacity": 22
+   },
+   {
+    "station_id": "91761764",
+    "name": "70 CARRETERA VALLDEMOSSA-GUILLEM FORTEZA",
+    "short_name": "34269",
+    "lat": 39.587889,
+    "lon": 2.650056,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91761764",
+     "ios": "https://bicipalma.nextbike.app/station?id=91761764",
+     "web": "https://nxtb.it/p/91761764"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "91762517",
+    "name": "71 SANT VICENÇ DE PAUL",
+    "short_name": "34270",
+    "lat": 39.593139,
+    "lon": 2.647611,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91762517",
+     "ios": "https://bicipalma.nextbike.app/station?id=91762517",
+     "web": "https://nxtb.it/p/91762517"
+    },
+    "is_virtual_station": false,
+    "capacity": 18
+   },
+   {
+    "station_id": "91762782",
+    "name": "80 BARTOMEU BARCELÓ I MIR",
+    "short_name": "34272",
+    "lat": 39.561611,
+    "lon": 2.670778,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=91762782",
+     "ios": "https://bicipalma.nextbike.app/station?id=91762782",
+     "web": "https://nxtb.it/p/91762782"
+    },
+    "is_virtual_station": false,
+    "capacity": 22
+   },
+   {
+    "station_id": "116182705",
+    "name": "21 ALEXANDER FLEMING",
+    "short_name": "34220",
+    "lat": 39.58113,
+    "lon": 2.65546,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=116182705",
+     "ios": "https://bicipalma.nextbike.app/station?id=116182705",
+     "web": "https://nxtb.it/p/116182705"
+    },
+    "is_virtual_station": false,
+    "capacity": 17
+   },
+   {
+    "station_id": "137971488",
+    "name": "41 COTONER",
+    "short_name": "34330",
+    "lat": 39.572511,
+    "lon": 2.637555,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=137971488",
+     "ios": "https://bicipalma.nextbike.app/station?id=137971488",
+     "web": "https://nxtb.it/p/137971488"
+    },
+    "is_virtual_station": false,
+    "capacity": 10
+   },
+   {
+    "station_id": "137973565",
+    "name": "47 PLAÇA PORTA SANTA CATALINA",
+    "short_name": "34331",
+    "lat": 39.571162,
+    "lon": 2.641661,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=137973565",
+     "ios": "https://bicipalma.nextbike.app/station?id=137973565",
+     "web": "https://nxtb.it/p/137973565"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "137973951",
+    "name": "77 SON COSTA / SON FORTESA",
+    "short_name": "34333",
+    "lat": 39.584228,
+    "lon": 2.665948,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=137973951",
+     "ios": "https://bicipalma.nextbike.app/station?id=137973951",
+     "web": "https://nxtb.it/p/137973951"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "150914820",
+    "name": "100 SANT JOAN DE LA SALLE",
+    "short_name": "34273",
+    "lat": 39.579234,
+    "lon": 2.647424,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=150914820",
+     "ios": "https://bicipalma.nextbike.app/station?id=150914820",
+     "web": "https://nxtb.it/p/150914820"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "153000746",
+    "name": "03 PLAÇA MERCAT",
+    "short_name": "34337",
+    "lat": 39.571465,
+    "lon": 2.648662,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=153000746",
+     "ios": "https://bicipalma.nextbike.app/station?id=153000746",
+     "web": "https://nxtb.it/p/153000746"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "156287918",
+    "name": "76 CAMI FONDO",
+    "short_name": "34332",
+    "lat": 39.566683,
+    "lon": 2.685529,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=156287918",
+     "ios": "https://bicipalma.nextbike.app/station?id=156287918",
+     "web": "https://nxtb.it/p/156287918"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "156289868",
+    "name": "81 VICARI JOAQUIM FUSTER",
+    "short_name": "34274",
+    "lat": 39.55672,
+    "lon": 2.679736,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=156289868",
+     "ios": "https://bicipalma.nextbike.app/station?id=156289868",
+     "web": "https://nxtb.it/p/156289868"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "159351577",
+    "name": "78 SON LLÀTZER",
+    "short_name": "34271",
+    "lat": 39.574672,
+    "lon": 2.701864,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=159351577",
+     "ios": "https://bicipalma.nextbike.app/station?id=159351577",
+     "web": "https://nxtb.it/p/159351577"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "159603302",
+    "name": "04 BLATERA / SON FERRIOL",
+    "short_name": "34203",
+    "lat": 39.578571,
+    "lon": 2.715114,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=159603302",
+     "ios": "https://bicipalma.nextbike.app/station?id=159603302",
+     "web": "https://nxtb.it/p/159603302"
+    },
+    "is_virtual_station": false,
+    "capacity": 11
+   },
+   {
+    "station_id": "160363396",
+    "name": "79 S'AIGUA DOLÇA",
+    "short_name": "34275",
+    "lat": 39.565228,
+    "lon": 2.626951,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=160363396",
+     "ios": "https://bicipalma.nextbike.app/station?id=160363396",
+     "web": "https://nxtb.it/p/160363396"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "160367131",
+    "name": "83 CATALINA MARCH",
+    "short_name": "34276",
+    "lat": 39.588472,
+    "lon": 2.61674,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=160367131",
+     "ios": "https://bicipalma.nextbike.app/station?id=160367131",
+     "web": "https://nxtb.it/p/160367131"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "179012892",
+    "name": "69 SON ESPASES",
+    "short_name": "34277",
+    "lat": 39.605847,
+    "lon": 2.646647,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=179012892",
+     "ios": "https://bicipalma.nextbike.app/station?id=179012892",
+     "web": "https://nxtb.it/p/179012892"
+    },
+    "is_virtual_station": false,
+    "capacity": 30
+   },
+   {
+    "station_id": "179604953",
+    "name": "52 CECILI METEL",
+    "short_name": "34251",
+    "lat": 39.57651,
+    "lon": 2.650553,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=179604953",
+     "ios": "https://bicipalma.nextbike.app/station?id=179604953",
+     "web": "https://nxtb.it/p/179604953"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "315357166",
+    "name": "86 ESTADI MALLORCA NORD",
+    "short_name": "34339",
+    "lat": 39.591014,
+    "lon": 2.629541,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=315357166",
+     "ios": "https://bicipalma.nextbike.app/station?id=315357166",
+     "web": "https://nxtb.it/p/315357166"
+    },
+    "is_virtual_station": true,
+    "station_area": {
+     "type": "MultiPolygon",
+     "coordinates": [
+      [
+       [
+        [
+         2.629541,
+         39.591239
+        ],
+        [
+         2.629794,
+         39.591126
+        ],
+        [
+         2.629794,
+         39.590902
+        ],
+        [
+         2.629541,
+         39.590789
+        ],
+        [
+         2.629288,
+         39.590902
+        ],
+        [
+         2.629288,
+         39.591126
+        ],
+        [
+         2.629541,
+         39.591239
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   {
+    "station_id": "330794757",
+    "name": "84 POMPEU FABRA",
+    "short_name": "34280",
+    "lat": 39.588357,
+    "lon": 2.657104,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330794757",
+     "ios": "https://bicipalma.nextbike.app/station?id=330794757",
+     "web": "https://nxtb.it/p/330794757"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "330799058",
+    "name": "73 GRAN VIA ASIMA",
+    "short_name": "34340",
+    "lat": 39.601551,
+    "lon": 2.673215,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330799058",
+     "ios": "https://bicipalma.nextbike.app/station?id=330799058",
+     "web": "https://nxtb.it/p/330799058"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "330868524",
+    "name": "82 CAMÍ VELL DE BUNYOLA",
+    "short_name": "34300",
+    "lat": 39.594712,
+    "lon": 2.670594,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330868524",
+     "ios": "https://bicipalma.nextbike.app/station?id=330868524",
+     "web": "https://nxtb.it/p/330868524"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "330873848",
+    "name": "75 CAMÍ VELL DE SINEU",
+    "short_name": "34329",
+    "lat": 39.574063,
+    "lon": 2.685861,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330873848",
+     "ios": "https://bicipalma.nextbike.app/station?id=330873848",
+     "web": "https://nxtb.it/p/330873848"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "330879916",
+    "name": "85 GOLF DE CADIS",
+    "short_name": "34301",
+    "lat": 39.554849,
+    "lon": 2.686743,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330879916",
+     "ios": "https://bicipalma.nextbike.app/station?id=330879916",
+     "web": "https://nxtb.it/p/330879916"
+    },
+    "is_virtual_station": false,
+    "capacity": 10
+   },
+   {
+    "station_id": "330885907",
+    "name": "74 CRTA. MANACOR",
+    "short_name": "34341",
+    "lat": 39.570193,
+    "lon": 2.67943,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330885907",
+     "ios": "https://bicipalma.nextbike.app/station?id=330885907",
+     "web": "https://nxtb.it/p/330885907"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "330887622",
+    "name": "54 PALAU DE CONGRESSOS",
+    "short_name": "34253",
+    "lat": 39.563269,
+    "lon": 2.662194,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=330887622",
+     "ios": "https://bicipalma.nextbike.app/station?id=330887622",
+     "web": "https://nxtb.it/p/330887622"
+    },
+    "is_virtual_station": false,
+    "capacity": 15
+   },
+   {
+    "station_id": "527391515",
+    "name": "114 UIB ESTACIÓ",
+    "short_name": "34381",
+    "lat": 39.635038,
+    "lon": 2.648173,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=527391515",
+     "ios": "https://bicipalma.nextbike.app/station?id=527391515",
+     "web": "https://nxtb.it/p/527391515"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "527395651",
+    "name": "115 UIB MARGALIDA COMAS I CAMPS",
+    "short_name": "34382",
+    "lat": 39.637418,
+    "lon": 2.645396,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=527395651",
+     "ios": "https://bicipalma.nextbike.app/station?id=527395651",
+     "web": "https://nxtb.it/p/527395651"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "527395945",
+    "name": "116 UIB GASPAR MELCHOR DE JOVELLANOS",
+    "short_name": "34383",
+    "lat": 39.638893,
+    "lon": 2.644935,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=527395945",
+     "ios": "https://bicipalma.nextbike.app/station?id=527395945",
+     "web": "https://nxtb.it/p/527395945"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "527396180",
+    "name": "117 UIB SON LLEDÓ",
+    "short_name": "34384",
+    "lat": 39.639205,
+    "lon": 2.648084,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=527396180",
+     "ios": "https://bicipalma.nextbike.app/station?id=527396180",
+     "web": "https://nxtb.it/p/527396180"
+    },
+    "is_virtual_station": false,
+    "capacity": 16
+   },
+   {
+    "station_id": "527396379",
+    "name": "119 UIB INSTAL·LACIONS ESPORTIVES",
+    "short_name": "34385",
+    "lat": 39.642684,
+    "lon": 2.646427,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=527396379",
+     "ios": "https://bicipalma.nextbike.app/station?id=527396379",
+     "web": "https://nxtb.it/p/527396379"
+    },
+    "is_virtual_station": false,
+    "capacity": 13
+   },
+   {
+    "station_id": "527396524",
+    "name": "118 UIB ARXIDUC LLUÍS SALVADOR",
+    "short_name": "34386",
+    "lat": 39.643766,
+    "lon": 2.645626,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=527396524",
+     "ios": "https://bicipalma.nextbike.app/station?id=527396524",
+     "web": "https://nxtb.it/p/527396524"
+    },
+    "is_virtual_station": false,
+    "capacity": 11
+   },
+   {
+    "station_id": "608499960",
+    "name": "95 SANT JOAN DE DÉU",
+    "short_name": "34348",
+    "lat": 39.546714,
+    "lon": 2.699681,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=608499960",
+     "ios": "https://bicipalma.nextbike.app/station?id=608499960",
+     "web": "https://nxtb.it/p/608499960"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "630274214",
+    "name": "87 SON RAPINYA /QUATRE CANTONS",
+    "short_name": "34349",
+    "lat": 39.588556,
+    "lon": 2.612944,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630274214",
+     "ios": "https://bicipalma.nextbike.app/station?id=630274214",
+     "web": "https://nxtb.it/p/630274214"
+    },
+    "is_virtual_station": false,
+    "capacity": 10
+   },
+   {
+    "station_id": "630275319",
+    "name": "93 PICASSO 32",
+    "short_name": "34350",
+    "lat": 39.574029,
+    "lon": 2.625167,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630275319",
+     "ios": "https://bicipalma.nextbike.app/station?id=630275319",
+     "web": "https://nxtb.it/p/630275319"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "630276453",
+    "name": "97 SON DURETA",
+    "short_name": "34352",
+    "lat": 39.571789,
+    "lon": 2.623743,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630276453",
+     "ios": "https://bicipalma.nextbike.app/station?id=630276453",
+     "web": "https://nxtb.it/p/630276453"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "630277131",
+    "name": "98 SA TEULERA",
+    "short_name": "34353",
+    "lat": 39.572686,
+    "lon": 2.618735,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630277131",
+     "ios": "https://bicipalma.nextbike.app/station?id=630277131",
+     "web": "https://nxtb.it/p/630277131"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "630277649",
+    "name": "99 SON ARMADANS",
+    "short_name": "34354",
+    "lat": 39.569333,
+    "lon": 2.627083,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630277649",
+     "ios": "https://bicipalma.nextbike.app/station?id=630277649",
+     "web": "https://nxtb.it/p/630277649"
+    },
+    "is_virtual_station": false,
+    "capacity": 20
+   },
+   {
+    "station_id": "630277990",
+    "name": "101 SON CLADERA /CALA MESQUIDA",
+    "short_name": "34355",
+    "lat": 39.59389,
+    "lon": 2.679646,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630277990",
+     "ios": "https://bicipalma.nextbike.app/station?id=630277990",
+     "web": "https://nxtb.it/p/630277990"
+    },
+    "is_virtual_station": false,
+    "capacity": 10
+   },
+   {
+    "station_id": "630278440",
+    "name": "102 SON FUSTER/CONSELLERIA D'EDUCACIÓ",
+    "short_name": "34356",
+    "lat": 39.59425,
+    "lon": 2.673869,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630278440",
+     "ios": "https://bicipalma.nextbike.app/station?id=630278440",
+     "web": "https://nxtb.it/p/630278440"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "630278588",
+    "name": "103 JUNIPER SERRA",
+    "short_name": "34357",
+    "lat": 39.599483,
+    "lon": 2.678028,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=630278588",
+     "ios": "https://bicipalma.nextbike.app/station?id=630278588",
+     "web": "https://nxtb.it/p/630278588"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "632113449",
+    "name": "90 CENTRE DE TECNIFICACIÓ ESPORTIVA",
+    "short_name": "34360",
+    "lat": 39.60916,
+    "lon": 2.665914,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632113449",
+     "ios": "https://bicipalma.nextbike.app/station?id=632113449",
+     "web": "https://nxtb.it/p/632113449"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "632114937",
+    "name": "92 SANTIAGO ÁLVAREZ AVELLÁN",
+    "short_name": "34361",
+    "lat": 39.60561,
+    "lon": 2.676408,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632114937",
+     "ios": "https://bicipalma.nextbike.app/station?id=632114937",
+     "web": "https://nxtb.it/p/632114937"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "632115209",
+    "name": "94 CALA GAMBA",
+    "short_name": "34362",
+    "lat": 39.548314,
+    "lon": 2.694913,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632115209",
+     "ios": "https://bicipalma.nextbike.app/station?id=632115209",
+     "web": "https://nxtb.it/p/632115209"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "632116264",
+    "name": "96 CIUTAT JARDÍ",
+    "short_name": "34363",
+    "lat": 39.552111,
+    "lon": 2.690412,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632116264",
+     "ios": "https://bicipalma.nextbike.app/station?id=632116264",
+     "web": "https://nxtb.it/p/632116264"
+    },
+    "is_virtual_station": false,
+    "capacity": 12
+   },
+   {
+    "station_id": "632116825",
+    "name": "106 AVE MARIA",
+    "short_name": "34365",
+    "lat": 39.622861,
+    "lon": 2.654517,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632116825",
+     "ios": "https://bicipalma.nextbike.app/station?id=632116825",
+     "web": "https://nxtb.it/p/632116825"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "632116978",
+    "name": "107 ES CARNATGE",
+    "short_name": "34366",
+    "lat": 39.538416,
+    "lon": 2.708846,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632116978",
+     "ios": "https://bicipalma.nextbike.app/station?id=632116978",
+     "web": "https://nxtb.it/p/632116978"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   },
+   {
+    "station_id": "632117118",
+    "name": "109 CAN PASTILLA 88",
+    "short_name": "34367",
+    "lat": 39.539412,
+    "lon": 2.713285,
+    "region_id": "789",
+    "rental_uris": {
+     "android": "https://bicipalma.nextbike.app/station?id=632117118",
+     "ios": "https://bicipalma.nextbike.app/station?id=632117118",
+     "web": "https://nxtb.it/p/632117118"
+    },
+    "is_virtual_station": false,
+    "capacity": 14
+   }
+  ]
+ },
+ "version": "2.3"
+}

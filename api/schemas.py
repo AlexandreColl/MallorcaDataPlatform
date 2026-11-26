@@ -311,6 +311,42 @@ class StopService(BaseModel):
     lines: float | None
 
 
+class BikeStation(BaseModel):
+    """One BiciPalma station on the latest day with values (gold.fct_bike_stations_daily)."""
+
+    station: str = Field(examples=["station_91733840"], description="GBFS `station_id` of the operator (Nextbike).")
+    name: str | None = Field(default=None, examples=["01 PARC DE SES VELES"], description=NAME)
+    lat: float
+    lon: float
+    local_date: date
+    hours_observed: int = Field(description="Hours with at least one 5-minute snapshot.")
+    bikes_available: float | None = Field(description="Mean free bikes over the day.")
+    bikes_available_min: int | None
+    bikes_available_max: int | None
+    ebikes_available: float | None = Field(description="Mean free bikes with electric assist.")
+    docks_available: float | None = Field(description="Mean free docks.")
+    occupancy_pct: float | None = Field(description="Mean of bikes / (bikes + free docks), in %.")
+    working_docks: int | None = Field(description="Bikes plus free docks at the hour they added up most.")
+    hours_empty: int = Field(description="Hours in which the station ran out of bikes at some moment.")
+    hours_full: int = Field(description="Hours in which it ran out of free docks.")
+    largest_hourly_swing: int | None = Field(description="Largest maximum minus minimum of bikes in one hour.")
+
+
+class BikesHour(BaseModel):
+    """The whole BiciPalma system in one UTC hour (gold.fct_bike_stations_hourly, added up)."""
+
+    ts: datetime = Field(description="Start of the UTC hour.")
+    local_date: date
+    local_hour: int = Field(description="Hour of the day in Mallorca.")
+    stations: int = Field(description="Stations with a snapshot in the hour.")
+    bikes_available: float | None = Field(description="Free bikes: the stations' hourly means, added up.")
+    ebikes_available: float | None
+    docks_available: float | None
+    occupancy_pct: float | None = Field(description="Bikes / (bikes + free docks) of the whole system, in %.")
+    stations_empty: int = Field(description="Stations that ran out of bikes at some moment of the hour.")
+    stations_full: int = Field(description="Stations that ran out of free docks.")
+
+
 class RouteGeometry(BaseModel):
     """The path of a line as a GeoJSON MultiLineString of [lon, lat] points: one polyline per direction."""
 

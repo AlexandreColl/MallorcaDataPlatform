@@ -20,7 +20,7 @@ CONNECTORS_JSON := $(subst $(space),$(comma),$(CONNECTORS_JSON))
 RUN_CONF := {"connectors": $(CONNECTORS_JSON), "days": $(DAYS), "region": "$(REGION)", "only_missing": $(ONLY_MISSING)}
 
 .DEFAULT_GOAL := help
-.PHONY: help init build up down clean ps logs run run-local connectors test lint typecheck sqlfluff sqlfluff-fix format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill new-connector record-fixtures api-role api-test web-types minio-pipeline-user screenshots tf-check tf-fmt
+.PHONY: help init build up down clean ps logs run run-local poll connectors test lint typecheck sqlfluff sqlfluff-fix format dbt dbt-full-refresh psql e2e detect evaluate correct evaluate-corrections silver-history silver-changes silver-maintain backfill new-connector record-fixtures api-role api-test web-types minio-pipeline-user screenshots tf-check tf-fmt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -56,6 +56,9 @@ run: ## Trigger the DAG (only missing days): make run CONNECTORS=open_meteo,reda
 
 run-local: ## Run the pipeline without Airflow (CLI inside the image)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli run --connectors $(subst $(comma),$(space),$(CONNECTORS)) --days $(DAYS) --region $(REGION)
+
+poll: ## Keep the current state of the live sources in bronze now (the live_poll DAG does it every 5 min)
+	$(COMPOSE) exec airflow-scheduler python -m core.cli poll --region $(REGION)
 
 detect: ## Flag anomalies in the recent silver values: make detect DAYS=30 (at least rescore_days)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli detect --days $(DAYS)

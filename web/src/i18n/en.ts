@@ -11,7 +11,7 @@ export const en: Messages = {
       label: "Home",
       title: "Mallorca in data",
       description:
-        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Seventeen " +
+        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Eighteen " +
         "open sources, with their quality checked on every load.",
     },
     tourism: {
@@ -290,6 +290,11 @@ export const en: Messages = {
       `The path of each line in its operator’s colour; the thicker it is, the more departures it has ${day ? `on ${day}` : "on the last day"}. ` +
       "Click a line to see its figures.",
     stopPopup: (calls: string, lines: string) => `${calls} stop calls · ${lines} lines`,
+    bikePopup: (bikes: string, ebikes: string) => `${bikes} free bikes on average (${ebikes} electric)`,
+    bikeOccupancy: (pct: string, docks: string) => `Mean occupancy ${pct} % · ${docks} working docks`,
+    bikeEmptyFull: (empty: string, full: string, hours: string) => `No bikes for ${empty} h, full for ${full} h, of ${hours} h`,
+    bikesIntro: "Free bikes and docks of the whole BiciPalma network, hour by hour, from the state of each station every 5 minutes.",
+    bikesUpTo: (day: string) => `Data up to ${day}.`,
     views: {
       density: "Density",
       service: "Service per inhabitant",
@@ -371,7 +376,7 @@ export const en: Messages = {
     mapTitle: "Population and service by municipality",
     mapSubtitle: (year: string, day: string) =>
       `INE municipal register on 1 January ${year} and scheduled stop calls at each stop on ${day} (the bigger, the ` +
-      "more service); click a municipality or a stop to see its figures.",
+      "more service), with the BiciPalma stations; click a municipality, a stop or a station to see its figures.",
     busiestStopsTitle: "Stops with most service",
     busiestStopsSubtitle: "The ten with most scheduled stop calls across both networks.",
     stop: "Stop",
@@ -399,6 +404,15 @@ export const en: Messages = {
     pressureTitle: "People actually present",
     dailyCallsTitle: "Scheduled stop calls per day",
     dailyCallsSubtitle: "The sum of the vehicles that call at each stop, from the GTFS timetables.",
+    bikesTitle: "BiciPalma hour by hour",
+    bikesChart: "Free bikes, e-bikes and empty BiciPalma stations every hour",
+    bikesSeries: { bikes: "Free bikes", ebikes: "E-bikes", empty: "Empty stations" },
+    emptiestTitle: "Stations that run out most",
+    emptiestSubtitle: "Hours of the latest day in which they ran out of bikes or of free docks at some moment.",
+    station: "Station",
+    hoursEmpty: "No bikes",
+    hoursFull: "Full",
+    occupancy: "Occupancy",
   },
   weather: {
     dailyTemperatureChart: "Daily mean temperature from each source",

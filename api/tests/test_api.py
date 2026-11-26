@@ -231,7 +231,7 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/series", "/v1/series/daily",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/tourism/dwellings", "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops",
-        "/v1/mobility/routes",
+        "/v1/mobility/routes", "/v1/mobility/bike-stations", "/v1/mobility/bikes/hourly",
         "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
         "/v1/sea/hourly", "/v1/sea/model-bias", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
@@ -262,6 +262,8 @@ def test_settings_from_environment():
         ("/v1/mobility/daily", "gold.fct_island_transit_daily"),
         ("/v1/mobility/stops", "gold.fct_observations"),
         ("/v1/mobility/routes", "gold.dim_routes"),
+        ("/v1/mobility/bike-stations", "gold.fct_bike_stations_daily"),
+        ("/v1/mobility/bikes/hourly", "gold.fct_bike_stations_hourly"),
         ("/v1/weather/daily", "gold.fct_weather_daily"),
         ("/v1/weather/stations", "gold.fct_weather_daily"),
         ("/v1/warnings", "gold.fct_weather_warnings"),
@@ -316,6 +318,24 @@ def test_stops_filter_by_network_and_reject_an_unknown_one():
     assert api.get("/v1/mobility/stops", params={"network": "ctm"}).json()[0]["departures"] == 1028.0
     assert db.calls[-1][1] == {"network": "ctm"}
     assert api.get("/v1/mobility/stops", params={"network": "tram"}).status_code == 422
+
+
+def test_bike_stations_come_with_their_day_and_the_system_by_hour_defaults_to_a_week():
+    station = {
+        "station": "station_91733840", "name": "01 PARC DE SES VELES", "lat": 39.566056, "lon": 2.659389,
+        "local_date": date(2026, 11, 26), "hours_observed": 24, "bikes_available": Decimal("9.75"),
+        "bikes_available_min": 4, "bikes_available_max": 14, "ebikes_available": Decimal("1.20"),
+        "docks_available": Decimal("10.25"), "occupancy_pct": Decimal("48.8"), "working_docks": 20, "hours_empty": 0,
+        "hours_full": 1, "largest_hourly_swing": 5,
+    }  # fmt: skip
+    db = FakeDatabase({"gold.fct_bike_stations_daily": [station]})
+    api = client(db)
+
+    (body,) = api.get("/v1/mobility/bike-stations").json()
+    assert (body["name"], body["occupancy_pct"], body["hours_full"]) == ("01 PARC DE SES VELES", 48.8, 1)
+    api.get("/v1/mobility/bikes/hourly")
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 6  # 7 days, both included
 
 
 def test_warnings_default_to_the_next_days_and_zones_come_with_their_polygon():

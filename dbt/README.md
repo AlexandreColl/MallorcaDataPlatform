@@ -60,6 +60,7 @@ flowchart LR
 | energy | `fct_electricity_daily` | día: demanda, mix, % renovable, CO₂ e importación por el enlace con la península |
 | mobility | `fct_bus_network_daily` (EMT), `fct_island_transit_daily` (CTM) | día: paradas con servicio, pasos programados, parada con más servicio |
 | mobility | `dim_routes` (contrato) | línea de bus, tren o metro, con su recorrido |
+| mobility | `fct_bike_stations_hourly` (contrato, incremental), `fct_bike_stations_daily` (contrato) | estación de BiciPalma y hora o día: bicis, eléctricas y anclajes libres (media, mínimo y máximo), ocupación y horas en que se vació o se llenó |
 | population | `fct_population_yearly` (contrato), `dim_municipalities` (seed) | municipio y año: padrón, densidad y cambio / municipio, con su límite |
 | population | `fct_human_pressure_daily` (contrato) | día: personas presentes en la isla frente a las empadronadas |
 | core | `fct_resources_monthly` (contrato) | mes: turismo, reservas, lluvia, temperatura y demanda eléctrica, cada una con su anomalía frente al mismo mes |
@@ -137,7 +138,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
 - Tiempo y mar: `agg_model_bias_by_station`, `fct_weather_episodes`, `fct_weather_warnings`,
   `agg_wave_model_bias_by_buoy`.
 - Calidad del aire: `fct_air_quality_model_bias_daily`, `fct_air_quality_monthly`.
-- Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`.
+- Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`,
+  `fct_bike_stations_hourly`, `fct_bike_stations_daily`.
 - Población: `fct_population_yearly`, `fct_human_pressure_daily`.
 - Mensuales: `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly`.
 - Turismo por municipio: `fct_tourist_dwellings`.
@@ -169,6 +171,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
     estación.
   - `anomaly_benchmark_latest_run_per_source`: cada fuente conserva su ejecución más reciente del benchmark, aunque
     una posterior no la incluya.
+  - `bike_station_hour_pivots_its_metrics_and_flags_an_empty_moment`: cada métrica de una hora de BiciPalma es una
+    columna, y un mínimo de 0 bicis marca la hora como vacía aunque la media sea mayor.
 
 ```bash
 make dbt                # source freshness (avisos) + dbt build

@@ -49,6 +49,58 @@ export interface Aquifer {
   change_12m_pts: number | null;
 }
 
+/** One BiciPalma station on the latest day with values (gold.fct_bike_stations_daily). */
+export interface BikeStation {
+  /** GBFS `station_id` of the operator (Nextbike). */
+  station: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  name: string | null;
+  lat: number;
+  lon: number;
+  local_date: string;
+  /** Hours with at least one 5-minute snapshot. */
+  hours_observed: number;
+  /** Mean free bikes over the day. */
+  bikes_available: number | null;
+  bikes_available_min: number | null;
+  bikes_available_max: number | null;
+  /** Mean free bikes with electric assist. */
+  ebikes_available: number | null;
+  /** Mean free docks. */
+  docks_available: number | null;
+  /** Mean of bikes / (bikes + free docks), in %. */
+  occupancy_pct: number | null;
+  /** Bikes plus free docks at the hour they added up most. */
+  working_docks: number | null;
+  /** Hours in which the station ran out of bikes at some moment. */
+  hours_empty: number;
+  /** Hours in which it ran out of free docks. */
+  hours_full: number;
+  /** Largest maximum minus minimum of bikes in one hour. */
+  largest_hourly_swing: number | null;
+}
+
+/** The whole BiciPalma system in one UTC hour (gold.fct_bike_stations_hourly, added up). */
+export interface BikesHour {
+  /** Start of the UTC hour. */
+  ts: string;
+  local_date: string;
+  /** Hour of the day in Mallorca. */
+  local_hour: number;
+  /** Stations with a snapshot in the hour. */
+  stations: number;
+  /** Free bikes: the stations' hourly means, added up. */
+  bikes_available: number | null;
+  ebikes_available: number | null;
+  docks_available: number | null;
+  /** Bikes / (bikes + free docks) of the whole system, in %. */
+  occupancy_pct: number | null;
+  /** Stations that ran out of bikes at some moment of the hour. */
+  stations_empty: number;
+  /** Stations that ran out of free docks. */
+  stations_full: number;
+}
+
 /** Climate of Mallorca in one month from the AEMET stations (gold.fct_climate_monthly). */
 export interface ClimateMonth {
   month: string;

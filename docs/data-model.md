@@ -91,7 +91,7 @@ tabla Delta del lake, con la misma clave ([ADR 0002](adr/0002-medallion.md)).
 **Clave primaria:** `(source, entity, metric, ts)`. Está definida una sola vez, en `core/models.py`, y la usan el
 `MERGE` de Delta, el upsert de Postgres, la regla de duplicados y la deduplicación.
 
-**Por qué es largo.** Diecisiete fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
+**Por qué es largo.** Dieciocho fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
 cambia ninguna tabla, y la calidad, la idempotencia y la frescura se resuelven una vez para todas
 ([ADR 0001](adr/0001-nucleo-fijo-y-conectores.md)). El precio es que una consulta que cruza métricas tiene que
 pivotar. Eso se hace una sola vez, en gold.
@@ -223,6 +223,8 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_air_quality_monthly` | fuente, estación, contaminante y mes | Snapshot periódico, con cobertura | Tabla | ✅ |
 | `fct_electricity_daily` | día | Snapshot periódico, ancho | Tabla | ✅ |
 | `fct_bus_network_daily`, `fct_island_transit_daily` | día | Snapshot periódico | Tabla | ✅ |
+| `fct_bike_stations_hourly` | estación de BiciPalma y hora UTC | Snapshot periódico, ancho: media, mínimo y máximo de las instantáneas de 5 minutos de la hora. Incremental | Tabla | ✅ |
+| `fct_bike_stations_daily` | estación de BiciPalma y día | Agregado de las horas: ocupación media y horas sin bicis o sin anclajes | Tabla | ✅ |
 | `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly` | mes | Snapshot periódico, con la anomalía frente al mismo mes | Tabla | ✅ |
 | `fct_earthquakes` | sismo, en su última revisión | Transacción (evento) | Tabla | — |
 | `fct_population_yearly` | municipio y año | Snapshot periódico: padrón a 1 de enero, densidad y cambio frente al padrón anterior | Tabla | ✅ |

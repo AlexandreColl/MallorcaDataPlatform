@@ -53,6 +53,7 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 | Ibestat (presión humana) | Ibestat | Reutilización con cita | Abierto | 120 días | 90 % |
 | INE (padrón) | INE | CC BY 4.0 | Abierto | 2 años | 90 % |
 | INE (viviendas turísticas) | INE | CC BY 4.0 | Abierto | 400 días | 90 % |
+| BiciPalma | SMAP (Ajuntament de Palma); feed GBFS de Nextbike | CC0 1.0 | Abierto | 48 h | 90 % |
 | IGN (sismos) | Instituto Geográfico Nacional | CC BY 4.0 | Abierto | Sin SLA: solo hay datos cuando hay sismos | 90 % |
 | GOIB (histórico) | Govern de les Illes Balears | CC BY (política de datos abiertos del Govern) | Abierto | Histórico cerrado en 2021 | 90 % |
 

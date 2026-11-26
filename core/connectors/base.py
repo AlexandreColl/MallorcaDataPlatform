@@ -191,6 +191,7 @@ class ConnectorConfig:
             raise ConnectorError(msg)
         for dataset in config.datasets:
             config.frequency_for(dataset)  # fail fast on an invalid frequency
+            config.poll_every(dataset)  # and on an invalid polling period
         return config
 
     def window(self, days: int, today: date | None = None) -> TimeWindow:
@@ -217,6 +218,28 @@ class ConnectorConfig:
     def is_event_source(self) -> bool:
         """True when every dataset holds irregular events: a window without events is a valid, empty result."""
         return bool(self.datasets) and all(self.frequency_for(d) is None for d in self.datasets)
+
+    def poll_every(self, dataset: str) -> timedelta | None:
+        """How often the live poller keeps a snapshot of one dataset (``poll_every: 5m``); None if it is not polled.
+
+        A live source only publishes its current state, so its history is built from these snapshots (ADR 0026).
+
+        Raises:
+            ConnectorError: for a period of a month or more.
+        """
+        every = (self.datasets.get(dataset) or {}).get("poll_every")
+        if every is None:
+            return None
+        delta = parse_frequency(str(every))
+        if delta >= MONTH:
+            msg = f"connector '{self.name}': poll_every of '{dataset}' must be minutes, hours or days, got '{every}'"
+            raise ConnectorError(msg)
+        return delta
+
+    @property
+    def is_live(self) -> bool:
+        """True when some dataset is polled: the source has no history, only the snapshots the poller kept."""
+        return any(self.poll_every(d) is not None for d in self.datasets)
 
     def metrics_for(self, dataset: str) -> list[MetricSpec]:
         """Metrics that belong to one dataset, in YAML order."""
@@ -296,6 +319,22 @@ class BaseConnector(ABC):
     @abstractmethod
     def normalize(self, payload: RawPayload, region: Region) -> Iterable[Observation]:
         """Turn one raw payload into observations in the common silver schema."""
+
+    def first_day(self) -> date | None:
+        """The first day the source can have data for: windows start no earlier (None: no limit).
+
+        A source with a published history has none. A live source starts on the day its poller kept its first
+        snapshot: the days before it are not missing, there was nothing to keep.
+        """
+        return None
+
+    def observed_span(self, payload: RawPayload) -> tuple[datetime, datetime] | None:  # noqa: ARG002 - for overrides
+        """The part of the payload's window in which the source could have values (None: the whole window).
+
+        The gaps rule only expects the time steps inside it. A live source starts at its first snapshot and ends when
+        the window was read, so the hours before its poller started, or still to come, are not gaps.
+        """
+        return None
 
     def describe(self, payload: RawPayload, region: Region) -> Iterable[Entity]:  # noqa: ARG002 - for overrides
         """The names of the entities in one raw payload (a stop's ``stop_name``, a station's ``nombre``).

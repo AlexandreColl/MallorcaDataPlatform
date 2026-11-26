@@ -34,6 +34,12 @@ connectors/<nombre>/
    `scripts/e2e.sh`. Añade el conector a `CONNECTORS` en `scripts/e2e.sh`. `secrets` lista las variables que deben estar en `.env` (pásalas también en `x-platform-env` de
    `docker-compose.yml`); sin ellas el conector queda fuera de la selección por defecto del DAG.
    Si la API limita el rango por petición, trocea con `window.split(max_days)` y genera un payload por trozo.
+   Si la fuente solo publica su estado actual (sin histórico), es una **fuente en vivo**: declara `poll_every` en
+   cada dataset que haya que sondear y extiende `LiveConnector` (`core/connectors/live.py`) con `poll`, `instant` y
+   `aggregate` en lugar de `extract` y `normalize`. El DAG `live_poll` guarda las instantáneas en bronze y la
+   ejecución diaria las lee de ahí (ver `connectors/bicipalma` y el
+   [ADR 0026](adr/0026-fuentes-en-vivo-sin-historico.md)). No va en `CONNECTORS` de `scripts/e2e.sh`: la ventana de
+   la E2E es anterior a su primera instantánea.
 5. `extractor.py` implementa dos métodos:
    - `extract(window, region) -> list[RawPayload]`: llama a la API y devuelve la respuesta **sin tocar**.
    - `normalize(payload, region) -> Iterable[Observation]`: convierte al esquema común.

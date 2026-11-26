@@ -1,0 +1,37 @@
+name: bicipalma
+description: BiciPalma, Palma's public bikes (Nextbike GBFS 2.3, CC0) - free bikes, e-bikes and docks per station, polled every 5 minutes and summed up per hour, no API key
+entrypoint: connectors.bicipalma.extractor:BiciPalmaConnector
+enabled: true
+frequency: 1h          # one value per station and UTC hour, from the snapshots of that hour
+# The source only publishes its current state: the live poller (dags/live_poll.py) keeps a snapshot in bronze every
+# 5 minutes, and a run reads its window from those snapshots, never from the API (ADR 0026). Bronze keeps them all,
+# so a missed day is always recoverable.
+max_days: 31
+catch_up_days: 7
+recover_days: 31
+secrets: []
+
+options:
+  # GBFS of the operator, published by Nextbike for the system nextbike_ea (BiciPalma). License CC0-1.0, in its
+  # system_information.json. The Spanish feeds; the Catalan and English ones carry the same numbers.
+  base_url: https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_ea/es
+  # Vehicle types with electric assist, from vehicle_types.json (2026-11-26): 143 e-SMARTbike 2.0 RFID. The other
+  # type, 150 SMARTbike 2.0 (B) 2019, is a plain bike.
+  ebike_types: ["143"]
+
+datasets:
+  # Bikes and docks per station (ttl 60 s). Its metrics are the hourly summary of the snapshots.
+  station_status: {feed: station_status.json, poll_every: 5m}
+  # Name, position and capacity of the stations: they rarely change, one snapshot an hour.
+  station_information: {feed: station_information.json, poll_every: 1h}
+
+# Per station and UTC hour, from its snapshots in that hour (12 when the poller ran every 5 minutes).
+metrics:
+  bikes_available:     {dataset: station_status, unit: bikes, min: 0, max: 60}   # mean
+  bikes_available_min: {dataset: station_status, unit: bikes, min: 0, max: 60}
+  bikes_available_max: {dataset: station_status, unit: bikes, min: 0, max: 60}
+  ebikes_available:    {dataset: station_status, unit: bikes, min: 0, max: 60}   # mean, the electric-assist ones
+  docks_available:     {dataset: station_status, unit: docks, min: 0, max: 60}   # mean
+  docks_available_min: {dataset: station_status, unit: docks, min: 0, max: 60}
+  docks_available_max: {dataset: station_status, unit: docks, min: 0, max: 60}
+  occupancy:           {dataset: station_status, unit: "%", min: 0, max: 100}    # mean of bikes / (bikes + docks)

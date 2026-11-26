@@ -41,6 +41,8 @@ x-airflow-common: &airflow-common
     # Retries of each ingest task when a source fails (the E2E lowers it to keep runs short).
     MDP_TASK_RETRIES: ${MDP_TASK_RETRIES:-3}
     MDP_SCHEDULE: ${MDP_SCHEDULE:-@daily}
+    # Empty: every poll_every of the live connectors (5 min); none turns the live poller off.
+    MDP_LIVE_SCHEDULE: ${MDP_LIVE_SCHEDULE:-}
     # Optional lineage (OpenLineage): with OPENLINEAGE_URL set, every task and dbt model sends its run and datasets.
     OPENLINEAGE_URL: ${OPENLINEAGE_URL:-}
     OPENLINEAGE_NAMESPACE: mallorca-data-platform

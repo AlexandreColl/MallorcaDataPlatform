@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from pyspark.sql import DataFrame
@@ -23,7 +24,7 @@ from core.quality.rules import (
 )
 
 if TYPE_CHECKING:
-    from datetime import timedelta
+    from datetime import datetime
 
     from core.connectors.base import ConnectorConfig
 
@@ -88,15 +89,19 @@ class QualityEngine:
         return df.drop(*temp), results
 
 
-def rules_for(config: ConnectorConfig, window: TimeWindow) -> list[Rule]:
+def rules_for(
+    config: ConnectorConfig, window: TimeWindow, observed: tuple[datetime, datetime] | None = None
+) -> list[Rule]:
     """Default rule set derived from a connector's YAML.
 
     One gaps rule per sampling frequency, so hourly and daily datasets of the same
     connector are each checked against their own expected number of steps. Monthly
     datasets expect one value per calendar month starting in the window, yearly ones one per year. Event
-    datasets have no expected steps and get no gaps rule.
+    datasets have no expected steps and get no gaps rule. ``observed`` (start, end) narrows the steps of the regular
+    frequencies to the part of the window the source could cover: a live source has none before its first snapshot.
     """
-    span = window.end_dt_exclusive() - window.start_dt()
+    start, end = observed or (window.start_dt(), window.end_dt_exclusive())
+    span = max(end - start, timedelta(0))
 
     def expected_steps(freq: timedelta) -> int:
         if freq == MONTH:
