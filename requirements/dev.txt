@@ -18,4 +18,4 @@ pytest-cov==7.1.0
 ruff==0.17.6
 mypy==2.4.1  # `make typecheck`: core and api ([tool.mypy] in pyproject.toml)
 types-PyYAML==6.0.12.20261122
-mypy-boto3-s3==1.44.0
+mypy-boto3-s3==1.44.6
