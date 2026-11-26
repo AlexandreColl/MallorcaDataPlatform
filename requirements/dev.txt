@@ -4,7 +4,7 @@
 pyspark==4.2.1
 pypdf==7.0.1
 boto3==1.43.127
-psycopg[binary]==3.3.8
+psycopg[binary]==3.3.9
 requests==2.34.2
 PyYAML==6.0.3
 pandas==3.1.1
