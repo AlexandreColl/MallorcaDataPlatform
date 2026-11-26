@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.69.0" # patch releases only: a minor upgrade is a reviewed change of this line
+      version = "~> 6.73.0" # patch releases only: a minor upgrade is a reviewed change of this line
     }
   }
 
