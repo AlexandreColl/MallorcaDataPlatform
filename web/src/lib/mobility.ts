@@ -1,6 +1,6 @@
 // The figures of the mobility page: key figures, the rows of the municipalities, the stop layers and subtitles.
 
-import type { HumanPressureDay, MobilityDay, Municipality, PopulationYear, StopService, TransitRoute } from "../api";
+import type { HumanPressureDay, MobilityDay, Municipality, PopulationYear, StopService, TouristDwellings, TransitRoute } from "../api";
 import type { MapLayer } from "../components/PointMap";
 import { messages } from "../i18n";
 import { compact, dayName, dayShort, number, signed } from "./format";
@@ -68,11 +68,21 @@ export interface MunicipalityRow {
   growth: number | null;
   service: Service;
   perThousand: number | null;
+  // The latest count of tourist dwellings (INE), twice a year.
+  dwellings: TouristDwellings | undefined;
 }
 
-/** One row per municipality: its latest register, the change in ten years and the service on the latest day. */
-export function municipalityRows(places: Municipality[], population: PopulationYear[], stops: StopService[], year: number) {
+/**
+ * One row per municipality: its latest register, the change in ten years, the service on the latest day and the
+ * tourist dwellings of the latest count.
+ */
+export function municipalityRows(
+  places: Municipality[], population: PopulationYear[], stops: StopService[], year: number,
+  dwellings: TouristDwellings[] = [],
+) {
   const service = serviceByMunicipality(stops, places);
+  const month = dwellings.reduce((last, d) => (d.reference_month > last ? d.reference_month : last), "");
+  const counted = new Map(dwellings.filter((d) => d.reference_month === month).map((d) => [d.municipality, d]));
   const of = (code: string, y: number) => population.find((p) => p.municipality === code && p.year === y);
   return places
     .map((place): MunicipalityRow => {
@@ -82,6 +92,7 @@ export function municipalityRows(places: Municipality[], population: PopulationY
         place, latest, service: own,
         growth: change(latest?.population, of(place.municipality, year - 10)?.population),
         perThousand: latest?.population ? (own.departures / latest.population) * 1000 : null,
+        dwellings: counted.get(place.municipality),
       };
     })
     .sort((a, b) => (b.latest?.population ?? 0) - (a.latest?.population ?? 0));

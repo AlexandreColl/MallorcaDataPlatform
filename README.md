@@ -123,6 +123,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
 | [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | Avisos meteorológicos de AEMET (lluvias, tormentas, viento, costeros…) por zona de Mallorca y hora, del nivel 0 al 3 | Sí |
 | [ine_population](connectors/ine_population/README.md) | ✅ | Población de los 53 municipios de Mallorca a 1 de enero, por sexo, del padrón del INE (desde 1996) | No |
+| [ine_tourist_housing](connectors/ine_tourist_housing/README.md) | ✅ | Viviendas turísticas y plazas de los 53 municipios de Mallorca, dos recuentos al año de la estadística experimental del INE (desde agosto de 2020) | No |
 | [ibestat_iph](connectors/ibestat_iph/README.md) | ✅ | Personas presentes en Mallorca cada día, residentes más visitantes (Indicador de Presión Humana del Ibestat, desde 1997) | No |
 
 ### Open-Meteo
@@ -174,6 +175,18 @@ densidad y el cambio frente al padrón anterior; el total de la isla es la suma 
 dashboard de Movilidad cruza la población con las paradas de cada municipio: Palma tiene 186 pasos programados por
 cada 1.000 habitantes en un día laborable y Manacor, 27.
 [Detalle y pruebas reales](connectors/ine_population/README.md).
+
+### INE (viviendas turísticas)
+
+Las viviendas turísticas, sus plazas y las plazas por vivienda de cada municipio de Mallorca, de la estadística
+experimental del INE que cuenta los anuncios de las principales plataformas de alquiler (tabla 39363, desde agosto
+de 2020). La tabla cubre toda España: el conector la filtra a los 53 municipios con un `tv` por municipio, y la
+descarga baja de 44 MB a 300 KB. Hay dos recuentos al año, pero sus meses han cambiado (febrero y agosto hasta 2024;
+mayo y noviembre desde entonces), así que el conjunto es `frequency: event`: sin regla de huecos y con las demás
+reglas de calidad. En gold, `fct_tourist_dwellings` añade el cambio frente al recuento anterior y el peso frente al
+padrón. En la web, el mapa de Movilidad tiene una capa más: en mayo de 2026 había 14.756 viviendas turísticas en la
+isla (un 27 % menos que en agosto de 2020); Pollença tiene 132 por cada 1.000 habitantes y Palma, 1,2.
+[Detalle y pruebas reales](connectors/ine_tourist_housing/README.md).
 
 ### Ibestat (presión humana)
 

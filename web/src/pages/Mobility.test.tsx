@@ -29,6 +29,10 @@ const answers = {
     { municipality: "07040", name: "Palma", polygon: square(2.65, 39.57) },
     { municipality: "07027", name: "Inca", polygon: square(2.91, 39.72) },
   ],
+  touristDwellings: [
+    { municipality: "07040", reference_month: "2025-11-01", tourist_dwellings: 1100, dwellings_per_1000_inhabitants: 2.5 },
+    { municipality: "07040", reference_month: "2026-05-01", tourist_dwellings: 1023, dwellings_per_1000_inhabitants: 2.3 },
+  ],
   humanPressure: [],
   routes: [{ network: "ctm", route: "route_1", short_name: "T1", name: "T1 · Palma - Inca", kind: "train", color: null, local_date: "2026-11-11", trips: 64, geometry: { type: "MultiLineString", coordinates: [] } }],
 };
@@ -60,6 +64,22 @@ describe("Mobility", () => {
     expect(firstCells(await panel("Municipios más poblados"))).toEqual(["Palma", "Inca"]);
     expect(firstCells(await panel("Paradas con más servicio"))).toEqual(["Plaça d'Espanya", "Inca (estació)"]);
     expect(within(await panel("Líneas con más salidas")).getByText("CTM · tren")).toBeTruthy();
+  });
+
+  it("gives each municipality its tourist dwellings per 1,000 inhabitants of the latest count", async () => {
+    render(<Mobility />);
+    const table = await panel("Municipios más poblados");
+
+    expect(within(table).getByText("Viv. turísticas por 1.000")).toBeTruthy();
+    expect(await within(table).findByText("2,3")).toBeTruthy(); // Palma in May 2026, not November 2025
+    expect(within(table).getAllByText("—").length).toBeGreaterThan(0); // Inca was not counted in the answer
+  });
+
+  it("still draws the municipalities when the tourist dwellings fail", async () => {
+    vi.spyOn(api, "touristDwellings").mockRejectedValue(new Error("503"));
+    render(<Mobility />);
+
+    expect(firstCells(await panel("Municipios más poblados"))).toEqual(["Palma", "Inca"]);
   });
 
   it("follows the municipality chosen in the table in the population chart", async () => {

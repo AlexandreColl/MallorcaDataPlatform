@@ -9,7 +9,7 @@ export const es = {
       label: "Inicio",
       title: "Mallorca en datos",
       description:
-        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Quince fuentes abiertas, " +
+        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Diecisiete fuentes abiertas, " +
         "con la calidad comprobada en cada carga.",
     },
     tourism: {
@@ -293,15 +293,20 @@ export const es = {
       density: "Densidad",
       service: "Servicio por habitante",
       growth: "Crecimiento en 10 años",
+      tourism: "Viviendas turísticas",
       none: "Sin colorear",
     },
     densityTop: "≥ 500 hab./km²",
     serviceTop: "≥ 800 pasos por 1.000 hab.",
+    tourismTop: "≥ 100 viviendas turísticas por 1.000 hab.",
     colourBy: "Color de los municipios",
     placePopulation: (people: string, density: string) => `${people} hab. · ${density} hab./km²`,
     noGrowth: "Sin dato de hace 10 años",
     growthSince: (change: string, year: number) => `${change} % desde ${year}`,
     placeService: (stops: string, perThousand: string) => `${stops} paradas · ${perThousand} pasos por 1.000 hab.`,
+    placeTourism: (dwellings: string, perThousand: string, month: string) =>
+      `${dwellings} viviendas turísticas en ${month} · ${perThousand} por 1.000 hab.`,
+    noTourism: "Sin recuento de viviendas turísticas",
     trend: (from: number, to: number, rate: string) => `${from}–${to}: ${rate} %/año`,
     projection: (year: number) => `Proyección a ${year}`,
     restOfIsland: "Resto de la isla",
@@ -391,6 +396,7 @@ export const es = {
     inhabitants: "Hab.",
     tenYears: "10 años",
     callsPerThousand: "Pasos por 1.000",
+    dwellingsPerThousand: "Viv. turísticas por 1.000",
     pressureTitle: "Población real presente",
     dailyCallsTitle: "Pasos programados por día",
     dailyCallsSubtitle: "Suma de los vehículos que pasan por cada parada, según los horarios GTFS.",

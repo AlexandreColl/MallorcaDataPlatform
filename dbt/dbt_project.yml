@@ -25,7 +25,8 @@ vars:
   episode_rain_mm: 30
   episode_gust_kmh: 70
   episode_wave_m: 2.5
-  # Connectors with `frequency: event` (see macros/event_sources.sql).
+  # Connectors whose rows are events (see macros/event_sources.sql). ine_tourist_housing is `frequency: event` only
+  # because its reference months are irregular: its rows are series of a municipality, so it is not listed here.
   event_sources: ["ign", "aemet_warnings"]
 
 seeds:

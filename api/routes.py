@@ -43,6 +43,7 @@ from api.schemas import (
     StationDay,
     StopService,
     TourismMonth,
+    TouristDwellings,
     TransitRoute,
     WarningZone,
     WaterReservesMonth,
@@ -63,6 +64,7 @@ CACHED_PATHS = (
     "/v1/water/aquifers",
     "/v1/climate/monthly",
     "/v1/tourism/monthly",
+    "/v1/tourism/dwellings",
     "/v1/resources/monthly",
     "/v1/population",
     "/v1/municipalities",
@@ -397,6 +399,15 @@ def warnings(warehouse: WarehouseDep, start: Start = None, end: End = None) -> l
     now = datetime.now(UTC)
     start, end = _window(start or now, end or now + timedelta(days=WARNINGS_AHEAD_DAYS))
     return [WeatherWarning(**row) for row in warehouse.warnings(start, end)]
+
+
+@router.get("/tourism/dwellings", tags=["monthly"])
+def tourist_dwellings(warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None) -> list[TouristDwellings]:
+    """Tourist dwellings of every municipality of Mallorca per reference month (INE; default: every count).
+
+    The INE counts the holiday rental listings twice a year, some six months after the month it counts.
+    """
+    return [TouristDwellings(**row) for row in warehouse.tourist_dwellings(from_, to)]
 
 
 @router.get("/warnings/zones", tags=["environment"])

@@ -56,6 +56,10 @@ models:
     description: AEMET warnings (Meteoalerta), one row per zone, phenomenon and hour with its level (0 to 3).
   - name: stg_ine_population__observations
     description: INE municipal register, the population of each municipality of Mallorca on 1 January, by sex.
+  - name: stg_ine_tourist_housing__observations
+    description: >-
+      INE experimental statistic of tourist dwellings, the dwellings, beds and beds per dwelling listed on the
+      holiday rental platforms in each municipality of Mallorca, twice a year.
   - name: stg_ibestat_iph__observations
     description: Ibestat Human Pressure Indicator, the people present in Mallorca each day (residents plus visitors).
   - name: stg_ign__observations

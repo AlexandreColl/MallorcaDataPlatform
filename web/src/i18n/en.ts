@@ -11,7 +11,7 @@ export const en: Messages = {
       label: "Home",
       title: "Mallorca in data",
       description:
-        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Fifteen " +
+        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Seventeen " +
         "open sources, with their quality checked on every load.",
     },
     tourism: {
@@ -294,15 +294,20 @@ export const en: Messages = {
       density: "Density",
       service: "Service per inhabitant",
       growth: "Growth in 10 years",
+      tourism: "Tourist dwellings",
       none: "No colour",
     },
     densityTop: "≥ 500 inh./km²",
     serviceTop: "≥ 800 stop calls per 1,000 inh.",
+    tourismTop: "≥ 100 tourist dwellings per 1,000 inh.",
     colourBy: "Colour of the municipalities",
     placePopulation: (people: string, density: string) => `${people} inh. · ${density} inh./km²`,
     noGrowth: "No figure from 10 years ago",
     growthSince: (change: string, year: number) => `${change} % since ${year}`,
     placeService: (stops: string, perThousand: string) => `${stops} stops · ${perThousand} stop calls per 1,000 inh.`,
+    placeTourism: (dwellings: string, perThousand: string, month: string) =>
+      `${dwellings} tourist dwellings in ${month} · ${perThousand} per 1,000 inh.`,
+    noTourism: "No count of tourist dwellings",
     trend: (from: number, to: number, rate: string) => `${from}–${to}: ${rate} %/year`,
     projection: (year: number) => `Projection to ${year}`,
     restOfIsland: "Rest of the island",
@@ -390,6 +395,7 @@ export const en: Messages = {
     inhabitants: "Inh.",
     tenYears: "10 years",
     callsPerThousand: "Calls per 1,000",
+    dwellingsPerThousand: "Tourist dw. per 1,000",
     pressureTitle: "People actually present",
     dailyCallsTitle: "Scheduled stop calls per day",
     dailyCallsSubtitle: "The sum of the vehicles that call at each stop, from the GTFS timetables.",

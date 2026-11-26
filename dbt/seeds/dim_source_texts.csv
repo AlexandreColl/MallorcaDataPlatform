@@ -27,6 +27,8 @@ aemet_warnings,ca,AEMET (avisos),"Avisos meteorològics d’AEMET (Meteoalerta) 
 aemet_warnings,en,AEMET (warnings),"AEMET weather warnings (Meteoalerta) by Mallorca zone and phenomenon, hour by hour: level 0 no risk, 1 yellow, 2 orange, 3 red",Reuse with citation (AEMET legal notice; Law 37/2007)
 ine_population,ca,INE (padró),"Població de cada municipi de Mallorca a 1 de gener, per sexe, anual",CC BY 4.0
 ine_population,en,INE (municipal register),"Population of each municipality of Mallorca on 1 January, by sex, yearly",CC BY 4.0
+ine_tourist_housing,ca,INE (habitatges turístics),"Habitatges turístics, places i places per habitatge anunciats a les plataformes de lloguer a cada municipi de Mallorca, dues vegades l’any",CC BY 4.0
+ine_tourist_housing,en,INE (tourist dwellings),"Tourist dwellings, beds and beds per dwelling listed on the holiday rental platforms in each municipality of Mallorca, twice a year",CC BY 4.0
 ibestat_iph,ca,Ibestat (pressió humana),"Persones presents a Mallorca cada dia, residents més visitants (IPH), diari",Reutilització amb citació (Llei 37/2007; sense llicència publicada)
 ibestat_iph,en,Ibestat (human pressure),"People present in Mallorca each day, residents plus visitors (IPH), daily",Reuse with citation (Law 37/2007; no licence published)
 redmar,ca,Ports de l’Estat (mareògrafs),Nivell de la mar horari als mareògrafs de Palma i Alcúdia (xarxa REDMAR),Dades públiques i gratuïtes amb citació obligatòria (sense llicència CC publicada)

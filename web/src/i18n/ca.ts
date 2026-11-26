@@ -11,7 +11,7 @@ export const ca: Messages = {
       label: "Inici",
       title: "Mallorca en dades",
       description:
-        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Quinze fonts " +
+        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Disset fonts " +
         "obertes, amb la qualitat comprovada a cada càrrega.",
     },
     tourism: {
@@ -296,15 +296,20 @@ export const ca: Messages = {
       density: "Densitat",
       service: "Servei per habitant",
       growth: "Creixement en 10 anys",
+      tourism: "Habitatges turístics",
       none: "Sense color",
     },
     densityTop: "≥ 500 hab./km²",
     serviceTop: "≥ 800 passos per 1.000 hab.",
+    tourismTop: "≥ 100 habitatges turístics per 1.000 hab.",
     colourBy: "Color dels municipis",
     placePopulation: (people: string, density: string) => `${people} hab. · ${density} hab./km²`,
     noGrowth: "Sense dada de fa 10 anys",
     growthSince: (change: string, year: number) => `${change} % des del ${year}`,
     placeService: (stops: string, perThousand: string) => `${stops} parades · ${perThousand} passos per 1.000 hab.`,
+    placeTourism: (dwellings: string, perThousand: string, month: string) =>
+      `${dwellings} habitatges turístics a ${month} · ${perThousand} per 1.000 hab.`,
+    noTourism: "Sense recompte d’habitatges turístics",
     trend: (from: number, to: number, rate: string) => `${from}–${to}: ${rate} %/any`,
     projection: (year: number) => `Projecció al ${year}`,
     restOfIsland: "Resta de l’illa",
@@ -394,6 +399,7 @@ export const ca: Messages = {
     inhabitants: "Hab.",
     tenYears: "10 anys",
     callsPerThousand: "Passos per 1.000",
+    dwellingsPerThousand: "Hab. turístics per 1.000",
     pressureTitle: "Població real present",
     dailyCallsTitle: "Passos programats per dia",
     dailyCallsSubtitle: "Suma dels vehicles que passen per cada parada, segons els horaris GTFS.",

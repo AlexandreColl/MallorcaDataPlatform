@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Municipality, PopulationYear, StopService, TransitRoute } from "../api";
+import type { Municipality, PopulationYear, StopService, TouristDwellings, TransitRoute } from "../api";
 import { mobilityKpis, municipalityRows, routesSubtitle, stopLayers, withSelected } from "./mobility";
 
 // A square municipality around (lon, lat), 0.1° a side.
@@ -28,6 +28,18 @@ describe("municipalityRows", () => {
     expect(rows[0]?.growth).toBeCloseTo(0.1);
     expect(rows[0]).toMatchObject({ perThousand: 2, service: { stops: 1, departures: 880 } });
     expect(rows[1]).toMatchObject({ perThousand: 0, service: { stops: 0, departures: 0 } });
+  });
+
+  it("takes the tourist dwellings of the latest count only", () => {
+    const places = [place("07042", "Pollença", 3.03, 39.89), place("07040", "Palma", 2.65, 39.57)];
+    const count = (municipality: string, reference_month: string, tourist_dwellings: number) =>
+      ({ municipality, reference_month, tourist_dwellings }) as TouristDwellings;
+    const dwellings = [count("07042", "2025-11-01", 2385), count("07042", "2026-05-01", 2344), count("07040", "2025-11-01", 1100)];
+
+    const rows = municipalityRows(places, [], [], 2026, dwellings);
+
+    expect(rows.find((r) => r.place.name === "Pollença")?.dwellings?.tourist_dwellings).toBe(2344);
+    expect(rows.find((r) => r.place.name === "Palma")?.dwellings).toBeUndefined(); // not in May 2026
   });
 
   it("keeps the selected municipality at the end of the top twelve", () => {

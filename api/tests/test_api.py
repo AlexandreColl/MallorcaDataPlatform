@@ -230,7 +230,8 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/observations/export",
         "/v1/series", "/v1/series/daily",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
-        "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops", "/v1/mobility/routes",
+        "/v1/tourism/dwellings", "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops",
+        "/v1/mobility/routes",
         "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
         "/v1/sea/hourly", "/v1/sea/model-bias", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
@@ -266,6 +267,7 @@ def test_settings_from_environment():
         ("/v1/warnings", "gold.fct_weather_warnings"),
         ("/v1/warnings/zones", "gold.dim_warning_zones"),
         ("/v1/population", "gold.fct_population_yearly"),
+        ("/v1/tourism/dwellings", "gold.fct_tourist_dwellings"),
         ("/v1/population/pressure", "gold.fct_human_pressure_daily"),
         ("/v1/municipalities", "gold.dim_municipalities"),
         ("/v1/weather/episodes", "gold.fct_weather_episodes"),
@@ -346,6 +348,32 @@ def test_population_filters_by_year_and_municipalities_come_with_their_rings():
     assert api.get("/v1/population", params={"from": 2025, "to": 2015}).status_code == 422
     assert api.get("/v1/population", params={"from": 1990}).status_code == 422
     assert len(api.get("/v1/municipalities").json()[0]["polygon"]) == 2
+
+
+def test_tourist_dwellings_filter_by_reference_month():
+    pollenca = {
+        "municipality": "07042",
+        "municipality_name": "Pollença",
+        "reference_month": date(2026, 5, 1),
+        "tourist_dwellings": 2344,
+        "tourist_beds": 14306,
+        "beds_per_dwelling": 6.1,
+        "population_year": 2025,
+        "dwellings_per_1000_inhabitants": 136.3,
+        "beds_per_100_inhabitants": 83.2,
+        "previous_month": date(2025, 11, 1),
+        "dwellings_change": -41,
+        "dwellings_change_pct": -0.0172,
+    }
+    db = FakeDatabase({"gold.fct_tourist_dwellings": [pollenca]})
+    api = client(db)
+
+    body = api.get("/v1/tourism/dwellings").json()
+    assert db.calls[-1][1] == {"start": None, "end": None}
+    assert body[0]["reference_month"] == "2026-05-01"
+    assert body[0]["dwellings_per_1000_inhabitants"] == 136.3
+    api.get("/v1/tourism/dwellings", params={"from": "2024-01-01", "to": "2025-12-01"})
+    assert db.calls[-1][1] == {"start": date(2024, 1, 1), "end": date(2025, 12, 1)}
 
 
 def test_station_temperatures_of_the_latest_day_or_a_chosen_one():

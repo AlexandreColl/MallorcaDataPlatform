@@ -178,6 +178,17 @@ WHERE year BETWEEN %(from_year)s AND %(to_year)s
 ORDER BY year, municipality
 """
 
+# Tourist dwellings per municipality and reference month (INE), filtered by month (both included).
+_TOURIST_DWELLINGS = """
+SELECT municipality, municipality_name, reference_month, tourist_dwellings, tourist_beds, beds_per_dwelling,
+       population_year, dwellings_per_1000_inhabitants, beds_per_100_inhabitants, previous_month, dwellings_change,
+       dwellings_change_pct
+FROM gold.fct_tourist_dwellings
+WHERE (%(start)s::date IS NULL OR reference_month >= %(start)s)
+  AND (%(end)s::date IS NULL OR reference_month <= %(end)s)
+ORDER BY reference_month, municipality
+"""
+
 # People present in Mallorca each day (Ibestat IPH) against its registered residents.
 _HUMAN_PRESSURE = """
 SELECT local_date, is_weekend, people_present, residents, register_year, people_over_residents, pressure_ratio
@@ -455,6 +466,10 @@ class Warehouse:
     def population(self, from_year: int, to_year: int) -> list[Row]:
         """Population of every municipality per year in ``[from_year, to_year]``, oldest first."""
         return self.db.fetch_all(_POPULATION, {"from_year": from_year, "to_year": to_year})
+
+    def tourist_dwellings(self, start: date | None, end: date | None) -> list[Row]:
+        """Tourist dwellings of every municipality per reference month in ``[start, end]``, oldest first."""
+        return self.db.fetch_all(_TOURIST_DWELLINGS, {"start": start, "end": end})
 
     def human_pressure(self, start: date, end: date) -> list[Row]:
         """People present in Mallorca per day in ``[start, end]``, oldest first."""

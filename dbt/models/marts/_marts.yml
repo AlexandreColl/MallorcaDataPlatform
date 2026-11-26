@@ -665,6 +665,46 @@ models:
       - {name: international_tourists_yoy, data_type: "numeric(8,4)", description: Change against the same month a year earlier (0.05 = +5 %).}
       - {name: airport_passengers_yoy, data_type: "numeric(8,4)"}
 
+  - name: fct_tourist_dwellings
+    description: >-
+      Tourist dwellings of each municipality of Mallorca per reference month (INE experimental statistic, the
+      listings of the main holiday rental platforms): dwellings, beds, beds per dwelling, their weight against the
+      population of the municipality and the change against the previous count. Counted twice a year since August
+      2020, on reference months that have moved (February and August, since November 2024 May and November).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [municipality, reference_month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "tourist_beds >= tourist_dwellings"
+          config:
+            where: "tourist_beds is not null and tourist_dwellings is not null"
+    columns:
+      - name: municipality
+        data_type: text
+        description: INE municipality code.
+        constraints: [{type: not_null}]
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_municipalities')
+                field: municipality
+      - {name: municipality_name, data_type: text}
+      - {name: reference_month, data_type: date, description: First day of the month the listings were counted in., constraints: [{type: not_null}]}
+      - {name: tourist_dwellings, data_type: integer, description: Dwellings listed for tourist stays.}
+      - {name: tourist_beds, data_type: integer, description: Beds (plazas) of those dwellings.}
+      - {name: beds_per_dwelling, data_type: "numeric(6,2)"}
+      - {name: population_year, data_type: integer, description: Year of the register the ratios use (the latest up to the reference month).}
+      - {name: population, data_type: integer}
+      - {name: dwellings_per_1000_inhabitants, data_type: "numeric(8,1)"}
+      - {name: beds_per_100_inhabitants, data_type: "numeric(8,1)", description: Tourist beds in dwellings per 100 residents.}
+      - {name: previous_month, data_type: date, description: Reference month of the previous count.}
+      - {name: dwellings_change, data_type: integer, description: Change against the previous count.}
+      - {name: dwellings_change_pct, data_type: "numeric(8,4)", description: Relative change (0.01 = +1 %).}
+
   - name: fct_water_reserves_monthly
     description: >-
       Groundwater reserves of Mallorca per month (Govern de les Illes Balears): island-wide share of a full aquifer,
@@ -963,3 +1003,28 @@ unit_tests:
       rows:
         - {station: B013X, altitude_adjustment_c: -3.25, temperature_mean_bias: 2.5, temperature_mean_bias_adjusted: -0.75, temperature_max_bias_adjusted: -0.75}
         - {station: parcbit, altitude_adjustment_c: 0.0, temperature_mean_bias: 1.0, temperature_mean_bias_adjusted: 1.0, temperature_max_bias_adjusted: 1.0}
+
+  - name: tourist_dwellings_change_is_against_the_previous_count
+    description: >-
+      The change is against the previous reference month, however far it is, and a count of a year whose register is
+      not published yet uses the latest register before it.
+    model: fct_tourist_dwellings
+    given:
+      - input: ref('stg_ine_tourist_housing__observations')
+        rows:
+          - {entity: "07042", metric: tourist_dwellings, local_date: "2025-11-01", value: 2385, is_missing: false}
+          - {entity: "07042", metric: tourist_beds, local_date: "2025-11-01", value: 14656, is_missing: false}
+          - {entity: "07042", metric: tourist_dwellings, local_date: "2026-05-01", value: 2344, is_missing: false}
+          - {entity: "07042", metric: tourist_beds, local_date: "2026-05-01", value: 14306, is_missing: false}
+          - {entity: "07042", metric: beds_per_dwelling, local_date: "2026-05-01", value: 6.1, is_missing: false}
+      - input: ref('dim_municipalities')
+        rows:
+          - {municipality: "07042", name: Pollença}
+      - input: ref('fct_population_yearly')
+        rows:
+          - {municipality: "07042", year: 2024, population: 17000}
+          - {municipality: "07042", year: 2025, population: 17200}
+    expect:
+      rows:
+        - {reference_month: "2025-11-01", population_year: 2025, dwellings_per_1000_inhabitants: 138.7, beds_per_100_inhabitants: 85.2, previous_month: null, dwellings_change: null, dwellings_change_pct: null}
+        - {reference_month: "2026-05-01", population_year: 2025, dwellings_per_1000_inhabitants: 136.3, beds_per_100_inhabitants: 83.2, previous_month: "2025-11-01", dwellings_change: -41, dwellings_change_pct: -0.0172}

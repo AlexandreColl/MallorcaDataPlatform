@@ -66,6 +66,7 @@ flowchart LR
 | climate | `fct_climate_monthly` (contrato) | mes: lluvia y temperatura de las estaciones de AEMET, anomalía frente al mismo mes, días calurosos y lluvia acumulada del año hidrológico |
 | water | `fct_water_reserves_monthly` (contrato), `dim_aquifers` (seed) | mes: reservas de la isla, variación y anomalía frente al mismo mes de otros años, acuíferos bajo el 30 % |
 | tourism | `fct_tourism_monthly` (contrato) | mes: turistas internacionales, gasto, ocupación hotelera, pasajeros del aeropuerto e interanual |
+| tourism | `fct_tourist_dwellings` (contrato) | municipio y mes de referencia: viviendas turísticas, plazas, por habitante y cambio frente al recuento anterior |
 | air_quality | `fct_air_quality_monthly` (contrato) | estación, contaminante y mes: media, máximo y cobertura del histórico de la GOIB (2002-2021) y de la EEA, con los meses representativos (≥ 75 % de horas) |
 | air_quality | `fct_air_quality_model_bias_daily` (contrato) | estación, contaminante y día: media de la estación oficial (EEA) junto al modelo CAMS y su diferencia |
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
@@ -139,6 +140,7 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
 - Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`.
 - Población: `fct_population_yearly`, `fct_human_pressure_daily`.
 - Mensuales: `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly`.
+- Turismo por municipio: `fct_tourist_dwellings`.
 - Calidad: `fct_anomaly_evaluations`.
 
 ## Tests
@@ -157,6 +159,9 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   - `consecutive_episode_days_form_one_episode`: un día tranquilo separa dos episodios.
   - `tourism_change_is_against_the_same_month_a_year_earlier`: el interanual compara con el mismo mes del año
     anterior.
+  - `tourist_dwellings_change_is_against_the_previous_count`: el cambio de las viviendas
+    turísticas es frente al recuento anterior, esté a la distancia que esté, y un recuento sin su padrón publicado
+    usa el último padrón anterior.
   - `water_reserve_anomaly_is_against_the_same_calendar_month`: la anomalía de las reservas es frente al mismo mes
     de otros años.
   - `climate_month_needs_a_complete_station`: un mes solo cuenta con estaciones que informan casi todos sus días.

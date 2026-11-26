@@ -5,6 +5,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+### Added
+
+- Connector `ine_tourist_housing`: the tourist dwellings, beds and beds per dwelling of the 53 municipalities of
+  Mallorca, from INE's experimental statistic of the listings on the main holiday rental platforms (Tempus table
+  39363, since August 2020), without a key. The national table is filtered to Mallorca with one `tv` per
+  municipality (300 KB instead of 44 MB). The INE counts twice a year on reference months that have moved, so the
+  dataset is `frequency: event` (no gaps rule). In the catalogue in three languages, in dbt
+  (`stg_ine_tourist_housing__observations`, freshness at a 400-day SLA, and `fct_tourist_dwellings` with the change
+  since the previous count and the dwellings per 1,000 inhabitants of the register), in the API
+  (`GET /v1/tourism/dwellings`, cached), in the E2E and in the architecture diagram.
+- Web: a *Tourist dwellings* layer in the municipality map of Mobility and a column in its table of municipalities.
+
+### Fixed
+
+- The home description and the data model said fifteen sources: there are seventeen with this one.
+
 ## [0.20.2] - 2026-11-26
 
 ### Changed

@@ -450,6 +450,28 @@ export interface TourismMonth {
   airport_passengers_yoy: number | null;
 }
 
+/** Tourist dwellings of a municipality of Mallorca in one reference month (gold.fct_tourist_dwellings, INE). */
+export interface TouristDwellings {
+  /** INE municipality code. */
+  municipality: string;
+  municipality_name: string | null;
+  /** Month the listings were counted in. */
+  reference_month: string;
+  tourist_dwellings: number | null;
+  tourist_beds: number | null;
+  beds_per_dwelling: number | null;
+  /** Register the ratios use (the latest up to the month). */
+  population_year: number | null;
+  dwellings_per_1000_inhabitants: number | null;
+  beds_per_100_inhabitants: number | null;
+  /** Reference month of the previous count. */
+  previous_month: string | null;
+  /** Change against the previous count. */
+  dwellings_change: number | null;
+  /** Relative change (0.01 = +1 %). */
+  dwellings_change_pct: number | null;
+}
+
 /** One line of a transit network with its path and its departures on the latest day of the network. */
 export interface TransitRoute {
   network: "emt_palma" | "ctm";
