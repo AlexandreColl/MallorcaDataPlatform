@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-11-26
+
+### Changed
+
+- Dependencies: pydantic 2.14.4 and pyarrow 26.0.1 in the API image (the same pyarrow as the Airflow image; it was
+  25.0.1), ruff 0.17.6, mypy-boto3-s3 1.44.6 and types-PyYAML 6.0.12.20261122 in development, Vite 8.3.8,
+  Vitest 5.1.1 and MapLibre 6.19.0 in the web, and the AWS provider of `infra/terraform` 6.73.0 (`~> 6.73.0`).
+- Dependabot writes the `deps` scope in its commit prefix instead of adding it with `include: scope`, which gave
+  development dependencies `deps-dev`, a scope the PR-title check rejects.
+
 ## [0.20.0] - 2026-11-25
 
 ### Added
@@ -907,7 +917,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.1...HEAD
+[0.20.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.17.0...v0.18.0
