@@ -98,6 +98,7 @@ export function Mobility() {
   const stops = useLoad(api.stops);
   const population = useLoad(() => api.population(FIRST_YEAR));
   const places = useLoad(api.municipalities);
+  const dwellings = useLoad(api.touristDwellings);
   const pressure = useLoad(() => api.humanPressure(daysAgo(3 * 366 + 120)));
   const routes = useLoad(api.routes);
   // The municipality chosen on the map, the table or the chart: the three follow it.
@@ -111,8 +112,9 @@ export function Mobility() {
     const [m, p, s] = [ready(places), ready(population), ready(stops)];
     if (!m || !p || !s || p.length === 0) return null;
     const year = Math.max(...p.map((r) => r.year));
-    return { rows: municipalityRows(m, p, s, year), year };
-  }, [places, population, stops]);
+    // The tourist dwellings are a layer more: the map does not wait for them, nor fails with them.
+    return { rows: municipalityRows(m, p, s, year, ready(dwellings) ?? []), year };
+  }, [places, population, stops, dwellings]);
   const layers = useMemo(() => (stops.status === "ready" ? stopLayers(stops.data) : []), [stops]);
   const m = messages().mobilityPage;
   const stopDay = stops.status === "ready" && stops.data[0] ? dayName(stops.data[0].local_date) : m.lastDay;
@@ -204,6 +206,14 @@ export function Mobility() {
                     { label: m.inhabitants, value: (r) => number(r.latest?.population ?? 0), numeric: true },
                     { label: m.tenYears, value: (r) => (r.growth === null ? "—" : `${signed(r.growth * 100)} %`), numeric: true },
                     { label: m.callsPerThousand, value: (r) => (r.perThousand === null ? "—" : number(r.perThousand)), numeric: true },
+                    {
+                      label: m.dwellingsPerThousand,
+                      value: (r) => {
+                        const ratio = r.dwellings?.dwellings_per_1000_inhabitants;
+                        return ratio == null ? "—" : number(ratio, 1);
+                      },
+                      numeric: true,
+                    },
                   ]}
                 />
               ) : null

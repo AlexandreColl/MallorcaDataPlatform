@@ -399,6 +399,23 @@ class PopulationYear(BaseModel):
     population_change_pct: float | None = Field(description="Relative change (0.01 = +1 %).")
 
 
+class TouristDwellings(BaseModel):
+    """Tourist dwellings of a municipality of Mallorca in one reference month (gold.fct_tourist_dwellings, INE)."""
+
+    municipality: str = Field(examples=["07042"], description="INE municipality code.")
+    municipality_name: str | None = Field(examples=["Pollença"])
+    reference_month: date = Field(examples=["2026-05-01"], description="Month the listings were counted in.")
+    tourist_dwellings: int | None = Field(examples=[2344])
+    tourist_beds: int | None = Field(examples=[14306])
+    beds_per_dwelling: float | None = Field(examples=[6.1])
+    population_year: int | None = Field(description="Register the ratios use (the latest up to the month).")
+    dwellings_per_1000_inhabitants: float | None
+    beds_per_100_inhabitants: float | None
+    previous_month: date | None = Field(description="Reference month of the previous count.")
+    dwellings_change: int | None = Field(description="Change against the previous count.")
+    dwellings_change_pct: float | None = Field(description="Relative change (0.01 = +1 %).")
+
+
 class HumanPressureDay(BaseModel):
     """People actually present in Mallorca on one day (gold.fct_human_pressure_daily, Ibestat IPH)."""
 

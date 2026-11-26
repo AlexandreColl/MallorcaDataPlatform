@@ -66,6 +66,7 @@ Leyenda: ✅ hecho · 🟡 en curso · ⬜ pendiente · 🔬 requiere investigac
 | ✅ | — | Boyas de SOCIB frente al modelo de oleaje (Open-Meteo Marine en el punto más cercano), hora a hora: `fct_wave_model_comparison_hourly`, `agg_wave_model_bias_by_buoy`, `GET /v1/sea/model-bias` y una tabla en la web. Bahía de Palma: 2.498 horas, r = 0,80, el modelo da un 40 % más de ola con mar en calma |
 | ✅ | — | Open-Meteo: histórico desde 2017 (`make backfill`, `max_days` 366). La calidad del aire sale de la misma API (CAMS desde 2013) y la meteorología del archivo de las previsiones (`historical-forecast-api`), igual hora a hora que la serie en vivo desde el 16-11-2022 y ERA5 antes, para comparar las estaciones de SOCIB y la EEA con el modelo en todo su histórico |
 | ✅ | — | **REDMAR** (mareógrafos de Puertos del Estado, `redmar`) | Sustituye a los de SOCIB: sus carpetas `sea_level` de Mallorca están vacías desde 2024 y los `tide_gauge` de Porto Cristo, Colònia de Sant Pere y Sa Rápita acaban en 2019-2020. THREDDS de Puertos del Estado sin clave: un NetCDF por día a 2 Hz desde 2009 en Palma (3851) y Alcúdia (3853). OPeNDAP en texto con `stride` 120 (un valor por minuto, ~60 KB por día) y media horaria de los minutos con bandera buena. Nivel sobre el cero del puerto (~4,2 m). En 2026 faltan unas 6 horas de cada 24, las mismas en los dos |
+| ✅ | — | **Viviendas turísticas** (INE, estadística experimental, `ine_tourist_housing`) | API Tempus sin clave, tabla 39363: viviendas, plazas y plazas por vivienda de cada municipio desde agosto de 2020. La tabla es nacional (44 MB en seis años): un filtro `tv=19:<id>` por municipio la deja en 300 KB para los 53 de Mallorca. Dos recuentos al año en meses que han cambiado (febrero y agosto hasta 2024, mayo y noviembre desde entonces), así que `frequency: event`, sin regla de huecos. Mart `fct_tourist_dwellings` (cambio frente al recuento anterior y viviendas por 1.000 habitantes del padrón), `GET /v1/tourism/dwellings` y una capa en el mapa de Movilidad. Prueba real: 2.067 valores; la isla pasa de 20.196 viviendas en agosto de 2020 a 14.756 en mayo de 2026 (−27 %), Pollença tiene 132 por 1.000 habitantes y Palma, 1,2 |
 
 Criterio de "hecho" por conector: YAML con métricas, unidades y rangos · fixtures reales · tests · aparece en Grafana · sección en README · ≤ 1 día de trabajo.
 
@@ -75,6 +76,18 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 - **IDEmallorca** (Consell de Mallorca, INSPIRE): capas geográficas WMS/WFS, no series temporales. Útil como dimensión (límites municipales para el mapa), no como conector.
 - **datos.gob.es**: catálogo nacional de metadatos; sirve para descubrir conjuntos, los datos están en cada fuente.
 - **Meteosource**: comercial y con clave; no aporta nada que no den Open-Meteo y AEMET.
+
+Fuentes posibles (probadas el 2026-11-26 con llamadas reales, aún sin conector):
+
+| Estado | Fuente | Prueba real | Dashboard | Qué aporta |
+|---|---|---|---|---|
+| ⬜ | **Paro registrado por municipio** (SEPE) | Un CSV por año (`Paro_por_municipios_<año>_csv.csv`, latin1, `;`), mensual, con sexo, edad y sector; los valores bajos llegan como `<5`. 67 municipios de Baleares; Palma, 12.571 en enero de 2026 | Turismo y recursos, Movilidad | La estacionalidad del empleo frente a turistas y demanda eléctrica, y el paro por habitante en el mapa |
+| ⬜ | **Temperatura del mar por satélite** (NOAA OISST v2.1, ERDDAP) | `ncdcOisst21Agg_LonPM180` en CSV, sin clave, diaria desde 1981 a 0,25°, con unas dos semanas de retraso. Frente a Palma, 21,5 °C el 10-11-2026 | Clima y agua, Tiempo y entorno | Anomalía del mar y olas de calor marinas con 45 años de referencia; observación contra la que medir el modelo de Open-Meteo Marine y las boyas de SOCIB |
+| ⬜ | **Polen, polvo sahariano y UV** (Open-Meteo, API de calidad del aire) | `olive_pollen`, `grass_pollen`, `dust` y `uv_index` responden (a 0 en noviembre); falta ver desde cuándo hay histórico | Tiempo y entorno, Operación | Unas líneas en el YAML de `open_meteo`; el polvo explica parte de los picos de PM10 que marcan los detectores |
+| ⬜ | **BiciPalma en vivo** (CityBikes, sistema Nextbike) | `api.citybik.es/v2/networks/bicipalma`: bicis libres y huecos por estación, sin histórico | Movilidad | La primera fuente casi continua (extra de streaming); la serie hay que construirla consultando cada pocos minutos |
+| 🔬 | **Demanda en tiempo real de Baleares** (REE Visiona) | El servicio `WSvisionaMovilesBalearesRest` responde pero rechaza todos los códigos de curva (`MALLORCA`, `BALEARES`…). Alternativa: ESIOS, con token, que además da el flujo del enlace con la Península | Turismo y recursos | Demanda cada 10 minutos y mezcla de generación, frente a la horaria de REData |
+| 🔬 | **Cruceristas** (Autoritat Portuària de Balears) | Ficha de tráfico marítimo en datos.gob.es, sin probar el fichero; según la prensa las cifras salen de la capacidad de los barcos, no de un recuento | Turismo y recursos | Presión turística que no pasa por el aeropuerto |
+| 🔬 | **Calidad de las aguas de baño** (EEA, Directiva de aguas de baño) | DiscoData devolvió 502 el día de la prueba | Clima y agua | Clasificación anual de cada playa de la isla |
 
 ## Fase 2b · v0.2.5 — dbt avanzado
 

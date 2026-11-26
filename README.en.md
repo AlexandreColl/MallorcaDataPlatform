@@ -126,6 +126,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | Hourly NO₂, O₃, PM10, PM2.5, SO₂ and CO from 9 official stations in Mallorca (the regional network, through the EEA), verified since 2013 | No |
 | [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | AEMET weather warnings (rain, storms, wind, coastal…) per zone of Mallorca and hour, level 0 to 3 | Yes |
 | [ine_population](connectors/ine_population/README.md) | ✅ | Population of Mallorca's 53 municipalities on 1 January, by sex, from the INE register (since 1996) | No |
+| [ine_tourist_housing](connectors/ine_tourist_housing/README.md) | ✅ | Tourist dwellings and beds of Mallorca's 53 municipalities, two counts a year from INE's experimental statistic (since August 2020) | No |
 | [ibestat_iph](connectors/ibestat_iph/README.md) | ✅ | People present in Mallorca each day, residents plus visitors (Ibestat's Human Pressure Indicator, since 1997) | No |
 
 ### Open-Meteo
@@ -176,6 +177,18 @@ the density and the change since the previous register; the island total is the 
 web, the Mobility dashboard crosses the population with the stops of each municipality: on a weekday Palma has 186
 scheduled calls per 1,000 inhabitants and Manacor 27.
 [Details and real tests](connectors/ine_population/README.md).
+
+### INE (tourist dwellings)
+
+The tourist dwellings, their beds and the beds per dwelling of each municipality of Mallorca, from INE's
+experimental statistic that counts the listings of the main holiday rental platforms (table 39363, since August
+2020). The table covers all of Spain: the connector filters it to the 53 municipalities with one `tv` per
+municipality, and the download drops from 44 MB to 300 KB. There are two counts a year, but their months have moved
+(February and August until 2024; May and November since), so the dataset is `frequency: event`: no gaps rule, the
+other quality rules apply. In gold, `fct_tourist_dwellings` adds the change since the previous count and the weight
+against the register. On the web, the Mobility map has one more layer: in May 2026 the island had 14,756 tourist
+dwellings (27 % fewer than in August 2020); Pollença has 132 per 1,000 inhabitants and Palma 1.2.
+[Details and real tests](connectors/ine_tourist_housing/README.md).
 
 ### Ibestat (human pressure)
 

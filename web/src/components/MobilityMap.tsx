@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 
 import { messages } from "../i18n";
-import { number, signed } from "../lib/format";
+import { monthName, number, signed } from "../lib/format";
 import type { MunicipalityRow } from "../lib/mobility";
 import { binColor } from "../lib/population";
 import { type MapArea, type MapLayer, PointMap } from "./PointMap";
 
-type View = "density" | "service" | "growth" | "none";
+type View = "density" | "service" | "growth" | "tourism" | "none";
 
 /** The legends are functions: their last entry names the unit in the language of the page. */
 const VIEWS: Record<View, { legend: () => string[]; bounds: number[]; colors: string[] }> = {
@@ -25,6 +25,12 @@ const VIEWS: Record<View, { legend: () => string[]; bounds: number[]; colors: st
     legend: () => ["< 0 %", "0-5 %", "5-10 %", "10-20 %", "20-30 %", "≥ 30 %"],
     bounds: [0, 0.05, 0.1, 0.2, 0.3],
     colors: ["#f87171", "#fde68a", "#d9f99d", "#86efac", "#22c55e", "#15803d"],
+  },
+  // Tourist dwellings per 1,000 inhabitants (INE count). Orange, apart from the stops and the other views.
+  tourism: {
+    legend: () => ["< 5", "5-10", "10-25", "25-50", "50-100", messages().mobility.tourismTop],
+    bounds: [5, 10, 25, 50, 100],
+    colors: ["#fff7ed", "#fed7aa", "#fdba74", "#fb923c", "#ea580c", "#9a3412"],
   },
   // Only the borders, so the stops stand out on the basemap.
   none: { legend: () => [], bounds: [], colors: [] },
@@ -45,14 +51,25 @@ export function MobilityMap({ rows, stops, year, selected, onSelect }: {
   const m = messages().mobility;
   const areas = useMemo(() => {
     const scale = VIEWS[view];
-    const value = (r: MunicipalityRow) =>
-      view === "density" ? (r.latest?.density_per_km2 ?? null) : view === "service" ? r.perThousand : r.growth;
+    const value = (r: MunicipalityRow): number | null => {
+      if (view === "density") return r.latest?.density_per_km2 ?? null;
+      if (view === "service") return r.perThousand;
+      if (view === "tourism") return r.dwellings?.dwellings_per_1000_inhabitants ?? null;
+      return r.growth;
+    };
     return rows.flatMap((r): MapArea[] => {
       const popup = [
         r.place.name,
         m.placePopulation(number(r.latest?.population ?? 0), number(r.latest?.density_per_km2 ?? 0)),
         r.growth === null ? m.noGrowth : m.growthSince(signed(r.growth * 100), year - 10),
         m.placeService(number(r.service.stops), number(r.perThousand ?? 0)),
+        r.dwellings?.tourist_dwellings == null
+          ? m.noTourism
+          : m.placeTourism(
+              number(r.dwellings.tourist_dwellings),
+              number(r.dwellings.dwellings_per_1000_inhabitants ?? 0, 1),
+              monthName(r.dwellings.reference_month),
+            ),
       ];
       const color = view === "none" ? "rgba(0, 0, 0, 0)" : binColor(value(r), scale.bounds, scale.colors);
       return r.place.polygon.map((ring) => ({ polygon: ring, color, popup, id: r.place.municipality }));

@@ -91,7 +91,7 @@ tabla Delta del lake, con la misma clave ([ADR 0002](adr/0002-medallion.md)).
 **Clave primaria:** `(source, entity, metric, ts)`. Está definida una sola vez, en `core/models.py`, y la usan el
 `MERGE` de Delta, el upsert de Postgres, la regla de duplicados y la deduplicación.
 
-**Por qué es largo.** Quince fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
+**Por qué es largo.** Diecisiete fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
 cambia ninguna tabla, y la calidad, la idempotencia y la frescura se resuelven una vez para todas
 ([ADR 0001](adr/0001-nucleo-fijo-y-conectores.md)). El precio es que una consulta que cruza métricas tiene que
 pivotar. Eso se hace una sola vez, en gold.
@@ -226,6 +226,7 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly` | mes | Snapshot periódico, con la anomalía frente al mismo mes | Tabla | ✅ |
 | `fct_earthquakes` | sismo, en su última revisión | Transacción (evento) | Tabla | — |
 | `fct_population_yearly` | municipio y año | Snapshot periódico: padrón a 1 de enero, densidad y cambio frente al padrón anterior | Tabla | ✅ |
+| `fct_tourist_dwellings` | municipio y mes de referencia | Snapshot periódico irregular: dos recuentos al año del INE, con el cambio frente al recuento anterior y el peso frente al padrón | Tabla | ✅ |
 | `fct_human_pressure_daily` | día | Snapshot periódico: personas presentes en la isla frente a las empadronadas | Tabla | ✅ |
 | `data_quality_summary`, `source_health` | regla / fuente | Estado actual | Tabla | — |
 | `fct_anomaly_evaluations` | ejecución del benchmark, fuente, detector y tipo de fallo | Transacción (evento): cada ejecución de `make evaluate`, con la más reciente de cada fuente marcada (`is_latest`) | Tabla | ✅ |
@@ -309,6 +310,7 @@ Hay tres controles, de lo más técnico a lo acordado:
 | Dataestur, reservas hídricas | Mensual, con 1-3 meses de retraso | 40 días | 100 días |
 | Ibestat (presión humana) | Mensual, unos dos meses tarde | 40 días | 120 días |
 | INE (padrón) | Anual, en diciembre | 400 días | 2 años |
+| INE (viviendas turísticas) | Dos recuentos al año, unos seis meses tarde | 240 días | 400 días |
 | IGN | Solo cuando hay sismos | Sin umbral | Sin SLA |
 | GOIB (histórico) | Cerrado en junio de 2021 | Sin umbral | Sin SLA |
 

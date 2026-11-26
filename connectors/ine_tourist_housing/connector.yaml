@@ -1,0 +1,87 @@
+name: ine_tourist_housing
+description: INE experimental statistic of tourist dwellings - dwellings, beds and beds per dwelling listed on the main holiday rental platforms in each municipality of Mallorca, twice a year, no API key
+entrypoint: connectors.ine_tourist_housing.extractor:IneTouristHousingConnector
+enabled: true
+# The INE counts the listings of one reference month twice a year, and that month has moved: August 2020, then
+# February and August until August 2024, then November 2024 and May and November since. With no fixed spacing
+# the gaps rule would be wrong, so the dataset is irregular, like the earthquakes: no gaps rule, and a window
+# without a new reference month is a valid, empty result.
+frequency: event
+# Every run re-reads the last three years: a reference month is published some six months later, and the INE
+# revises the experimental series when it changes the method. The whole history (since August 2020) is one request.
+min_days: 1095
+max_days: 2600         # backfills: the series starts in August 2020
+secrets: []
+
+options:
+  base_url: https://servicios.ine.es/wstempus/js/ES
+  timezone: Europe/Madrid
+  # Values of the "Concepto turístico" dimension of the table (INE value ids) and the metric each one feeds.
+  concepts: {"382508": tourist_dwellings, "382510": tourist_beds, "382509": beds_per_dwelling}
+  # INE code, name, centre (the same as ine_population, from the IGN boundaries of dim_municipalities) and the
+  # INE value id of every municipality of Mallorca. The table covers all of Spain (44 MB for six years), so the
+  # request filters it to these municipalities with one tv=19:<ine_id> per municipality (19 is "Municipios").
+  municipalities:
+    "07001": {name: "Alaró", lat: 39.7239, lon: 2.8019, ine_id: "5660"}
+    "07003": {name: "Alcúdia", lat: 39.8432, lon: 3.1124, ine_id: "5662"}
+    "07004": {name: "Algaida", lat: 39.5653, lon: 2.9026, ine_id: "1838"}
+    "07005": {name: "Andratx", lat: 39.5816, lon: 2.4056, ine_id: "5663"}
+    "07006": {name: "Artà", lat: 39.7156, lon: 3.3293, ine_id: "5664"}
+    "07007": {name: "Banyalbufar", lat: 39.6812, lon: 2.527, ine_id: "1839"}
+    "07008": {name: "Binissalem", lat: 39.6844, lon: 2.8585, ine_id: "5665"}
+    "07009": {name: "Búger", lat: 39.7579, lon: 2.9839, ine_id: "1840"}
+    "07010": {name: "Bunyola", lat: 39.7085, lon: 2.7127, ine_id: "5666"}
+    "07011": {name: "Calvià", lat: 39.5493, lon: 2.5076, ine_id: "1841"}
+    "07012": {name: "Campanet", lat: 39.7981, lon: 2.9675, ine_id: "5667"}
+    "07013": {name: "Campos", lat: 39.4065, lon: 3.0151, ine_id: "1842"}
+    "07014": {name: "Capdepera", lat: 39.6971, lon: 3.4273, ine_id: "5668"}
+    "07016": {name: "Consell", lat: 39.6662, lon: 2.8182, ine_id: "5669"}
+    "07017": {name: "Costitx", lat: 39.6562, lon: 2.9491, ine_id: "5670"}
+    "07018": {name: "Deià", lat: 39.7486, lon: 2.6481, ine_id: "5671"}
+    "07019": {name: "Escorca", lat: 39.828, lon: 2.8496, ine_id: "1844"}
+    "07020": {name: "Esporles", lat: 39.6635, lon: 2.5868, ine_id: "5672"}
+    "07021": {name: "Estellencs", lat: 39.6485, lon: 2.4755, ine_id: "1845"}
+    "07022": {name: "Felanitx", lat: 39.4519, lon: 3.1607, ine_id: "5673"}
+    "07025": {name: "Fornalutx", lat: 39.7987, lon: 2.7519, ine_id: "1847"}
+    "07027": {name: "Inca", lat: 39.7122, lon: 2.944, ine_id: "5676"}
+    "07028": {name: "Lloret de Vistalegre", lat: 39.6183, lon: 2.9764, ine_id: "1848"}
+    "07029": {name: "Lloseta", lat: 39.7208, lon: 2.8561, ine_id: "5677"}
+    "07030": {name: "Llubí", lat: 39.6984, lon: 3.0249, ine_id: "5678"}
+    "07031": {name: "Llucmajor", lat: 39.4501, lon: 2.8512, ine_id: "5679"}
+    "07033": {name: "Manacor", lat: 39.5554, lon: 3.2351, ine_id: "5680"}
+    "07034": {name: "Mancor de la Vall", lat: 39.7611, lon: 2.8656, ine_id: "1850"}
+    "07035": {name: "Maria de la Salut", lat: 39.6748, lon: 3.0937, ine_id: "5681"}
+    "07036": {name: "Marratxí", lat: 39.6237, lon: 2.7296, ine_id: "1851"}
+    "07038": {name: "Montuïri", lat: 39.5647, lon: 2.9896, ine_id: "1852"}
+    "07039": {name: "Muro", lat: 39.7576, lon: 3.0855, ine_id: "5683"}
+    "07040": {name: "Palma", lat: 39.5831, lon: 2.6988, ine_id: "1853"}
+    "07041": {name: "Petra", lat: 39.6282, lon: 3.1424, ine_id: "5684"}
+    "07042": {name: "Pollença", lat: 39.8867, lon: 3.0289, ine_id: "5685"}
+    "07043": {name: "Porreres", lat: 39.5075, lon: 3.03, ine_id: "5686"}
+    "07044": {name: "Sa Pobla", lat: 39.779, lon: 3.0299, ine_id: "1854"}
+    "07045": {name: "Puigpunyent", lat: 39.6255, lon: 2.5301, ine_id: "5687"}
+    "07047": {name: "Sencelles", lat: 39.6403, lon: 2.8974, ine_id: "5688"}
+    "07049": {name: "Sant Joan", lat: 39.5886, lon: 3.0444, ine_id: "5689"}
+    "07051": {name: "Sant Llorenç des Cardassar", lat: 39.6168, lon: 3.3062, ine_id: "1857"}
+    "07053": {name: "Santa Eugènia", lat: 39.6182, lon: 2.8324, ine_id: "5692"}
+    "07055": {name: "Santa Margalida", lat: 39.7213, lon: 3.1547, ine_id: "5693"}
+    "07056": {name: "Santa María del Camí", lat: 39.6641, lon: 2.7708, ine_id: "5445"}
+    "07057": {name: "Santanyí", lat: 39.3499, lon: 3.1321, ine_id: "5446"}
+    "07058": {name: "Selva", lat: 39.7674, lon: 2.9091, ine_id: "5447"}
+    "07059": {name: "ses Salines", lat: 39.3306, lon: 3.0433, ine_id: "5448"}
+    "07060": {name: "Sineu", lat: 39.6464, lon: 3.0221, ine_id: "5449"}
+    "07061": {name: "Sóller", lat: 39.7756, lon: 2.7055, ine_id: "5450"}
+    "07062": {name: "Son Servera", lat: 39.6404, lon: 3.3711, ine_id: "5451"}
+    "07063": {name: "Valldemossa", lat: 39.7024, lon: 2.6192, ine_id: "5452"}
+    "07065": {name: "Vilafranca de Bonany", lat: 39.5557, lon: 3.1171, ine_id: "5454"}
+    "07901": {name: "Ariany", lat: 39.6557, lon: 3.1335, ine_id: "5455"}
+
+datasets:
+  municipalities:
+    path: DATOS_TABLA/39363   # "Viviendas turísticas, plazas y plazas por vivienda turística por municipios"
+
+# metric name -> dataset, canonical unit, valid range (values outside it are labelled suspect)
+metrics:
+  tourist_dwellings: {dataset: municipalities, unit: dwellings, min: 0, max: 20000}
+  tourist_beds:      {dataset: municipalities, unit: beds, min: 0, max: 120000}
+  beds_per_dwelling: {dataset: municipalities, unit: beds/dwelling, min: 1, max: 20}
