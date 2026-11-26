@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Unreleased]
 
+## [0.20.2] - 2026-11-26
+
+### Changed
+
+- Dependencies: dbt-core 1.12.7 in the Airflow image and in CI (`DBT_CORE_VERSION` in the Dockerfile and
+  `requirements/dbt.txt`, which `tests/test_pins.py` keeps equal; Dependabot only bumps the second), FastAPI
+  0.165.0 and psycopg 3.3.9 in the API image and in CI, and httpx2 2.16.2 and boto3 1.44.9 in CI.
+
 ## [0.20.1] - 2026-11-26
 
 ### Changed
@@ -917,7 +925,8 @@ First release: the platform core with one connector working end to end.
 - Code style: Python 3.14, ruff with every rule enabled, Google-style docstrings, gitmoji + Conventional
   Commits enforced on PR titles, pre-commit hooks.
 
-[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.1...HEAD
+[Unreleased]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.2...HEAD
+[0.20.2]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.1...v0.20.2
 [0.20.1]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/AlexandreColl/MallorcaDataPlatform/compare/v0.18.0...v0.19.0
