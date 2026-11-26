@@ -19,7 +19,7 @@ ARG POSTGRES_JDBC_VERSION=42.7.14
 ARG DELTA_VERSION=4.4.1
 ARG DBT_POSTGRES_VERSION=1.11.0
 # Pinned: dbt-postgres accepts dbt-core>=1.8.0rc1, and that pre-release marker lets pip pick dbt-core betas.
-ARG DBT_CORE_VERSION=1.12.6
+ARG DBT_CORE_VERSION=1.12.7
 # dbt-ol: dbt with OpenLineage events per model (used by the DAG only when OPENLINEAGE_URL is set).
 ARG OPENLINEAGE_DBT_VERSION=1.55.0
 
