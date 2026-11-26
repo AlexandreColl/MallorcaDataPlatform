@@ -1,15 +1,17 @@
 version: 2
+# The scope is written in the prefix, not added with `include: scope`: that would give development dependencies
+# `deps-dev`, which the PR-title check (pr-title.yml) does not accept. The prefix also applies to them.
 updates:
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "⬆️ ci", include: scope }
+    commit-message: { prefix: "⬆️ ci(deps)" }
   - package-ecosystem: pip
     directory: /requirements
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "⬆️ build", include: scope }
+    commit-message: { prefix: "⬆️ build(deps)" }
     ignore:
       # Spark minors wait for Delta: its jars are built per Spark version (delta-spark_4.2_2.13 in the Dockerfile),
       # and Delta 4.4.1 supports pyspark <= 4.2. Patches of the same minor still come.
@@ -20,14 +22,14 @@ updates:
     directories: [/docker/airflow, /docker/api, /docker/web]
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "⬆️ build", include: scope }
+    commit-message: { prefix: "⬆️ build(deps)" }
   # The web (React, Vite, MapLibre, ECharts...). Minors and patches come together in one monthly PR; each major comes
   # on its own, since it may need code changes.
   - package-ecosystem: npm
     directory: /web
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "⬆️ build", include: scope }
+    commit-message: { prefix: "⬆️ build(deps)" }
     groups:
       web:
         update-types: [minor, patch]
@@ -37,4 +39,4 @@ updates:
     directory: /infra/terraform
     target-branch: develop
     schedule: { interval: monthly }
-    commit-message: { prefix: "⬆️ build", include: scope }
+    commit-message: { prefix: "⬆️ build(deps)" }
