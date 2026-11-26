@@ -76,6 +76,19 @@ Otras fuentes valoradas (2026-10-27) y por qué no son conectores:
 - **datos.gob.es**: catálogo nacional de metadatos; sirve para descubrir conjuntos, los datos están en cada fuente.
 - **Meteosource**: comercial y con clave; no aporta nada que no den Open-Meteo y AEMET.
 
+Fuentes posibles (probadas el 2026-11-26 con llamadas reales, aún sin conector):
+
+| Estado | Fuente | Prueba real | Dashboard | Qué aporta |
+|---|---|---|---|---|
+| 🟡 | **Viviendas turísticas por municipio** (INE, estadística experimental) | API Tempus, tabla 39363 (viviendas, plazas y plazas por vivienda), sin clave. Pollença: 2.344 viviendas en mayo de 2026 | Movilidad, Turismo y recursos | Otra capa del selector del mapa de municipios (viviendas turísticas por habitante y por vivienda) con la misma API que `ine_population` |
+| ⬜ | **Paro registrado por municipio** (SEPE) | Un CSV por año (`Paro_por_municipios_<año>_csv.csv`, latin1, `;`), mensual, con sexo, edad y sector; los valores bajos llegan como `<5`. 67 municipios de Baleares; Palma, 12.571 en enero de 2026 | Turismo y recursos, Movilidad | La estacionalidad del empleo frente a turistas y demanda eléctrica, y el paro por habitante en el mapa |
+| ⬜ | **Temperatura del mar por satélite** (NOAA OISST v2.1, ERDDAP) | `ncdcOisst21Agg_LonPM180` en CSV, sin clave, diaria desde 1981 a 0,25°, con unas dos semanas de retraso. Frente a Palma, 21,5 °C el 10-11-2026 | Clima y agua, Tiempo y entorno | Anomalía del mar y olas de calor marinas con 45 años de referencia; observación contra la que medir el modelo de Open-Meteo Marine y las boyas de SOCIB |
+| ⬜ | **Polen, polvo sahariano y UV** (Open-Meteo, API de calidad del aire) | `olive_pollen`, `grass_pollen`, `dust` y `uv_index` responden (a 0 en noviembre); falta ver desde cuándo hay histórico | Tiempo y entorno, Operación | Unas líneas en el YAML de `open_meteo`; el polvo explica parte de los picos de PM10 que marcan los detectores |
+| ⬜ | **BiciPalma en vivo** (CityBikes, sistema Nextbike) | `api.citybik.es/v2/networks/bicipalma`: bicis libres y huecos por estación, sin histórico | Movilidad | La primera fuente casi continua (extra de streaming); la serie hay que construirla consultando cada pocos minutos |
+| 🔬 | **Demanda en tiempo real de Baleares** (REE Visiona) | El servicio `WSvisionaMovilesBalearesRest` responde pero rechaza todos los códigos de curva (`MALLORCA`, `BALEARES`…). Alternativa: ESIOS, con token, que además da el flujo del enlace con la Península | Turismo y recursos | Demanda cada 10 minutos y mezcla de generación, frente a la horaria de REData |
+| 🔬 | **Cruceristas** (Autoritat Portuària de Balears) | Ficha de tráfico marítimo en datos.gob.es, sin probar el fichero; según la prensa las cifras salen de la capacidad de los barcos, no de un recuento | Turismo y recursos | Presión turística que no pasa por el aeropuerto |
+| 🔬 | **Calidad de las aguas de baño** (EEA, Directiva de aguas de baño) | DiscoData devolvió 502 el día de la prueba | Clima y agua | Clasificación anual de cada playa de la isla |
+
 ## Fase 2b · v0.2.5 — dbt avanzado
 
 | Estado | Tarea |
