@@ -1,7 +1,7 @@
 {
   "uid": "mallorca-climate-water",
   "title": "Mallorca · Clima y agua",
-  "description": "Lluvia y temperatura de las estaciones oficiales de AEMET frente a las reservas de agua subterránea de Mallorca: cuánto llueve, cuánto calor hace y cómo responden los acuíferos.",
+  "description": "Lluvia y temperatura de las estaciones oficiales de AEMET frente a las reservas de agua subterránea de Mallorca: cuánto llueve, cuánto calor hace, cómo responden los acuíferos y cómo de caliente está el mar (satélite NOAA OISST).",
   "tags": [
     "mallorca",
     "clima",
@@ -1213,6 +1213,218 @@
           "mode": "multi",
           "sort": "none"
         }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "El mar: anomalía y olas de calor marinas",
+      "description": "Temperatura del mar por satélite (NOAA OISST v2.1) en 8 puntos de la costa: anomalía de cada mes frente a la climatología 1991-2020 de los mismos días (barras) y días de ola de calor marina, media de los puntos (línea, eje derecho). Ola de calor marina: 5 días o más seguidos por encima del percentil 90 de ese día del año (Hobday et al., 2016).",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT month::timestamptz AS time, sst_anomaly_c AS \"Anomalía del mar (°C)\", heatwave_days AS \"Días de ola de calor\" FROM gold.fct_sea_temperature_monthly WHERE $__timeFilter(month::timestamptz) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "showPoints": "never",
+            "gradientMode": "scheme",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "celsius",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#5794F2",
+                "value": null
+              },
+              {
+                "color": "#FF7383",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Días de ola de calor"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "suffix: d"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 31
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C4162A"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Olas de calor marinas",
+      "description": "Las olas de calor marinas de cada punto de la costa en el periodo, las más recientes primero: días, pico y categoría de Hobday et al. (2018), que mide el pico en múltiplos de la distancia entre el percentil 90 y la climatología.",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT h.start_date::text AS \"Inicio\", h.end_date::text AS \"Fin\", coalesce(l.name, h.point) AS \"Punto\", h.days AS \"Días\", h.peak_sst_c AS \"Pico (°C)\", h.max_intensity_c AS \"Sobre lo normal (°C)\", h.category AS \"Categoría\" FROM gold.fct_marine_heatwaves h LEFT JOIN gold.dim_locations l ON l.source = 'noaa_oisst' AND l.entity = h.point WHERE h.end_date >= $__timeFrom()::date AND h.start_date <= $__timeTo()::date ORDER BY h.start_date DESC, 3"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          },
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Días"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Categoría"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "moderate": {
+                        "text": "moderada",
+                        "color": "#FF9830"
+                      },
+                      "strong": {
+                        "text": "fuerte",
+                        "color": "#F2495C"
+                      },
+                      "severe": {
+                        "text": "severa",
+                        "color": "#C4162A"
+                      },
+                      "extreme": {
+                        "text": "extrema",
+                        "color": "#8F3BB8"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
       }
     }
   ]

@@ -1,0 +1,34 @@
+{
+  "connector": "noaa_oisst",
+  "region": "mallorca",
+  "window": {
+    "start": "2026-11-04",
+    "end": "2026-11-24"
+  },
+  "requests": [
+    {
+      "method": "get_text",
+      "url": "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21Agg_LonPM180.csv?time%5Blast%5D",
+      "params": {},
+      "file": "01_ncdcoisst21agg_lonpm180_csv_time_5blast_.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21Agg_LonPM180.csv?sst%5B(2026-11-04T12:00:00Z):1:(2026-11-10T12:00:00Z)%5D%5B(0.0)%5D%5B(39.375):1:(39.875)%5D%5B(2.375):1:(3.375)%5D",
+      "params": {},
+      "file": "02_ncdcoisst21agg_lonpm180_csv_sst_5b_2026_.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.csv?time%5Blast%5D",
+      "params": {},
+      "file": "03_ncdcoisst21nrtagg_lonpm180_csv_time_5bla.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ncdcOisst21NrtAgg_LonPM180.csv?sst%5B(2026-11-11T12:00:00Z):1:(2026-11-24T12:00:00Z)%5D%5B(0.0)%5D%5B(39.375):1:(39.875)%5D%5B(2.375):1:(3.375)%5D",
+      "params": {},
+      "file": "04_ncdcoisst21nrtagg_lonpm180_csv_sst_5b_20.txt"
+    }
+  ]
+}

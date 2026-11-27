@@ -20,6 +20,7 @@ MONTHLY_MARTS = {
     "climate": "gold.fct_climate_monthly",
     "tourism": "gold.fct_tourism_monthly",
     "resources": "gold.fct_resources_monthly",
+    "sea_temperature": "gold.fct_sea_temperature_monthly",
 }
 
 # The catalogue's texts (label, licence) come in the language asked for, from gold.dim_source_texts; Spanish, the
@@ -245,6 +246,26 @@ FROM gold.fct_sea_conditions_hourly AS s
 LEFT JOIN gold.dim_locations AS l ON l.source = 'open_meteo_marine' AND l.entity = s.point
 WHERE s.ts >= %(start)s AND s.ts < %(end)s
 ORDER BY s.ts, s.point
+"""
+
+# Satellite sea temperature per coastal point and day (NOAA OISST), with its anomaly and marine heatwave days.
+_SEA_TEMPERATURE_DAILY = """
+SELECT s.point, l.name, s.lat, s.lon, s.day, s.sst_c, s.is_preliminary, s.sst_climatology_c, s.sst_p90_c,
+       s.sst_anomaly_c, s.is_marine_heatwave, s.heatwave_id
+FROM gold.fct_sea_temperature_daily AS s
+LEFT JOIN gold.dim_locations AS l ON l.source = 'noaa_oisst' AND l.entity = s.point
+WHERE s.day BETWEEN %(start)s AND %(end)s
+ORDER BY s.day, s.point
+"""
+
+# Marine heatwaves of the coastal points that overlap a range of days, newest first.
+_MARINE_HEATWAVES = """
+SELECT h.heatwave_id, h.point, l.name, h.start_date, h.end_date, h.days, h.peak_day, h.peak_sst_c, h.max_intensity_c,
+       h.mean_intensity_c, h.cumulative_intensity_c_days, h.category, h.has_preliminary_days
+FROM gold.fct_marine_heatwaves AS h
+LEFT JOIN gold.dim_locations AS l ON l.source = 'noaa_oisst' AND l.entity = h.point
+WHERE h.end_date >= %(start)s AND h.start_date <= %(end)s
+ORDER BY h.start_date DESC, h.point
 """
 
 _EARTHQUAKES = """
@@ -498,6 +519,14 @@ class Warehouse:
     def sea_hourly(self, start: datetime, end: datetime) -> list[Row]:
         """Hourly sea conditions of the coastal points, oldest first."""
         return self.db.fetch_all(_SEA_HOURLY, {"start": start, "end": end})
+
+    def sea_temperature_daily(self, start: date, end: date) -> list[Row]:
+        """Satellite sea temperature of the coastal points per day in ``[start, end]``, oldest first."""
+        return self.db.fetch_all(_SEA_TEMPERATURE_DAILY, {"start": start, "end": end})
+
+    def marine_heatwaves(self, start: date, end: date) -> list[Row]:
+        """Marine heatwaves of the coastal points that overlap ``[start, end]``, newest first."""
+        return self.db.fetch_all(_MARINE_HEATWAVES, {"start": start, "end": end})
 
     def earthquakes(self, start: date, end: date) -> list[Row]:
         """Earthquakes located by the IGN in the range, newest first."""

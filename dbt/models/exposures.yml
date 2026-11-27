@@ -46,7 +46,8 @@ exposures:
     url: http://localhost:3000/d/mallorca-climate-water
     description: >
       Rainfall and temperature of the AEMET stations against the groundwater reserves: monthly response of the
-      aquifers, hydrological years and the state of each aquifer.
+      aquifers, hydrological years, the state of each aquifer, and the satellite sea temperature anomaly with the
+      marine heatwaves.
     owner:
       name: AlexandreColl
     depends_on:
@@ -55,6 +56,9 @@ exposures:
       - ref('fct_water_reserves_monthly')
       - ref('fct_observations')
       - ref('dim_aquifers')
+      - ref('fct_sea_temperature_monthly')
+      - ref('fct_marine_heatwaves')
+      - ref('dim_locations')
 
   - name: grafana_mobility
     label: Grafana · Mallorca · Movilidad
@@ -147,8 +151,12 @@ exposures:
       - ref('data_quality_summary')
       - ref('fct_anomaly_evaluations')
       - ref('fct_weather_warnings')
+      - ref('fct_sea_temperature_monthly')
+      - ref('fct_sea_temperature_daily')
+      - ref('fct_marine_heatwaves')
       - ref('dim_warning_zones')
       - ref('fct_population_yearly')
+      - ref('fct_tourist_dwellings')
       - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
 
@@ -188,8 +196,10 @@ exposures:
       - ref('fct_anomaly_evaluations')
       - ref('fct_observations_corrected')
       - ref('fct_weather_warnings')
+      - ref('fct_sea_temperature_monthly')
       - ref('dim_warning_zones')
       - ref('fct_population_yearly')
+      - ref('fct_tourist_dwellings')
       - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
 

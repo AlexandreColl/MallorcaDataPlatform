@@ -1,0 +1,54 @@
+name: noaa_oisst
+description: NOAA OISST v2.1 satellite sea surface temperature around Mallorca (ERDDAP, daily since 1981, 0.25 deg), no API key
+entrypoint: connectors.noaa_oisst.extractor:NoaaOisstConnector
+enabled: true
+frequency: 1d
+# One small box of 3 x 5 cells per request: five years are about 0.8 MB and 30 s, so `make backfill` loads the
+# whole history since 1981 in ten runs (CHUNK_DAYS=1826).
+max_days: 1830
+catch_up_days: 60
+recover_days: 366
+# The preliminary product is published the next day. A day it does not have yet is left out of the run (not a
+# failure) and read by the next one, so windows end yesterday.
+lag_days: 0
+# The final product comes about 16 days later and stands in for the preliminary value of the same day: every run
+# reads its last three weeks again, so the final values reach silver as soon as they are published.
+min_days: 21
+secrets: []
+
+options:
+  # The ERDDAP of NOAA's Environmental Research Division. upwell.pfeg.noaa.gov answers the same URLs but redirects
+  # them here, so it is no fallback; no other ERDDAP probed (coastwatch.noaa.gov, PacIOOS, PolarWatch, OceanWatch)
+  # has these datasets.
+  erddap_url: https://coastwatch.pfeg.noaa.gov/erddap
+  # ERDDAP's aggregation of the final product lacks about 1,200 days (most of 1992-1998) that NOAA's files have.
+  # NOAA PSL serves the same analysis over OPeNDAP, one file per year: the missing days of a run come from there.
+  psl_url: https://psl.noaa.gov/thredds/dodsC/Datasets/noaa.oisst.v2.highres
+  psl_max_days: 31   # about 10 s a request: a whole year (~2 min) passes the 60 s read timeout
+  first_day: 1981-09-01   # the first day of the record
+  # The coastal points of Open-Meteo Marine (same entity names, so the model compares 1:1) and, for each one, the
+  # nearest OISST cell that is sea in the land mask of the grid (cell centres at .125, .375, .625 and .875). The
+  # buoys of SOCIB fall in the cells of bahia_de_palma and portocolom.
+  points:
+    - {name: bahia_de_palma, label: Bahía de Palma, lat: 39.50, lon: 2.68, cell_lat: 39.375, cell_lon: 2.625}   # 15 km; 39.625 is land
+    - {name: dragonera, label: Sa Dragonera, lat: 39.58, lon: 2.30, cell_lat: 39.625, cell_lon: 2.375}          # 8 km
+    - {name: soller, label: Sóller, lat: 39.80, lon: 2.68, cell_lat: 39.875, cell_lon: 2.625}                   # 10 km
+    - {name: pollenca, label: Pollença, lat: 39.90, lon: 3.12, cell_lat: 39.875, cell_lon: 2.875}               # 21 km; 39.875/3.125 is land
+    - {name: alcudia, label: Alcúdia, lat: 39.82, lon: 3.17, cell_lat: 39.875, cell_lon: 3.375}                 # 19 km
+    - {name: cala_millor, label: Cala Millor, lat: 39.60, lon: 3.42, cell_lat: 39.625, cell_lon: 3.375}         # 5 km
+    - {name: portocolom, label: Portocolom, lat: 39.41, lon: 3.28, cell_lat: 39.375, cell_lon: 3.375}           # 9 km
+    - {name: colonia_sant_jordi, label: Colònia de Sant Jordi, lat: 39.30, lon: 3.00, cell_lat: 39.375, cell_lon: 3.125}  # 14 km, a tie with 2.875
+
+# final: the record since 1981, about 16 days late. preliminary: the near-real-time analysis since 2020-05-04, one
+# day late, replaced by the final one about two weeks later.
+datasets:
+  final:
+    dataset_id: ncdcOisst21Agg_LonPM180
+  preliminary:
+    dataset_id: ncdcOisst21NrtAgg_LonPM180
+
+# Each product is its own metric, so a preliminary value is kept next to the final one of the same day: gold takes
+# the final value when there is one, and the two can be compared.
+metrics:
+  sea_surface_temperature:             {dataset: final, unit: degC, min: 0, max: 35}
+  sea_surface_temperature_preliminary: {dataset: preliminary, unit: degC, min: 0, max: 35}
