@@ -156,6 +156,7 @@ exposures:
       - ref('fct_marine_heatwaves')
       - ref('dim_warning_zones')
       - ref('fct_population_yearly')
+      - ref('fct_tourist_dwellings')
       - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
 
@@ -198,6 +199,7 @@ exposures:
       - ref('fct_sea_temperature_monthly')
       - ref('dim_warning_zones')
       - ref('fct_population_yearly')
+      - ref('fct_tourist_dwellings')
       - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
 
