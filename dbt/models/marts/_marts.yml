@@ -944,6 +944,163 @@ models:
       - name: value
         description: The corrected value where there is one, the original elsewhere (NULL when neither exists).
 
+  - name: dim_sea_temperature_climatology
+    description: >
+      The usual satellite sea surface temperature of every NOAA OISST coastal point and day of the year (1-366,
+      29 February = 60): mean and 90th percentile of the final 1991-2020 values within 5 days of that day, smoothed
+      with a 31-day moving mean (Hobday et al., 2016). The reference of the anomaly and of the marine heatwaves.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [point, day_of_year]
+    data_tests:
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments: {column_A: sst_p90_c, column_B: sst_climatology_c}
+    columns:
+      - {name: point, data_type: text, constraints: [{type: not_null}]}
+      - name: day_of_year
+        data_type: integer
+        constraints: [{type: not_null}]
+        data_tests:
+          - value_between:
+              arguments: {min_value: 1, max_value: 366}
+      - {name: sst_climatology_c, data_type: "numeric(6,3)"}
+      - {name: sst_p90_c, data_type: "numeric(6,3)"}
+      - name: baseline_values
+        data_type: bigint
+        description: Daily values behind the day (30 years x 11 days = 330; fewer on 29 February).
+
+  - name: fct_sea_temperature_daily
+    description: >
+      Satellite sea surface temperature (NOAA OISST v2.1) per coastal point and day since September 1981: the final
+      value or, for the last two weeks, the preliminary one; its anomaly against the 1991-2020 climatology of the
+      same day of the year, and the marine heatwaves of Hobday et al. (2016) - 5 or more days in a row above the
+      90th percentile, two of them with 2 days or less in between are one - built with gaps and islands.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [point, day]
+    columns:
+      - name: sst_c
+        data_tests:
+          - value_between:
+              arguments: {min_value: 5, max_value: 35}
+      - name: sst_anomaly_c
+        description: Value minus the climatology of the day (°C).
+        data_tests:
+          - value_between:
+              arguments: {min_value: -10, max_value: 10}
+      - name: is_preliminary
+        description: True while the final value of the day is not published yet (about 16 days).
+        data_tests: [not_null]
+      - name: is_marine_heatwave
+        data_tests: [not_null]
+      - name: heatwave_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('fct_marine_heatwaves'), field: heatwave_id}
+
+  - name: fct_marine_heatwaves
+    description: >
+      One row per marine heatwave of a coastal point (Hobday et al., 2016): start, end, days, peak, mean and
+      accumulated intensity above the climatology and the category of Hobday et al. (2018) (moderate, strong,
+      severe, extreme: the peak in multiples of the gap between the 90th percentile and the climatology).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [heatwave_id]
+    data_tests:
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments: {column_A: end_date, column_B: start_date}
+    columns:
+      - {name: heatwave_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: point, data_type: text}
+      - {name: start_date, data_type: date}
+      - {name: end_date, data_type: date}
+      - name: days
+        data_type: integer
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 5}
+      - {name: peak_day, data_type: date}
+      - {name: peak_sst_c, data_type: "numeric(5,2)"}
+      - {name: max_intensity_c, data_type: "numeric(5,2)", description: Highest anomaly of the heatwave (°C).}
+      - {name: mean_intensity_c, data_type: "numeric(5,2)"}
+      - {name: cumulative_intensity_c_days, data_type: "numeric(7,1)", description: Sum of the daily anomalies.}
+      - name: category
+        data_type: text
+        data_tests:
+          - accepted_values:
+              arguments: {values: [moderate, strong, severe, extreme]}
+      - {name: has_preliminary_days, data_type: boolean}
+
+  - name: fct_sea_temperature_monthly
+    description: >
+      The sea around Mallorca per month from the satellite: mean surface temperature of the coastal points, its
+      anomaly against the 1991-2020 climatology of the same days, the marine heatwave days (mean of the points) and
+      the days with a heatwave at any point. Next to fct_climate_monthly on the climate page.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    columns:
+      - {name: month, data_type: date, constraints: [{type: not_null}]}
+      - {name: points, data_type: bigint}
+      - {name: days_reported, data_type: bigint}
+      - {name: sst_mean_c, data_type: "numeric(5,2)"}
+      - {name: sst_climatology_c, data_type: "numeric(5,2)"}
+      - {name: sst_anomaly_c, data_type: "numeric(5,2)"}
+      - name: heatwave_days
+        data_type: "numeric(4,1)"
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 31}
+      - {name: days_with_heatwave, data_type: bigint}
+      - {name: has_preliminary_days, data_type: boolean}
+
+  - name: fct_sst_model_comparison_daily
+    description: >
+      Satellite vs model per coastal point and UTC day: the OISST sea surface temperature and the daily mean of the
+      hourly one of Open-Meteo Marine at the same point, and the difference (model minus satellite). A model day
+      needs 20 hours.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [point, day]
+    columns:
+      - name: sst_bias_c
+        data_tests:
+          - value_between:
+              arguments: {min_value: -10, max_value: 10}
+
+  - name: agg_sst_model_bias_by_point
+    description: >-
+      Sea temperature model quality per coastal point against the satellite: bias, MAE, RMSE and correlation of
+      the daily values, the mean of each side and the days compared.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [point]
+    columns:
+      - {name: point, data_type: text, constraints: [{type: not_null}]}
+      - {name: days_compared, data_type: bigint}
+      - {name: sst_satellite_mean_c, data_type: "numeric(5,2)"}
+      - {name: sst_model_mean_c, data_type: "numeric(5,2)"}
+      - {name: sst_bias_c, data_type: "numeric(5,2)", description: Mean of model minus satellite.}
+      - name: sst_mae_c
+        data_type: "numeric(5,2)"
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 0}
+      - {name: sst_rmse_c, data_type: "numeric(5,2)"}
+      - {name: sst_correlation, data_type: "numeric(4,3)"}
+      - {name: first_day, data_type: date}
+      - {name: last_day, data_type: date}
+
 unit_tests:
   - name: anomaly_benchmark_latest_run_per_source
     description: >-
@@ -1130,3 +1287,56 @@ unit_tests:
     expect:
       rows:
         - {station: station_1, station_name: 01 PARC DE SES VELES, local_hour: 17, bikes_available: 2.50, bikes_available_min: 0, bikes_available_max: 5, occupancy_pct: 12.5, was_empty: true, was_full: false}
+  - name: marine_heatwave_needs_five_days_and_joins_short_gaps
+    description: >
+      Hobday et al. (2016) - at palma, 5 days above the 90th percentile, 2 below and 5 above again are one heatwave
+      of 12 days, the gap included; at soller, 4 days above are none.
+    model: fct_sea_temperature_daily
+    given:
+      - input: ref('int_sea_temperature__daily')
+        rows:
+          - {point: palma, day: "2026-08-01", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-02", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-03", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-04", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-05", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-06", sst_c: 26.5, is_preliminary: false}
+          - {point: palma, day: "2026-08-07", sst_c: 26.5, is_preliminary: false}
+          - {point: palma, day: "2026-08-08", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-09", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-10", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-11", sst_c: 28.0, is_preliminary: false}
+          - {point: palma, day: "2026-08-12", sst_c: 28.0, is_preliminary: true}
+          - {point: palma, day: "2026-08-13", sst_c: 26.0, is_preliminary: true}
+          - {point: soller, day: "2026-08-01", sst_c: 28.0, is_preliminary: false}
+          - {point: soller, day: "2026-08-02", sst_c: 28.0, is_preliminary: false}
+          - {point: soller, day: "2026-08-03", sst_c: 28.0, is_preliminary: false}
+          - {point: soller, day: "2026-08-04", sst_c: 28.0, is_preliminary: false}
+          - {point: soller, day: "2026-08-05", sst_c: 26.0, is_preliminary: false}
+      - input: ref('dim_sea_temperature_climatology')
+        format: sql
+        rows: |
+          select p.point, d as day_of_year, 26.0::numeric(6, 3) as sst_climatology_c,
+                 27.0::numeric(6, 3) as sst_p90_c, 330::bigint as baseline_values
+          from (values ('palma'), ('soller')) as p (point)
+          cross join generate_series(214, 226) as d  -- 1 to 13 August
+    expect:
+      rows:
+        - {point: palma, day: "2026-08-01", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-02", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-03", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-04", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-05", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-06", sst_anomaly_c: 0.50, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-07", sst_anomaly_c: 0.50, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-08", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-09", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-10", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-11", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-12", sst_anomaly_c: 2.00, is_marine_heatwave: true}
+        - {point: palma, day: "2026-08-13", sst_anomaly_c: 0.00, is_marine_heatwave: false}
+        - {point: soller, day: "2026-08-01", sst_anomaly_c: 2.00, is_marine_heatwave: false}
+        - {point: soller, day: "2026-08-02", sst_anomaly_c: 2.00, is_marine_heatwave: false}
+        - {point: soller, day: "2026-08-03", sst_anomaly_c: 2.00, is_marine_heatwave: false}
+        - {point: soller, day: "2026-08-04", sst_anomaly_c: 2.00, is_marine_heatwave: false}
+        - {point: soller, day: "2026-08-05", sst_anomaly_c: 0.00, is_marine_heatwave: false}

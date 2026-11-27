@@ -571,6 +571,55 @@ class SeaHour(BaseModel):
     sea_temperature_c: float | None
 
 
+class SeaTemperatureDay(BaseModel):
+    """Satellite sea surface temperature at one coastal point on one day (gold.fct_sea_temperature_daily, OISST)."""
+
+    point: str
+    name: str | None = Field(default=None, examples=["Bahía de Palma"], description=NAME)
+    lat: float | None = Field(description="Centre of the 0.25 degree cell.")
+    lon: float | None
+    day: date = Field(description="UTC day the analysis describes.")
+    sst_c: float | None = Field(examples=[21.54])
+    is_preliminary: bool = Field(description="True until the final value replaces it, about 16 days later.")
+    sst_climatology_c: float | None = Field(description="1991-2020 mean of the same day of the year, smoothed.")
+    sst_p90_c: float | None = Field(description="90th percentile of the same day of the year: the heatwave threshold.")
+    sst_anomaly_c: float | None
+    is_marine_heatwave: bool = Field(description="Part of a marine heatwave (Hobday et al., 2016).")
+    heatwave_id: str | None
+
+
+class MarineHeatwave(BaseModel):
+    """One marine heatwave at a coastal point: 5 or more days above the 90th percentile (gold.fct_marine_heatwaves)."""
+
+    heatwave_id: str
+    point: str
+    name: str | None = Field(default=None, examples=["Bahía de Palma"], description=NAME)
+    start_date: date
+    end_date: date
+    days: int
+    peak_day: date | None
+    peak_sst_c: float | None
+    max_intensity_c: float | None = Field(description="Highest anomaly against the climatology (°C).")
+    mean_intensity_c: float | None
+    cumulative_intensity_c_days: float | None = Field(description="Sum of the daily anomalies (°C x days).")
+    category: Literal["moderate", "strong", "severe", "extreme"] = Field(description="Hobday et al. (2018).")
+    has_preliminary_days: bool
+
+
+class SeaTemperatureMonth(BaseModel):
+    """The sea around Mallorca in one month, from the satellite (gold.fct_sea_temperature_monthly, OISST)."""
+
+    month: date
+    points: int
+    days_reported: int
+    sst_mean_c: float | None
+    sst_climatology_c: float | None = Field(description="1991-2020 climatology of the same days.")
+    sst_anomaly_c: float | None
+    heatwave_days: float | None = Field(description="Marine heatwave days, mean of the coastal points.")
+    days_with_heatwave: int = Field(description="Days with a marine heatwave at any coastal point.")
+    has_preliminary_days: bool
+
+
 class Earthquake(BaseModel):
     """One earthquake located by the IGN, in its latest revision (gold.fct_earthquakes)."""
 

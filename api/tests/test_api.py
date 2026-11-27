@@ -185,7 +185,9 @@ def test_monthly_marts_filter_by_month(db):
     assert params == {"start": date(2026, 1, 1), "end": date(2026, 8, 1)}
 
 
-@pytest.mark.parametrize("path", ["/v1/climate/monthly", "/v1/tourism/monthly", "/v1/resources/monthly"])
+@pytest.mark.parametrize(
+    "path", ["/v1/climate/monthly", "/v1/tourism/monthly", "/v1/resources/monthly", "/v1/sea/temperature/monthly"]
+)
 def test_every_monthly_mart_answers(db, path):
     response = client(db).get(path)
 
@@ -234,7 +236,8 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/mobility/routes", "/v1/mobility/bike-stations", "/v1/mobility/bikes/hourly",
         "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
-        "/v1/sea/hourly", "/v1/sea/model-bias", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
+        "/v1/sea/hourly", "/v1/sea/model-bias", "/v1/sea/temperature/daily", "/v1/sea/temperature/monthly",
+        "/v1/sea/heatwaves", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
         "/v1/population",
         "/v1/population/pressure",
         "/v1/municipalities",
@@ -277,6 +280,9 @@ def test_settings_from_environment():
         ("/v1/air-quality/latest", "gold.air_quality_hourly"),
         ("/v1/sea/hourly", "gold.fct_sea_conditions_hourly"),
         ("/v1/sea/model-bias", "gold.agg_wave_model_bias_by_buoy"),
+        ("/v1/sea/temperature/daily", "gold.fct_sea_temperature_daily"),
+        ("/v1/sea/temperature/monthly", "gold.fct_sea_temperature_monthly"),
+        ("/v1/sea/heatwaves", "gold.fct_marine_heatwaves"),
         ("/v1/earthquakes", "gold.fct_earthquakes"),
         ("/v1/quality/rules", "gold.data_quality_summary"),
         ("/v1/anomalies/daily", "silver.anomalies"),
@@ -394,6 +400,37 @@ def test_tourist_dwellings_filter_by_reference_month():
     assert body[0]["dwellings_per_1000_inhabitants"] == 136.3
     api.get("/v1/tourism/dwellings", params={"from": "2024-01-01", "to": "2025-12-01"})
     assert db.calls[-1][1] == {"start": date(2024, 1, 1), "end": date(2025, 12, 1)}
+
+
+def test_sea_temperature_days_and_heatwaves_default_to_the_last_90_and_365_days():
+    heatwave = {
+        "heatwave_id": "abc",
+        "point": "bahia_de_palma",
+        "name": "Bahía de Palma",
+        "start_date": date(2025, 6, 20),
+        "end_date": date(2025, 7, 10),
+        "days": 21,
+        "peak_day": date(2025, 7, 1),
+        "peak_sst_c": 28.9,
+        "max_intensity_c": 3.4,
+        "mean_intensity_c": 2.1,
+        "cumulative_intensity_c_days": 44.1,
+        "category": "strong",
+        "has_preliminary_days": False,
+    }
+    db = FakeDatabase({"gold.fct_marine_heatwaves": [heatwave]})
+    api = client(db)
+
+    api.get("/v1/sea/temperature/daily")
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 89
+    body = api.get("/v1/sea/heatwaves").json()
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 364
+    assert body[0]["category"] == "strong"
+    assert body[0]["start_date"] == "2025-06-20"
+    api.get("/v1/sea/heatwaves", params={"from": "1991-01-01", "to": "2020-12-31"})
+    assert db.calls[-1][1] == {"start": date(1991, 1, 1), "end": date(2020, 12, 31)}
 
 
 def test_station_temperatures_of_the_latest_day_or_a_chosen_one():

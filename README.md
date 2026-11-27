@@ -28,7 +28,7 @@ parámetros extrae las fuentes elegidas, comprueba su calidad y lo deja todo lis
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Arquitectura: 18 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
+  <img alt="Arquitectura: 19 fuentes abiertas entran por conectores en Python a bronze (MinIO); PySpark las normaliza en silver (Delta Lake y Postgres); Python marca anomalías y propone correcciones; dbt construye gold en Postgres; la API, la web y Grafana lo sirven. Airflow orquesta cada paso." src="docs/img/architecture.svg">
 </picture>
 
 El diagrama se genera con `node scripts/architecture/diagram.mjs` (versión clara y oscura, logos de Simple Icons).
@@ -112,6 +112,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
 | [redmar](connectors/redmar/README.md) | ✅ | Nivel del mar horario en los mareógrafos de Palma y Alcúdia de Puertos del Estado (red REDMAR, desde 2009) | No |
+| [noaa_oisst](connectors/noaa_oisst/README.md) | ✅ | Temperatura diaria de la superficie del mar por satélite (NOAA OISST v2.1, 0,25°) en 8 puntos de la costa, desde 1981 | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Sismos localizados por el IGN en Mallorca y el mar que la rodea (magnitud, profundidad, epicentro) | No |
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Autobuses programados y líneas por parada y día (875 paradas, GTFS estático) | No |
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Oleaje, temperatura del mar, corrientes y nivel del mar (modelo) en 8 puntos de la costa | No |
@@ -255,6 +256,24 @@ buenos.
 - **En 2026 faltan horas enteras**, unas 6 de cada 24 y las mismas en los dos mareógrafos; en 2024 y antes los
   ficheros están casi completos. Una hora sin ningún minuto bueno se guarda como `missing`.
 - Sustituye a los mareógrafos de SOCIB, que dejaron de publicar en Mallorca entre 2019 y 2024.
+
+### Temperatura del mar por satélite (NOAA OISST)
+
+La temperatura diaria de la superficie del mar de NOAA OISST v2.1 (satélite, barcos y boyas en una rejilla de 0,25°)
+desde septiembre de 1981, en la celda de mar más cercana a cada uno de los 8 puntos de costa de Open-Meteo Marine.
+Se lee del ERDDAP de NOAA CoastWatch sin clave: una caja de 3 × 5 celdas por ventana en lugar de una petición por
+punto. El dato definitivo llega unos 16 días tarde y el provisional al día siguiente; son dos métricas, y gold toma
+el definitivo en cuanto existe. Al eje de tiempo de ERDDAP le faltaban 1.196 días (casi todos de 1992-1998): el
+conector los pide a la copia de NOAA PSL por OPeNDAP, y silver queda completo, 16.507 días en los 8 puntos.
+
+En gold, `dim_sea_temperature_climatology` da la temperatura habitual de cada día del año en 1991-2020 (ventana de
+11 días y media móvil de 31, como Hobday et al., 2016) y `fct_sea_temperature_daily` la anomalía y las **olas de
+calor marinas**: 5 días seguidos o más por encima del percentil 90, con islas y huecos. La anomalía media pasa de
+−0,48 °C en los ochenta a +1,05 °C desde 2020, y los días de ola de calor, de 1,5 al año a 136. La ola de 2026 frente
+a Palma duró 131 días (del 15 de junio al 23 de octubre), con 29,9 °C el 7 de agosto, el valor más alto de la serie.
+En la web, *Clima y agua* pone la anomalía del mar junto a la del aire; en Grafana hay además una tabla de olas de
+calor. Open-Meteo Marine resulta entre 0,2 y 0,6 °C más cálido que el satélite, con r = 0,99.
+[Detalle y pruebas reales](connectors/noaa_oisst/README.md).
 
 ### IGN (sismos)
 

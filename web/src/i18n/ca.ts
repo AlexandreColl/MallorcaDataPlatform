@@ -11,7 +11,7 @@ export const ca: Messages = {
       label: "Inici",
       title: "Mallorca en dades",
       description:
-        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Divuit fonts " +
+        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Dinou fonts " +
         "obertes, amb la qualitat comprovada a cada càrrega.",
     },
     tourism: {
@@ -22,7 +22,7 @@ export const ca: Messages = {
     climate: {
       label: "Clima i aigua",
       title: "Clima i aigua",
-      description: "Reserves dels aqüífers, pluja de l’any hidrològic i temperatura respecte del que és normal.",
+      description: "Reserves dels aqüífers, pluja de l’any hidrològic i temperatura de l’aire i de la mar respecte del que és normal.",
     },
     mobility: {
       label: "Mobilitat",
@@ -60,7 +60,7 @@ export const ca: Messages = {
     language: "Llengua",
     catalogue: "Catàleg",
     footer:
-      "Dades obertes d’AEMET, SOCIB, Ports de l’Estat, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
+      "Dades obertes d’AEMET, SOCIB, Ports de l’Estat, NOAA, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
       "Govern de les Illes Balears i Open-Meteo. Mapa © OpenStreetMap.",
   },
   data: {
@@ -371,6 +371,13 @@ export const ca: Messages = {
     rainSubtitle: "Pluja acumulada des de setembre a les estacions d’AEMET, any rere any.",
     temperatureTitle: "Temperatura respecte del normal",
     temperatureSubtitle: "Diferència entre la temperatura mitjana de cada mes i la d’aquest mes en altres anys.",
+    seaTitle: "La mar respecte del normal",
+    seaSubtitle:
+      "Anomalia de la temperatura de la mar per satèl·lit (NOAA OISST) respecte de 1991-2020 a 8 punts de la costa, " +
+      "i dies d’onada de calor marina: 5 o més seguits per damunt del percentil 90.",
+    seaChart: "Anomalia de la temperatura de la mar i dies d’onada de calor marina de cada mes",
+    seaAnomaly: "Anomalia de la mar",
+    heatwaveDays: "Dies d’onada de calor",
   },
   mobilityPage: {
     dailyCallsChart: "Passos programats per dia a cada xarxa",

@@ -9,7 +9,7 @@ export const es = {
       label: "Inicio",
       title: "Mallorca en datos",
       description:
-        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Dieciocho fuentes abiertas, " +
+        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Diecinueve fuentes abiertas, " +
         "con la calidad comprobada en cada carga.",
     },
     tourism: {
@@ -20,7 +20,7 @@ export const es = {
     climate: {
       label: "Clima y agua",
       title: "Clima y agua",
-      description: "Reservas de los acuíferos, lluvia del año hidrológico y temperatura frente a lo normal.",
+      description: "Reservas de los acuíferos, lluvia del año hidrológico y temperatura del aire y del mar frente a lo normal.",
     },
     mobility: {
       label: "Movilidad",
@@ -57,7 +57,7 @@ export const es = {
     language: "Idioma",
     catalogue: "Catálogo",
     footer:
-      "Datos abiertos de AEMET, SOCIB, Puertos del Estado, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
+      "Datos abiertos de AEMET, SOCIB, Puertos del Estado, NOAA, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
       "Govern de les Illes Balears y Open-Meteo. Mapa © OpenStreetMap.",
   },
   data: {
@@ -368,6 +368,13 @@ export const es = {
     rainSubtitle: "Lluvia acumulada desde septiembre en las estaciones de AEMET, año a año.",
     temperatureTitle: "Temperatura frente a lo normal",
     temperatureSubtitle: "Diferencia entre la temperatura media de cada mes y la de ese mes en otros años.",
+    seaTitle: "El mar frente a lo normal",
+    seaSubtitle:
+      "Anomalía de la temperatura del mar por satélite (NOAA OISST) frente a 1991-2020 en 8 puntos de la costa, y " +
+      "días de ola de calor marina: 5 o más seguidos por encima del percentil 90.",
+    seaChart: "Anomalía de la temperatura del mar y días de ola de calor marina de cada mes",
+    seaAnomaly: "Anomalía del mar",
+    heatwaveDays: "Días de ola de calor",
   },
   mobilityPage: {
     dailyCallsChart: "Pasos programados por día en cada red",

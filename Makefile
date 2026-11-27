@@ -11,6 +11,8 @@ DAYS ?= 1
 REGION ?= mallorca
 # true: skip the days a successful run already loaded; false: download the whole window again.
 ONLY_MISSING ?= true
+# Days per run of `make backfill` (at most the connector's max_days).
+CHUNK_DAYS ?= 365
 
 comma := ,
 empty :=
@@ -63,8 +65,8 @@ poll: ## Keep the current state of the live sources in bronze now (the live_poll
 detect: ## Flag anomalies in the recent silver values: make detect DAYS=30 (at least rescore_days)
 	$(COMPOSE) exec airflow-scheduler python -m core.cli detect --days $(DAYS)
 
-backfill: ## Load a past date range, one run per year: make backfill CONNECTORS=aemet START=2016-09-01 END=2026-08-31
-	$(COMPOSE) exec airflow-scheduler python -m core.cli backfill --connectors $(subst $(comma),$(space),$(CONNECTORS)) --start $(START) --end $(END) --region $(REGION)
+backfill: ## Load a past date range, one run per year: make backfill CONNECTORS=aemet START=2016-09-01 END=2026-08-31 [CHUNK_DAYS=365]
+	$(COMPOSE) exec airflow-scheduler python -m core.cli backfill --connectors $(subst $(comma),$(space),$(CONNECTORS)) --start $(START) --end $(END) --chunk-days $(CHUNK_DAYS) --region $(REGION)
 
 api-role: ## Create or update the read-only API role on an existing postgres volume (idempotent)
 	$(COMPOSE) exec -T postgres bash /docker-entrypoint-initdb.d/02-api-reader.sh

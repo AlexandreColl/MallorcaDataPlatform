@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { api, type Aquifer, type ClimateMonth, type WaterReservesMonth } from "../api";
+import { api, type Aquifer, type ClimateMonth, type SeaTemperatureMonth, type WaterReservesMonth } from "../api";
 import { Async } from "../components/Async";
 import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
@@ -93,6 +93,38 @@ function TemperatureAnomaly({ rows }: { rows: ClimateMonth[] }) {
   return <Chart option={option} label={m.anomalyChart} />;
 }
 
+/** The sea against 1991-2020 (bars, °C) and its marine heatwave days (line, right axis), month by month. */
+function SeaAnomaly({ rows }: { rows: SeaTemperatureMonth[] }) {
+  const m = messages().climate;
+  const option = useCallback(
+    () => ({
+      xAxis: { type: "category", data: rows.map((r) => monthShort(r.month)) },
+      yAxis: [
+        { type: "value", axisLabel: { formatter: "{value} °C" } },
+        { type: "value", min: 0, max: 31, splitLine: { show: false }, axisLabel: { formatter: "{value} d" } },
+      ],
+      tooltip: { trigger: "axis" },
+      series: [
+        {
+          name: m.seaAnomaly, type: "bar", color: "#ea580c",
+          tooltip: { valueFormatter: orDash((v) => `${number(v, 2)} °C`) },
+          data: rows.map((r) => ({
+            value: r.sst_anomaly_c,
+            itemStyle: { color: (r.sst_anomaly_c ?? 0) >= 0 ? "#ea580c" : "#0891b2", borderRadius: 2, opacity: r.has_preliminary_days ? 0.55 : 1 },
+          })),
+        },
+        {
+          name: m.heatwaveDays, type: "line", yAxisIndex: 1, symbol: "none", step: "middle", color: "#b91c1c",
+          tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} d`) },
+          lineStyle: { width: 1.5 }, data: rows.map((r) => r.heatwave_days),
+        },
+      ],
+    }),
+    [rows, m],
+  );
+  return <Chart option={option} label={m.seaChart} />;
+}
+
 function Aquifers({ rows }: { rows: Aquifer[] }) {
   const sorted = useMemo(() => [...rows].sort((a, b) => (b.reserves_pct ?? 0) - (a.reserves_pct ?? 0)), [rows]);
   const m = messages().climate;
@@ -123,6 +155,7 @@ export function ClimateWater() {
   const water = useLoad(() => api.water(SINCE));
   const climate = useLoad(() => api.climate(SINCE));
   const aquifers = useLoad(api.aquifers);
+  const sea = useLoad(() => api.seaTemperature(SINCE));
 
   const kpis = useMemo(() => {
     const w = ready(water);
@@ -149,8 +182,11 @@ export function ClimateWater() {
         <Panel title={m.rainTitle} subtitle={m.rainSubtitle}>
           <Async state={climate}>{(rows) => <RainByYear rows={rows} />}</Async>
         </Panel>
-        <Panel title={m.temperatureTitle} subtitle={m.temperatureSubtitle} wide>
+        <Panel title={m.temperatureTitle} subtitle={m.temperatureSubtitle}>
           <Async state={climate}>{(rows) => <TemperatureAnomaly rows={rows} />}</Async>
+        </Panel>
+        <Panel title={m.seaTitle} subtitle={m.seaSubtitle}>
+          <Async state={sea}>{(rows) => <SeaAnomaly rows={rows} />}</Async>
         </Panel>
       </div>
     </>

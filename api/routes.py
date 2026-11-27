@@ -30,6 +30,7 @@ from api.schemas import (
     Health,
     HumanPressureDay,
     Location,
+    MarineHeatwave,
     MobilityDay,
     ModelBias,
     Municipality,
@@ -39,6 +40,8 @@ from api.schemas import (
     QualityRule,
     ResourcesMonth,
     SeaHour,
+    SeaTemperatureDay,
+    SeaTemperatureMonth,
     Series,
     SeriesDay,
     Source,
@@ -68,6 +71,7 @@ CACHED_PATHS = (
     "/v1/tourism/monthly",
     "/v1/tourism/dwellings",
     "/v1/resources/monthly",
+    "/v1/sea/temperature/monthly",
     "/v1/population",
     "/v1/municipalities",
 )
@@ -490,6 +494,31 @@ def sea_hourly(warehouse: WarehouseDep, start: Start = None, end: End = None) ->
     """Hourly waves and sea temperature at the coastal points (default: the last 7 days)."""
     start, end = _window(start, end)
     return [SeaHour(**row) for row in warehouse.sea_hourly(start, end)]
+
+
+@router.get("/sea/temperature/daily", tags=["environment"])
+def sea_temperature_daily(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[SeaTemperatureDay]:
+    """Satellite sea temperature of the coastal points per day, with its anomaly (default: the last 90 days).
+
+    NOAA OISST v2.1: the last two weeks are preliminary values, replaced by the final ones as they are published.
+    """
+    start, end = _days(from_, to, 90)
+    return [SeaTemperatureDay(**row) for row in warehouse.sea_temperature_daily(start, end)]
+
+
+@router.get("/sea/temperature/monthly", tags=["monthly"])
+def sea_temperature_monthly(
+    warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None
+) -> list[SeaTemperatureMonth]:
+    """The sea around Mallorca per month since 1981: temperature, anomaly against 1991-2020 and heatwave days."""
+    return [SeaTemperatureMonth(**row) for row in warehouse.monthly("sea_temperature", from_, to)]
+
+
+@router.get("/sea/heatwaves", tags=["environment"])
+def marine_heatwaves(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[MarineHeatwave]:
+    """Marine heatwaves of the coastal points that overlap the range, newest first (default: the last 365 days)."""
+    start, end = _days(from_, to, 365)
+    return [MarineHeatwave(**row) for row in warehouse.marine_heatwaves(start, end)]
 
 
 @router.get("/earthquakes", tags=["environment"])

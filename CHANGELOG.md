@@ -7,6 +7,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Connector `noaa_oisst`: the satellite sea surface temperature of NOAA OISST v2.1 (0.25°, daily since 1981-09-01)
+  at the OISST sea cells nearest to the 8 coastal points of Open-Meteo Marine, read from NOAA CoastWatch's ERDDAP
+  without a key: one 3 × 5 cell box per window, the final product up to its last day (about 16 days late) and the
+  preliminary one after it (one day late), as two metrics so gold keeps the final value when it arrives. The ~1,200
+  days missing from ERDDAP's time axis (most of 1992-1998) come from NOAA PSL's copy over OPeNDAP. Public domain;
+  in the catalogue in three languages with its governance fields (SLA 4 days: the newest day is yesterday's preliminary analysis).
+- dbt: `dim_sea_temperature_climatology` (1991-2020 mean and 90th percentile per point and day of the year, 11-day
+  window and 31-day smoothing), `fct_sea_temperature_daily` (anomaly and marine heatwave days, Hobday et al. 2016,
+  with gaps and islands), `fct_marine_heatwaves` (one row per heatwave, with its Hobday 2018 category),
+  `fct_sea_temperature_monthly`, and the satellite against the Open-Meteo Marine model
+  (`fct_sst_model_comparison_daily`, `agg_sst_model_bias_by_point`), with a unit test of the heatwave rule.
+- API: `GET /v1/sea/temperature/daily`, `GET /v1/sea/temperature/monthly` (cached) and `GET /v1/sea/heatwaves`.
+- Web: a *Sea against normal* panel on Climate and water, next to the air temperature anomaly. Grafana: the sea
+  anomaly with the heatwave days and a table of marine heatwaves on the Climate and water dashboard.
+- `make backfill` takes `CHUNK_DAYS` (days per run, default 365).
+
 - Connector `ine_tourist_housing`: the tourist dwellings, beds and beds per dwelling of the 53 municipalities of
   Mallorca, from INE's experimental statistic of the listings on the main holiday rental platforms (Tempus table
   39363, since August 2020), without a key. The national table is filtered to Mallorca with one `tv` per

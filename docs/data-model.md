@@ -91,7 +91,7 @@ tabla Delta del lake, con la misma clave ([ADR 0002](adr/0002-medallion.md)).
 **Clave primaria:** `(source, entity, metric, ts)`. Está definida una sola vez, en `core/models.py`, y la usan el
 `MERGE` de Delta, el upsert de Postgres, la regla de duplicados y la deduplicación.
 
-**Por qué es largo.** Dieciocho fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
+**Por qué es largo.** Diecinueve fuentes con decenas de métricas distintas caben en un solo esquema. Una fuente nueva no
 cambia ninguna tabla, y la calidad, la idempotencia y la frescura se resuelven una vez para todas
 ([ADR 0001](adr/0001-nucleo-fijo-y-conectores.md)). El precio es que una consulta que cruza métricas tiene que
 pivotar. Eso se hace una sola vez, en gold.
@@ -129,7 +129,7 @@ con un grano declarado y dimensiones compartidas entre dominios.
 ### Dimensiones de un dominio
 
 No las comparten todos los dominios, pero siguen las mismas reglas. Todas son seeds, CSV que viven en git y que dbt
-carga como tablas, salvo `dim_routes`, que sale de silver.
+carga como tablas, salvo `dim_routes`, que sale de silver, y `dim_sea_temperature_climatology`, que sale de gold.
 
 | Dimensión | Clave | Origen | Historia |
 |---|---|---|---|
@@ -137,6 +137,7 @@ carga como tablas, salvo `dim_routes`, que sale de silver.
 | `dim_aquifers` | `entity` (`aquifer_<código>`, la entidad de la fuente) | Seed: las masas de agua subterránea (MAS) de Mallorca, con su nombre y su unidad hidrogeológica | Tipo 1 |
 | `dim_warning_zones` | `zone` | Seed: las zonas de aviso de AEMET (cinco de tierra y sus aguas costeras), con su polígono | Fija: solo cambia si AEMET las redibuja |
 | `dim_municipalities` | `municipality` | Seed: los 53 municipios, con su código INE, su superficie y su límite simplificado | Fija |
+| `dim_sea_temperature_climatology` | `point, day_of_year` | Derivada de `int_sea_temperature__daily`: la media y el percentil 90 de la temperatura del mar de 1991-2020 para cada punto y día del año (1-366) | Fija mientras no cambie el periodo de referencia (`sst_baseline`) |
 
 `dim_sources.kind` clasifica las fuentes por el tipo de dato: `observation` (una medida real), `model` (un modelo
 numérico), `system` (el sistema eléctrico), `schedule` (un servicio programado), `statistic` (estadística oficial),
@@ -217,6 +218,11 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_sea_conditions_hourly` | punto de costa y hora | Snapshot periódico, ancho | Tabla | — |
 | `fct_wave_model_comparison_hourly` | boya y hora | Snapshot periódico: la ola medida por la boya junto a la del modelo en el punto más cercano | Tabla | — |
 | `agg_wave_model_bias_by_buoy` | boya | Agregado: sesgo, MAE, RMSE y correlación del modelo de oleaje | Tabla | ✅ |
+| `fct_sea_temperature_daily` | punto de costa y día (UTC) | Snapshot periódico: la temperatura del mar por satélite, su anomalía frente a la climatología del mismo día del año y si es día de ola de calor marina | Tabla | — |
+| `fct_marine_heatwaves` | ola de calor marina de un punto | Transacción (evento): inicio, fin, días, intensidad y categoría, con islas y huecos | Tabla | ✅ |
+| `fct_sea_temperature_monthly` | mes | Snapshot periódico, con la anomalía frente a 1991-2020 y los días de ola de calor | Tabla | ✅ |
+| `fct_sst_model_comparison_daily` | punto de costa y día (UTC) | Snapshot periódico: la temperatura del mar del modelo junto a la del satélite | Tabla | — |
+| `agg_sst_model_bias_by_point` | punto de costa | Agregado: sesgo, MAE, RMSE y correlación de la temperatura del mar del modelo | Tabla | ✅ |
 | `fct_weather_warnings` | aviso: zona, fenómeno y periodo seguido al mismo nivel | Agregado por periodo (*gaps and islands* sobre las horas de AEMET) | Tabla | ✅ |
 | `air_quality_hourly` | localidad y hora | Snapshot periódico, con la banda del índice europeo | Tabla | — |
 | `fct_air_quality_model_bias_daily` | estación, contaminante y día | Snapshot periódico | Tabla | ✅ |
@@ -309,6 +315,7 @@ Hay tres controles, de lo más técnico a lo acordado:
 | EMT Palma, CTM | Feed GTFS diario | 36 h | 48 h |
 | AEMET (avisos) | Cada emisión de avisos | 36 h | 48 h |
 | AEMET | Valores diarios, con 2-3 días de retraso | 5 días | 5 días |
+| NOAA OISST | Diaria: provisional al día siguiente, definitiva unos 16 días después | 48 h | 4 días |
 | Dataestur, reservas hídricas | Mensual, con 1-3 meses de retraso | 40 días | 100 días |
 | Ibestat (presión humana) | Mensual, unos dos meses tarde | 40 días | 120 días |
 | INE (padrón) | Anual, en diciembre | 400 días | 2 años |

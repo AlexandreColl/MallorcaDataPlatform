@@ -29,6 +29,7 @@ sources:
       - {name: open_meteo_marine, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'open_meteo_marine'"}}
       - {name: socib, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'socib'"}}
       - {name: redmar, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'redmar'"}}
+      - {name: noaa_oisst, identifier: observations, freshness: {warn_after: {count: 48, period: hour}, error_after: {count: 96, period: hour}, filter: "source = 'noaa_oisst'"}}
       - {name: redata, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'redata'"}}
       - {name: emt_palma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'emt_palma'"}}
       - {name: ctm, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'ctm'"}}

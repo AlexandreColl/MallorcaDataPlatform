@@ -22,7 +22,7 @@ flowchart LR
         SC[stg_silver__corrections]
     end
     subgraph intermediate[intermediate · vistas]
-        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_buoy_wave_model_pairs<br/>int_weather_extremes__daily]
+        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_buoy_wave_model_pairs<br/>int_weather_extremes__daily<br/>int_sea_temperature__daily]
     end
     subgraph marts[marts · gold]
         C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_metrics · dim_date · dim_sources]
@@ -41,7 +41,7 @@ flowchart LR
 | Capa | Materialización | Esquema | Qué hace |
 |---|---|---|---|
 | `staging` | vista | `dbt_staging` | Un modelo por tabla de origen y conector: la misma proyección (macro `staging_observations`), día local y marcas de dato ausente o sospechoso. |
-| `intermediate` | vista | `dbt_intermediate` | Lógica que reutilizan varios marts. `int_weather__daily` pone en las mismas columnas el tiempo diario de AEMET (diario de origen), SOCIB y Open-Meteo (horarios agregados al día local). `int_station_model_pairs` e `int_buoy_wave_model_pairs` emparejan cada estación o boya con el punto del modelo más cercano, e `int_weather_extremes__daily` saca los extremos de cada día. |
+| `intermediate` | vista | `dbt_intermediate` | Lógica que reutilizan varios marts. `int_weather__daily` pone en las mismas columnas el tiempo diario de AEMET (diario de origen), SOCIB y Open-Meteo (horarios agregados al día local). `int_station_model_pairs` e `int_buoy_wave_model_pairs` emparejan cada estación o boya con el punto del modelo más cercano, e `int_weather_extremes__daily` saca los extremos de cada día. `int_sea_temperature__daily` deja un valor de NOAA OISST por punto y día: el definitivo si ya se publicó, el provisional mientras tanto. |
 | `marts` | tabla / incremental | `gold` | Lo que se consulta, por dominio. |
 
 ## Marts
@@ -57,6 +57,10 @@ flowchart LR
 | weather | `fct_weather_warnings` (contrato), `dim_warning_zones` (seed) | aviso de AEMET: zona, fenómeno y periodo seguido al mismo nivel / zona de aviso |
 | marine | `fct_sea_conditions_hourly` | punto de costa y hora |
 | marine | `fct_wave_model_comparison_hourly`, `agg_wave_model_bias_by_buoy` (contrato) | boya y hora / boya: la ola de las boyas de SOCIB frente a Open-Meteo Marine |
+| marine | `dim_sea_temperature_climatology` (contrato) | punto de costa y día del año: la temperatura habitual del mar en 1991-2020 y su percentil 90 (ventana de 11 días y media móvil de 31, Hobday et al., 2016) |
+| marine | `fct_sea_temperature_daily`, `fct_marine_heatwaves` (contrato) | punto de costa y día / ola de calor: la temperatura del mar por satélite desde 1981, su anomalía y las olas de calor marinas (5 días o más sobre el percentil 90) |
+| marine | `fct_sea_temperature_monthly` (contrato) | mes: temperatura media del mar, anomalía frente a 1991-2020 y días de ola de calor marina |
+| marine | `fct_sst_model_comparison_daily`, `agg_sst_model_bias_by_point` (contrato) | punto y día / punto: la temperatura del mar de Open-Meteo Marine frente al satélite |
 | energy | `fct_electricity_daily` | día: demanda, mix, % renovable, CO₂ e importación por el enlace con la península |
 | mobility | `fct_bus_network_daily` (EMT), `fct_island_transit_daily` (CTM) | día: paradas con servicio, pasos programados, parada con más servicio |
 | mobility | `dim_routes` (contrato) | línea de bus, tren o metro, con su recorrido |
@@ -137,6 +141,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
 - Dimensiones: `dim_date`, `dim_locations`, `dim_metrics`, `dim_routes`.
 - Tiempo y mar: `agg_model_bias_by_station`, `fct_weather_episodes`, `fct_weather_warnings`,
   `agg_wave_model_bias_by_buoy`.
+- Temperatura del mar: `dim_sea_temperature_climatology`, `fct_marine_heatwaves`, `fct_sea_temperature_monthly`,
+  `agg_sst_model_bias_by_point`.
 - Calidad del aire: `fct_air_quality_model_bias_daily`, `fct_air_quality_monthly`.
 - Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`,
   `fct_bike_stations_hourly`, `fct_bike_stations_daily`.
@@ -159,6 +165,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   - `earthquake_distance_and_latest_revision`: distancia Haversine (1° de latitud = 111,2 km) y que un sismo
     revisado conserve solo su última versión.
   - `consecutive_episode_days_form_one_episode`: un día tranquilo separa dos episodios.
+  - `marine_heatwave_needs_five_days_and_joins_short_gaps`: una ola de calor marina necesita 5 días seguidos sobre
+    el percentil 90, y dos separadas por 2 días o menos son una sola, con el hueco dentro.
   - `tourism_change_is_against_the_same_month_a_year_earlier`: el interanual compara con el mismo mes del año
     anterior.
   - `tourist_dwellings_change_is_against_the_previous_count`: el cambio de las viviendas

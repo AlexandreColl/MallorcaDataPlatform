@@ -245,6 +245,27 @@ export interface Location {
   n_metrics: number;
 }
 
+/** One marine heatwave at a coastal point: 5 or more days above the 90th percentile (gold.fct_marine_heatwaves). */
+export interface MarineHeatwave {
+  heatwave_id: string;
+  point: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  name: string | null;
+  start_date: string;
+  end_date: string;
+  days: number;
+  peak_day: string | null;
+  peak_sst_c: number | null;
+  /** Highest anomaly against the climatology (°C). */
+  max_intensity_c: number | null;
+  mean_intensity_c: number | null;
+  /** Sum of the daily anomalies (°C x days). */
+  cumulative_intensity_c_days: number | null;
+  /** Hobday et al. (2018). */
+  category: "moderate" | "strong" | "severe" | "extreme";
+  has_preliminary_days: boolean;
+}
+
 /** Scheduled public transport of one network in one day (gold.fct_bus_network_daily, fct_island_transit_daily). */
 export interface MobilityDay {
   /** `emt_palma` (Palma buses) or `ctm` (the island) */
@@ -384,6 +405,45 @@ export interface SeaHour {
   wave_period_s: number | null;
   swell_height_m: number | null;
   sea_temperature_c: number | null;
+}
+
+/** Satellite sea surface temperature at one coastal point on one day (gold.fct_sea_temperature_daily, OISST). */
+export interface SeaTemperatureDay {
+  point: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  name: string | null;
+  /** Centre of the 0.25 degree cell. */
+  lat: number | null;
+  lon: number | null;
+  /** UTC day the analysis describes. */
+  day: string;
+  sst_c: number | null;
+  /** True until the final value replaces it, about 16 days later. */
+  is_preliminary: boolean;
+  /** 1991-2020 mean of the same day of the year, smoothed. */
+  sst_climatology_c: number | null;
+  /** 90th percentile of the same day of the year: the heatwave threshold. */
+  sst_p90_c: number | null;
+  sst_anomaly_c: number | null;
+  /** Part of a marine heatwave (Hobday et al., 2016). */
+  is_marine_heatwave: boolean;
+  heatwave_id: string | null;
+}
+
+/** The sea around Mallorca in one month, from the satellite (gold.fct_sea_temperature_monthly, OISST). */
+export interface SeaTemperatureMonth {
+  month: string;
+  points: number;
+  days_reported: number;
+  sst_mean_c: number | null;
+  /** 1991-2020 climatology of the same days. */
+  sst_climatology_c: number | null;
+  sst_anomaly_c: number | null;
+  /** Marine heatwave days, mean of the coastal points. */
+  heatwave_days: number | null;
+  /** Days with a marine heatwave at any coastal point. */
+  days_with_heatwave: number;
+  has_preliminary_days: boolean;
 }
 
 /** One daily series of a source: its entity, metric and coverage (gold.agg_daily_metrics). */
