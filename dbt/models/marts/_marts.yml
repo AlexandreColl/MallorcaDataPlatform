@@ -290,6 +290,85 @@ models:
       - {name: busiest_stop_name, data_type: text}
       - {name: busiest_stop_departures, data_type: double precision}
 
+  - name: fct_bike_stations_hourly
+    description: >-
+      BiciPalma, one row per station and UTC hour: the mean, minimum and maximum of the free bikes and free docks
+      of the 5-minute snapshots of that hour, the mean e-bikes and occupancy, and whether the station ran out of bikes
+      or of docks at some moment. Incremental delete+insert on the station-hours changed since the last build.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [station, ts]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "bikes_available_min <= bikes_available and bikes_available <= bikes_available_max"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "ebikes_available <= bikes_available"
+    columns:
+      - {name: station, data_type: text, description: "GBFS station_id as entity, e.g. station_91733840.", constraints: [{type: not_null}]}
+      - {name: station_name, data_type: text, description: "As BiciPalma numbers it, e.g. 01 PARC DE SES VELES."}
+      - {name: lat, data_type: double precision}
+      - {name: lon, data_type: double precision}
+      - {name: ts, data_type: timestamp with time zone, description: Start of the UTC hour., constraints: [{type: not_null}]}
+      - {name: local_date, data_type: date}
+      - {name: local_hour, data_type: integer, description: Hour of the day in Mallorca (0-23).}
+      - {name: bikes_available, data_type: "numeric(6,2)", description: Mean free bikes in the hour.}
+      - {name: bikes_available_min, data_type: integer}
+      - {name: bikes_available_max, data_type: integer}
+      - {name: ebikes_available, data_type: "numeric(6,2)", description: Mean free bikes with electric assist.}
+      - {name: docks_available, data_type: "numeric(6,2)", description: Mean free docks in the hour.}
+      - {name: docks_available_min, data_type: integer}
+      - {name: docks_available_max, data_type: integer}
+      - name: occupancy_pct
+        data_type: "numeric(5,1)"
+        description: Mean of bikes / (bikes + free docks) of the snapshots, in %. Broken docks count neither way.
+        data_tests:
+          - value_between:
+              arguments: {min_value: 0, max_value: 100}
+      - {name: was_empty, data_type: boolean, description: No bike left at some snapshot of the hour.}
+      - {name: was_full, data_type: boolean, description: No free dock left at some snapshot of the hour.}
+      - {name: has_suspect, data_type: boolean, description: Some value of the hour was flagged by the quality rules.}
+      - {name: last_updated_at, data_type: timestamp with time zone}
+
+  - name: fct_bike_stations_daily
+    description: >-
+      BiciPalma, one row per station and local day: hours observed, mean bikes, e-bikes, docks and occupancy, the
+      hours it ran out of bikes or of docks, its working docks and its largest hourly swing of bikes.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [station, local_date]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "hours_empty <= hours_observed and hours_full <= hours_observed"
+    columns:
+      - {name: station, data_type: text, constraints: [{type: not_null}]}
+      - {name: station_name, data_type: text}
+      - {name: lat, data_type: double precision}
+      - {name: lon, data_type: double precision}
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - name: hours_observed
+        data_type: integer
+        description: Hours with at least one snapshot (24 when the poller ran all day; 23 or 25 on clock changes).
+        data_tests:
+          - value_between:
+              arguments: {min_value: 1, max_value: 25}
+      - {name: bikes_available, data_type: "numeric(6,2)"}
+      - {name: bikes_available_min, data_type: integer}
+      - {name: bikes_available_max, data_type: integer}
+      - {name: ebikes_available, data_type: "numeric(6,2)"}
+      - {name: docks_available, data_type: "numeric(6,2)"}
+      - {name: occupancy_pct, data_type: "numeric(5,1)"}
+      - {name: working_docks, data_type: integer, description: Bikes plus free docks at the hour they added up most.}
+      - {name: hours_empty, data_type: integer, description: Hours in which the station ran out of bikes at some moment.}
+      - {name: hours_full, data_type: integer, description: Hours in which it ran out of free docks.}
+      - {name: largest_hourly_swing, data_type: integer, description: Largest maximum minus minimum of bikes in one hour.}
+
   - name: dim_routes
     description: >-
       One row per line of the EMT Palma and CTM networks: its short and long name, kind (bus, train, metro, tram),
@@ -1186,6 +1265,28 @@ unit_tests:
         - {reference_month: "2025-11-01", population_year: 2025, dwellings_per_1000_inhabitants: 138.7, beds_per_100_inhabitants: 85.2, previous_month: null, dwellings_change: null, dwellings_change_pct: null}
         - {reference_month: "2026-05-01", population_year: 2025, dwellings_per_1000_inhabitants: 136.3, beds_per_100_inhabitants: 83.2, previous_month: "2025-11-01", dwellings_change: -41, dwellings_change_pct: -0.0172}
 
+  - name: bike_station_hour_pivots_its_metrics_and_flags_an_empty_moment
+    description: >-
+      Each metric of a station-hour becomes a column; a minimum of 0 bikes marks the hour as `was_empty` even when the
+      mean is above 0, and the local hour is that of Mallorca.
+    model: fct_bike_stations_hourly
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_bicipalma__observations')
+        rows:
+          - {entity: station_1, ts: "2026-11-26 16:00:00+00", local_date: "2026-11-26", metric: bikes_available, value: 2.5, lat: 39.5, lon: 2.6, is_missing: false, is_suspect: false}
+          - {entity: station_1, ts: "2026-11-26 16:00:00+00", local_date: "2026-11-26", metric: bikes_available_min, value: 0, lat: 39.5, lon: 2.6, is_missing: false, is_suspect: false}
+          - {entity: station_1, ts: "2026-11-26 16:00:00+00", local_date: "2026-11-26", metric: bikes_available_max, value: 5, lat: 39.5, lon: 2.6, is_missing: false, is_suspect: false}
+          - {entity: station_1, ts: "2026-11-26 16:00:00+00", local_date: "2026-11-26", metric: docks_available_min, value: 15, lat: 39.5, lon: 2.6, is_missing: false, is_suspect: false}
+          - {entity: station_1, ts: "2026-11-26 16:00:00+00", local_date: "2026-11-26", metric: occupancy, value: 12.5, lat: 39.5, lon: 2.6, is_missing: false, is_suspect: false}
+      - input: ref('stg_silver__entities')
+        rows:
+          - {source: bicipalma, entity: station_1, name: 01 PARC DE SES VELES}
+    expect:
+      rows:
+        - {station: station_1, station_name: 01 PARC DE SES VELES, local_hour: 17, bikes_available: 2.50, bikes_available_min: 0, bikes_available_max: 5, occupancy_pct: 12.5, was_empty: true, was_full: false}
   - name: marine_heatwave_needs_five_days_and_joins_short_gaps
     description: >
       Hobday et al. (2016) - at palma, 5 days above the 90th percentile, 2 below and 5 above again are one heatwave

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { Municipality, PopulationYear, StopService, TouristDwellings, TransitRoute } from "../api";
-import { mobilityKpis, municipalityRows, routesSubtitle, stopLayers, withSelected } from "./mobility";
+import type { BikeStation, Municipality, PopulationYear, StopService, TouristDwellings, TransitRoute } from "../api";
+import { bikeLayer, emptiestStations, mobilityKpis, municipalityRows, routesSubtitle, stopLayers, withSelected } from "./mobility";
 
 // A square municipality around (lon, lat), 0.1° a side.
 const place = (municipality: string, name: string, lon: number, lat: number) =>
@@ -75,5 +75,35 @@ describe("routesSubtitle", () => {
   it("names the day of the timetables", () => {
     expect(routesSubtitle(null)).toContain("salidas tiene el último día");
     expect(routesSubtitle([{ local_date: "2026-11-11" } as TransitRoute])).toContain("el 11 de noviembre de 2026");
+  });
+});
+
+const station = (name: string, docks: number, empty: number, full: number) =>
+  ({
+    station: `station_${name}`, name, lat: 39.57, lon: 2.65, local_date: "2026-11-26", hours_observed: 24,
+    bikes_available: 7.25, ebikes_available: 1.5, occupancy_pct: 36.4, working_docks: docks, hours_empty: empty,
+    hours_full: full,
+  }) as BikeStation;
+
+describe("bikeLayer", () => {
+  it("sizes each station by its working docks and gives it the card of its day", () => {
+    const layer = bikeLayer([station("01 PARC DE SES VELES", 20, 2, 1), station("45 JAUME III", 5, 0, 0)]);
+
+    expect(layer.label).toBe("BiciPalma");
+    expect(layer.points.map((p) => Number(p.size?.toFixed(2)))).toEqual([2, 1.3]);
+    expect(layer.points[0]?.popup).toEqual([
+      "01 PARC DE SES VELES",
+      "7,3 bicis libres de media (1,5 eléctricas)",
+      "Ocupación media del 36 % · 20 anclajes en uso",
+      "Sin bicis 2 h y llena 1 h, de 24 h",
+    ]);
+  });
+});
+
+describe("emptiestStations", () => {
+  it("puts first the stations that ran out of bikes for the most hours, then the fullest", () => {
+    const rows = emptiestStations([station("a", 10, 0, 3), station("b", 10, 5, 0), station("c", 10, 0, 0)]);
+
+    expect(rows.map((s) => s.name)).toEqual(["b", "a", "c"]);
   });
 });

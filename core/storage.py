@@ -12,7 +12,10 @@ from core.credentials import boto3_session
 from core.models import RawPayload
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from mypy_boto3_s3 import S3Client
+    from mypy_boto3_s3.type_defs import ListObjectsV2OutputTypeDef
 
     from core.config import Settings
 
@@ -58,18 +61,35 @@ class BronzeStore:
         """Create the bronze bucket with versioning enabled."""
         ensure_bucket(self.client, self.bucket, versioned=True)
 
-    def put(self, payload: RawPayload) -> str:
-        """Store a payload under its deterministic key and return the key."""
+    def put(self, payload: RawPayload, key: str | None = None) -> str:
+        """Store a payload under its deterministic key (or ``key``, a live snapshot's) and return the key."""
+        key = key or payload.key
         self.client.put_object(
             Bucket=self.bucket,
-            Key=payload.key,
+            Key=key,
             Body=payload.to_json().encode("utf-8"),
             ContentType="application/json",
         )
-        log.info("bronze <- s3://%s/%s", self.bucket, payload.key)
-        return payload.key
+        log.info("bronze <- s3://%s/%s", self.bucket, key)
+        return key
 
     def get(self, key: str) -> RawPayload:
         """Read the latest version of a payload."""
         obj = self.client.get_object(Bucket=self.bucket, Key=key)
         return RawPayload.from_json(obj["Body"].read())
+
+    def keys(self, prefix: str) -> list[str]:
+        """Every key under ``prefix``, in order."""
+        return sorted(item for page in self._pages(prefix) for item in (o["Key"] for o in page.get("Contents", [])))
+
+    def folders(self, prefix: str) -> list[str]:
+        """The next level of ``prefix`` (``day=2026-11-26/``...), in order, without listing the objects inside."""
+        found = (p["Prefix"] for page in self._pages(prefix, delimiter="/") for p in page.get("CommonPrefixes", []))
+        return sorted(found)
+
+    def _pages(self, prefix: str, delimiter: str | None = None) -> Iterator[ListObjectsV2OutputTypeDef]:
+        paginator = self.client.get_paginator("list_objects_v2")
+        if delimiter:
+            yield from paginator.paginate(Bucket=self.bucket, Prefix=prefix, Delimiter=delimiter)
+        else:
+            yield from paginator.paginate(Bucket=self.bucket, Prefix=prefix)

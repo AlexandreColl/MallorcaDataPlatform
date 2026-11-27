@@ -31,7 +31,7 @@ written in Spanish; this page is the English overview.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
-  <img alt="Architecture: 16 open sources enter through Python connectors into bronze (MinIO); PySpark normalises them into silver (Delta Lake and Postgres); Python flags anomalies and proposes corrections; dbt builds gold in Postgres; the API, the web front end and Grafana serve it. Airflow orchestrates every step." src="docs/img/architecture.svg">
+  <img alt="Architecture: 19 open sources enter through Python connectors into bronze (MinIO); PySpark normalises them into silver (Delta Lake and Postgres); Python flags anomalies and proposes corrections; dbt builds gold in Postgres; the API, the web front end and Grafana serve it. Airflow orchestrates every step." src="docs/img/architecture.svg">
 </picture>
 
 The diagram is generated with `node scripts/architecture/diagram.mjs` (light and dark versions, Simple Icons logos).
@@ -121,6 +121,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Waves, sea temperature, currents and sea level (model) at 8 points along the coast | No |
 | [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Official daily values of AEMET's 33 stations in Mallorca (temperature, rain, humidity, wind, sunshine, pressure) | Yes |
 | [ctm](connectors/ctm/README.md) | ✅ | TIB buses, SFM train and metro scheduled per stop and day across the island (763 stops, static GTFS) | No |
+| [bicipalma](connectors/bicipalma/README.md) | ✅ | Free bikes (and e-bikes), docks and occupancy of the 106 BiciPalma stations, hour by hour, from the operator's GBFS feed polled every 5 minutes | No |
 | [dataestur](connectors/dataestur/README.md) | ✅ | Monthly Balearic tourism: international tourists and their spending, hotel occupancy and Palma airport passengers | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Groundwater reserves of Mallorca per aquifer and for the island, monthly (10 years for the island) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ history | Hourly NO₂, O₃, PM10, PM2.5, SO₂ and CO from 11 official stations in Mallorca, 2002 to June 2021 (the regional government's catalogue). Only with `make backfill` | No |
@@ -298,6 +299,19 @@ The GTFS of the Consorci de Transports de Mallorca (no key, CC BY 4.0) with the 
 stops. Without `frequencies.txt`, each trip counts once per stop; seasonal timetables show up as services that end on
 31 October. In gold, `fct_island_transit_daily`; in Grafana, the same heat map as EMT. Real test: about 41,000 calls
 on a weekday, 35,000 on a Sunday; Palma's Estació Intermodal has 1,028 a day.
+
+### BiciPalma (public bikes)
+
+The first **live source**: the GBFS feed Nextbike publishes for BiciPalma (no key, CC0) only gives the state of right
+now, with no history. A separate DAG, `live_poll`, keeps the answer untouched in bronze every 5 minutes, without Spark
+(about 2 seconds and 75 MB per poll). The daily connector does not call the API: it reads those snapshots and writes,
+per station and hour, the mean, minimum and maximum of the free bikes and free docks, the e-bikes and the occupancy.
+The hours before the first poll do not count as gaps ([ADR 0026](docs/adr/0026-fuentes-en-vivo-sin-historico.md)).
+CityBikes gives the same numbers because it reads the same feed, so it is no fallback. In gold,
+`fct_bike_stations_hourly` and `fct_bike_stations_daily`; on the web, the 106 stations on the Mobility map with their
+card. Real test: 581 free bikes in the late afternoon, 23 % of them electric, and between 9 and 19 stations without a
+bike at some moment of each hour.
+[Details and real tests](connectors/bicipalma/README.md).
 
 ### Air quality (EEA)
 
@@ -645,7 +659,7 @@ changes from the menu ([ADR 0024](docs/adr/0024-la-web-en-tres-idiomas.md)). The
 | **Inicio** (Home) | Five key figures against what is normal for each month (reserves, rain, tourists, electricity and temperature) and the map of stations and model points |
 | **Turismo y recursos** (Tourism and resources) | Tourists, airport and hotel occupancy; tourists against water reserves and electricity demand, and occupancy against spending, each series with its 12-month trend and its Pearson correlation (with and without the annual cycle) |
 | **Clima y agua** (Climate and water) | Reserves against the month's mean, the 18 aquifers, accumulated rain of each hydrological year and the temperature anomaly |
-| **Movilidad** (Mobility) | The island's population and service per 1,000 inhabitants; a map of the municipalities by density, service per inhabitant or 10-year growth; population since 1996; EMT and CTM scheduled service per day, a map of each stop's service and the busiest stops; a map of the bus, train and metro lines with their paths and departures |
+| **Movilidad** (Mobility) | The island's population and service per 1,000 inhabitants; a map of the municipalities by density, service per inhabitant or 10-year growth; population since 1996; EMT and CTM scheduled service per day, a map of each stop's service and the busiest stops; a map of the bus, train and metro lines with their paths and departures; the BiciPalma stations on the map (with their card on click), the network hour by hour and the stations that run out most |
 | **Tiempo y entorno** (Weather and environment) | Temperature by zone (AEMET's 33 stations interpolated over the island), AEMET warnings per zone (now and in the next 72 h), each source's temperature, air quality now (European index) with the table of stations, waves, episodes, earthquakes and model error |
 | **Explorador** (Explorer) | Any series of the platform day by day (source, metric and entity): mean, minimum and maximum, completeness, suspect values and days with anomalies; the selection stays in the address so it can be shared |
 | **Operación** (Operations) | The state of each source against its SLA, data governance (owner, licence and access), failing quality rules, anomalies per day and the latest corrections |
@@ -691,7 +705,7 @@ Each one answers a question and reads its dbt marts (one exposure per dashboard)
 | **Inicio** (Home) | The last month of water reserves, rain of the hydrological year, temperature and tourists, and the map of every georeferenced source (air, waves, AEMET, SOCIB, earthquakes and bus service) |
 | **Turismo y recursos** (Tourism and resources) | Tourists against water reserves and electricity demand; the anomalies against the same month, which remove seasonality; and a year-by-year evaluation (summer tourists against the fall of the reserves from March to September, with its correlation) |
 | **Clima y agua** (Climate and water) | Reserves against the month's mean, monthly rain and the aquifers' response, a table per hydrological year, temperature anomaly, accumulated rain and the state of the 18 aquifers |
-| **Movilidad** (Mobility) | EMT Palma and CTM scheduled service per day, a heat map per stop and the busiest stops |
+| **Movilidad** (Mobility) | EMT Palma and CTM scheduled service per day, a heat map per stop and the busiest stops; BiciPalma hour by hour |
 | **Tiempo y entorno** (Weather and environment) | An explorer for any metric by source and entity, with its anomalies as annotations, air quality, waves, model error against the stations, weather episodes and earthquakes |
 | **Operación** (Operations) | The health of each source and its SLA, detected anomalies, corrections (before and after), runs, quality rules and the completeness of each series |
 
@@ -758,6 +772,7 @@ Airflow, Spark or Java. The OpenAPI documentation is at http://localhost:8000/do
 | `GET /v1/sources`, `/v1/sources/{source}` | Each source with its last run, share of failures in 7 days, age of its newest value, its governance record (owner, licence, access, personal data) and its SLA with whether it is met |
 | `GET /v1/locations` | Each station, model point and stop with its coordinates, source and kind (the web map) |
 | `GET /v1/mobility/daily`, `/v1/mobility/stops`, `/v1/mobility/routes` | EMT and CTM scheduled service per day, each stop's service on the latest day, and each line with its path (GeoJSON) and departures |
+| `GET /v1/mobility/bike-stations`, `/v1/mobility/bikes/hourly` | Each BiciPalma station on the latest day (bikes, occupancy, hours empty or full) and the whole network hour by hour |
 | `GET /v1/weather/daily`, `/v1/weather/stations`, `/v1/weather/episodes`, `/v1/weather/model-bias` | Daily weather of each source, rain, wind or sea episodes, and model error against each station; `stations`: every station on the latest published day |
 | `GET /v1/air-quality/latest`, `/v1/sea/hourly`, `/v1/earthquakes` | The latest hour of air quality with its European index, hourly waves and earthquakes |
 | `GET /v1/sea/model-bias` | The wave model's error against each SOCIB buoy: bias, mean error, RMSE and correlation of the hourly significant height |

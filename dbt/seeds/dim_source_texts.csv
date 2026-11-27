@@ -33,5 +33,7 @@ ibestat_iph,ca,Ibestat (pressió humana),"Persones presents a Mallorca cada dia,
 ibestat_iph,en,Ibestat (human pressure),"People present in Mallorca each day, residents plus visitors (IPH), daily",Reuse with citation (Law 37/2007; no licence published)
 redmar,ca,Ports de l’Estat (mareògrafs),Nivell de la mar horari als mareògrafs de Palma i Alcúdia (xarxa REDMAR),Dades públiques i gratuïtes amb citació obligatòria (sense llicència CC publicada)
 redmar,en,Puertos del Estado (tide gauges),Hourly sea level at the Palma and Alcúdia tide gauges (REDMAR network),"Public and free data, citation required (no CC licence published)"
+bicipalma,ca,BiciPalma (bici pública),"Bicis lliures (i elèctriques), ancoratges lliures i ocupació de cada estació de BiciPalma, hora a hora, a partir de l’estat que es desa cada 5 minuts",CC0 1.0 (declarada al GBFS)
+bicipalma,en,BiciPalma (public bikes),"Free bikes (and e-bikes), free docks and occupancy of each BiciPalma station, hour by hour, from the state kept every 5 minutes",CC0 1.0 (declared in the GBFS feed)
 noaa_oisst,ca,NOAA OISST (satèl·lit),"Temperatura diària de la superfície de la mar per satèl·lit (OISST v2.1, 0,25°) des de 1981 a 8 cel·les de la costa, amb la seva anomalia i les onades de calor marines",Domini públic (dades del Govern dels EUA; citació recomanada)
 noaa_oisst,en,NOAA OISST (satellite),"Daily satellite sea surface temperature (OISST v2.1, 0.25°) since 1981 at 8 coastal cells, with its anomaly and the marine heatwaves",Public domain (US Government data; citation recommended)

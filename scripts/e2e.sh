@@ -49,6 +49,14 @@ if [[ -n "$active" ]]; then
   exit 1
 fi
 
+# The live poller (ADR 0026): one poll of the live sources keeps their snapshots in bronze. BiciPalma is not in the
+# DAG runs below: their window (yesterday) is before its first snapshot, so the pipeline skips it without a run.
+if poll=$($COMPOSE exec -T airflow-scheduler python -m core.cli poll 2>/dev/null) && grep -q station_status <<<"$poll"; then
+  echo "live poll: $poll"
+else
+  echo "::warning title=Upstream outage::the live poll of bicipalma kept no snapshot: ${poll:0:300}"
+fi
+
 run_dag() {
   local run_id=$1
   $COMPOSE exec -T airflow-scheduler airflow dags trigger "$DAG_ID" --run-id "$run_id" --conf "$CONF"

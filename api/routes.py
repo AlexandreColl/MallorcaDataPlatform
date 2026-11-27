@@ -18,6 +18,8 @@ from api.schemas import (
     AnomaliesDay,
     Anomaly,
     Aquifer,
+    BikesHour,
+    BikeStation,
     ClimateMonth,
     Correction,
     CorrectionMethod,
@@ -370,6 +372,19 @@ def mobility_routes(
 ) -> list[TransitRoute]:
     """Every bus, train and metro line with its path and its departures on the latest day of its network."""
     return [TransitRoute(**row) for row in warehouse.mobility_routes(network)]
+
+
+@router.get("/mobility/bike-stations", tags=["mobility"])
+def bike_stations(warehouse: WarehouseDep) -> list[BikeStation]:
+    """Every BiciPalma station on the latest day with values: mean bikes and docks, occupancy, hours empty or full."""
+    return [BikeStation(**row) for row in warehouse.bike_stations()]
+
+
+@router.get("/mobility/bikes/hourly", tags=["mobility"])
+def bikes_hourly(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[BikesHour]:
+    """The whole BiciPalma system hour by hour (default: the last 7 days): bikes, docks and stations empty or full."""
+    start, end = _days(from_, to, DEFAULT_DAYS)
+    return [BikesHour(**row) for row in warehouse.bikes_hourly(start, end)]
 
 
 @router.get("/weather/daily", tags=["environment"])

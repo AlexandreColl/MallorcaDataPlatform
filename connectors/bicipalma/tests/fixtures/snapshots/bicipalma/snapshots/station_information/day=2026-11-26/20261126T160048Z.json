@@ -1,0 +1,133 @@
+{
+ "source": "bicipalma",
+ "dataset": "station_information",
+ "window": {
+  "start": "2026-11-26",
+  "end": "2026-11-26"
+ },
+ "partition": null,
+ "request": {
+  "url": "https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_ea/es/station_information.json"
+ },
+ "fetched_at": "2026-11-26T16:01:02.735117+00:00",
+ "body": {
+  "last_updated": 1795708848,
+  "ttl": 60,
+  "data": {
+   "stations": [
+    {
+     "station_id": "91733840",
+     "name": "01 PARC DE SES VELES",
+     "short_name": "34200",
+     "lat": 39.566056,
+     "lon": 2.659389,
+     "region_id": "789",
+     "rental_uris": {
+      "android": "https://bicipalma.nextbike.app/station?id=91733840",
+      "ios": "https://bicipalma.nextbike.app/station?id=91733840",
+      "web": "https://nxtb.it/p/91733840"
+     },
+     "is_virtual_station": false,
+     "capacity": 20
+    },
+    {
+     "station_id": "91734157",
+     "name": "02 MANUEL AZAÑA",
+     "short_name": "34201",
+     "lat": 39.56625,
+     "lon": 2.663083,
+     "region_id": "789",
+     "rental_uris": {
+      "android": "https://bicipalma.nextbike.app/station?id=91734157",
+      "ios": "https://bicipalma.nextbike.app/station?id=91734157",
+      "web": "https://nxtb.it/p/91734157"
+     },
+     "is_virtual_station": false,
+     "capacity": 20
+    },
+    {
+     "station_id": "91737907",
+     "name": "18 JOSEP DARDER METGE",
+     "short_name": "34217",
+     "lat": 39.577278,
+     "lon": 2.66725,
+     "region_id": "789",
+     "rental_uris": {
+      "android": "https://bicipalma.nextbike.app/station?id=91737907",
+      "ios": "https://bicipalma.nextbike.app/station?id=91737907",
+      "web": "https://nxtb.it/p/91737907"
+     },
+     "is_virtual_station": false,
+     "capacity": 15
+    },
+    {
+     "station_id": "91754642",
+     "name": "45 JAUME III",
+     "short_name": "34244",
+     "lat": 39.572528,
+     "lon": 2.643278,
+     "region_id": "789",
+     "rental_uris": {
+      "android": "https://bicipalma.nextbike.app/station?id=91754642",
+      "ios": "https://bicipalma.nextbike.app/station?id=91754642",
+      "web": "https://nxtb.it/p/91754642"
+     },
+     "is_virtual_station": false,
+     "capacity": 20
+    },
+    {
+     "station_id": "315357166",
+     "name": "86 ESTADI MALLORCA NORD",
+     "short_name": "34339",
+     "lat": 39.591014,
+     "lon": 2.629541,
+     "region_id": "789",
+     "rental_uris": {
+      "android": "https://bicipalma.nextbike.app/station?id=315357166",
+      "ios": "https://bicipalma.nextbike.app/station?id=315357166",
+      "web": "https://nxtb.it/p/315357166"
+     },
+     "is_virtual_station": true,
+     "station_area": {
+      "type": "MultiPolygon",
+      "coordinates": [
+       [
+        [
+         [
+          2.629541,
+          39.591239
+         ],
+         [
+          2.629794,
+          39.591126
+         ],
+         [
+          2.629794,
+          39.590902
+         ],
+         [
+          2.629541,
+          39.590789
+         ],
+         [
+          2.629288,
+          39.590902
+         ],
+         [
+          2.629288,
+          39.591126
+         ],
+         [
+          2.629541,
+          39.591239
+         ]
+        ]
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  "version": "2.3"
+ }
+}

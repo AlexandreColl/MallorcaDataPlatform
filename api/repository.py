@@ -80,6 +80,32 @@ GROUP BY o.source, o.entity, l.name, l.lat, l.lon, o.ts
 ORDER BY departures DESC NULLS LAST, o.entity
 """
 
+# Every BiciPalma station on the latest day with values: its mean bikes and occupancy and the hours it ran out.
+_BIKE_STATIONS = """
+SELECT station, station_name AS name, lat, lon, local_date, hours_observed, bikes_available, bikes_available_min,
+       bikes_available_max, ebikes_available, docks_available, occupancy_pct, working_docks, hours_empty, hours_full,
+       largest_hourly_swing
+FROM gold.fct_bike_stations_daily
+WHERE local_date = (SELECT max(local_date) FROM gold.fct_bike_stations_daily) AND lat IS NOT NULL
+ORDER BY station_name, station
+"""
+
+# The whole BiciPalma system per hour: the stations' means added up, and how many ran out of bikes or of docks.
+_BIKES_HOURLY = """
+SELECT ts, local_date, min(local_hour) AS local_hour, count(*) AS stations,
+       sum(bikes_available)::double precision AS bikes_available,
+       sum(ebikes_available)::double precision AS ebikes_available,
+       sum(docks_available)::double precision AS docks_available,
+       round(100 * sum(bikes_available) / nullif(sum(bikes_available + docks_available), 0), 1)::double precision
+           AS occupancy_pct,
+       count(*) FILTER (WHERE was_empty) AS stations_empty,
+       count(*) FILTER (WHERE was_full) AS stations_full
+FROM gold.fct_bike_stations_hourly
+WHERE local_date BETWEEN %(start)s AND %(end)s
+GROUP BY ts, local_date
+ORDER BY ts
+"""
+
 # The daily series of one source with their names and coverage.
 _SERIES = """
 SELECT a.source, a.entity, l.name, a.metric, max(a.unit) AS unit,
@@ -454,6 +480,14 @@ class Warehouse:
     def mobility_stops(self, network: str | None) -> list[Row]:
         """The service of every stop on the latest day of its network, busiest first."""
         return self.db.fetch_all(_MOBILITY_STOPS, {"network": network})
+
+    def bike_stations(self) -> list[Row]:
+        """Every BiciPalma station on the latest day with values, by name."""
+        return self.db.fetch_all(_BIKE_STATIONS)
+
+    def bikes_hourly(self, start: date, end: date) -> list[Row]:
+        """The BiciPalma system hour by hour between two local days, oldest first."""
+        return self.db.fetch_all(_BIKES_HOURLY, {"start": start, "end": end})
 
     def series(self, source: str) -> list[Row]:
         """The daily series of a source with their names and coverage, by metric and name."""

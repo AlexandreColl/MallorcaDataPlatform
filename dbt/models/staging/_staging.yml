@@ -44,6 +44,10 @@ models:
     description: REData Balearic electric system, hourly demand and daily generation and CO2.
   - name: stg_emt_palma__observations
     description: EMT Palma scheduled service per stop, daily.
+  - name: stg_bicipalma__observations
+    description: >-
+      BiciPalma public bikes per station and UTC hour: mean, minimum and maximum of the free bikes and free docks, mean
+      e-bikes and occupancy, summed up from the 5-minute snapshots of the operator's GBFS feed.
   - name: stg_ctm__observations
     description: CTM island network (TIB buses, SFM trains, metro) scheduled service per stop, daily.
   - name: stg_dataestur__observations

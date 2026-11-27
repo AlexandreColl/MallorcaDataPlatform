@@ -34,11 +34,20 @@ const answers = {
     { municipality: "07040", reference_month: "2026-05-01", tourist_dwellings: 1023, dwellings_per_1000_inhabitants: 2.3 },
   ],
   humanPressure: [],
+  bikeStations: [
+    { station: "station_1", name: "01 PARC DE SES VELES", lat: 39.566, lon: 2.659, local_date: "2026-11-26", hours_observed: 24, bikes_available: 9.75, bikes_available_min: 4, bikes_available_max: 14, ebikes_available: 1.2, docks_available: 10.25, occupancy_pct: 48.8, working_docks: 20, hours_empty: 0, hours_full: 1, largest_hourly_swing: 5 },
+    { station: "station_2", name: "45 JAUME III", lat: 39.572, lon: 2.643, local_date: "2026-11-26", hours_observed: 24, bikes_available: 0.4, bikes_available_min: 0, bikes_available_max: 2, ebikes_available: 0, docks_available: 17.6, occupancy_pct: 2.2, working_docks: 18, hours_empty: 15, hours_full: 0, largest_hourly_swing: 2 },
+  ],
+  bikesHourly: [
+    { ts: "2026-11-26T16:00:00Z", local_date: "2026-11-26", local_hour: 17, stations: 106, bikes_available: 562, ebikes_available: 120, docks_available: 1100, occupancy_pct: 33.8, stations_empty: 9, stations_full: 2 },
+  ],
   routes: [{ network: "ctm", route: "route_1", short_name: "T1", name: "T1 · Palma - Inca", kind: "train", color: null, local_date: "2026-11-11", trips: 64, geometry: { type: "MultiLineString", coordinates: [] } }],
 };
 
 beforeEach(() => {
-  for (const [name, rows] of Object.entries(answers)) vi.spyOn(api, name as keyof typeof api).mockResolvedValue(rows as never);
+  // Spied as plain functions: the union of every method of `api` is too large for TypeScript (TS2590).
+  const calls = api as unknown as Record<string, () => Promise<unknown>>;
+  for (const [name, rows] of Object.entries(answers)) vi.spyOn(calls, name).mockResolvedValue(rows);
 });
 afterEach(() => {
   cleanup();
@@ -90,5 +99,15 @@ describe("Mobility", () => {
 
     expect(await screen.findByRole("figure", { name: /^Población de Inca a 1 de enero/ })).toBeTruthy();
     expect((screen.getByRole("combobox", { name: "Municipio" }) as HTMLSelectElement).value).toBe("07027");
+  });
+});
+
+describe("Mobility BiciPalma", () => {
+  it("lists the stations that ran out of bikes for the most hours, and charts the network hour by hour", async () => {
+    render(<Mobility />);
+
+    expect(firstCells(await panel("Estaciones que más se vacían"))).toEqual(["45 JAUME III", "01 PARC DE SES VELES"]);
+    expect(screen.getByRole("figure", { name: "Bicis libres, eléctricas y estaciones vacías de BiciPalma cada hora" })).toBeTruthy();
+    expect(screen.getByText(/Datos hasta el 26 de noviembre de 2026/)).toBeTruthy();
   });
 });

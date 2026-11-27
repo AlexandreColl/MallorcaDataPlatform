@@ -4,6 +4,8 @@
 import type {
   AirQualityNow,
   AnomaliesDay,
+  BikesHour,
+  BikeStation,
   Aquifer,
   ClimateMonth,
   Correction,
@@ -91,6 +93,8 @@ export const api = {
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   routes: () => get<TransitRoute[]>("/mobility/routes"),
+  bikeStations: () => get<BikeStation[]>("/mobility/bike-stations"),
+  bikesHourly: (from: string) => get<BikesHour[]>(`/mobility/bikes/hourly?from=${from}`),
   series: (source: string) => get<Series[]>(`/series?source=${encodeURIComponent(source)}`),
   seriesDaily: (series: Pick<Series, "source" | "entity" | "metric">, from: string) =>
     get<SeriesDay[]>(

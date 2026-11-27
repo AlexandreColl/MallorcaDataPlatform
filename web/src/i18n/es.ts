@@ -9,7 +9,7 @@ export const es = {
       label: "Inicio",
       title: "Mallorca en datos",
       description:
-        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Dieciocho fuentes abiertas, " +
+        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Diecinueve fuentes abiertas, " +
         "con la calidad comprobada en cada carga.",
     },
     tourism: {
@@ -289,6 +289,11 @@ export const es = {
       `Recorrido de cada línea con el color de su operador; cuanto más gruesa, más salidas tiene ${day ? `el ${day}` : "el último día"}. ` +
       "Pulsa una línea para ver sus cifras.",
     stopPopup: (calls: string, lines: string) => `${calls} pasos · ${lines} líneas`,
+    bikePopup: (bikes: string, ebikes: string) => `${bikes} bicis libres de media (${ebikes} eléctricas)`,
+    bikeOccupancy: (pct: string, docks: string) => `Ocupación media del ${pct} % · ${docks} anclajes en uso`,
+    bikeEmptyFull: (empty: string, full: string, hours: string) => `Sin bicis ${empty} h y llena ${full} h, de ${hours} h`,
+    bikesIntro: "Bicis y anclajes libres de toda la red de BiciPalma, hora a hora, a partir del estado de cada estación cada 5 minutos.",
+    bikesUpTo: (day: string) => `Datos hasta el ${day}.`,
     views: {
       density: "Densidad",
       service: "Servicio por habitante",
@@ -379,7 +384,7 @@ export const es = {
     mapTitle: "Población y servicio por municipio",
     mapSubtitle: (year: string, day: string) =>
       `Padrón del INE a 1 de enero de ${year} y pasos programados en cada parada el ${day} (cuanto más grande, más ` +
-      "servicio); pulsa un municipio o una parada para ver sus cifras.",
+      "servicio), con las estaciones de BiciPalma; pulsa un municipio, una parada o una estación para ver sus cifras.",
     busiestStopsTitle: "Paradas con más servicio",
     busiestStopsSubtitle: "Las diez con más pasos programados de las dos redes.",
     stop: "Parada",
@@ -407,6 +412,15 @@ export const es = {
     pressureTitle: "Población real presente",
     dailyCallsTitle: "Pasos programados por día",
     dailyCallsSubtitle: "Suma de los vehículos que pasan por cada parada, según los horarios GTFS.",
+    bikesTitle: "BiciPalma hora a hora",
+    bikesChart: "Bicis libres, eléctricas y estaciones vacías de BiciPalma cada hora",
+    bikesSeries: { bikes: "Bicis libres", ebikes: "Eléctricas", empty: "Estaciones vacías" },
+    emptiestTitle: "Estaciones que más se vacían",
+    emptiestSubtitle: "Horas del último día en que se quedaron sin bicis o sin anclajes libres en algún momento.",
+    station: "Estación",
+    hoursEmpty: "Sin bicis",
+    hoursFull: "Llena",
+    occupancy: "Ocupación",
   },
   weather: {
     dailyTemperatureChart: "Temperatura media diaria de cada fuente",

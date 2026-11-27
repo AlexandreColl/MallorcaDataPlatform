@@ -7,7 +7,8 @@ window, the region and, for each request, its method, URL, parameters and file. 
 connector asks for shows up as a test failure instead of a silent call to the network.
 
 Connectors written before this keep their hand-picked fixtures; only ``recorded.json`` and the files it lists are
-ever replaced.
+ever replaced. A live connector (``core.connectors.live``) records one poll of each polled dataset: its ``extract``
+reads bronze, not the source.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from core.config import load_region
 from core.connectors import registry
 from core.connectors.base import ConnectorError
 from core.connectors.http import HttpClient
+from core.connectors.live import LiveConnector
 from core.models import TimeWindow
 
 if TYPE_CHECKING:
@@ -196,7 +198,11 @@ def record(  # noqa: PLR0913 - keyword-only: the window, the region and where ev
     window = connector.config.window(days)
     connector.validate_window(window)
     try:
-        connector.extract(window, region)
+        if isinstance(connector, LiveConnector):  # its extract reads bronze: what it asks the source is the poll
+            for dataset in connector.polled_datasets():
+                connector.poll(dataset, region)
+        else:
+            connector.extract(window, region)
     except Exception:
         for leftover in staging.iterdir():
             leftover.unlink()

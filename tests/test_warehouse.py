@@ -128,6 +128,15 @@ def test_missing_days_are_the_ones_no_successful_run_covered(warehouse):
     assert warehouse.missing_days(SOURCE, "menorca", WINDOW) == [WINDOW.start, WINDOW.end]  # another region
 
 
+def test_a_day_loaded_before_it_was_over_is_still_missing(warehouse):
+    today = datetime.now(UTC).date()
+    window = TimeWindow(today - timedelta(days=1), today)  # a manual run of today, or a live source read at noon
+    warehouse.start_run("run1", SOURCE, "mallorca", window)
+    warehouse.finish_run("run1", SOURCE, "success")
+
+    assert warehouse.missing_days(SOURCE, "mallorca", window) == [today]
+
+
 def test_a_retried_run_starts_again_from_running(warehouse):
     warehouse.start_run("run1", SOURCE, "mallorca", WINDOW)
     warehouse.finish_run("run1", SOURCE, "failed", error="ConnectTimeout: upstream down")

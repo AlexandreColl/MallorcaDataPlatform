@@ -32,7 +32,9 @@ const answers = {
 };
 
 beforeEach(() => {
-  for (const [name, rows] of Object.entries(answers)) vi.spyOn(api, name as keyof typeof api).mockResolvedValue(rows as never);
+  // Spied as plain functions: the union of every method of `api` is too large for TypeScript (TS2590).
+  const calls = api as unknown as Record<string, () => Promise<unknown>>;
+  for (const [name, rows] of Object.entries(answers)) vi.spyOn(calls, name).mockResolvedValue(rows);
 });
 afterEach(() => {
   cleanup();

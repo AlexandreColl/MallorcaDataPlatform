@@ -65,7 +65,7 @@ exposures:
     type: dashboard
     maturity: medium
     url: http://localhost:3000/d/mallorca-mobility
-    description: Scheduled public transport of EMT Palma and CTM per day and per stop.
+    description: Scheduled public transport of EMT Palma and CTM per day and per stop, and BiciPalma hour by hour.
     owner:
       name: AlexandreColl
     depends_on:
@@ -73,6 +73,7 @@ exposures:
       - ref('fct_island_transit_daily')
       - ref('agg_daily_metrics')
       - ref('dim_locations')
+      - ref('fct_bike_stations_hourly')
 
   - name: grafana_weather_environment
     label: Grafana · Mallorca · Tiempo y entorno
@@ -140,6 +141,8 @@ exposures:
       - ref('fct_bus_network_daily')
       - ref('fct_island_transit_daily')
       - ref('dim_routes')
+      - ref('fct_bike_stations_daily')
+      - ref('fct_bike_stations_hourly')
       - ref('agg_daily_metrics')
       - ref('fct_weather_daily')
       - ref('fct_weather_episodes')
@@ -183,6 +186,8 @@ exposures:
       - ref('fct_bus_network_daily')
       - ref('fct_island_transit_daily')
       - ref('dim_routes')
+      - ref('fct_bike_stations_daily')
+      - ref('fct_bike_stations_hourly')
       - ref('agg_daily_metrics')
       - ref('fct_observations')
       - ref('fct_weather_daily')

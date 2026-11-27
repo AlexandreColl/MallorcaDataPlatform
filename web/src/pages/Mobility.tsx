@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { api, daysAgo, type HumanPressureDay, type MobilityDay } from "../api";
+import { api, type BikesHour, daysAgo, type HumanPressureDay, type MobilityDay } from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart, type ChartColors } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
@@ -12,6 +12,10 @@ import { ready, useLoad } from "../hooks";
 import { messages } from "../i18n";
 import { compact, dayName, dayShort, monthAbbreviation, number, orDash, signed } from "../lib/format";
 import {
+  BIKES,
+  bikeLayer,
+  bikesSubtitle,
+  emptiestStations,
   FIRST_YEAR,
   mobilityKpis,
   municipalityRows,
@@ -40,6 +44,37 @@ function DailyCalls({ days }: { days: MobilityDay[] }) {
     };
   }, [days]);
   return <Chart option={option} label={messages().mobilityPage.dailyCallsChart} height={320} />;
+}
+
+/** BiciPalma hour by hour: the free bikes and e-bikes of the whole network, and the stations left without bikes. */
+function BikesHourly({ hours }: { hours: BikesHour[] }) {
+  const option = useCallback(
+    (c: ChartColors) => {
+      const s = messages().mobilityPage.bikesSeries;
+      return {
+        xAxis: {
+          type: "time", minInterval: 86_400_000, // one label per day, never two of the same day
+          axisLabel: { formatter: (v: number) => dayShort(new Date(v).toISOString()) },
+        },
+        yAxis: [
+          { type: "value", axisLabel: { formatter: compact } },
+          { type: "value", min: 0, splitLine: { show: false }, axisLabel: { color: c.muted } },
+        ],
+        tooltip: { valueFormatter: orDash((v) => number(v)) },
+        legend: { top: 0, left: 0 },
+        series: [
+          { name: s.bikes, type: "line", symbol: "none", color: BIKES.color, data: hours.map((h) => [h.ts, h.bikes_available]) },
+          { name: s.ebikes, type: "line", symbol: "none", color: "#16a34a", data: hours.map((h) => [h.ts, h.ebikes_available]) },
+          {
+            name: s.empty, type: "bar", yAxisIndex: 1, color: c.muted, itemStyle: { opacity: 0.45 },
+            data: hours.map((h) => [h.ts, h.stations_empty]),
+          },
+        ],
+      };
+    },
+    [hours],
+  );
+  return <Chart option={option} label={messages().mobilityPage.bikesChart} height={320} />;
 }
 
 /**
@@ -101,6 +136,8 @@ export function Mobility() {
   const dwellings = useLoad(api.touristDwellings);
   const pressure = useLoad(() => api.humanPressure(daysAgo(3 * 366 + 120)));
   const routes = useLoad(api.routes);
+  const bikeStations = useLoad(api.bikeStations);
+  const bikes = useLoad(() => api.bikesHourly(daysAgo(7)));
   // The municipality chosen on the map, the table or the chart: the three follow it.
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -115,7 +152,12 @@ export function Mobility() {
     // The tourist dwellings are a layer more: the map does not wait for them, nor fails with them.
     return { rows: municipalityRows(m, p, s, year, ready(dwellings) ?? []), year };
   }, [places, population, stops, dwellings]);
-  const layers = useMemo(() => (stops.status === "ready" ? stopLayers(stops.data) : []), [stops]);
+  // The stops of both networks, and the BiciPalma stations once they are loaded (the map does not wait for them).
+  const layers = useMemo(() => {
+    const own = stops.status === "ready" ? stopLayers(stops.data) : [];
+    const stations = ready(bikeStations);
+    return stations && stations.length > 0 ? [...own, bikeLayer(stations)] : own;
+  }, [stops, bikeStations]);
   const m = messages().mobilityPage;
   const stopDay = stops.status === "ready" && stops.data[0] ? dayName(stops.data[0].local_date) : m.lastDay;
 
@@ -218,6 +260,24 @@ export function Mobility() {
                 />
               ) : null
             }
+          </Async>
+        </Panel>
+        <Panel title={m.bikesTitle} subtitle={bikesSubtitle(ready(bikes))} wide>
+          <Async state={bikes} height={320}>{(rows) => <BikesHourly hours={rows} />}</Async>
+        </Panel>
+        <Panel title={m.emptiestTitle} subtitle={m.emptiestSubtitle}>
+          <Async state={bikeStations}>
+            {(rows) => (
+              <Table
+                rows={emptiestStations(rows)}
+                columns={[
+                  { label: m.station, value: (s) => s.name ?? s.station },
+                  { label: m.hoursEmpty, value: (s) => `${number(s.hours_empty)} h`, numeric: true },
+                  { label: m.hoursFull, value: (s) => `${number(s.hours_full)} h`, numeric: true },
+                  { label: m.occupancy, value: (s) => (s.occupancy_pct === null ? "—" : `${number(s.occupancy_pct)} %`), numeric: true },
+                ]}
+              />
+            )}
           </Async>
         </Panel>
         <Panel title={m.pressureTitle} subtitle={pressureSubtitle(ready(pressure))} full>

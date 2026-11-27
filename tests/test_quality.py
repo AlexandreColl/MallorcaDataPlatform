@@ -167,3 +167,18 @@ def test_yearly_gaps_count_years(spark):
 
     gaps = _results_by_rule(results)[("gaps", "population")]
     assert (gaps.checked, gaps.failed) == (3, 1)
+
+
+def test_a_live_source_expects_no_hours_before_its_first_snapshot(spark):
+    bicipalma = registry.load("bicipalma")
+    # The poller started at 15:50 and the window was read at 18:07: 15, 16, 17 and 18 h are expected, 17 h is missing.
+    hours = [
+        Observation("bicipalma", "station_91733840", "bikes_available", T0 + timedelta(hours=h), 10.0, "bikes")
+        for h in (15, 16, 18)
+    ]
+    span = (T0 + timedelta(hours=15), T0 + timedelta(hours=19))
+
+    _, results = apply_quality(_frame(spark, hours), bicipalma, WINDOW, span=span)
+
+    gaps = _results_by_rule(results)[("gaps", "bikes_available")]
+    assert (gaps.checked, gaps.failed) == (4, 1)  # not 24 and 21: the hours before polling started are not gaps

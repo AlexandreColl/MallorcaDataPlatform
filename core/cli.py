@@ -4,6 +4,7 @@ Examples:
     python -m core.cli list
     python -m core.cli init
     python -m core.cli run --connectors open_meteo --days 1 --region mallorca
+    python -m core.cli poll --connectors bicipalma
     python -m core.cli backfill --connectors aemet --start 2016-09-01 --end 2026-08-31
     python -m core.cli detect --days 30
     python -m core.cli evaluate
@@ -251,8 +252,26 @@ def _cmd_record_fixtures(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_poll(args: argparse.Namespace) -> int:
+    from core.live import live_names, poll_connector
+
+    failures = 0
+    for name in args.connectors or live_names():
+        try:
+            print(json.dumps(poll_connector(name, region_name=args.region).as_dict()))
+        except Exception:
+            log.exception("poll of %s failed", name)
+            failures += 1
+    return 1 if failures else 0
+
+
 def _add_connector_tools(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    """The commands that help write a connector."""
+    """The commands that help write a connector, and the live poller."""
+    poll = sub.add_parser("poll", help="keep the current state of the live sources in bronze (no Spark)")
+    poll.add_argument("--connectors", nargs="*", help="default: every enabled live connector")
+    poll.add_argument("--region", default="mallorca")
+    poll.set_defaults(func=_cmd_poll)
+
     scaffold = sub.add_parser("new-connector", help="write the folder of a new connector, ready to fill in")
     scaffold.add_argument("name", help="snake_case, e.g. water_quality")
     scaffold.set_defaults(func=_cmd_new_connector)

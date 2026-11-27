@@ -33,6 +33,8 @@ sources:
       - {name: redata, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'redata'"}}
       - {name: emt_palma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'emt_palma'"}}
       - {name: ctm, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'ctm'"}}
+      # Built from the snapshots the live poller keeps every 5 minutes: the daily run loads yesterday's hours.
+      - {name: bicipalma, identifier: observations, freshness: {warn_after: {count: 36, period: hour}, error_after: {count: 48, period: hour}, filter: "source = 'bicipalma'"}}
       - {name: aemet, identifier: observations, freshness: {warn_after: {count: 5, period: day}, error_after: {count: 5, period: day}, filter: "source = 'aemet'"}}
       - {name: dataestur, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 100, period: day}, filter: "source = 'dataestur'"}}
       - {name: water_reserves, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 100, period: day}, filter: "source = 'water_reserves'"}}

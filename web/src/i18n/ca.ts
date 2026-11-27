@@ -11,7 +11,7 @@ export const ca: Messages = {
       label: "Inici",
       title: "Mallorca en dades",
       description:
-        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Divuit fonts " +
+        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Dinou fonts " +
         "obertes, amb la qualitat comprovada a cada càrrega.",
     },
     tourism: {
@@ -292,6 +292,11 @@ export const ca: Messages = {
       `Recorregut de cada línia amb el color del seu operador; com més gruixuda, més sortides té ${day ? `el ${day}` : "el darrer dia"}. ` +
       "Fes clic en una línia per veure’n les xifres.",
     stopPopup: (calls: string, lines: string) => `${calls} passos · ${lines} línies`,
+    bikePopup: (bikes: string, ebikes: string) => `${bikes} bicis lliures de mitjana (${ebikes} elèctriques)`,
+    bikeOccupancy: (pct: string, docks: string) => `Ocupació mitjana del ${pct} % · ${docks} ancoratges en ús`,
+    bikeEmptyFull: (empty: string, full: string, hours: string) => `Sense bicis ${empty} h i plena ${full} h, de ${hours} h`,
+    bikesIntro: "Bicis i ancoratges lliures de tota la xarxa de BiciPalma, hora a hora, a partir de l’estat de cada estació cada 5 minuts.",
+    bikesUpTo: (day: string) => `Dades fins al ${day}.`,
     views: {
       density: "Densitat",
       service: "Servei per habitant",
@@ -382,7 +387,7 @@ export const ca: Messages = {
     mapTitle: "Població i servei per municipi",
     mapSubtitle: (year: string, day: string) =>
       `Padró de l’INE a 1 de gener del ${year} i passos programats a cada parada el ${day} (com més gran, més ` +
-      "servei); fes clic en un municipi o en una parada per veure’n les xifres.",
+      "servei), amb les estacions de BiciPalma; fes clic en un municipi, una parada o una estació per veure’n les xifres.",
     busiestStopsTitle: "Parades amb més servei",
     busiestStopsSubtitle: "Les deu amb més passos programats de les dues xarxes.",
     stop: "Parada",
@@ -410,6 +415,15 @@ export const ca: Messages = {
     pressureTitle: "Població real present",
     dailyCallsTitle: "Passos programats per dia",
     dailyCallsSubtitle: "Suma dels vehicles que passen per cada parada, segons els horaris GTFS.",
+    bikesTitle: "BiciPalma hora a hora",
+    bikesChart: "Bicis lliures, elèctriques i estacions buides de BiciPalma cada hora",
+    bikesSeries: { bikes: "Bicis lliures", ebikes: "Elèctriques", empty: "Estacions buides" },
+    emptiestTitle: "Estacions que més es buiden",
+    emptiestSubtitle: "Hores del darrer dia en què es van quedar sense bicis o sense ancoratges lliures en algun moment.",
+    station: "Estació",
+    hoursEmpty: "Sense bicis",
+    hoursFull: "Plena",
+    occupancy: "Ocupació",
   },
   weather: {
     dailyTemperatureChart: "Temperatura mitjana diària de cada font",

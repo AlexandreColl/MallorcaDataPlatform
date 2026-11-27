@@ -43,6 +43,8 @@ def test_health(api):
         "/v1/mobility/daily?from=2016-01-01",
         "/v1/mobility/stops",
         "/v1/mobility/routes",
+        "/v1/mobility/bike-stations",
+        "/v1/mobility/bikes/hourly?from=2026-11-01",
         "/v1/series?source=aemet",
         "/v1/series/daily?source=aemet&entity=B228&metric=temperature_2m_mean",
         "/v1/weather/daily?from=2016-01-01",

@@ -1,0 +1,22 @@
+{
+  "connector": "bicipalma",
+  "region": "mallorca",
+  "window": {
+    "start": "2026-11-25",
+    "end": "2026-11-25"
+  },
+  "requests": [
+    {
+      "method": "get_json",
+      "url": "https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_ea/es/station_status.json",
+      "params": {},
+      "file": "01_station_status_json.json"
+    },
+    {
+      "method": "get_json",
+      "url": "https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_ea/es/station_information.json",
+      "params": {},
+      "file": "02_station_information_json.json"
+    }
+  ]
+}
