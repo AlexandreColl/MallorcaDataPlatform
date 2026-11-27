@@ -42,6 +42,7 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 | Open-Meteo, Open-Meteo Marine | Open-Meteo | CC BY 4.0 | Abierto | 48 h | 90 % |
 | SOCIB | SOCIB | Acceso abierto con cita obligatoria | Abierto | 48 h | 80 % |
 | REDMAR (mareógrafos) | Puertos del Estado | Datos públicos y gratuitos con cita obligatoria | Abierto | 48 h | 80 % |
+| NOAA OISST (satélite) | NOAA NCEI (vía el ERDDAP de NOAA CoastWatch y la copia de NOAA PSL) | Dominio público (datos del Gobierno de EE. UU.; cita recomendada) | Abierto | 4 días | 90 % |
 | EEA | Agencia Europea de Medio Ambiente (datos del Govern) | CC BY 4.0 | Abierto | 48 h | 90 % |
 | REData | Red Eléctrica | Reutilización con cita | Abierto | 48 h | 80 % |
 | AEMET (estaciones) | AEMET | Reutilización con cita (nota legal) | Clave | 5 días | 90 % |
@@ -60,7 +61,9 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 REData y SOCIB. En esos casos la ficha lo dice en lugar de inventarla. Se aplican las condiciones por defecto de la
 reutilización de información del sector público (Ley 37/2007): citar la fuente, no desnaturalizar el dato y no
 sugerir que el dueño patrocina el uso. SOCIB exige además citar su repositorio, y Puertos del Estado, que se le
-avise antes de un uso comercial; en los demás casos también habría que confirmarlo con cada dueño.
+avise antes de un uso comercial; en los demás casos también habría que confirmarlo con cada dueño. NOAA OISST es
+dominio público, como los datos del Gobierno de EE. UU.: NOAA pide citar el producto (Huang et al., 2021) y su ERDDAP
+advierte de que no da garantías sobre el dato.
 
 **Datos personales.** Ninguna fuente tiene datos personales:
 

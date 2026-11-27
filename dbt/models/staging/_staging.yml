@@ -36,6 +36,8 @@ models:
     description: SOCIB weather stations and buoy (observation), hourly.
   - name: stg_redmar__observations
     description: Puertos del Estado tide gauges of Palma and Alcúdia (observation), hourly sea level.
+  - name: stg_noaa_oisst__observations
+    description: NOAA OISST v2.1 satellite sea temperature at 8 coastal cells (observation), daily, final and preliminary.
   - name: stg_aemet__observations
     description: AEMET official stations (observation), daily.
   - name: stg_redata__observations

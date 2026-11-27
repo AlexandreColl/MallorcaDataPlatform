@@ -25,6 +25,16 @@ vars:
   episode_rain_mm: 30
   episode_gust_kmh: 70
   episode_wave_m: 2.5
+  # sea temperature (NOAA OISST): the climatology of every day of the year, as in Hobday et al. (2016) — the
+  # 30-year baseline, the values within 5 days of that day in every year (an 11-day window), then a 31-day moving
+  # mean. A marine heatwave is at least 5 days in a row above the 90th percentile; two separated by 2 days or less
+  # are one.
+  sst_baseline: {start: "1991-01-01", end: "2020-12-31"}
+  sst_window_half_days: 5
+  sst_smoothing_half_days: 15
+  sst_heatwave_percentile: 0.9
+  sst_heatwave_min_days: 5
+  sst_heatwave_max_gap_days: 2
   # Connectors whose rows are events (see macros/event_sources.sql). ine_tourist_housing is `frequency: event` only
   # because its reference months are irregular: its rows are series of a municipality, so it is not listed here.
   event_sources: ["ign", "aemet_warnings"]

@@ -115,6 +115,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Hourly electricity demand, daily generation mix and CO₂ of the Balearic system | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Real observations from 3 stations and 1 buoy (temperature, humidity, pressure, wind), hourly with the source's QC | No |
 | [redmar](connectors/redmar/README.md) | ✅ | Hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado (REDMAR network, since 2009) | No |
+| [noaa_oisst](connectors/noaa_oisst/README.md) | ✅ | Daily satellite sea surface temperature (NOAA OISST v2.1, 0.25°) at 8 coastal points, since 1981 | No |
 | [ign](connectors/ign/README.md) | ✅ v0.2.2 | Earthquakes located by the IGN in Mallorca and the surrounding sea (magnitude, depth, epicentre) | No |
 | [emt_palma](connectors/emt_palma/README.md) | ✅ v0.2.3 | Scheduled buses and lines per stop and day (875 stops, static GTFS) | No |
 | [open_meteo_marine](connectors/open_meteo_marine/README.md) | ✅ v0.2.4 | Waves, sea temperature, currents and sea level (model) at 8 points along the coast | No |
@@ -253,6 +254,24 @@ value a minute (about 60 KB a day instead of 5.4 MB) and averages per hour the o
 - **In 2026 whole hours are missing**, about 6 in 24 and the same at both gauges; in 2024 and before the files are
   almost complete. An hour without a single good minute is stored as `missing`.
 - It replaces the SOCIB tide gauges, which stopped publishing in Mallorca between 2019 and 2024.
+
+### Satellite sea temperature (NOAA OISST)
+
+The daily sea surface temperature of NOAA OISST v2.1 (satellite, ships and buoys on a 0.25° grid) since September
+1981, at the sea cell nearest to each of the 8 coastal points of Open-Meteo Marine. It is read from NOAA
+CoastWatch's ERDDAP without a key: one 3 × 5 cell box per window instead of one request per point. The final value
+comes about 16 days late and the preliminary one the next day; they are two metrics, and gold takes the final one as
+soon as it exists. ERDDAP's time axis lacked 1,196 days (most of them in 1992-1998): the connector asks NOAA PSL's
+copy for them over OPeNDAP, and silver is complete, 16,507 days at the 8 points.
+
+In gold, `dim_sea_temperature_climatology` gives the usual temperature of each day of the year in 1991-2020 (11-day
+window and 31-day moving mean, as in Hobday et al., 2016) and `fct_sea_temperature_daily` the anomaly and the
+**marine heatwaves**: 5 or more days in a row above the 90th percentile, with gaps and islands. The mean anomaly goes
+from −0.48 °C in the eighties to +1.05 °C since 2020, and the heatwave days from 1.5 a year to 136. The 2026 heatwave
+off Palma lasted 131 days (15 June to 23 October), with 29.9 °C on 7 August, the highest value of the series. On the
+web, *Climate and water* puts the sea anomaly next to the air one; Grafana adds a table of heatwaves. Open-Meteo
+Marine comes out 0.2 to 0.6 °C warmer than the satellite, with r = 0.99.
+[Details and real tests](connectors/noaa_oisst/README.md).
 
 ### IGN (earthquakes)
 

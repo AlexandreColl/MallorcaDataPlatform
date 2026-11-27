@@ -11,7 +11,7 @@ export const en: Messages = {
       label: "Home",
       title: "Mallorca in data",
       description:
-        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Seventeen " +
+        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Eighteen " +
         "open sources, with their quality checked on every load.",
     },
     tourism: {
@@ -22,7 +22,7 @@ export const en: Messages = {
     climate: {
       label: "Climate and water",
       title: "Climate and water",
-      description: "Aquifer reserves, rainfall of the hydrological year and temperature against normal.",
+      description: "Aquifer reserves, rainfall of the hydrological year and air and sea temperature against normal.",
     },
     mobility: {
       label: "Mobility",
@@ -58,7 +58,7 @@ export const en: Messages = {
     language: "Language",
     catalogue: "Catalogue",
     footer:
-      "Open data from AEMET, SOCIB, Puertos del Estado, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
+      "Open data from AEMET, SOCIB, Puertos del Estado, NOAA, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
       "Govern de les Illes Balears and Open-Meteo. Map © OpenStreetMap.",
   },
   data: {
@@ -362,6 +362,13 @@ export const en: Messages = {
     rainSubtitle: "Rain accumulated since September at AEMET’s stations, year by year.",
     temperatureTitle: "Temperature against normal",
     temperatureSubtitle: "The difference between each month’s mean temperature and that of the same month in other years.",
+    seaTitle: "The sea against normal",
+    seaSubtitle:
+      "Anomaly of the satellite sea temperature (NOAA OISST) against 1991-2020 at 8 coastal points, and marine " +
+      "heatwave days: 5 or more in a row above the 90th percentile.",
+    seaChart: "Sea temperature anomaly and marine heatwave days of each month",
+    seaAnomaly: "Sea anomaly",
+    heatwaveDays: "Heatwave days",
   },
   mobilityPage: {
     dailyCallsChart: "Scheduled stop calls per day on each network",

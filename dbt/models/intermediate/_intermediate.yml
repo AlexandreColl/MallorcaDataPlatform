@@ -41,3 +41,12 @@ models:
     columns:
       - name: local_date
         data_tests: [not_null, unique]
+
+  - name: int_sea_temperature__daily
+    description: >
+      NOAA OISST per coastal point and UTC day: the final value when published, the preliminary one until then.
+      Feeds the climatology and fct_sea_temperature_daily.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [point, day]
