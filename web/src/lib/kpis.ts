@@ -118,6 +118,14 @@ export const TOURISM_SPECS: Spec<TourismMonth>[] = [
     deviation: (r) => yearOnYear(r.airport_passengers_yoy),
   },
   {
+    id: "cruise",
+    label: text("cruise"),
+    unit: "",
+    value: (r) => r.cruise_passengers,
+    format: compact,
+    deviation: (r) => yearOnYear(r.cruise_passengers_yoy),
+  },
+  {
     id: "occupancy",
     label: text("occupancy"),
     unit: "%",

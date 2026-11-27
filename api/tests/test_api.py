@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from api import __version__
 from api.main import create_app
+from api.schemas import TourismMonth
 from api.settings import Settings
 
 TS = datetime(2026, 10, 27, 10, tzinfo=UTC)
@@ -193,6 +194,22 @@ def test_every_monthly_mart_answers(db, path):
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_tourism_months_carry_the_cruise_passengers():
+    month = dict.fromkeys(TourismMonth.model_fields) | {
+        "month": date(2026, 8, 1),
+        "cruise_passengers": 393270.0,
+        "cruise_calls": 122.0,
+        "cruise_passengers_yoy": 0.0739,
+    }
+    db = FakeDatabase({"gold.fct_tourism_monthly": [month]})
+
+    body = client(db).get("/v1/tourism/monthly", params={"from": "2026-08-01"}).json()
+
+    assert body[0]["cruise_passengers"] == 393270
+    assert body[0]["cruise_calls"] == 122
+    assert body[0]["airport_passengers"] is None
 
 
 def test_anomalies_filters(db):

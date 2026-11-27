@@ -1,7 +1,7 @@
 {
   "uid": "mallorca-tourism-resources",
   "title": "Mallorca · Turismo y recursos",
-  "description": "Turistas, pasajeros y ocupación hotelera frente a las reservas de agua subterránea y la demanda eléctrica, mes a mes y año a año.",
+  "description": "Turistas, pasajeros (aeropuerto y cruceros) y ocupación hotelera frente a las reservas de agua subterránea y la demanda eléctrica, mes a mes y año a año.",
   "tags": [
     "mallorca",
     "turismo",
@@ -48,7 +48,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Cómo leerlo.** Todo es estacional: en verano llegan los turistas, sube la demanda eléctrica y bajan las reservas, porque no llueve. Comparar meses tal cual solo muestra el calendario. Por eso las gráficas de anomalías comparan cada mes con la media del mismo mes en los demás años, y la evaluación por año compara veranos con veranos. El turismo es de Baleares (FRONTUR); las reservas y el aeropuerto, de Mallorca; la electricidad, del sistema balear."
+        "content": "**Cómo leerlo.** Todo es estacional: en verano llegan los turistas, sube la demanda eléctrica y bajan las reservas, porque no llueve. Comparar meses tal cual solo muestra el calendario. Por eso las gráficas de anomalías comparan cada mes con la media del mismo mes en los demás años, y la evaluación por año compara veranos con veranos. El turismo es de Baleares (FRONTUR), y los cruceristas, de los cinco puertos de la APB; las reservas y el aeropuerto, de Mallorca; la electricidad, del sistema balear."
       }
     },
     {
@@ -510,7 +510,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT month::timestamptz AS time, 100 * tourists_anomaly AS \"Turistas (%)\", 100 * electricity_demand_anomaly AS \"Demanda eléctrica (%)\", reserves_anomaly_pts AS \"Reservas (pts)\" FROM gold.fct_resources_monthly WHERE $__timeFilter(month::timestamptz) ORDER BY 1"
+          "rawSql": "SELECT month::timestamptz AS time, 100 * tourists_anomaly AS \"Turistas (%)\", 100 * cruise_passengers_anomaly AS \"Cruceristas (%)\", 100 * electricity_demand_anomaly AS \"Demanda eléctrica (%)\", reserves_anomaly_pts AS \"Reservas (pts)\" FROM gold.fct_resources_monthly WHERE $__timeFilter(month::timestamptz) ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -1112,6 +1112,129 @@
               {
                 "id": "decimals",
                 "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Cruceristas y aeropuerto",
+      "description": "Puertos del Estado vía Dataestur: pasajeros de crucero de los cinco puertos de la Autoritat Portuària de Balears (barras; Palma es unos dos tercios) y escalas de cruceros, frente a los pasajeros del aeropuerto de Palma (AENA, eje derecho). Cada puerto de escala cuenta a sus pasajeros; es la cifra que declara el puerto, no un recuento independiente.",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT month::timestamptz AS time, cruise_passengers AS \"Cruceristas\", airport_passengers AS \"Aeropuerto de Palma\", cruise_calls AS \"Escalas de cruceros\" FROM gold.fct_tourism_monthly WHERE $__timeFilter(month::timestamptz) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cruceristas"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#14B8A6"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Aeropuerto de Palma"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Escalas de cruceros"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "viz": true,
+                  "legend": false,
+                  "tooltip": false
+                }
               }
             ]
           }

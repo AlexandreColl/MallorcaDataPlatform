@@ -7,7 +7,8 @@ import { buildKpi, RAIN_SPEC, RESOURCE_SPECS, TOURISM_SPECS, WATER_SPECS } from 
 function month(m: string, fields: Partial<ResourcesMonth>): ResourcesMonth {
   return {
     month: m, hydrological_year: 2026, international_tourists: null, tourists_anomaly: null,
-    international_spending_eur: null, airport_passengers: null, hotel_bed_occupancy_pct: null,
+    international_spending_eur: null, airport_passengers: null, cruise_passengers: null, cruise_passengers_anomaly: null,
+    hotel_bed_occupancy_pct: null,
     electricity_demand_gwh: null, electricity_demand_anomaly: null, reserves_pct: null, reserves_change_1m_pts: null,
     reserves_anomaly_pts: null, rain_mm: null, rain_hydrological_year_mm: null, rain_anomaly: null,
     temperature_mean_c: null, temperature_anomaly_c: null, hot_days: null, ...fields,
@@ -28,7 +29,9 @@ function tourism(fields: Partial<TourismMonth>): TourismMonth {
     month: "2026-09-01", international_tourists: null, international_spending_eur: null,
     international_tourist_nights: null, spending_per_tourist_eur: null, hotel_guests: null, hotel_nights: null,
     hotel_average_stay_nights: null, hotel_bed_occupancy_pct: null, hotels_open: null, hotel_staff: null,
-    airport_passengers: null, international_tourists_yoy: null, airport_passengers_yoy: null, ...fields,
+    airport_passengers: null, cruise_passengers: null, cruise_calls: null, cruise_passengers_per_call: null,
+    port_passengers: null, international_tourists_yoy: null, airport_passengers_yoy: null, cruise_passengers_yoy: null,
+    ...fields,
   };
 }
 
@@ -97,6 +100,16 @@ describe("tourism and water figures", () => {
     const rows = [tourism({ international_tourists: 2_200_000, international_tourists_yoy: 0.001 })];
 
     expect(buildKpi(TOURISM_SPECS[0]!, rows)).toMatchObject({ value: "2,2 M", deviation: "+0,1 % que hace un año", tone: "neutral" });
+  });
+
+  it("compare cruise passengers with the same month a year earlier", () => {
+    const spec = TOURISM_SPECS.find((s) => s.id === "cruise")!;
+    const rows = [
+      tourism({ month: "2026-08-01", cruise_passengers: 393_270, cruise_passengers_yoy: 0.0739 }),
+      tourism({ month: "2026-09-01", international_tourists: 2_000_000 }), // ports and arrivals publish apart
+    ];
+
+    expect(buildKpi(spec, rows)).toMatchObject({ month: "agosto de 2026", value: "393 mil", deviation: "+7,4 % que hace un año" });
   });
 
   it("name the lowest aquifer next to the count below 30 %", () => {

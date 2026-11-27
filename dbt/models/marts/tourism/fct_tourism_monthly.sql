@@ -1,6 +1,7 @@
--- Balearic tourism per month (Dataestur): international arrivals and spending, hotel occupancy and Palma airport
--- passengers, with the change against the same month a year earlier. Hotel occupancy is published a month after
--- the others, so the latest month can have arrivals but no hotel figures yet.
+-- Balearic tourism per month (Dataestur): international arrivals and spending, hotel occupancy, Palma airport
+-- passengers and the cruise passengers of the Balearic port authority, with the change against the same month a
+-- year earlier. Hotel occupancy is published a month after the others, so the latest month can have arrivals but no
+-- hotel figures yet. Port traffic goes back to 2005, the other tables to 2015-2016: older months only have ports.
 with monthly as (
     select
         local_date as month,
@@ -12,7 +13,10 @@ with monthly as (
         max(value) filter (where metric = 'hotel_bed_occupancy') as hotel_bed_occupancy_pct,
         max(value) filter (where metric = 'hotels_open') as hotels_open,
         max(value) filter (where metric = 'hotel_staff') as hotel_staff,
-        max(value) filter (where metric = 'airport_passengers') as airport_passengers
+        max(value) filter (where metric = 'airport_passengers') as airport_passengers,
+        max(value) filter (where metric = 'cruise_passengers') as cruise_passengers,
+        max(value) filter (where metric = 'cruise_calls') as cruise_calls,
+        max(value) filter (where metric = 'port_passengers') as port_passengers
     from {{ ref('stg_dataestur__observations') }}
     where not is_missing
     group by local_date
@@ -32,9 +36,15 @@ select
     m.hotels_open,
     m.hotel_staff,
     m.airport_passengers,
+    m.cruise_passengers,
+    m.cruise_calls,
+    round((m.cruise_passengers / nullif(m.cruise_calls, 0))::numeric, 0)::numeric(8, 0) as cruise_passengers_per_call,
+    m.port_passengers,
     round((m.international_tourists / nullif(y.international_tourists, 0) - 1)::numeric, 4)::numeric(8, 4)
         as international_tourists_yoy,
     round((m.airport_passengers / nullif(y.airport_passengers, 0) - 1)::numeric, 4)::numeric(8, 4)
-        as airport_passengers_yoy
+        as airport_passengers_yoy,
+    round((m.cruise_passengers / nullif(y.cruise_passengers, 0) - 1)::numeric, 4)::numeric(8, 4)
+        as cruise_passengers_yoy
 from monthly as m
 left join monthly as y on m.month - interval '1 year' = y.month

@@ -16,6 +16,7 @@ SHEETS = {
     "EGATUR_DL": "egatur",
     "EOH_PROV_DL": "hotels",
     "AENA_DESTINOS_DL": "airport",
+    "PUERTOS_DL": "cruises",
 }
 MALLORCA = Region("mallorca", 39.25, 2.30, 39.97, 3.50)
 # What a run on 2026-10-28 asks for: 365 days ending 62 days before yesterday, so September 2025 to August 2026.
@@ -48,7 +49,7 @@ def test_one_sheet_per_table_lands_in_bronze_untouched():
 
     payloads = connector.extract(WINDOW, MALLORCA)
 
-    assert [p.dataset for p in payloads] == ["frontur", "egatur", "hotels", "airport"]
+    assert [p.dataset for p in payloads] == ["frontur", "egatur", "hotels", "airport", "cruises"]
     url, params = http.calls[0]
     assert url == "https://www.dataestur.es/API-SEGITTUR-v2/FRONTUR_DL"
     assert params == {
@@ -60,6 +61,7 @@ def test_one_sheet_per_table_lands_in_bronze_untouched():
     }
     assert base64.b64decode(payloads[3].body) == (FIXTURES / "airport_2025-08_2026-08.xlsx").read_bytes()
     assert payloads[0].key == "dataestur/frontur/window=20250827_20260826/payload.json"
+    assert http.calls[4][1]["Autoridad portuaria"] == "BALEARES"
 
 
 def test_the_sheet_reader_keeps_types_and_empty_cells():
@@ -99,11 +101,23 @@ def test_one_value_per_month_starting_in_the_window():
     assert len(WINDOW.month_starts()) == 12
     # Hotel occupancy is one month later: no August 2026 yet, so the gaps rule reports it.
     assert max(months["hotel_guests"]) == date(2026, 7, 1)
-    assert len(observations) == 12 * 4 + 11 * 5  # airport, FRONTUR and EGATUR metrics; hotel metrics
+    assert len(observations) == 12 * 7 + 11 * 5  # airport, FRONTUR, EGATUR and port metrics; hotel metrics
     first = next(o for o in observations if o.metric == "airport_passengers")
     assert first.entity == "palma_airport"
     assert first.ts == datetime(2025, 8, 31, 22, tzinfo=UTC)  # 1 September 2025, local midnight (CEST)
     assert {o.quality for o in observations} == {Quality.OK}
+
+
+def test_cruise_passengers_and_calls_of_the_port_authority():
+    observations = _normalize()
+
+    # August 2026: 393,270 cruise passengers in 122 calls over the five ports, out of 1.6 M port passengers.
+    assert _value(observations, "cruise_passengers", date(2026, 8, 1)) == 393_270
+    assert _value(observations, "cruise_calls", date(2026, 8, 1)) == 122
+    assert _value(observations, "port_passengers", date(2026, 8, 1)) == 1_620_694
+    # February: hardly any cruise.
+    assert _value(observations, "cruise_calls", date(2026, 2, 1)) == 4
+    assert {o.entity for o in observations if o.metric.startswith("cruise")} == {"apb"}
 
 
 def test_an_empty_sheet_is_an_error_not_an_empty_month():
@@ -115,3 +129,16 @@ def test_other_regions_are_rejected():
     connector = registry.load("dataestur", http=RecordedApi())
     with pytest.raises(ConnectorError, match="do not cover"):
         connector.extract(WINDOW, Region("ibiza", 38.8, 1.2, 39.2, 1.7))
+
+
+def test_backfills_skip_tables_that_had_not_started():
+    http = RecordedApi()
+    connector = registry.load("dataestur", http=http)
+
+    # 2011-07 to 2012-06: FRONTUR and EGATUR start in 2016, hotels in January 2012.
+    payloads = connector.extract(TimeWindow(date(2011, 7, 1), date(2012, 6, 30)), MALLORCA)
+
+    assert [p.dataset for p in payloads] == ["hotels", "airport", "cruises"]
+    assert http.calls[0][1]["desde (año)"] == "2012"
+    assert http.calls[0][1]["desde (mes)"] == "1"
+    assert http.calls[2][1]["desde (año)"] == "2011"
