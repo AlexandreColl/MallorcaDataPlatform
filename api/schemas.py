@@ -242,7 +242,7 @@ class ClimateMonth(BaseModel):
 
 
 class TourismMonth(BaseModel):
-    """Balearic tourism in one month (gold.fct_tourism_monthly, Dataestur)."""
+    """Balearic tourism in one month (gold.fct_tourism_monthly, Dataestur; cruises: the five APB ports together)."""
 
     month: date
     international_tourists: float | None
@@ -256,8 +256,13 @@ class TourismMonth(BaseModel):
     hotels_open: float | None
     hotel_staff: float | None
     airport_passengers: float | None
+    cruise_passengers: float | None = Field(description="Cruise passengers of the Balearic port authority")
+    cruise_calls: float | None
+    cruise_passengers_per_call: float | None
+    port_passengers: float | None = Field(description="All passengers of the port authority: ferries and cruises")
     international_tourists_yoy: float | None
     airport_passengers_yoy: float | None
+    cruise_passengers_yoy: float | None
 
 
 class ResourcesMonth(BaseModel):
@@ -269,6 +274,8 @@ class ResourcesMonth(BaseModel):
     tourists_anomaly: float | None
     international_spending_eur: float | None
     airport_passengers: float | None
+    cruise_passengers: float | None
+    cruise_passengers_anomaly: float | None
     hotel_bed_occupancy_pct: float | None
     electricity_demand_gwh: float | None
     electricity_demand_anomaly: float | None

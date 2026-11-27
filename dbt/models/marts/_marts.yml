@@ -716,7 +716,8 @@ models:
   - name: fct_tourism_monthly
     description: >-
       Balearic tourism per month (Dataestur): international tourists and spending (FRONTUR, EGATUR), hotel
-      occupancy (EOH), Palma airport passengers (AENA) and the change against the same month a year earlier.
+      occupancy (EOH), Palma airport passengers (AENA), cruise passengers and calls of the Balearic port authority
+      (Puertos del Estado, the five ports together) and the change against the same month a year earlier.
     config:
       contract: {enforced: true}
     constraints:
@@ -741,8 +742,13 @@ models:
       - {name: hotels_open, data_type: double precision}
       - {name: hotel_staff, data_type: double precision}
       - {name: airport_passengers, data_type: double precision}
+      - {name: cruise_passengers, data_type: double precision, description: "Cruise passengers of the five ports of the Balearic port authority, base and transit together."}
+      - {name: cruise_calls, data_type: double precision, description: Cruise ship calls.}
+      - {name: cruise_passengers_per_call, data_type: "numeric(8,0)"}
+      - {name: port_passengers, data_type: double precision, description: "All passengers of the port authority: ferries and cruises."}
       - {name: international_tourists_yoy, data_type: "numeric(8,4)", description: Change against the same month a year earlier (0.05 = +5 %).}
       - {name: airport_passengers_yoy, data_type: "numeric(8,4)"}
+      - {name: cruise_passengers_yoy, data_type: "numeric(8,4)"}
 
   - name: fct_tourist_dwellings
     description: >-
@@ -840,7 +846,7 @@ models:
 
   - name: fct_resources_monthly
     description: >-
-      One row per month with tourism (Dataestur), groundwater reserves, rainfall and temperature (AEMET) and
+      One row per month with tourism (Dataestur, cruise passengers included), groundwater reserves, rainfall and temperature (AEMET) and
       electricity demand (REData), each with its anomaly against the same calendar month, because every series is
       seasonal. Feeds the "Turismo y recursos" and "Clima y agua" dashboards.
     config:
@@ -855,6 +861,8 @@ models:
       - {name: tourists_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month (0.1 = 10 % more).}
       - {name: international_spending_eur, data_type: double precision}
       - {name: airport_passengers, data_type: double precision}
+      - {name: cruise_passengers, data_type: double precision}
+      - {name: cruise_passengers_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month.}
       - {name: hotel_bed_occupancy_pct, data_type: double precision}
       - {name: electricity_demand_gwh, data_type: "numeric(8,1)", description: Balearic demand; null for months with less than 90 % of their hours.}
       - {name: electricity_demand_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month.}
@@ -1181,6 +1189,24 @@ unit_tests:
         - {month: "2025-08-01", spending_per_tourist_eur: 1500.00, international_tourists_yoy: null}
         - {month: "2026-07-01", spending_per_tourist_eur: null, international_tourists_yoy: null}
         - {month: "2026-08-01", spending_per_tourist_eur: 1600.00, international_tourists_yoy: 0.0400}
+
+  - name: cruise_passengers_per_call_and_change
+    description: Passengers per call over the month's calls; a month without calls (2020) gives no ratio instead of a division by zero.
+    model: fct_tourism_monthly
+    given:
+      - input: ref('stg_dataestur__observations')
+        rows:
+          - {metric: cruise_passengers, local_date: "2020-08-01", value: 0, is_missing: false}
+          - {metric: cruise_calls, local_date: "2020-08-01", value: 0, is_missing: false}
+          - {metric: cruise_passengers, local_date: "2025-08-01", value: 366224, is_missing: false}
+          - {metric: cruise_calls, local_date: "2025-08-01", value: 96, is_missing: false}
+          - {metric: cruise_passengers, local_date: "2026-08-01", value: 393270, is_missing: false}
+          - {metric: cruise_calls, local_date: "2026-08-01", value: 122, is_missing: false}
+    expect:
+      rows:
+        - {month: "2020-08-01", cruise_passengers_per_call: null, cruise_passengers_yoy: null}
+        - {month: "2025-08-01", cruise_passengers_per_call: 3815, cruise_passengers_yoy: null}
+        - {month: "2026-08-01", cruise_passengers_per_call: 3224, cruise_passengers_yoy: 0.0739}
 
   - name: water_reserve_anomaly_is_against_the_same_calendar_month
     description: February is compared with other Februaries only; the hydrological year starts in September.

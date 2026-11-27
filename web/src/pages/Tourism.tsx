@@ -13,12 +13,14 @@ import { buildKpi, type Kpi, RESOURCE_SPECS, TOURISM_SPECS } from "../lib/kpis";
 import { deseasonalize, movingAverage, pearson } from "../lib/stats";
 
 const SINCE = "2016-01-01";
-const KPI_COLORS = ["#d97706", "#2563eb", "#db2777", "#7c3aed"];
+const KPI_COLORS = ["#d97706", "#2563eb", "#0d9488", "#db2777", "#7c3aed"];
 const TOURISTS = "#d97706";
 const WATER = "#0891b2";
 const ELECTRICITY = "#7c3aed";
 const HOTELS = "#db2777";
 const SPENDING = "#15803d";
+const CRUISES = "#0d9488";
+const AIRPORT = "#2563eb";
 
 const months = (rows: { month: string }[]) => rows.map((r) => monthShort(r.month));
 
@@ -84,9 +86,9 @@ export function Tourism() {
     const t = ready(tourism);
     const r = ready(resources);
     if (!t || !r) return null;
-    const [tourists, airport, occupancy] = TOURISM_SPECS.map((spec) => buildKpi(spec, t));
+    const [tourists, airport, cruise, occupancy] = TOURISM_SPECS.map((spec) => buildKpi(spec, t));
     const electricity = buildKpi(RESOURCE_SPECS.find((s) => s.id === "electricity")!, r);
-    return [tourists, airport, occupancy, electricity].filter((k): k is Kpi => k !== null);
+    return [tourists, airport, cruise, occupancy, electricity].filter((k): k is Kpi => k !== null);
   }, [tourism, resources]);
 
   const r = useMemo(() => {
@@ -131,6 +133,18 @@ export function Tourism() {
                 label={m.touristsElectricityChart}
                 left={{ name: m.tourists, values: rows.map((x) => x.international_tourists), color: TOURISTS, format: compact, bars: true }}
                 right={{ name: m.demandGwh, values: rows.map((x) => x.electricity_demand_gwh), color: ELECTRICITY, format: (v) => `${number(v)} GWh` }}
+              />
+            )}
+          </Async>
+        </Panel>
+        <Panel title={m.cruisesTitle} subtitle={m.cruisesSubtitle} full>
+          <Async state={tourism} height={320}>
+            {(rows) => (
+              <PairChart
+                rows={rows}
+                label={m.cruisesChart}
+                left={{ name: m.cruisePassengers, values: rows.map((x) => x.cruise_passengers), color: CRUISES, format: compact, bars: true }}
+                right={{ name: m.airportPassengers, values: rows.map((x) => x.airport_passengers), color: AIRPORT, format: compact }}
               />
             )}
           </Async>

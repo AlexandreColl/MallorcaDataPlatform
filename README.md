@@ -119,7 +119,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 | [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Valores diarios oficiales de 33 estaciones de AEMET en Mallorca (temperatura, lluvia, humedad, viento, sol, presión) | Sí |
 | [ctm](connectors/ctm/README.md) | ✅ | Autobuses TIB, tren SFM y metro programados por parada y día en toda la isla (763 paradas, GTFS estático) | No |
 | [bicipalma](connectors/bicipalma/README.md) | ✅ | Bicis libres (y eléctricas), anclajes y ocupación de las 106 estaciones de BiciPalma, hora a hora, desde el GBFS del operador sondeado cada 5 minutos | No |
-| [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera y pasajeros del aeropuerto de Palma | No |
+| [dataestur](connectors/dataestur/README.md) | ✅ | Turismo mensual de Baleares: turistas internacionales y gasto, ocupación hotelera, pasajeros del aeropuerto de Palma y cruceristas de los puertos de la APB | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Reservas de agua subterránea de Mallorca por acuífero y de la isla, mensuales (10 años de la isla) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ histórico | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 11 estaciones oficiales de Mallorca, de 2002 a junio de 2021 (catálogo del Govern). Solo con `make backfill` | No |
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | NO₂, O₃, PM10, PM2.5, SO₂ y CO horarios de 9 estaciones oficiales de Mallorca (red del Govern, vía la EEA), verificados desde 2013 | No |
@@ -356,6 +356,16 @@ como error. Es la primera fuente mensual: el núcleo gana `frequency: 1mo` (huec
 `min_days`, para que la ejecución diaria relea siempre el último año y recoja las revisiones. En gold,
 `fct_tourism_monthly` con el gasto por turista y la variación interanual; en Grafana, un panel con los últimos tres
 años. Prueba real: diez años en un minuto; agosto de 2026, 2,6 M turistas (+2,6 %) y 4,8 M pasajeros en Palma.
+
+Los **cruceristas** salen de la misma API: el tráfico portuario de Puertos del Estado (`PUERTOS_DL`) para la
+Autoritat Portuària de Balears, mensual desde 2005, con pasajeros de crucero, escalas y pasajeros totales. Es la
+suma de sus cinco puertos (Palma es unos dos tercios), sin separar base y tránsito. La propia APB publica más
+detalle, pero como una imagen PNG por puerto y mes; sus cifras coinciden con las de Dataestur. Son los pasajeros
+que declara cada escala, no un recuento independiente (según la prensa, a menudo salen de la capacidad del barco).
+Cada tabla empieza en un año distinto y `first_month` evita pedir meses que no existen (FRONTUR y EGATUR responden
+HTTP 500 antes de 2016). En gold, los cruceristas, sus escalas y su variación interanual en
+`fct_tourism_monthly`, y su anomalía frente al mismo mes en `fct_resources_monthly`; en la web y en Grafana, un
+panel de cruceristas frente al aeropuerto. Prueba real: agosto de 2026, 393.270 cruceristas (+7,4 %) en 122 escalas.
 
 Añadir una fuente: [docs/adding-a-connector.md](docs/adding-a-connector.md).
 

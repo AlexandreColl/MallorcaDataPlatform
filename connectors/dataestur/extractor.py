@@ -1,4 +1,4 @@
-"""Dataestur connector: monthly tourism tables of SEGITTUR's API (FRONTUR, EGATUR, hotel occupancy, AENA).
+"""Dataestur connector: monthly tourism tables of SEGITTUR's API (FRONTUR, EGATUR, hotel occupancy, AENA, ports).
 
 Every table is downloaded as an xlsx sheet for the months the window covers and stored untouched in bronze
 (base64, with its SHA-256). ``normalize`` reads the sheet with the standard library (an xlsx is a zip of XML
@@ -7,7 +7,9 @@ value per month: added up over the kept rows with ``sum_rows`` (one row per coun
 taken from the month's single row.
 
 A misspelt filter makes the API answer HTTP 200 with an empty sheet. The window always covers published months
-(``min_days``), so an empty sheet is reported as an error instead of being loaded as "no data".
+(``min_days``), so an empty sheet is reported as an error instead of being loaded as "no data". The tables start in
+different years (ports and AENA in 2005, hotels in 2012, FRONTUR and EGATUR in 2016, which answer HTTP 500 before):
+a dataset's ``first_month`` keeps backfills from asking a table for months it never had.
 """
 
 from __future__ import annotations
@@ -74,6 +76,8 @@ class DataesturConnector(BaseConnector):
     def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:
         """One request per dataset for the months from the window's start to its end.
 
+        A dataset whose ``first_month`` is after the window is skipped, and its request starts no earlier.
+
         Raises:
             ConnectorError: if the region is not covered by the Balearic statistics.
         """
@@ -83,10 +87,16 @@ class DataesturConnector(BaseConnector):
             raise ConnectorError(msg)
         payloads = []
         for dataset, spec in self.config.datasets.items():
+            start = window.start
+            if (first := spec.get("first_month")) is not None:
+                first_month = date.fromisoformat(str(first))
+                if window.end < first_month:
+                    continue
+                start = max(start, first_month)
             url = f"{options['base_url']}/{spec['path']}"
-            params = {
-                "desde (año)": str(window.start.year),
-                "desde (mes)": str(window.start.month),
+            params: dict[str, str | list[str]] = {
+                "desde (año)": str(start.year),
+                "desde (mes)": str(start.month),
                 "hasta (año)": str(window.end.year),
                 "hasta (mes)": str(window.end.month),
                 **{str(k): str(v) for k, v in (spec.get("filters") or {}).items()},

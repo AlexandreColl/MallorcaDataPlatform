@@ -106,6 +106,7 @@ export const en: Messages = {
     electricity: "Electricity demand",
     temperature: "Mean temperature",
     airport: "Airport passengers",
+    cruise: "Cruise passengers (Balearic ports)",
     occupancy: "Hotel occupancy",
     aquifers: "Aquifers below 30 %",
     ofAquifers: "of 18",
@@ -165,6 +166,9 @@ export const en: Messages = {
       population_men: "Population (men)",
       population_women: "Population (women)",
       airport_passengers: "Airport passengers",
+      cruise_passengers: "Cruise passengers",
+      cruise_calls: "Cruise calls",
+      port_passengers: "Port passengers",
       international_tourists: "International tourists",
       international_tourist_nights: "International tourist nights",
       international_tourist_spending: "International tourist spending",
@@ -349,6 +353,14 @@ export const en: Messages = {
     hotelsChart: "Hotel occupancy and spending per tourist, with their trend",
     occupancyPct: "Hotel occupancy (%)",
     spendingEur: "Spending per tourist (€)",
+    cruisesTitle: "Cruise passengers and the airport",
+    cruisesSubtitle:
+      "Cruise passengers of the five ports of the Balearic port authority (Palma is about two thirds), against " +
+      "those of Palma airport; dashed, the trend. Each port of call counts its passengers, and the figure is the " +
+      "one the port declares, not an independent count.",
+    cruisesChart: "Balearic cruise passengers and Palma airport passengers, with their trend",
+    cruisePassengers: "Cruise passengers",
+    airportPassengers: "Palma airport",
   },
   climate: {
     reserves: "Reserves",

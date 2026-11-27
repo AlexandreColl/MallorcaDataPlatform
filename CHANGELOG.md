@@ -7,6 +7,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Dataestur: the cruise passengers of the Balearic port authority (`cruises` dataset, Puertos del Estado's port
+  traffic `PUERTOS_DL`): monthly cruise passengers, cruise calls and all port passengers since January 2005, the
+  five ports together (Palma is about two thirds). The APB's own per-port statistics are only PNG images, and its
+  figures match these. A dataset's `first_month` keeps backfills from asking a table for months it never had
+  (FRONTUR and EGATUR answer HTTP 500 before 2016). In the catalogue in three languages.
+- dbt: cruise passengers, calls, passengers per call and the year-on-year change in `fct_tourism_monthly`, and the
+  cruise anomaly against the same month in `fct_resources_monthly`. API: the new columns in `GET /v1/tourism/monthly`
+  and `GET /v1/resources/monthly`. Web: a cruise passengers KPI and a *Cruise passengers and the airport* panel on
+  Tourism and resources. Grafana: the same panel and the cruise anomaly on the Tourism and resources dashboard.
+
 - Connector `noaa_oisst`: the satellite sea surface temperature of NOAA OISST v2.1 (0.25°, daily since 1981-09-01)
   at the OISST sea cells nearest to the 8 coastal points of Open-Meteo Marine, read from NOAA CoastWatch's ERDDAP
   without a key: one 3 × 5 cell box per window, the final product up to its last day (about 16 days late) and the

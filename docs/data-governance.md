@@ -49,7 +49,7 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 | AEMET (avisos) | AEMET | Reutilización con cita (nota legal) | Clave | 48 h | 90 % |
 | EMT Palma | EMT Palma | Sin licencia publicada en el repositorio | Abierto | 48 h | 90 % |
 | CTM | Consorci de Transports de Mallorca | CC BY 4.0 | Abierto | 48 h | 90 % |
-| Dataestur | Segittur | Reutilización con cita | Abierto | 100 días | 90 % |
+| Dataestur | Segittur (puertos: Puertos del Estado) | Reutilización con cita | Abierto | 100 días | 90 % |
 | Reservas hídricas | Govern de les Illes Balears | CC BY (política de datos abiertos del Govern) | Abierto | 100 días | 90 % |
 | Ibestat (presión humana) | Ibestat | Reutilización con cita | Abierto | 120 días | 90 % |
 | INE (padrón) | INE | CC BY 4.0 | Abierto | 2 años | 90 % |

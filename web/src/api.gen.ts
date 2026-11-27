@@ -373,6 +373,8 @@ export interface ResourcesMonth {
   tourists_anomaly: number | null;
   international_spending_eur: number | null;
   airport_passengers: number | null;
+  cruise_passengers: number | null;
+  cruise_passengers_anomaly: number | null;
   hotel_bed_occupancy_pct: number | null;
   electricity_demand_gwh: number | null;
   electricity_demand_anomaly: number | null;
@@ -544,7 +546,7 @@ export interface StopService {
   lines: number | null;
 }
 
-/** Balearic tourism in one month (gold.fct_tourism_monthly, Dataestur). */
+/** Balearic tourism in one month (gold.fct_tourism_monthly, Dataestur; cruises: the five APB ports together). */
 export interface TourismMonth {
   month: string;
   international_tourists: number | null;
@@ -558,8 +560,15 @@ export interface TourismMonth {
   hotels_open: number | null;
   hotel_staff: number | null;
   airport_passengers: number | null;
+  /** Cruise passengers of the Balearic port authority */
+  cruise_passengers: number | null;
+  cruise_calls: number | null;
+  cruise_passengers_per_call: number | null;
+  /** All passengers of the port authority: ferries and cruises */
+  port_passengers: number | null;
   international_tourists_yoy: number | null;
   airport_passengers_yoy: number | null;
+  cruise_passengers_yoy: number | null;
 }
 
 /** Tourist dwellings of a municipality of Mallorca in one reference month (gold.fct_tourist_dwellings, INE). */

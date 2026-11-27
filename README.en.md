@@ -122,7 +122,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [aemet](connectors/aemet/README.md) | ✅ v0.2.5 | Official daily values of AEMET's 33 stations in Mallorca (temperature, rain, humidity, wind, sunshine, pressure) | Yes |
 | [ctm](connectors/ctm/README.md) | ✅ | TIB buses, SFM train and metro scheduled per stop and day across the island (763 stops, static GTFS) | No |
 | [bicipalma](connectors/bicipalma/README.md) | ✅ | Free bikes (and e-bikes), docks and occupancy of the 106 BiciPalma stations, hour by hour, from the operator's GBFS feed polled every 5 minutes | No |
-| [dataestur](connectors/dataestur/README.md) | ✅ | Monthly Balearic tourism: international tourists and their spending, hotel occupancy and Palma airport passengers | No |
+| [dataestur](connectors/dataestur/README.md) | ✅ | Monthly Balearic tourism: international tourists and their spending, hotel occupancy, Palma airport passengers and cruise passengers of the Balearic ports | No |
 | [water_reserves](connectors/water_reserves/README.md) | ✅ | Groundwater reserves of Mallorca per aquifer and for the island, monthly (10 years for the island) | No |
 | [goib_air_quality](connectors/goib_air_quality/README.md) | ✅ history | Hourly NO₂, O₃, PM10, PM2.5, SO₂ and CO from 11 official stations in Mallorca, 2002 to June 2021 (the regional government's catalogue). Only with `make backfill` | No |
 | [eea_air_quality](connectors/eea_air_quality/README.md) | ✅ | Hourly NO₂, O₃, PM10, PM2.5, SO₂ and CO from 9 official stations in Mallorca (the regional network, through the EEA), verified since 2013 | No |
@@ -357,6 +357,17 @@ treated as an error. It is the first monthly source: the core gained `frequency:
 months) and `min_days`, so the daily run always re-reads the last year and picks up revisions. In gold,
 `fct_tourism_monthly` with the spending per tourist and the year-on-year change; in Grafana, a panel with the last
 three years. Real test: ten years in one minute; August 2026, 2.6 M tourists (+2.6 %) and 4.8 M passengers in Palma.
+
+**Cruise passengers** come from the same API: Puertos del Estado's port traffic (`PUERTOS_DL`) for the Balearic port
+authority (APB), monthly since 2005, with cruise passengers, cruise calls and all passengers. It adds up the five
+ports (Palma is about two thirds) and does not split home-port from transit passengers. The APB itself publishes
+more detail, but as one PNG image per port and month; its figures match Dataestur's. They are the passengers each
+call declares, not an independent count (the press says they often come from the ship's capacity). Each table starts
+in a different year, and `first_month` keeps backfills from asking for months that do not exist (FRONTUR and EGATUR
+answer HTTP 500 before 2016). In gold, cruise passengers, calls and their year-on-year change in
+`fct_tourism_monthly`, and their anomaly against the same month in `fct_resources_monthly`; on the web and in
+Grafana, a panel of cruise passengers against the airport. Real test: August 2026, 393,270 cruise passengers (+7.4 %)
+in 122 calls.
 
 Adding a source (in Spanish): [docs/adding-a-connector.md](docs/adding-a-connector.md).
 

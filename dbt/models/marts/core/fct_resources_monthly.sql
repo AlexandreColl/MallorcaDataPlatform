@@ -1,6 +1,6 @@
--- One row per month with everything that moves the island's resources: tourism (Dataestur), groundwater reserves,
--- rainfall and temperature (AEMET) and electricity demand (REData). Feeds the "Turismo y recursos" and
--- "Clima y agua" dashboards.
+-- One row per month with everything that moves the island's resources: tourism (Dataestur, cruise passengers
+-- included), groundwater reserves, rainfall and temperature (AEMET) and electricity demand (REData). Feeds the
+-- "Turismo y recursos" and "Clima y agua" dashboards.
 --
 -- Every series is seasonal (summer brings the tourists, the heat, the demand peak and the lowest reserves), so
 -- comparing raw months mostly shows the calendar. Each series also gets its anomaly against the mean of the same
@@ -32,6 +32,7 @@ joined as (
         t.international_tourists,
         t.international_spending_eur,
         t.airport_passengers,
+        t.cruise_passengers,
         t.hotel_bed_occupancy_pct,
         w.reserves_pct,
         w.change_1m_pts as reserves_change_1m_pts,
@@ -57,6 +58,7 @@ climatology as (
     select
         *,
         avg(international_tourists) over (partition by extract(month from month)) as tourists_same_month_mean,
+        avg(cruise_passengers) over (partition by extract(month from month)) as cruise_same_month_mean,
         avg(electricity_demand_gwh) over (partition by extract(month from month)) as demand_same_month_mean
     from joined
 )
@@ -70,6 +72,9 @@ select
         as tourists_anomaly,
     international_spending_eur,
     airport_passengers,
+    cruise_passengers,
+    round((cruise_passengers / nullif(cruise_same_month_mean, 0) - 1)::numeric, 3)::numeric(8, 3)
+        as cruise_passengers_anomaly,
     hotel_bed_occupancy_pct,
     round(electricity_demand_gwh::numeric, 1)::numeric(8, 1) as electricity_demand_gwh,
     round((electricity_demand_gwh / nullif(demand_same_month_mean, 0) - 1)::numeric, 3)::numeric(8, 3)

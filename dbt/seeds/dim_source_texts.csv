@@ -15,8 +15,8 @@ aemet,ca,AEMET (estacions oficials),"Valors diaris de 33 estacions oficials d’
 aemet,en,AEMET (official stations),"Daily values from 33 official AEMET stations in Mallorca: temperature, rain, humidity, wind, sunshine and pressure",Reuse with citation (AEMET legal notice; Law 37/2007)
 ctm,ca,CTM (bus i tren interurbans),"Servei programat per parada dels autobusos TIB, el tren SFM i el metro a tota l’illa (GTFS)",CC BY 4.0
 ctm,en,CTM (intercity bus and train),"Scheduled service per stop of the TIB buses, the SFM train and the metro across the island (GTFS)",CC BY 4.0
-dataestur,ca,Dataestur (turisme),"Turistes internacionals, despesa, ocupació hotelera de les Balears i passatgers de l’aeroport de Palma, mensuals",Reutilització amb citació (Llei 37/2007; sense llicència publicada)
-dataestur,en,Dataestur (tourism),"International tourists, spending, Balearic hotel occupancy and Palma airport passengers, monthly",Reuse with citation (Law 37/2007; no licence published)
+dataestur,ca,Dataestur (turisme),"Turistes internacionals, despesa, ocupació hotelera de les Balears, passatgers de l’aeroport de Palma i creueristes dels ports de l’APB, mensuals",Reutilització amb citació (Llei 37/2007; sense llicència publicada)
+dataestur,en,Dataestur (tourism),"International tourists, spending, Balearic hotel occupancy, Palma airport passengers and cruise passengers of the Balearic ports, monthly",Reuse with citation (Law 37/2007; no licence published)
 water_reserves,ca,Reserves hídriques (Govern),"Reserves d’aigua subterrània de Mallorca per aqüífer i del conjunt de l’illa, mensuals",CC BY (política de dades obertes del Govern)
 water_reserves,en,Water reserves (Govern),"Groundwater reserves of Mallorca by aquifer and for the whole island, monthly",CC BY (the Govern’s open data policy)
 goib_air_quality,ca,GOIB (històric de qualitat de l’aire),"Històric horari de NO2, O3, PM10, PM2.5, SO2 i CO d’11 estacions oficials de Mallorca, del 2002 al juny del 2021 (catàleg de dades obertes del Govern)",CC BY (política de dades obertes del Govern)

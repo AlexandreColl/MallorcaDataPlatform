@@ -108,6 +108,7 @@ export const ca: Messages = {
     electricity: "Demanda elèctrica",
     temperature: "Temperatura mitjana",
     airport: "Passatgers de l’aeroport",
+    cruise: "Creueristes (ports de les Balears)",
     occupancy: "Ocupació hotelera",
     aquifers: "Aqüífers per sota del 30 %",
     ofAquifers: "de 18",
@@ -167,6 +168,9 @@ export const ca: Messages = {
       population_men: "Població (homes)",
       population_women: "Població (dones)",
       airport_passengers: "Passatgers de l’aeroport",
+      cruise_passengers: "Creueristes",
+      cruise_calls: "Escales de creuers",
+      port_passengers: "Passatgers dels ports",
       international_tourists: "Turistes internacionals",
       international_tourist_nights: "Pernoctacions de turistes internacionals",
       international_tourist_spending: "Despesa de turistes internacionals",
@@ -353,6 +357,14 @@ export const ca: Messages = {
     hotelsChart: "Ocupació hotelera i despesa per turista, amb la seva tendència",
     occupancyPct: "Ocupació hotelera (%)",
     spendingEur: "Despesa per turista (€)",
+    cruisesTitle: "Creueristes i aeroport",
+    cruisesSubtitle:
+      "Passatgers de creuer dels cinc ports de l’Autoritat Portuària de Balears (Palma n’és uns dos terços), " +
+      "davant els de l’aeroport de Palma; en discontinu, la tendència. Cada port d’escala compta els seus " +
+      "passatgers, i la xifra és la que declara el port, no un recompte independent.",
+    cruisesChart: "Creueristes de les Balears i passatgers de l’aeroport de Palma, amb la seva tendència",
+    cruisePassengers: "Creueristes",
+    airportPassengers: "Aeroport de Palma",
   },
   climate: {
     reserves: "Reserves",

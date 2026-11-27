@@ -169,6 +169,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
     el percentil 90, y dos separadas por 2 días o menos son una sola, con el hueco dentro.
   - `tourism_change_is_against_the_same_month_a_year_earlier`: el interanual compara con el mismo mes del año
     anterior.
+  - `cruise_passengers_per_call_and_change`: cruceristas por escala e interanual de los cruceristas; un mes sin
+    escalas (2020) no da cociente, en lugar de dividir entre cero.
   - `tourist_dwellings_change_is_against_the_previous_count`: el cambio de las viviendas
     turísticas es frente al recuento anterior, esté a la distancia que esté, y un recuento sin su padrón publicado
     usa el último padrón anterior.
