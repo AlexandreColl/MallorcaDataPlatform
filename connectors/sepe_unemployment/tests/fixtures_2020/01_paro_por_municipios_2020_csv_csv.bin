@@ -1,0 +1,57 @@
+;;;;PARO REGISTRADO POR MUNICIPIOS DESGLOSADO POR SEXO, TRAMOS DE EDAD Y SECTOR DE LA ACTIVIDAD ECONÓMICA;;;;;;;;;;;;;;;
+Código mes ;mes;Código de CA;Comunidad Autónoma;Codigo Provincia;Provincia;Codigo Municipio; Municipio;total Paro Registrado;Paro hombre edad < 25;Paro hombre edad 25 -45 ;Paro hombre edad >=45;Paro mujer edad < 25;Paro mujer edad 25 -45 ;Paro mujer edad >=45;Paro Agricultura;Paro Industria;Paro Construcción;Paro Servicios;Paro Sin empleo Anterior
+202001;Enero de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;2658;208;537;447;191;671;604;13;72;123;2356;94
+202001;Enero de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202001;Enero de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1674;102;318;297;95;451;411;15;77;150;1376;56
+202001;Enero de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;24548;1530;4853;4751;1361;6237;5816;216;952;2274;19730;1376
+202001;Enero de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;831;69;170;120;79;226;167;4;19;41;752;15
+202002;Febrero de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;2376;141;461;435;149;619;571;11;70;127;2079;89
+202002;Febrero de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202002;Febrero de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1609;93;281;301;94;431;409;9;72;147;1318;63
+202002;Febrero de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;23573;1297;4589;4603;1231;6027;5826;220;898;2187;18921;1347
+202002;Febrero de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;747;56;145;106;61;209;170;3;17;43;669;15
+202003;Marzo de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;2698;176;560;497;175;682;608;17;78;156;2344;103
+202003;Marzo de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202003;Marzo de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1775;116;327;324;114;479;415;15;77;182;1427;74
+202003;Marzo de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;25607;1459;5154;4970;1369;6616;6039;228;945;2475;20529;1430
+202003;Marzo de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;767;57;155;112;66;216;161;2;20;53;677;15
+202004;Abril de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;2948;204;613;521;203;758;649;21;94;192;2529;112
+202004;Abril de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202004;Abril de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1983;134;404;349;124;531;441;17;85;219;1584;78
+202004;Abril de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;29704;1790;6339;5707;1701;7690;6477;264;1182;3196;23514;1548
+202004;Abril de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;886;70;186;121;80;251;178;4;23;66;773;20
+202005;Mayo de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;3051;219;635;540;221;767;669;24;98;191;2618;120
+202005;Mayo de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202005;Mayo de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;2019;144;394;350;130;540;461;16;85;217;1621;80
+202005;Mayo de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;30611;1956;6447;5817;1777;7939;6675;268;1176;3196;24258;1713
+202005;Mayo de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;892;70;188;130;79;246;179;5;21;72;772;22
+202006;Junio de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;3026;229;626;524;204;768;675;19;90;196;2572;149
+202006;Junio de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202006;Junio de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1968;138;368;344;132;516;470;19;91;222;1541;95
+202006;Junio de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;30611;1917;6365;5802;1733;7968;6826;295;1175;3119;24222;1800
+202006;Junio de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;889;72;184;142;69;235;187;5;22;74;763;25
+202007;Julio de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;2836;231;556;509;189;690;661;22;95;211;2345;163
+202007;Julio de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202007;Julio de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1852;122;321;359;127;472;451;14;86;248;1399;105
+202007;Julio de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;30608;2006;6154;5842;1789;7956;6861;300;1166;3295;23817;2030
+202007;Julio de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;836;74;166;139;69;209;179;5;23;84;695;29
+202008;Agosto de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;2916;237;586;526;196;699;672;21;102;229;2387;177
+202008;Agosto de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202008;Agosto de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;1903;116;341;395;118;478;455;17;86;307;1382;111
+202008;Agosto de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;31451;2070;6291;6085;1889;8124;6992;296;1193;3567;24166;2229
+202008;Agosto de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;860;73;181;146;68;214;178;6;29;84;710;31
+202009;Septiembre de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;3118;273;623;544;234;754;690;23;101;215;2572;207
+202009;Septiembre de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;2;0;0;1;0;1;0;0;0;0;2;0
+202009;Septiembre de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;2033;145;375;397;137;534;445;22;87;289;1511;124
+202009;Septiembre de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;32070;2242;6478;6143;2060;8139;7008;298;1211;3483;24714;2364
+202009;Septiembre de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;918;90;191;150;79;220;188;8;27;86;765;32
+202010;Octubre de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;3353;316;666;579;256;808;728;24;114;226;2763;226
+202010;Octubre de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;3;0;1;1;0;1;0;0;0;1;2;0
+202010;Octubre de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;2181;172;402;407;159;569;472;29;89;282;1659;122
+202010;Octubre de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;33100;2429;6649;6218;2189;8470;7145;329;1228;3440;25581;2522
+202010;Octubre de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;1048;93;228;171;86;250;220;6;26;93;889;34
+202011;Noviembre de 2020;4;Balears, Illes;7;Balears, Illes;07011;Calvià;3509;337;726;601;263;841;741;22;121;218;2902;246
+202011;Noviembre de 2020;4;Balears, Illes;7;Balears, Illes;07019;Escorca;3;0;1;1;0;1;0;0;0;1;2;0
+202011;Noviembre de 2020;4;Balears, Illes;7;Balears, Illes;07032;Maó;2249;171;423;414;165;596;480;33;84;278;1724;130
+202011;Noviembre de 2020;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;34525;2632;6938;6444;2384;8773;7354;341;1299;3586;26605;2694
+202011;Noviembre de 2020;4;Balears, Illes;7;Balears, Illes;07042;Pollença;1095;101;241;169;91;267;226;8;30;87;932;38
