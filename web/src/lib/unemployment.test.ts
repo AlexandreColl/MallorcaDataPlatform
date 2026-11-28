@@ -38,7 +38,7 @@ describe("latestSeasonality", () => {
       { area: "mallorca", year: 2026, winter_summer_ratio: null },
     ] as UnemploymentSeasonality[];
 
-    expect(latestSeasonality(rows)).toBe("2025: 1,14");
+    expect(latestSeasonality(rows)).toBe("2025 (1,14)");
     expect(latestSeasonality([])).toBeNull();
   });
 });

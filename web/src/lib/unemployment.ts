@@ -30,10 +30,10 @@ export function unemploymentCorrelations(rows: ResourcesMonth[]) {
   };
 }
 
-/** The latest year with a winter/summer ratio, as "2025: 1,14". */
+/** The latest year with a winter/summer ratio, as "2025 (1,14)". */
 export function latestSeasonality(rows: UnemploymentSeasonality[]): string | null {
   const latest = rows.filter((r) => r.area === "mallorca" && r.winter_summer_ratio !== null).at(-1);
-  return latest ? `${latest.year}: ${number(latest.winter_summer_ratio as number, 2)}` : null;
+  return latest ? `${latest.year} (${number(latest.winter_summer_ratio as number, 2)})` : null;
 }
 
 /** The latest month of every municipality (the newest month of the answer), by INE code. */
