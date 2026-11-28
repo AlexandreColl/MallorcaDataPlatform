@@ -33,6 +33,11 @@ const answers = {
     { municipality: "07040", reference_month: "2025-11-01", tourist_dwellings: 1100, dwellings_per_1000_inhabitants: 2.5 },
     { municipality: "07040", reference_month: "2026-05-01", tourist_dwellings: 1023, dwellings_per_1000_inhabitants: 2.3 },
   ],
+  municipalUnemployment: [
+    { municipality: "07040", month: "2026-09-01", is_suppressed: false, unemployed: 12900, unemployed_per_1000_inhabitants: 29.3 },
+    { municipality: "07040", month: "2026-10-01", is_suppressed: false, unemployed: 13407, unemployed_per_1000_inhabitants: 30.8 },
+    { municipality: "07027", month: "2026-10-01", is_suppressed: true, unemployed: null, unemployed_per_1000_inhabitants: null },
+  ],
   humanPressure: [],
   bikeStations: [
     { station: "station_1", name: "01 PARC DE SES VELES", lat: 39.566, lon: 2.659, local_date: "2026-11-26", hours_observed: 24, bikes_available: 9.75, bikes_available_min: 4, bikes_available_max: 14, ebikes_available: 1.2, docks_available: 10.25, occupancy_pct: 48.8, working_docks: 20, hours_empty: 0, hours_full: 1, largest_hourly_swing: 5 },
@@ -82,6 +87,21 @@ describe("Mobility", () => {
     expect(within(table).getByText("Viv. turísticas por 1.000")).toBeTruthy();
     expect(await within(table).findByText("2,3")).toBeTruthy(); // Palma in May 2026, not November 2025
     expect(within(table).getAllByText("—").length).toBeGreaterThan(0); // Inca was not counted in the answer
+  });
+
+  it("gives each municipality its unemployment per 1,000 inhabitants of the latest month", async () => {
+    render(<Mobility />);
+    const table = await panel("Municipios más poblados");
+
+    expect(within(table).getByText("Paro por 1.000")).toBeTruthy();
+    expect(await within(table).findByText("30,8")).toBeTruthy(); // Palma in October, not September
+  });
+
+  it("still draws the municipalities when the unemployment fails", async () => {
+    vi.spyOn(api, "municipalUnemployment").mockRejectedValue(new Error("503"));
+    render(<Mobility />);
+
+    expect(firstCells(await panel("Municipios más poblados"))).toEqual(["Palma", "Inca"]);
   });
 
   it("still draws the municipalities when the tourist dwellings fail", async () => {

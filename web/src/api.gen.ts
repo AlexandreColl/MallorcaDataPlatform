@@ -359,6 +359,33 @@ export interface ModelBias {
   last_day: string | null;
 }
 
+/** Registered unemployment of a municipality of Mallorca in one month (gold.fct_unemployment_monthly, SEPE). */
+export interface MunicipalUnemployment {
+  /** INE municipality code. */
+  municipality: string;
+  municipality_name: string | null;
+  month: string;
+  season: string | null;
+  /** The total was published as `<5` (1 to 4 people): `unemployed` is null. */
+  is_suppressed: boolean;
+  unemployed: number | null;
+  unemployed_men: number | null;
+  unemployed_women: number | null;
+  unemployed_under_25: number | null;
+  unemployed_45_plus: number | null;
+  unemployed_agriculture: number | null;
+  unemployed_industry: number | null;
+  unemployed_construction: number | null;
+  unemployed_services: number | null;
+  unemployed_no_previous_job: number | null;
+  /** Register the ratio uses (the latest up to the month). */
+  population_year: number | null;
+  population: number | null;
+  unemployed_per_1000_inhabitants: number | null;
+  unemployed_yoy: number | null;
+  unemployed_anomaly: number | null;
+}
+
 /** A municipality of Mallorca with its boundary (gold.dim_municipalities, IGN). */
 export interface Municipality {
   municipality: string;
@@ -461,6 +488,11 @@ export interface ResourcesMonth {
   temperature_mean_c: number | null;
   temperature_anomaly_c: number | null;
   hot_days: number | null;
+  /** People registered as unemployed (SEPE). */
+  unemployed: number | null;
+  unemployed_per_1000_inhabitants: number | null;
+  /** Against the mean of the same calendar month. */
+  unemployed_anomaly: number | null;
 }
 
 /** The path of a line as a GeoJSON MultiLineString of [lon, lat] points: one polyline per direction. */
@@ -682,6 +714,53 @@ export interface TransitRoute {
   /** Departures of the line that day. */
   trips: number | null;
   geometry: RouteGeometry;
+}
+
+/** Registered unemployment of Mallorca in one month (gold.fct_unemployment_island_monthly, SEPE). */
+export interface UnemploymentMonth {
+  month: string;
+  /** `summer` (June-September), `winter` (November-February). */
+  season: string | null;
+  municipalities: number;
+  /** Municipalities whose total was published as `<5`. */
+  suppressed_municipalities: number;
+  unemployed: number | null;
+  unemployed_men: number | null;
+  unemployed_women: number | null;
+  unemployed_under_25: number | null;
+  unemployed_45_plus: number | null;
+  unemployed_agriculture: number | null;
+  unemployed_industry: number | null;
+  unemployed_construction: number | null;
+  unemployed_services: number | null;
+  unemployed_no_previous_job: number | null;
+  /** Share of the unemployed whose last job was in services. */
+  services_share: number | null;
+  population: number | null;
+  unemployed_per_1000_inhabitants: number | null;
+  /** Against the same month a year earlier (0.01 = +1 %). */
+  unemployed_yoy: number | null;
+  same_month_mean: number | null;
+  /** Against the mean of the same calendar month. */
+  unemployed_anomaly: number | null;
+}
+
+/** Winter against summer unemployment in one year (gold.agg_unemployment_seasonality, SEPE). */
+export interface UnemploymentSeasonality {
+  /** `mallorca` or the INE code of a municipality. */
+  area: string;
+  area_name: string | null;
+  year: number;
+  summer_months: number;
+  winter_months: number;
+  /** Mean of June to September. */
+  summer_mean: number | null;
+  /** Mean of January, February, November and December. */
+  winter_mean: number | null;
+  lowest_month: number | null;
+  highest_month: number | null;
+  /** Winter mean over summer mean; null for incomplete years. */
+  winter_summer_ratio: number | null;
 }
 
 /** An AEMET warning zone of Mallorca with its polygon (gold.dim_warning_zones). */

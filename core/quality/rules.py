@@ -68,17 +68,25 @@ class DatasetRule(Rule, ABC):
 
 
 class NotNullRule(RowRule):
-    """Null values (reported, but the row is labelled ``missing`` rather than ``suspect``)."""
+    """Null values (reported, but the row is labelled ``missing`` rather than ``suspect``).
+
+    ``suppressed`` metrics publish their small values only as a mark (``<5``): their nulls are expected, so they
+    are not counted as failures (the row is still labelled ``missing``, because it has no value).
+    """
 
     name = "not_null"
 
-    def __init__(self, column: str = "value") -> None:
+    def __init__(self, column: str = "value", suppressed: frozenset[str] = frozenset()) -> None:
         self.column = column
         self.target = column
+        self.suppressed = suppressed
 
     def failed(self) -> Column:
-        """True when the column is null."""
-        return F.col(self.column).isNull()
+        """True when the column is null, outside the suppressed metrics."""
+        null = F.col(self.column).isNull()
+        if not self.suppressed:
+            return null
+        return null & ~F.col("metric").isin(sorted(self.suppressed))
 
 
 class SourceQcRule(RowRule):
@@ -136,25 +144,32 @@ class GapRule(DatasetRule):
     """Missing time steps per (source, entity, metric) for the expected frequency.
 
     ``metrics`` restricts the rule to the metrics sampled at ``frequency`` (a connector can
-    mix hourly and daily datasets); ``None`` checks every metric.
+    mix hourly and daily datasets); ``None`` checks every metric. In the ``suppressed`` metrics a row with a null
+    value is a step the source published as a mark (``<5``), so it counts as present; a step without a row does not.
     """
 
     name = "gaps"
 
-    def __init__(self, expected_steps: int, frequency: timedelta, metrics: frozenset[str] | None = None) -> None:
+    def __init__(
+        self,
+        expected_steps: int,
+        frequency: timedelta,
+        metrics: frozenset[str] | None = None,
+        suppressed: frozenset[str] = frozenset(),
+    ) -> None:
         self.expected_steps = expected_steps
         self.frequency = frequency
         self.metrics = metrics
+        self.suppressed = suppressed
 
     def evaluate(self, df: DataFrame) -> list[RuleResult]:
-        """One result per metric: expected steps vs. steps with a non-null value."""
+        """One result per metric: expected steps vs. steps with a non-null (or suppressed) value."""
         if self.metrics is not None:
             df = df.where(F.col("metric").isin(sorted(self.metrics)))
-        present = (
-            df.where(F.col("value").isNotNull())
-            .groupBy("source", "entity", "metric")
-            .agg(F.countDistinct("ts").alias("present"))
-        )
+        published = F.col("value").isNotNull()
+        if self.suppressed:
+            published = published | F.col("metric").isin(sorted(self.suppressed))
+        present = df.where(published).groupBy("source", "entity", "metric").agg(F.countDistinct("ts").alias("present"))
         series = df.select("source", "entity", "metric").distinct()
         per_series = series.join(present, ["source", "entity", "metric"], "left").fillna(0, subset=["present"])
         rows = (

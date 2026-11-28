@@ -67,11 +67,13 @@ flowchart LR
 | mobility | `fct_bike_stations_hourly` (contrato, incremental), `fct_bike_stations_daily` (contrato) | estación de BiciPalma y hora o día: bicis, eléctricas y anclajes libres (media, mínimo y máximo), ocupación y horas en que se vació o se llenó |
 | population | `fct_population_yearly` (contrato), `dim_municipalities` (seed) | municipio y año: padrón, densidad y cambio / municipio, con su límite |
 | population | `fct_human_pressure_daily` (contrato) | día: personas presentes en la isla frente a las empadronadas |
-| core | `fct_resources_monthly` (contrato) | mes: turismo, reservas, lluvia, temperatura y demanda eléctrica, cada una con su anomalía frente al mismo mes |
+| core | `fct_resources_monthly` (contrato) | mes: turismo, reservas, lluvia, temperatura, demanda eléctrica y paro registrado, cada una con su anomalía frente al mismo mes |
 | climate | `fct_climate_monthly` (contrato) | mes: lluvia y temperatura de las estaciones de AEMET, anomalía frente al mismo mes, días calurosos y lluvia acumulada del año hidrológico |
 | water | `fct_water_reserves_monthly` (contrato), `dim_aquifers` (seed) | mes: reservas de la isla, variación y anomalía frente al mismo mes de otros años, acuíferos bajo el 30 % |
 | tourism | `fct_tourism_monthly` (contrato) | mes: turistas internacionales, gasto, ocupación hotelera, pasajeros del aeropuerto e interanual |
 | tourism | `fct_tourist_dwellings` (contrato) | municipio y mes de referencia: viviendas turísticas, plazas, por habitante y cambio frente al recuento anterior |
+| labour | `fct_unemployment_monthly`, `fct_unemployment_island_monthly` (contrato) | municipio y mes / mes: paro registrado del SEPE por sexo y edad y por sector, por 1.000 habitantes, interanual y anomalía frente al mismo mes; los «<5» quedan nulos y marcados |
+| labour | `agg_unemployment_seasonality` (contrato) | zona (Mallorca o municipio) y año: paro medio de invierno (noviembre-febrero) frente al de verano (junio-septiembre) |
 | air_quality | `fct_air_quality_monthly` (contrato) | estación, contaminante y mes: media, máximo y cobertura del histórico de la GOIB (2002-2021) y de la EEA, con los meses representativos (≥ 75 % de horas) |
 | air_quality | `fct_air_quality_model_bias_daily` (contrato) | estación, contaminante y día: media de la estación oficial (EEA) junto al modelo CAMS y su diferencia |
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
@@ -153,6 +155,7 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
 - Población: `fct_population_yearly`, `fct_human_pressure_daily`.
 - Mensuales: `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly`.
 - Turismo por municipio: `fct_tourist_dwellings`.
+- Paro registrado: `fct_unemployment_monthly`, `fct_unemployment_island_monthly`, `agg_unemployment_seasonality`.
 - Calidad: `fct_anomaly_evaluations`.
 
 ## Tests
@@ -182,6 +185,9 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   - `tourist_dwellings_change_is_against_the_previous_count`: el cambio de las viviendas
     turísticas es frente al recuento anterior, esté a la distancia que esté, y un recuento sin su padrón publicado
     usa el último padrón anterior.
+  - `unemployment_seasonality_needs_whole_seasons`: el cociente invierno/verano del paro solo sale con los
+    cuatro meses de verano y al menos tres de invierno (el fichero de 2013 acaba en abril), y en un municipio
+    solo sin totales «<5» ese año.
   - `water_reserve_anomaly_is_against_the_same_calendar_month`: la anomalía de las reservas es frente al mismo mes
     de otros años.
   - `climate_month_needs_a_complete_station`: un mes solo cuenta con estaciones que informan casi todos sus días.

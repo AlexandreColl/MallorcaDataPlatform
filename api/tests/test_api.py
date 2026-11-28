@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from api import __version__
 from api.main import create_app
-from api.schemas import TourismMonth
+from api.schemas import MunicipalUnemployment, ResourcesMonth, TourismMonth, UnemploymentSeasonality
 from api.settings import Settings
 
 TS = datetime(2026, 10, 27, 10, tzinfo=UTC)
@@ -187,7 +187,14 @@ def test_monthly_marts_filter_by_month(db):
 
 
 @pytest.mark.parametrize(
-    "path", ["/v1/climate/monthly", "/v1/tourism/monthly", "/v1/resources/monthly", "/v1/sea/temperature/monthly"]
+    "path",
+    [
+        "/v1/climate/monthly",
+        "/v1/tourism/monthly",
+        "/v1/resources/monthly",
+        "/v1/sea/temperature/monthly",
+        "/v1/unemployment/monthly",
+    ],
 )
 def test_every_monthly_mart_answers(db, path):
     response = client(db).get(path)
@@ -249,7 +256,9 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/observations/export",
         "/v1/series", "/v1/series/daily",
         "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
-        "/v1/tourism/dwellings", "/v1/resources/monthly", "/v1/locations", "/v1/mobility/daily", "/v1/mobility/stops",
+        "/v1/tourism/dwellings", "/v1/resources/monthly", "/v1/unemployment/monthly",
+        "/v1/unemployment/municipalities", "/v1/unemployment/seasonality", "/v1/locations", "/v1/mobility/daily",
+        "/v1/mobility/stops",
         "/v1/mobility/routes", "/v1/mobility/bike-stations", "/v1/mobility/bikes/hourly",
         "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
@@ -291,6 +300,9 @@ def test_settings_from_environment():
         ("/v1/warnings/zones", "gold.dim_warning_zones"),
         ("/v1/population", "gold.fct_population_yearly"),
         ("/v1/tourism/dwellings", "gold.fct_tourist_dwellings"),
+        ("/v1/unemployment/monthly", "gold.fct_unemployment_island_monthly"),
+        ("/v1/unemployment/municipalities", "gold.fct_unemployment_monthly"),
+        ("/v1/unemployment/seasonality", "gold.agg_unemployment_seasonality"),
         ("/v1/population/pressure", "gold.fct_human_pressure_daily"),
         ("/v1/municipalities", "gold.dim_municipalities"),
         ("/v1/weather/episodes", "gold.fct_weather_episodes"),
@@ -395,6 +407,60 @@ def test_population_filters_by_year_and_municipalities_come_with_their_rings():
     assert api.get("/v1/population", params={"from": 2025, "to": 2015}).status_code == 422
     assert api.get("/v1/population", params={"from": 1990}).status_code == 422
     assert len(api.get("/v1/municipalities").json()[0]["polygon"]) == 2
+
+
+def test_municipal_unemployment_defaults_to_the_last_twelve_months():
+    escorca = dict.fromkeys(MunicipalUnemployment.model_fields) | {
+        "municipality": "07019",
+        "municipality_name": "Escorca",
+        "month": date(2026, 10, 1),
+        "is_suppressed": True,
+    }
+    db = FakeDatabase({"gold.fct_unemployment_monthly": [escorca]})
+    api = client(db)
+
+    body = api.get("/v1/unemployment/municipalities").json()
+
+    sql, params = db.calls[-1]
+    assert params == {"start": None, "end": None}
+    assert "interval '11 months'" in sql
+    assert body[0]["is_suppressed"] is True
+    assert body[0]["unemployed"] is None  # "<5" in the SEPE file: never stored as 5
+    api.get("/v1/unemployment/municipalities", params={"from": "2006-01-01", "to": "2006-12-01"})
+    assert db.calls[-1][1] == {"start": date(2006, 1, 1), "end": date(2006, 12, 1)}
+
+
+def test_unemployment_seasonality_filters_by_area():
+    mallorca = dict.fromkeys(UnemploymentSeasonality.model_fields) | {
+        "area": "mallorca",
+        "area_name": "Mallorca",
+        "year": 2025,
+        "summer_months": 4,
+        "winter_months": 4,
+        "winter_summer_ratio": 1.142,
+    }
+    db = FakeDatabase({"gold.agg_unemployment_seasonality": [mallorca]})
+    api = client(db)
+
+    assert api.get("/v1/unemployment/seasonality").json()[0]["winter_summer_ratio"] == 1.142
+    assert db.calls[-1][1] == {"area": None}
+    api.get("/v1/unemployment/seasonality", params={"area": "07042"})
+    assert db.calls[-1][1] == {"area": "07042"}
+    assert api.get("/v1/unemployment/seasonality", params={"area": "08019"}).status_code == 422
+
+
+def test_resources_months_carry_the_unemployment():
+    month = dict.fromkeys(ResourcesMonth.model_fields) | {
+        "month": date(2026, 8, 1),
+        "hydrological_year": 2026,
+        "unemployed": 21879,
+        "unemployed_anomaly": -0.437,
+    }
+    db = FakeDatabase({"gold.fct_resources_monthly": [month]})
+
+    body = client(db).get("/v1/resources/monthly").json()
+
+    assert (body[0]["unemployed"], body[0]["unemployed_anomaly"]) == (21879, -0.437)
 
 
 def test_tourist_dwellings_filter_by_reference_month():

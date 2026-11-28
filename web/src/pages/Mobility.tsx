@@ -134,6 +134,7 @@ export function Mobility() {
   const population = useLoad(() => api.population(FIRST_YEAR));
   const places = useLoad(api.municipalities);
   const dwellings = useLoad(api.touristDwellings);
+  const unemployment = useLoad(api.municipalUnemployment);
   const pressure = useLoad(() => api.humanPressure(daysAgo(3 * 366 + 120)));
   const routes = useLoad(api.routes);
   const bikeStations = useLoad(api.bikeStations);
@@ -149,9 +150,9 @@ export function Mobility() {
     const [m, p, s] = [ready(places), ready(population), ready(stops)];
     if (!m || !p || !s || p.length === 0) return null;
     const year = Math.max(...p.map((r) => r.year));
-    // The tourist dwellings are a layer more: the map does not wait for them, nor fails with them.
-    return { rows: municipalityRows(m, p, s, year, ready(dwellings) ?? []), year };
-  }, [places, population, stops, dwellings]);
+    // The tourist dwellings and the unemployment are layers more: the map does not wait for them, nor fails with them.
+    return { rows: municipalityRows(m, p, s, year, ready(dwellings) ?? [], ready(unemployment) ?? []), year };
+  }, [places, population, stops, dwellings, unemployment]);
   // The stops of both networks, and the BiciPalma stations once they are loaded (the map does not wait for them).
   const layers = useMemo(() => {
     const own = stops.status === "ready" ? stopLayers(stops.data) : [];
@@ -252,6 +253,14 @@ export function Mobility() {
                       label: m.dwellingsPerThousand,
                       value: (r) => {
                         const ratio = r.dwellings?.dwellings_per_1000_inhabitants;
+                        return ratio == null ? "—" : number(ratio, 1);
+                      },
+                      numeric: true,
+                    },
+                    {
+                      label: m.unemployedPerThousand,
+                      value: (r) => {
+                        const ratio = r.unemployment?.unemployed_per_1000_inhabitants;
                         return ratio == null ? "—" : number(ratio, 1);
                       },
                       numeric: true,

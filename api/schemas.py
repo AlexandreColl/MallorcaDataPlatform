@@ -288,6 +288,9 @@ class ResourcesMonth(BaseModel):
     temperature_mean_c: float | None
     temperature_anomaly_c: float | None
     hot_days: float | None
+    unemployed: int | None = Field(examples=[21480], description="People registered as unemployed (SEPE).")
+    unemployed_per_1000_inhabitants: float | None
+    unemployed_anomaly: float | None = Field(description="Against the mean of the same calendar month.")
 
 
 class MobilityDay(BaseModel):
@@ -457,6 +460,75 @@ class TouristDwellings(BaseModel):
     previous_month: date | None = Field(description="Reference month of the previous count.")
     dwellings_change: int | None = Field(description="Change against the previous count.")
     dwellings_change_pct: float | None = Field(description="Relative change (0.01 = +1 %).")
+
+
+class UnemploymentMonth(BaseModel):
+    """Registered unemployment of Mallorca in one month (gold.fct_unemployment_island_monthly, SEPE)."""
+
+    month: date
+    season: str | None = Field(
+        examples=["winter"], description="`summer` (June-September), `winter` (November-February)."
+    )
+    municipalities: int
+    suppressed_municipalities: int = Field(description="Municipalities whose total was published as `<5`.")
+    unemployed: int | None = Field(examples=[24876])
+    unemployed_men: int | None
+    unemployed_women: int | None
+    unemployed_under_25: int | None
+    unemployed_45_plus: int | None
+    unemployed_agriculture: int | None
+    unemployed_industry: int | None
+    unemployed_construction: int | None
+    unemployed_services: int | None
+    unemployed_no_previous_job: int | None
+    services_share: float | None = Field(description="Share of the unemployed whose last job was in services.")
+    population: int | None
+    unemployed_per_1000_inhabitants: float | None
+    unemployed_yoy: float | None = Field(description="Against the same month a year earlier (0.01 = +1 %).")
+    same_month_mean: float | None
+    unemployed_anomaly: float | None = Field(description="Against the mean of the same calendar month.")
+
+
+class MunicipalUnemployment(BaseModel):
+    """Registered unemployment of a municipality of Mallorca in one month (gold.fct_unemployment_monthly, SEPE)."""
+
+    municipality: str = Field(examples=["07042"], description="INE municipality code.")
+    municipality_name: str | None = Field(examples=["Pollença"])
+    month: date
+    season: str | None
+    is_suppressed: bool = Field(description="The total was published as `<5` (1 to 4 people): `unemployed` is null.")
+    unemployed: int | None = Field(examples=[275])
+    unemployed_men: int | None
+    unemployed_women: int | None
+    unemployed_under_25: int | None
+    unemployed_45_plus: int | None
+    unemployed_agriculture: int | None
+    unemployed_industry: int | None
+    unemployed_construction: int | None
+    unemployed_services: int | None
+    unemployed_no_previous_job: int | None
+    population_year: int | None = Field(description="Register the ratio uses (the latest up to the month).")
+    population: int | None
+    unemployed_per_1000_inhabitants: float | None = Field(examples=[15.6])
+    unemployed_yoy: float | None
+    unemployed_anomaly: float | None
+
+
+class UnemploymentSeasonality(BaseModel):
+    """Winter against summer unemployment in one year (gold.agg_unemployment_seasonality, SEPE)."""
+
+    area: str = Field(examples=["mallorca"], description="`mallorca` or the INE code of a municipality.")
+    area_name: str | None
+    year: int
+    summer_months: int
+    winter_months: int
+    summer_mean: float | None = Field(description="Mean of June to September.")
+    winter_mean: float | None = Field(description="Mean of January, February, November and December.")
+    lowest_month: int | None
+    highest_month: int | None
+    winter_summer_ratio: float | None = Field(
+        examples=[1.6], description="Winter mean over summer mean; null for incomplete years."
+    )
 
 
 class HumanPressureDay(BaseModel):

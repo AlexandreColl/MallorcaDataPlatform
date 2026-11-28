@@ -47,6 +47,8 @@ sources:
       - {name: ine_population, identifier: observations, freshness: {warn_after: {count: 400, period: day}, error_after: {count: 730, period: day}, filter: "source = 'ine_population'"}}
       # Two counts a year, each published some six months after its reference month: every run re-reads three years.
       - {name: ine_tourist_housing, identifier: observations, freshness: {warn_after: {count: 240, period: day}, error_after: {count: 400, period: day}, filter: "source = 'ine_tourist_housing'"}}
+      # A month is added to SEPE's yearly file 11-18 days after it ends; the daily runs see it 50 days on.
+      - {name: sepe_unemployment, identifier: observations, freshness: {warn_after: {count: 100, period: day}, error_after: {count: 120, period: day}, filter: "source = 'sepe_unemployment'"}}
       # The IPH comes out once a month, about two months late, and its days only change when a month is added.
       - {name: ibestat_iph, identifier: observations, freshness: {warn_after: {count: 40, period: day}, error_after: {count: 120, period: day}, filter: "source = 'ibestat_iph'"}}
       - name: entities

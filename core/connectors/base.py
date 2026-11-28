@@ -106,6 +106,9 @@ class MetricSpec:
     unit: str
     min: float | None = None
     max: float | None = None
+    # The source publishes values below this threshold only as a mark (SEPE's "<5", for statistical secrecy). They
+    # are stored as null: the value exists but is not disclosed, so it is neither a missing value nor a gap.
+    suppressed_below: float | None = None
 
 
 @dataclass(frozen=True)
@@ -151,6 +154,7 @@ class ConnectorConfig:
                     unit=spec["unit"],
                     min=spec.get("min"),
                     max=spec.get("max"),
+                    suppressed_below=spec.get("suppressed_below"),
                 )
                 for name, spec in (data.get("metrics") or {}).items()
             }

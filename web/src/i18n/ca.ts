@@ -11,13 +11,13 @@ export const ca: Messages = {
       label: "Inici",
       title: "Mallorca en dades",
       description:
-        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Dinou fonts " +
+        "Aigua, clima, turisme i energia de l’illa, comparats amb el que és normal per a cada mes. Vint fonts " +
         "obertes, amb la qualitat comprovada a cada càrrega.",
     },
     tourism: {
       label: "Turisme i recursos",
       title: "Turisme i recursos",
-      description: "Quants turistes arriben cada mes i què passa alhora amb l’aigua i l’electricitat.",
+      description: "Quants turistes arriben cada mes i què passa alhora amb l’aigua, l’electricitat i l’atur.",
     },
     climate: {
       label: "Clima i aigua",
@@ -171,6 +171,7 @@ export const ca: Messages = {
       cruise_passengers: "Creueristes",
       cruise_calls: "Escales de creuers",
       port_passengers: "Passatgers dels ports",
+      unemployed: "Atur registrat",
       international_tourists: "Turistes internacionals",
       international_tourist_nights: "Pernoctacions de turistes internacionals",
       international_tourist_spending: "Despesa de turistes internacionals",
@@ -306,11 +307,13 @@ export const ca: Messages = {
       service: "Servei per habitant",
       growth: "Creixement en 10 anys",
       tourism: "Habitatges turístics",
+      unemployment: "Atur registrat",
       none: "Sense color",
     },
     densityTop: "≥ 500 hab./km²",
     serviceTop: "≥ 800 passos per 1.000 hab.",
     tourismTop: "≥ 100 habitatges turístics per 1.000 hab.",
+    unemploymentTop: "≥ 30 aturats per 1.000 hab.",
     colourBy: "Color dels municipis",
     placePopulation: (people: string, density: string) => `${people} hab. · ${density} hab./km²`,
     noGrowth: "Sense dada de fa 10 anys",
@@ -319,6 +322,10 @@ export const ca: Messages = {
     placeTourism: (dwellings: string, perThousand: string, month: string) =>
       `${dwellings} habitatges turístics a ${month} · ${perThousand} per 1.000 hab.`,
     noTourism: "Sense recompte d’habitatges turístics",
+    placeUnemployment: (people: string, perThousand: string, month: string) =>
+      `${people} en atur registrat a ${month} · ${perThousand} per 1.000 hab.`,
+    placeSuppressed: (month: string) => `Menys de 5 en atur registrat a ${month}`,
+    noUnemployment: "Sense dada d’atur registrat",
     trend: (from: number, to: number, rate: string) => `${from}–${to}: ${rate} %/any`,
     projection: (year: number) => `Projecció al ${year}`,
     restOfIsland: "Resta de l’illa",
@@ -365,6 +372,22 @@ export const ca: Messages = {
     cruisesChart: "Creueristes de les Balears i passatgers de l’aeroport de Palma, amb la seva tendència",
     cruisePassengers: "Creueristes",
     airportPassengers: "Aeroport de Palma",
+    touristsUnemployment: "Turistes i atur registrat",
+    airportUnemployment: "Aeroport i atur registrat",
+    cruisesUnemployment: "Creueristes i atur registrat",
+    unemploymentTitle: "Atur registrat i aeroport",
+    unemploymentSubtitle:
+      "Persones en atur registrat al SEPE als 53 municipis el darrer dia de cada mes, davant els passatgers de " +
+      "l’aeroport de Palma; en discontínua, la tendència. L’atur baixa quan obre la temporada.",
+    unemploymentChart: "Atur registrat a Mallorca i passatgers de l’aeroport de Palma, amb la seva tendència",
+    unemployed: "Atur registrat",
+    seasonalityTitle: "Atur d’hivern davant el d’estiu",
+    seasonalitySubtitle: (latest: string | null) =>
+      "Atur mitjà de novembre a febrer entre el de juny a setembre de cada any: 1,5 són un 50 % més d’aturats a " +
+      `l’hivern. Des de la reforma laboral de 2022 els fixos discontinus sense activitat no compten com a ` +
+      `aturats.${latest ? ` Darrer any complet: ${latest}.` : ""}`,
+    seasonalityChart: "Quocient entre l’atur d’hivern i el d’estiu a Mallorca, cada any",
+    winterSummer: "Hivern / estiu",
   },
   climate: {
     reserves: "Reserves",
@@ -424,6 +447,7 @@ export const ca: Messages = {
     tenYears: "10 anys",
     callsPerThousand: "Passos per 1.000",
     dwellingsPerThousand: "Hab. turístics per 1.000",
+    unemployedPerThousand: "Atur per 1.000",
     pressureTitle: "Població real present",
     dailyCallsTitle: "Passos programats per dia",
     dailyCallsSubtitle: "Suma dels vehicles que passen per cada parada, segons els horaris GTFS.",
@@ -574,6 +598,7 @@ export const ca: Messages = {
       tourism: "Turisme",
       water: "Aigua",
       population: "Població",
+      labour: "Treball",
     },
     meets: "Compleix",
     breaches: (oldData: boolean, failures: boolean) =>

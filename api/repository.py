@@ -21,6 +21,7 @@ MONTHLY_MARTS = {
     "tourism": "gold.fct_tourism_monthly",
     "resources": "gold.fct_resources_monthly",
     "sea_temperature": "gold.fct_sea_temperature_monthly",
+    "unemployment": "gold.fct_unemployment_island_monthly",
 }
 
 # The catalogue's texts (label, licence) come in the language asked for, from gold.dim_source_texts; Spanish, the
@@ -214,6 +215,30 @@ FROM gold.fct_tourist_dwellings
 WHERE (%(start)s::date IS NULL OR reference_month >= %(start)s)
   AND (%(end)s::date IS NULL OR reference_month <= %(end)s)
 ORDER BY reference_month, municipality
+"""
+
+# Registered unemployment of every municipality (SEPE). Without `from`, the last 12 months loaded: the whole
+# history is 53 municipalities x 20 years.
+_MUNICIPAL_UNEMPLOYMENT = """
+SELECT municipality, municipality_name, month, season, is_suppressed, unemployed, unemployed_men, unemployed_women,
+       unemployed_under_25, unemployed_45_plus, unemployed_agriculture, unemployed_industry, unemployed_construction,
+       unemployed_services, unemployed_no_previous_job, population_year, population, unemployed_per_1000_inhabitants,
+       unemployed_yoy, unemployed_anomaly
+FROM gold.fct_unemployment_monthly
+WHERE month >= coalesce(
+        %(start)s::date,
+        (SELECT max(month) - interval '11 months' FROM gold.fct_unemployment_monthly)::date)
+  AND (%(end)s::date IS NULL OR month <= %(end)s)
+ORDER BY month, municipality
+"""
+
+# Winter against summer unemployment per year, of the island and of each municipality.
+_UNEMPLOYMENT_SEASONALITY = """
+SELECT area, area_name, year, summer_months, winter_months, summer_mean, winter_mean, lowest_month, highest_month,
+       winter_summer_ratio
+FROM gold.agg_unemployment_seasonality
+WHERE %(area)s::text IS NULL OR area = %(area)s
+ORDER BY area = 'mallorca' DESC, area, year
 """
 
 # People present in Mallorca each day (Ibestat IPH) against its registered residents.
@@ -555,6 +580,14 @@ class Warehouse:
     def tourist_dwellings(self, start: date | None, end: date | None) -> list[Row]:
         """Tourist dwellings of every municipality per reference month in ``[start, end]``, oldest first."""
         return self.db.fetch_all(_TOURIST_DWELLINGS, {"start": start, "end": end})
+
+    def municipal_unemployment(self, start: date | None, end: date | None) -> list[Row]:
+        """Registered unemployment of every municipality per month in ``[start, end]`` (default: the last 12 months)."""
+        return self.db.fetch_all(_MUNICIPAL_UNEMPLOYMENT, {"start": start, "end": end})
+
+    def unemployment_seasonality(self, area: str | None) -> list[Row]:
+        """Winter against summer unemployment per year, of the island first, then of each municipality."""
+        return self.db.fetch_all(_UNEMPLOYMENT_SEASONALITY, {"area": area})
 
     def human_pressure(self, start: date, end: date) -> list[Row]:
         """People present in Mallorca per day in ``[start, end]``, oldest first."""

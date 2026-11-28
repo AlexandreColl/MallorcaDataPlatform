@@ -238,6 +238,9 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_earthquakes` | sismo, en su última revisión | Transacción (evento) | Tabla | — |
 | `fct_population_yearly` | municipio y año | Snapshot periódico: padrón a 1 de enero, densidad y cambio frente al padrón anterior | Tabla | ✅ |
 | `fct_tourist_dwellings` | municipio y mes de referencia | Snapshot periódico irregular: dos recuentos al año del INE, con el cambio frente al recuento anterior y el peso frente al padrón | Tabla | ✅ |
+| `fct_unemployment_monthly` | municipio y mes | Snapshot periódico: paro registrado del SEPE (último día hábil del mes) por sexo y edad y por sector, por 1.000 habitantes, interanual y anomalía frente al mismo mes | Tabla | ✅ |
+| `fct_unemployment_island_monthly` | mes | Snapshot periódico: la suma de los 53 municipios, con los totales «<5» contados aparte | Tabla | ✅ |
+| `agg_unemployment_seasonality` | zona (Mallorca o municipio) y año | Agregado: paro medio de invierno frente al de verano | Tabla | ✅ |
 | `fct_human_pressure_daily` | día | Snapshot periódico: personas presentes en la isla frente a las empadronadas | Tabla | ✅ |
 | `data_quality_summary`, `source_health` | regla / fuente | Estado actual | Tabla | — |
 | `fct_anomaly_evaluations` | ejecución del benchmark, fuente, detector y tipo de fallo | Transacción (evento): cada ejecución de `make evaluate`, con la más reciente de cada fuente marcada (`is_latest`) | Tabla | ✅ |

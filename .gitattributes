@@ -4,3 +4,5 @@
 *.jpg binary
 # Generated from the OpenAPI schema (make web-types): collapsed in diffs.
 web/src/api.gen.ts linguist-generated=true
+# Recorded responses are kept byte for byte (the SEPE files end their lines with CRLF).
+connectors/*/tests/fixtures/*.bin binary

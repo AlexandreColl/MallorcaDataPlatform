@@ -1251,6 +1251,193 @@
           "sort": "none"
         }
       }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Paro registrado y aeropuerto",
+      "description": "SEPE: personas en paro registrado el último día hábil de cada mes en los 53 municipios de Mallorca (línea), frente a los pasajeros del aeropuerto de Palma (AENA, barras, eje derecho). El paro baja cuando abre la temporada. Los totales municipales publicados como «<5» no suman (como mucho 4 personas cada uno).",
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 55
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT month::timestamptz AS time, unemployed AS \"Paro registrado\", airport_passengers AS \"Aeropuerto de Palma\", unemployed_anomaly AS \"Anomalía del paro\" FROM gold.fct_resources_monthly WHERE $__timeFilter(month::timestamptz) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Paro registrado"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#E11D48"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Aeropuerto de Palma"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 50
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Anomalía del paro"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "viz": true,
+                  "legend": false,
+                  "tooltip": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "barchart",
+      "title": "Paro de invierno frente al de verano",
+      "description": "Paro medio de noviembre a febrero entre el de junio a septiembre de cada año (gold.agg_unemployment_seasonality). 1,5 son un 50 % más de parados en invierno. Sin barra, los años incompletos (el fichero de 2013 acaba en abril, el de 2020 en noviembre; el año en curso). Desde la reforma laboral de 2022 los fijos discontinuos sin actividad no cuentan como parados.",
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 55
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT year::text AS \"Año\", winter_summer_ratio AS \"Invierno / verano\" FROM gold.agg_unemployment_seasonality WHERE area = 'mallorca' ORDER BY year"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E11D48"
+          },
+          "custom": {
+            "fillOpacity": 75,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "Año",
+        "orientation": "vertical",
+        "showValue": "never",
+        "xTickLabelRotation": -45,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
     }
   ]
 }

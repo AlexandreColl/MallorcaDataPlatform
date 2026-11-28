@@ -11,13 +11,14 @@ export const en: Messages = {
       label: "Home",
       title: "Mallorca in data",
       description:
-        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Nineteen " +
+        "Water, climate, tourism and energy on the island, compared with what is normal for each month. Twenty " +
         "open sources, with their quality checked on every load.",
     },
     tourism: {
       label: "Tourism and resources",
       title: "Tourism and resources",
-      description: "How many tourists arrive each month, and what happens to water and electricity at the same time.",
+      description:
+        "How many tourists arrive each month, and what happens to water, electricity and unemployment at the same time.",
     },
     climate: {
       label: "Climate and water",
@@ -169,6 +170,7 @@ export const en: Messages = {
       cruise_passengers: "Cruise passengers",
       cruise_calls: "Cruise calls",
       port_passengers: "Port passengers",
+      unemployed: "Registered unemployment",
       international_tourists: "International tourists",
       international_tourist_nights: "International tourist nights",
       international_tourist_spending: "International tourist spending",
@@ -304,11 +306,13 @@ export const en: Messages = {
       service: "Service per inhabitant",
       growth: "Growth in 10 years",
       tourism: "Tourist dwellings",
+      unemployment: "Unemployment",
       none: "No colour",
     },
     densityTop: "≥ 500 inh./km²",
     serviceTop: "≥ 800 stop calls per 1,000 inh.",
     tourismTop: "≥ 100 tourist dwellings per 1,000 inh.",
+    unemploymentTop: "≥ 30 unemployed per 1,000 inh.",
     colourBy: "Colour of the municipalities",
     placePopulation: (people: string, density: string) => `${people} inh. · ${density} inh./km²`,
     noGrowth: "No figure from 10 years ago",
@@ -317,6 +321,10 @@ export const en: Messages = {
     placeTourism: (dwellings: string, perThousand: string, month: string) =>
       `${dwellings} tourist dwellings in ${month} · ${perThousand} per 1,000 inh.`,
     noTourism: "No count of tourist dwellings",
+    placeUnemployment: (people: string, perThousand: string, month: string) =>
+      `${people} registered unemployed in ${month} · ${perThousand} per 1,000 inh.`,
+    placeSuppressed: (month: string) => `Fewer than 5 registered unemployed in ${month}`,
+    noUnemployment: "No unemployment figure",
     trend: (from: number, to: number, rate: string) => `${from}–${to}: ${rate} %/year`,
     projection: (year: number) => `Projection to ${year}`,
     restOfIsland: "Rest of the island",
@@ -361,6 +369,22 @@ export const en: Messages = {
     cruisesChart: "Balearic cruise passengers and Palma airport passengers, with their trend",
     cruisePassengers: "Cruise passengers",
     airportPassengers: "Palma airport",
+    touristsUnemployment: "Tourists and unemployment",
+    airportUnemployment: "Airport and unemployment",
+    cruisesUnemployment: "Cruise passengers and unemployment",
+    unemploymentTitle: "Registered unemployment and the airport",
+    unemploymentSubtitle:
+      "People registered as unemployed with SEPE in the 53 municipalities on the last day of each month, against " +
+      "Palma airport passengers; dashed, the trend. Unemployment falls when the season opens.",
+    unemploymentChart: "Registered unemployment in Mallorca and Palma airport passengers, with their trend",
+    unemployed: "Registered unemployment",
+    seasonalityTitle: "Winter against summer unemployment",
+    seasonalitySubtitle: (latest: string | null) =>
+      "Mean unemployment from November to February over that from June to September of each year: 1.5 is 50 % " +
+      `more unemployed in winter. Since the 2022 labour reform, seasonal permanent workers between seasons do not ` +
+      `count as unemployed.${latest ? ` Latest complete year: ${latest}.` : ""}`,
+    seasonalityChart: "Winter over summer unemployment in Mallorca, each year",
+    winterSummer: "Winter / summer",
   },
   climate: {
     reserves: "Reserves",
@@ -420,6 +444,7 @@ export const en: Messages = {
     tenYears: "10 years",
     callsPerThousand: "Calls per 1,000",
     dwellingsPerThousand: "Tourist dw. per 1,000",
+    unemployedPerThousand: "Unemployed per 1,000",
     pressureTitle: "People actually present",
     dailyCallsTitle: "Scheduled stop calls per day",
     dailyCallsSubtitle: "The sum of the vehicles that call at each stop, from the GTFS timetables.",
@@ -569,6 +594,7 @@ export const en: Messages = {
       tourism: "Tourism",
       water: "Water",
       population: "Population",
+      labour: "Labour",
     },
     meets: "Met",
     breaches: (oldData: boolean, failures: boolean) =>
