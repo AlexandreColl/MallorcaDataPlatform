@@ -81,14 +81,16 @@ exposures:
     maturity: high
     url: http://localhost:3000/d/mallorca-weather
     description: >
-      Day-to-day weather (stations and model, with the model bias and weather episodes), air quality, sea and
-      earthquakes, plus a metric explorer.
+      Day-to-day weather (stations and model, with the model bias and weather episodes), air quality with pollen
+      and Saharan dust episodes, sea and earthquakes, plus a metric explorer.
     owner:
       name: AlexandreColl
     depends_on:
       - ref('fct_observations')
       - ref('dim_sources')
       - ref('air_quality_hourly')
+      - ref('fct_pollen_dust_daily')
+      - ref('fct_dust_episodes')
       - ref('fct_sea_conditions_hourly')
       - ref('fct_model_bias_daily')
       - ref('fct_weather_episodes')
@@ -149,6 +151,9 @@ exposures:
       - ref('agg_model_bias_by_station')
       - ref('agg_wave_model_bias_by_buoy')
       - ref('air_quality_hourly')
+      - ref('fct_pollen_dust_daily')
+      - ref('fct_dust_episodes')
+      - ref('agg_dust_pm10_by_station')
       - ref('fct_sea_conditions_hourly')
       - ref('fct_earthquakes')
       - ref('data_quality_summary')
@@ -195,6 +200,8 @@ exposures:
       - ref('agg_model_bias_by_station')
       - ref('agg_wave_model_bias_by_buoy')
       - ref('air_quality_hourly')
+      - ref('fct_pollen_dust_daily')
+      - ref('fct_dust_episodes')
       - ref('fct_sea_conditions_hourly')
       - ref('fct_earthquakes')
       - ref('data_quality_summary')

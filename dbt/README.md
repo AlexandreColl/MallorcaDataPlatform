@@ -22,7 +22,7 @@ flowchart LR
         SC[stg_silver__corrections]
     end
     subgraph intermediate[intermediate · vistas]
-        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_buoy_wave_model_pairs<br/>int_weather_extremes__daily<br/>int_sea_temperature__daily]
+        IW[int_weather__daily<br/>int_station_model_pairs<br/>int_buoy_wave_model_pairs<br/>int_weather_extremes__daily<br/>int_sea_temperature__daily<br/>int_dust__daily]
     end
     subgraph marts[marts · gold]
         C[core: fct_observations · agg_daily_metrics<br/>dim_locations · dim_metrics · dim_date · dim_sources]
@@ -41,7 +41,7 @@ flowchart LR
 | Capa | Materialización | Esquema | Qué hace |
 |---|---|---|---|
 | `staging` | vista | `dbt_staging` | Un modelo por tabla de origen y conector: la misma proyección (macro `staging_observations`), día local y marcas de dato ausente o sospechoso. |
-| `intermediate` | vista | `dbt_intermediate` | Lógica que reutilizan varios marts. `int_weather__daily` pone en las mismas columnas el tiempo diario de AEMET (diario de origen), SOCIB y Open-Meteo (horarios agregados al día local). `int_station_model_pairs` e `int_buoy_wave_model_pairs` emparejan cada estación o boya con el punto del modelo más cercano, e `int_weather_extremes__daily` saca los extremos de cada día. `int_sea_temperature__daily` deja un valor de NOAA OISST por punto y día: el definitivo si ya se publicó, el provisional mientras tanto. |
+| `intermediate` | vista | `dbt_intermediate` | Lógica que reutilizan varios marts. `int_weather__daily` pone en las mismas columnas el tiempo diario de AEMET (diario de origen), SOCIB y Open-Meteo (horarios agregados al día local). `int_station_model_pairs` e `int_buoy_wave_model_pairs` emparejan cada estación o boya con el punto del modelo más cercano, e `int_weather_extremes__daily` saca los extremos de cada día. `int_sea_temperature__daily` deja un valor de NOAA OISST por punto y día: el definitivo si ya se publicó, el provisional mientras tanto. `int_dust__daily` resume el polvo sahariano de la isla por día (la media de los puntos del modelo) y marca los días de polvo. |
 | `marts` | tabla / incremental | `gold` | Lo que se consulta, por dominio. |
 
 ## Marts
@@ -75,6 +75,9 @@ flowchart LR
 | air_quality | `fct_air_quality_monthly` (contrato) | estación, contaminante y mes: media, máximo y cobertura del histórico de la GOIB (2002-2021) y de la EEA, con los meses representativos (≥ 75 % de horas) |
 | air_quality | `fct_air_quality_model_bias_daily` (contrato) | estación, contaminante y día: media de la estación oficial (EEA) junto al modelo CAMS y su diferencia |
 | air_quality | `air_quality_hourly` | localidad y hora, con la banda del índice europeo |
+| air_quality | `fct_pollen_dust_daily` (contrato) | punto del modelo y día: polen de olivo y gramíneas (media, máximo y nivel de la Red Española de Aerobiología), polvo sahariano y UV máximo de CAMS |
+| air_quality | `fct_dust_episodes` (contrato) | episodio de polvo sahariano: días seguidos con la media de polvo de la isla ≥ 25 µg/m³ (islas y huecos), con el PM10 de las estaciones de la EEA frente a los días sin polvo de alrededor y el sesgo del PM10 de CAMS |
+| air_quality | `agg_dust_pm10_by_station` (contrato) | estación de la EEA: PM10 los días con polvo y el resto, y el sesgo de CAMS en cada caso |
 | seismic | `fct_earthquakes` | sismo |
 | quality | `data_quality_summary`, `source_health` | regla / fuente |
 | quality | `fct_anomaly_evaluations` (contrato) | ejecución, fuente, detector y tipo de fallo del benchmark de anomalías (`make evaluate`): fallos inyectados, detectados y precisión, con la ejecución más reciente de cada fuente marcada |
@@ -143,7 +146,8 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   `agg_wave_model_bias_by_buoy`.
 - Temperatura del mar: `dim_sea_temperature_climatology`, `fct_marine_heatwaves`, `fct_sea_temperature_monthly`,
   `agg_sst_model_bias_by_point`.
-- Calidad del aire: `fct_air_quality_model_bias_daily`, `fct_air_quality_monthly`.
+- Calidad del aire: `fct_air_quality_model_bias_daily`, `fct_air_quality_monthly`, `fct_pollen_dust_daily`,
+  `fct_dust_episodes`, `agg_dust_pm10_by_station`.
 - Energía y movilidad: `fct_electricity_daily`, `fct_bus_network_daily`, `fct_island_transit_daily`,
   `fct_bike_stations_hourly`, `fct_bike_stations_daily`.
 - Población: `fct_population_yearly`, `fct_human_pressure_daily`.
@@ -165,6 +169,10 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   - `earthquake_distance_and_latest_revision`: distancia Haversine (1° de latitud = 111,2 km) y que un sismo
     revisado conserve solo su última versión.
   - `consecutive_episode_days_form_one_episode`: un día tranquilo separa dos episodios.
+  - `pollen_level_follows_the_rea_thresholds`: el nivel de polen es el de la media del día, no el de la hora punta,
+    con los umbrales de cada polen, y un valor sospechoso no cuenta.
+  - `dust_episode_pm10_excess_is_against_the_calm_days_around_it`: un día sin polvo separa dos episodios, y el PM10
+    extra de cada uno se mide frente a los días sin polvo de alrededor, nunca frente al otro episodio.
   - `marine_heatwave_needs_five_days_and_joins_short_gaps`: una ola de calor marina necesita 5 días seguidos sobre
     el percentil 90, y dos separadas por 2 días o menos son una sola, con el hueco dentro.
   - `tourism_change_is_against_the_same_month_a_year_earlier`: el interanual compara con el mismo mes del año

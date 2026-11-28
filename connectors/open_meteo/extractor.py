@@ -2,6 +2,10 @@
 
 A dataset may declare a ``history_url`` for the days its live API no longer serves (older than ``past_days``): the
 weather forecast API keeps 92 days, and the archive of the same forecasts goes back decades.
+
+Some metrics start later than their dataset (``available_since`` in the options: the air quality API has served dust
+only since 2018 and pollen since 2020). A window that ends before that day does not ask for them, and the hours
+before it, always null, are dropped rather than stored as missing values.
 """
 
 from __future__ import annotations
@@ -15,6 +19,8 @@ from core.models import Entity, Location, Observation, Quality, RawPayload, Regi
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
+
+    from core.connectors.base import MetricSpec
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +39,16 @@ class OpenMeteoConnector(BaseConnector):
             raise ConnectorError(msg)
         return region.locations
 
+    def available_since(self) -> dict[str, date]:
+        """First day of each metric that starts later than its dataset (``options.available_since``)."""
+        since = self.config.options.get("available_since") or {}
+        return {name: day if isinstance(day, date) else date.fromisoformat(str(day)) for name, day in since.items()}
+
+    def metrics_in(self, dataset: str, window: TimeWindow) -> list[MetricSpec]:
+        """The metrics of a dataset that exist on some day of the window."""
+        since = self.available_since()
+        return [m for m in self.config.metrics_for(dataset) if m.name not in since or since[m.name] <= window.end]
+
     @staticmethod
     def url_for(spec: Mapping[str, Any], window: TimeWindow, today: date | None = None) -> str:
         """The dataset's live URL, or its ``history_url`` when the window starts before the live API's ``past_days``."""
@@ -47,7 +63,7 @@ class OpenMeteoConnector(BaseConnector):
         locations = self.locations(region)
         payloads = []
         for dataset, spec in self.config.datasets.items():
-            metrics = [m.name for m in self.config.metrics_for(dataset)]
+            metrics = [m.name for m in self.metrics_in(dataset, window)]
             params = {
                 "latitude": ",".join(f"{loc.lat:.4f}" for loc in locations),
                 "longitude": ",".join(f"{loc.lon:.4f}" for loc in locations),
@@ -106,21 +122,27 @@ class OpenMeteoConnector(BaseConnector):
             raise ConnectorError(msg)
 
         by_name = {loc.name: loc for loc in self.locations(region)}
+        since = self.available_since()
+        requested = set(str(payload.request["params"]["hourly"]).split(","))
+        metrics = [m for m in self.config.metrics_for(payload.dataset) if m.name in requested]
         for loc_name, body in zip(names, bodies, strict=True):
             location = by_name[loc_name]
             hourly = body.get("hourly") or {}
-            times = hourly.get("time") or []
-            for metric in self.config.metrics_for(payload.dataset):
+            times = [datetime.fromisoformat(t).replace(tzinfo=UTC) for t in hourly.get("time") or []]
+            for metric in metrics:
                 values = hourly.get(metric.name)
                 if values is None:
                     log.warning("%s: metric %s missing for %s", self.name, metric.name, loc_name)
                     continue
-                for t, v in zip(times, values, strict=True):
+                first = since.get(metric.name)
+                for ts, v in zip(times, values, strict=True):
+                    if first is not None and ts.date() < first:
+                        continue  # the metric did not exist yet: no value, not a missing one
                     yield Observation(
                         source=self.name,
                         entity=location.name,
                         metric=metric.name,
-                        ts=datetime.fromisoformat(t).replace(tzinfo=UTC),
+                        ts=ts,
                         value=None if v is None else float(v),
                         unit=metric.unit,
                         quality=Quality.MISSING if v is None else Quality.OK,

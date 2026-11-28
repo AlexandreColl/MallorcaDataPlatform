@@ -294,6 +294,36 @@ WHERE h.end_date >= %(start)s AND h.start_date <= %(end)s
 ORDER BY h.start_date DESC, h.point
 """
 
+# Pollen, Saharan dust and UV per model point and local day (Open-Meteo CAMS).
+_POLLEN_DUST_DAILY = """
+SELECT p.point, l.name, p.local_date, p.olive_pollen_mean, p.olive_pollen_max, p.olive_pollen_level,
+       p.grass_pollen_mean, p.grass_pollen_max, p.grass_pollen_level, p.dust_mean_ugm3, p.dust_max_ugm3,
+       p.is_dust_over_threshold, p.uv_index_max
+FROM gold.fct_pollen_dust_daily AS p
+LEFT JOIN gold.dim_locations AS l ON l.source = 'open_meteo' AND l.entity = p.point
+WHERE p.local_date BETWEEN %(start)s AND %(end)s
+ORDER BY p.local_date, p.point
+"""
+
+# Saharan dust episodes that overlap a range of days, newest first, with the PM10 of the stations during them.
+_DUST_EPISODES = """
+SELECT e.episode_id, e.start_date, e.end_date, e.days, e.peak_day, e.peak_point, l.name AS peak_point_name,
+       e.peak_dust_ugm3, e.mean_dust_ugm3, e.max_hourly_dust_ugm3, e.stations, e.station_pm10_ugm3,
+       e.baseline_pm10_ugm3, e.pm10_excess_ugm3, e.model_pm10_ugm3, e.model_bias_ugm3
+FROM gold.fct_dust_episodes AS e
+LEFT JOIN gold.dim_locations AS l ON l.source = 'open_meteo' AND l.entity = e.peak_point
+WHERE e.end_date >= %(start)s AND e.start_date <= %(end)s
+ORDER BY e.start_date DESC
+"""
+
+_DUST_PM10 = """
+SELECT d.station, l.name, d.model_point, d.dust_days, d.other_days, d.pm10_dust_days_ugm3, d.pm10_other_days_ugm3,
+       d.pm10_excess_ugm3, d.model_bias_dust_days_ugm3, d.model_bias_other_days_ugm3, d.first_day, d.last_day
+FROM gold.agg_dust_pm10_by_station AS d
+LEFT JOIN gold.dim_locations AS l ON l.source = 'eea_air_quality' AND l.entity = d.station
+ORDER BY d.pm10_excess_ugm3 DESC NULLS LAST, d.station
+"""
+
 _EARTHQUAKES = """
 SELECT event_id, ts, lat, lon, magnitude, depth_km, distance_to_palma_km
 FROM gold.fct_earthquakes
@@ -561,6 +591,18 @@ class Warehouse:
     def marine_heatwaves(self, start: date, end: date) -> list[Row]:
         """Marine heatwaves of the coastal points that overlap ``[start, end]``, newest first."""
         return self.db.fetch_all(_MARINE_HEATWAVES, {"start": start, "end": end})
+
+    def pollen_dust_daily(self, start: date, end: date) -> list[Row]:
+        """Pollen, dust and UV of every model point per local day in ``[start, end]``."""
+        return self.db.fetch_all(_POLLEN_DUST_DAILY, {"start": start, "end": end})
+
+    def dust_episodes(self, start: date, end: date) -> list[Row]:
+        """Saharan dust episodes that overlap ``[start, end]``, newest first."""
+        return self.db.fetch_all(_DUST_EPISODES, {"start": start, "end": end})
+
+    def dust_pm10(self) -> list[Row]:
+        """PM10 of every official station on dust days and on the other days, largest excess first."""
+        return self.db.fetch_all(_DUST_PM10)
 
     def earthquakes(self, start: date, end: date) -> list[Row]:
         """Earthquakes located by the IGN in the range, newest first."""

@@ -1,6 +1,6 @@
 source,language,label,description,license
-open_meteo,ca,Open-Meteo (model),Qualitat de l’aire (CAMS) i meteorologia modelitzades en 6 localitats,CC BY 4.0
-open_meteo,en,Open-Meteo (model),Modelled air quality (CAMS) and weather at 6 places,CC BY 4.0
+open_meteo,ca,Open-Meteo (model),"Qualitat de l’aire (CAMS), amb pol·len, pols sahariana i UV, i meteorologia modelitzades en 6 localitats",CC BY 4.0
+open_meteo,en,Open-Meteo (model),"Modelled air quality (CAMS), with pollen, Saharan dust and UV, and weather at 6 places",CC BY 4.0
 socib,ca,SOCIB (estacions),"Observacions reals de 3 estacions meteorològiques i de la boia de la badia de Palma, i onatge d’aquesta boia i de la de Portocolom",Accés obert amb citació obligatòria (sense llicència CC publicada)
 socib,en,SOCIB (stations),"Real observations from 3 weather stations and the Bay of Palma buoy, and waves from that buoy and the Portocolom one","Open access, citation required (no CC licence published)"
 redata,ca,REData (electricitat),"Demanda, generació i emissions del sistema elèctric balear",Reutilització amb citació (Llei 37/2007; sense llicència publicada per a l’API)

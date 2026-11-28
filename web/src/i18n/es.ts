@@ -32,7 +32,7 @@ export const es = {
     weather: {
       label: "Tiempo y entorno",
       title: "Tiempo y entorno",
-      description: "Temperatura, calidad del aire, oleaje, episodios meteorológicos y sismos.",
+      description: "Temperatura, calidad del aire, polen, polvo sahariano, oleaje, episodios meteorológicos y sismos.",
     },
     explorer: {
       label: "Explorador",
@@ -485,6 +485,33 @@ export const es = {
     noBuoyHours: "Sin horas comparables todavía",
     buoy: "Boya",
     buoyModelMean: "Media boya / modelo",
+    pollenChart: "Polen de olivo y gramíneas, media diaria de la isla",
+    pollenTitle: "Polen de olivo y gramíneas",
+    pollenSubtitle:
+      "Media diaria de los puntos de la isla en granos/m³ en el último año (modelo CAMS). Las líneas discontinuas " +
+      "marcan dónde empieza el nivel moderado de la Red Española de Aerobiología: 51 para el olivo y 26 para las " +
+      "gramíneas.",
+    olive: "Olivo",
+    grass: "Gramíneas",
+    dustChart: "Polvo sahariano, media diaria de la isla",
+    dustTitle: "Polvo sahariano del último año",
+    dustSubtitle:
+      "Media diaria del polvo cerca del suelo en los puntos de la isla, en µg/m³ (modelo CAMS). Desde 25 µg/m³, " +
+      "la mitad del límite diario de PM10, el día cuenta como episodio.",
+    dustEpisodesTitle: "Episodios de polvo sahariano",
+    dustEpisodesSubtitle:
+      "Los de los últimos 3 años, del más reciente al más antiguo: el polvo del día más cargado y cuánto sube el " +
+      "PM10 de las estaciones oficiales frente a los días sin polvo de alrededor.",
+    noDustEpisodes: "Ningún episodio en los últimos 3 años",
+    days: "Días",
+    dust: "Polvo",
+    pm10Excess: "PM10 extra",
+    dustStationsTitle: "El polvo en las estaciones",
+    dustStationsSubtitle:
+      "PM10 medio de cada estación de la EEA en µg/m³ los días con polvo sahariano y el resto, y el sesgo del " +
+      "modelo CAMS, que rellena sus huecos, los días con polvo.",
+    withWithout: "Con / sin polvo",
+    camsBias: "Sesgo CAMS",
   },
   explorer: {
     mean: "Media",

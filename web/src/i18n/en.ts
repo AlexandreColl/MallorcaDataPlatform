@@ -34,7 +34,7 @@ export const en: Messages = {
     weather: {
       label: "Weather and environment",
       title: "Weather and environment",
-      description: "Temperature, air quality, waves, weather episodes and earthquakes.",
+      description: "Temperature, air quality, pollen, Saharan dust, waves, weather episodes and earthquakes.",
     },
     explorer: {
       label: "Explorer",
@@ -484,6 +484,32 @@ export const en: Messages = {
     noBuoyHours: "No comparable hours yet",
     buoy: "Buoy",
     buoyModelMean: "Mean buoy / model",
+    pollenChart: "Olive and grass pollen, daily mean of the island",
+    pollenTitle: "Olive and grass pollen",
+    pollenSubtitle:
+      "Daily mean of the island’s points in grains/m³ over the last year (CAMS model). The dashed lines mark where " +
+      "the moderate level of the Spanish Aerobiology Network starts: 51 for olive and 26 for grass.",
+    olive: "Olive",
+    grass: "Grass",
+    dustChart: "Saharan dust, daily mean of the island",
+    dustTitle: "Saharan dust in the last year",
+    dustSubtitle:
+      "Daily mean of the dust near the ground at the island’s points, in µg/m³ (CAMS model). From 25 µg/m³, half " +
+      "the daily PM10 limit, the day counts as an episode.",
+    dustEpisodesTitle: "Saharan dust episodes",
+    dustEpisodesSubtitle:
+      "Those of the last 3 years, newest first: the dust of the heaviest day and how much the PM10 of the official " +
+      "stations rises against the days without dust around it.",
+    noDustEpisodes: "No episode in the last 3 years",
+    days: "Days",
+    dust: "Dust",
+    pm10Excess: "Extra PM10",
+    dustStationsTitle: "Dust at the stations",
+    dustStationsSubtitle:
+      "Mean PM10 of each EEA station in µg/m³ on Saharan dust days and on the rest, and the bias of the CAMS model, " +
+      "which fills its gaps, on dust days.",
+    withWithout: "With / without dust",
+    camsBias: "CAMS bias",
   },
   explorer: {
     mean: "Mean",

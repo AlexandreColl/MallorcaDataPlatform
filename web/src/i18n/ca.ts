@@ -34,7 +34,7 @@ export const ca: Messages = {
     weather: {
       label: "Temps i entorn",
       title: "Temps i entorn",
-      description: "Temperatura, qualitat de l’aire, onatge, episodis meteorològics i sismes.",
+      description: "Temperatura, qualitat de l’aire, pol·len, pols sahariana, onatge, episodis meteorològics i sismes.",
     },
     explorer: {
       label: "Explorador",
@@ -488,6 +488,33 @@ export const ca: Messages = {
     noBuoyHours: "Encara no hi ha hores comparables",
     buoy: "Boia",
     buoyModelMean: "Mitjana boia / model",
+    pollenChart: "Pol·len d’olivera i gramínies, mitjana diària de l’illa",
+    pollenTitle: "Pol·len d’olivera i gramínies",
+    pollenSubtitle:
+      "Mitjana diària dels punts de l’illa en grans/m³ el darrer any (model CAMS). Les línies discontínues " +
+      "marquen on comença el nivell moderat de la Xarxa Espanyola d’Aerobiologia: 51 per a l’olivera i 26 per a " +
+      "les gramínies.",
+    olive: "Olivera",
+    grass: "Gramínies",
+    dustChart: "Pols sahariana, mitjana diària de l’illa",
+    dustTitle: "Pols sahariana del darrer any",
+    dustSubtitle:
+      "Mitjana diària de la pols prop del terra als punts de l’illa, en µg/m³ (model CAMS). A partir de 25 µg/m³, " +
+      "la meitat del límit diari de PM10, el dia compta com a episodi.",
+    dustEpisodesTitle: "Episodis de pols sahariana",
+    dustEpisodesSubtitle:
+      "Els dels darrers 3 anys, del més recent al més antic: la pols del dia més carregat i quant puja el PM10 de " +
+      "les estacions oficials respecte dels dies sense pols del voltant.",
+    noDustEpisodes: "Cap episodi els darrers 3 anys",
+    days: "Dies",
+    dust: "Pols",
+    pm10Excess: "PM10 de més",
+    dustStationsTitle: "La pols a les estacions",
+    dustStationsSubtitle:
+      "PM10 mitjà de cada estació de l’EEA en µg/m³ els dies amb pols sahariana i la resta, i el biaix del model " +
+      "CAMS, que n’omple els buits, els dies amb pols.",
+    withWithout: "Amb / sense pols",
+    camsBias: "Biaix CAMS",
   },
   explorer: {
     mean: "Mitjana",

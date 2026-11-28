@@ -1014,6 +1014,333 @@
       "timeFrom": "25y"
     },
     {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Polen de olivo y gramíneas (último año)",
+      "description": "dbt (fct_pollen_dust_daily): media diaria de los puntos de Open-Meteo (modelo CAMS) en granos/m³. Las líneas discontinuas marcan dónde empieza el nivel moderado de la Red Española de Aerobiología: 26 para las gramíneas y 51 para el olivo; el alto empieza en 51 y 201. Siempre el último año, sin depender del rango de tiempo.",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 51
+      },
+      "timeFrom": "1y",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT local_date::timestamptz AS time, avg(olive_pollen_mean) AS \"Olivo\", avg(grass_pollen_mean) AS \"Gramíneas\" FROM gold.fct_pollen_dust_daily WHERE $__timeFilter(local_date::timestamptz) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 26
+              },
+              {
+                "color": "orange",
+                "value": 51
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Olivo"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#d97706"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gramíneas"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#15803d"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Polvo sahariano y PM10 de las estaciones (último año)",
+      "description": "dbt (fct_pollen_dust_daily, fct_air_quality_model_bias_daily): media diaria del polvo cerca del suelo en los puntos de la isla (modelo CAMS) y del PM10 medido por las estaciones de la EEA, en µg/m³. Desde 25 µg/m³ de polvo, la mitad del límite diario de PM10, el día cuenta como episodio. Siempre el último año.",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 51
+      },
+      "timeFrom": "1y",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT local_date::timestamptz AS time, avg(dust_mean_ugm3) AS \"Polvo (CAMS)\" FROM gold.fct_pollen_dust_daily WHERE $__timeFilter(local_date::timestamptz) GROUP BY 1 ORDER BY 1"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT local_date::timestamptz AS time, avg(station_mean_ugm3) AS \"PM10 estaciones (EEA)\" FROM gold.fct_air_quality_model_bias_daily WHERE metric = 'pm10' AND $__timeFilter(local_date::timestamptz) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µg/m³",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Polvo (CAMS)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#d97706"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PM10 estaciones (EEA)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7c3aed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Episodios de polvo sahariano",
+      "description": "dbt (fct_dust_episodes): días seguidos con la media de polvo de la isla ≥ 25 µg/m³ (modelo CAMS). El PM10 de las estaciones de la EEA durante el episodio se compara, estación a estación, con el de los días sin polvo de los 15 días de alrededor; el sesgo es el del PM10 de CAMS, el que rellena los huecos de las estaciones. Los 20 más recientes, sin depender del rango de tiempo.",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT concat(to_char(start_date, 'DD/MM/YY'), CASE WHEN end_date > start_date THEN to_char(end_date, ' – DD/MM') END) AS \"Fechas\", days AS \"Días\", peak_dust_ugm3 AS \"Polvo máx. (µg/m³)\", coalesce(l.name, e.peak_point) AS \"Punto\", station_pm10_ugm3 AS \"PM10 en el episodio\", baseline_pm10_ugm3 AS \"PM10 sin polvo\", pm10_excess_ugm3 AS \"PM10 extra\", model_bias_ugm3 AS \"Sesgo CAMS\", stations AS \"Estaciones\" FROM gold.fct_dust_episodes e LEFT JOIN gold.dim_locations l ON l.source = 'open_meteo' AND l.entity = e.peak_point ORDER BY start_date DESC LIMIT 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "custom": {
+            "align": "auto",
+            "minWidth": 50
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Días"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Estaciones"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Polvo máx. (µg/m³)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#FADE2A",
+                      "value": null
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 50
+                    },
+                    {
+                      "color": "#C4162A",
+                      "value": 100
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
       "id": 11,
       "type": "table",
       "title": "Sismos",
@@ -1022,7 +1349,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 51
+        "y": 70
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",

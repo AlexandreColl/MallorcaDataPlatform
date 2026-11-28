@@ -111,7 +111,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 
 | Connector | Status | Data | Key |
 |---|---|---|---|
-| [open_meteo](connectors/open_meteo/README.md) | ✅ | Air quality (CAMS) and weather, hourly, 6 towns | No |
+| [open_meteo](connectors/open_meteo/README.md) | ✅ | Air quality (CAMS), with olive and grass pollen, Saharan dust and UV, and weather, hourly, 6 towns | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Hourly electricity demand, daily generation mix and CO₂ of the Balearic system | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Real observations from 3 stations and 1 buoy (temperature, humidity, pressure, wind), hourly with the source's QC | No |
 | [redmar](connectors/redmar/README.md) | ✅ | Hourly sea level at the Palma and Alcúdia tide gauges of Puertos del Estado (REDMAR network, since 2009) | No |
@@ -133,15 +133,28 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 
 ### Open-Meteo
 
-One request per dataset with every location of the region. 10 hourly metrics (PM10, PM2.5, NO₂, O₃, EAQI,
-temperature, humidity, precipitation, wind, pressure). With `DAYS=1` that is 6 × 24 × 10 = 1,440 observations. This
-is model data, not station data.
+One request per dataset with every location of the region. 14 hourly metrics (PM10, PM2.5, NO₂, O₃, EAQI, olive and
+grass pollen, Saharan dust, UV, temperature, humidity, precipitation, wind, pressure). With `DAYS=1` that is
+6 × 24 × 14 = 2,016 observations. This is model data, not station data.
 
 The forecast API serves 92 days only, but `make backfill CONNECTORS=open_meteo` loads the earlier years: air quality
 comes from the same CAMS model (since 2013) and the weather from the archive of the same forecasts, which matches the
 live series hour by hour since November 2022 and is the ERA5 reanalysis before. So the SOCIB and EEA stations are
 compared with the model since 2017, like the SOCIB history. The bias changes level on 16-11-2022, the day the
 archive switches from ERA5 to the forecasts: at Cala Millor, from −0.92 to −1.54 °C in the daily mean temperature.
+
+**Pollen, Saharan dust and UV.** The same CAMS API serves dust since 2018, pollen since October 2020 (only in season
+until November 2023) and UV since August 2022; `available_since` keeps older windows from asking for them. In gold,
+`fct_pollen_dust_daily` gives the day's pollen level with the thresholds of the Spanish Aerobiology Network and
+`fct_dust_episodes` the **Saharan dust episodes**: consecutive days whose island mean dust reaches 25 µg/m³, half the
+EU daily PM10 limit. There were 24 from 2019 to 2026, with 44 days. During the 19 that have EEA stations, their PM10
+rises from 20 to 56 µg/m³ on average, and the CAMS PM10 falls 5.6 µg/m³ short (32 in March 2025, with 185 µg/m³ of
+dust in one hour): PM10 gaps filled with CAMS on a dust day come out low. Olive trees flower from April to June,
+peaking in May, and reach the moderate level mostly at Sóller and Inca, among the olive groves (a daily mean of 218
+grains/m³ at Sóller); at Palma almost never. The anomaly detectors skip these metrics: they are zero most of the time
+and their peaks are the events themselves. On the web, *Weather and environment* has the pollen season, the dust of
+the last year, the episodes and the dust at each station; in Grafana, dust against the station PM10 and an episodes
+table. [Details and real tests](connectors/open_meteo/README.md).
 
 ### Open-Meteo Marine
 

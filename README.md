@@ -108,7 +108,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 
 | Conector | Estado | Datos | Clave |
 |---|---|---|---|
-| [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS) y meteorología, horario, 6 localidades | No |
+| [open_meteo](connectors/open_meteo/README.md) | ✅ | Calidad del aire (CAMS), con polen de olivo y gramíneas, polvo sahariano y UV, y meteorología, horario, 6 localidades | No |
 | [redata](connectors/redata/README.md) | ✅ v0.2.0 | Demanda eléctrica horaria, mix de generación y CO₂ diarios del sistema balear | No |
 | [socib](connectors/socib/README.md) | ✅ v0.2.1 | Observaciones reales de 3 estaciones y 1 boya (temperatura, humedad, presión, viento), horarias con QC de la fuente | No |
 | [redmar](connectors/redmar/README.md) | ✅ | Nivel del mar horario en los mareógrafos de Palma y Alcúdia de Puertos del Estado (red REDMAR, desde 2009) | No |
@@ -130,9 +130,9 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 
 ### Open-Meteo
 
-Una petición por dataset con todas las localidades de la región. 10 métricas horarias
-(PM10, PM2.5, NO₂, O₃, EAQI, temperatura, humedad, precipitación, viento, presión).
-Con `DAYS=1` son 6 × 24 × 10 = 1.440 observaciones. Son datos de modelo, no de estación.
+Una petición por dataset con todas las localidades de la región. 14 métricas horarias
+(PM10, PM2.5, NO₂, O₃, EAQI, polen de olivo y de gramíneas, polvo sahariano, UV, temperatura, humedad, precipitación,
+viento, presión). Con `DAYS=1` son 6 × 24 × 14 = 2.016 observaciones. Son datos de modelo, no de estación.
 
 La API de previsión solo sirve 92 días, pero `make backfill CONNECTORS=open_meteo` carga los años anteriores: la
 calidad del aire sale del mismo modelo CAMS (desde 2013) y la meteorología del archivo de las mismas previsiones, que
@@ -140,6 +140,19 @@ coincide hora a hora con la serie en vivo desde noviembre de 2022 y es el reaná
 de SOCIB y de la EEA se comparan con el modelo desde 2017, como el histórico de SOCIB. El sesgo cambia de nivel el
 16-11-2022, el día que el archivo pasa de ERA5 a las previsiones: en Cala Millor, de −0,92 a −1,54 °C en la
 temperatura media diaria.
+
+**Polen, polvo sahariano y UV.** La misma API de CAMS sirve el polvo desde 2018, el polen desde octubre de 2020 (solo
+en temporada hasta noviembre de 2023) y el UV desde agosto de 2022; `available_since` evita pedirlos antes. En gold,
+`fct_pollen_dust_daily` da el nivel de polen del día con los umbrales de la Red Española de Aerobiología y
+`fct_dust_episodes` los **episodios de polvo sahariano**: días seguidos con la media de polvo de la isla en 25 µg/m³
+o más, la mitad del límite diario de PM10. Hubo 24 de 2019 a 2026, con 44 días. Durante los 19 que tienen estaciones
+de la EEA, su PM10 sube de 20 a 56 µg/m³ de media, y el PM10 de CAMS se queda 5,6 µg/m³ por debajo (32 en el de marzo
+de 2025, con 185 µg/m³ de polvo en una hora): los huecos de PM10 que se rellenan con CAMS un día de polvo salen bajos.
+El olivo florece de abril a junio con el pico en mayo, y llega al nivel moderado sobre todo en Sóller e Inca, entre
+olivares (218 granos/m³ de media un día en Sóller); en Palma casi nunca. Los detectores de anomalías no puntúan
+estas métricas: son cero casi siempre y sus picos son el fenómeno. En la web, *Tiempo y entorno* tiene la temporada
+de polen, el polvo del último año, los episodios y el polvo en cada estación; en Grafana, el polvo frente al PM10 de
+las estaciones y una tabla de episodios. [Detalle y pruebas reales](connectors/open_meteo/README.md).
 
 ### Open-Meteo Marine
 

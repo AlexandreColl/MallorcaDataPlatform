@@ -35,7 +35,12 @@ skip:
   # (too few values).
   sources: [ign, emt_palma, ctm, dataestur, water_reserves, aemet_warnings, ine_population]
   # Zero most of the time (any rain or sunshine change would stand out) or circular (350° and 10° are close).
-  metrics: [precipitation, precipitation_sum, sunshine_duration, wave_direction]
+  # Pollen, dust and UV (Open-Meteo CAMS) are zero most of the time too: out of season, between dust episodes, at
+  # night. Their peaks are the events themselves, which gold marks against documented thresholds (pollen levels,
+  # dust episodes). On Palma in 2025 the vote flagged 13.1 % of the UV hours, 4.0 % of the grass pollen and dust ones
+  # and 1.0 % of the olive pollen ones, against 2.1 % of PM10: thousands of false anomalies a year.
+  metrics: [precipitation, precipitation_sum, sunshine_duration, wave_direction, olive_pollen, grass_pollen, dust,
+            uv_index]
 
 # Fault-injection benchmark (`make evaluate`): corrupts recent series of one source with known faults and measures
 # the precision and recall of every detector. Open-Meteo is model output, complete and smooth, so the injected

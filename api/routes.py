@@ -25,6 +25,8 @@ from api.schemas import (
     CorrectionMethod,
     Detector,
     DetectorBenchmark,
+    DustEpisode,
+    DustPm10Station,
     Earthquake,
     ErrorResponse,
     Health,
@@ -36,6 +38,7 @@ from api.schemas import (
     Municipality,
     Observation,
     Page,
+    PollenDustDay,
     PopulationYear,
     QualityRule,
     ResourcesMonth,
@@ -487,6 +490,35 @@ def sea_model_bias(warehouse: WarehouseDep) -> list[WaveModelBias]:
 def air_quality_latest(warehouse: WarehouseDep) -> list[AirQualityNow]:
     """The latest hour of each air quality station and model point, with its European AQI band."""
     return [AirQualityNow(**row) for row in warehouse.air_quality_latest()]
+
+
+@router.get("/air-quality/pollen-dust", tags=["environment"])
+def pollen_dust(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[PollenDustDay]:
+    """Olive and grass pollen, Saharan dust and UV of every model point per day (default: the last 365 days).
+
+    CAMS model (Open-Meteo): dust since 2018, pollen since October 2020 (only in its season until November 2023), UV
+    since August 2022. The pollen level is that of the daily mean, with the thresholds of the Red Española de
+    Aerobiología.
+    """
+    start, end = _days(from_, to, 365)
+    return [PollenDustDay(**row) for row in warehouse.pollen_dust_daily(start, end)]
+
+
+@router.get("/air-quality/dust-episodes", tags=["environment"])
+def dust_episodes(warehouse: WarehouseDep, from_: FromDay = None, to: ToDay = None) -> list[DustEpisode]:
+    """Saharan dust episodes that overlap the range, newest first, with the station PM10 (default: the last 3 years).
+
+    A dust day is one whose mean CAMS dust over the island's model points reaches 25 µg/m³ (half the EU daily PM10
+    limit). The PM10 of the EEA stations during the episode is compared with theirs on the days without dust around it.
+    """
+    start, end = _days(from_, to, 3 * 365)
+    return [DustEpisode(**row) for row in warehouse.dust_episodes(start, end)]
+
+
+@router.get("/air-quality/dust-pm10", tags=["environment"])
+def dust_pm10(warehouse: WarehouseDep) -> list[DustPm10Station]:
+    """What Saharan dust adds to the PM10 of each EEA station, and how the CAMS model errs on dust days and the rest."""
+    return [DustPm10Station(**row) for row in warehouse.dust_pm10()]
 
 
 @router.get("/sea/hourly", tags=["environment"])

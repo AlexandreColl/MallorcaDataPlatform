@@ -927,6 +927,104 @@ models:
       - {name: coverage, data_type: double precision, description: Valid hours over the hours of the month.}
       - {name: is_representative, data_type: boolean, description: At least 75 % of the hours valid.}
 
+  - name: fct_pollen_dust_daily
+    description: >-
+      Olive and grass pollen, Saharan dust and UV of every Open-Meteo model point per local day (CAMS Europe): daily
+      mean and maximum, and the pollen level of the daily mean with the thresholds of the Red Española de
+      Aerobiología (vars.pollen_levels). Before November 2023 CAMS served pollen only in its season: days outside it
+      have no pollen value.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [point, local_date]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "coalesce(dust_max_ugm3 >= dust_mean_ugm3, true) and coalesce(olive_pollen_max >= olive_pollen_mean, true)"
+    columns:
+      - {name: point, data_type: text, constraints: [{type: not_null}]}
+      - {name: local_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: olive_pollen_mean, data_type: double precision, description: Daily mean of olive pollen (grains/m3).}
+      - {name: olive_pollen_max, data_type: double precision, description: Highest hour of the day (grains/m3).}
+      - name: olive_pollen_level
+        data_type: text
+        description: "REA level of the daily mean: none (< 1), low (1-50), moderate (51-200), high (> 200)."
+        data_tests:
+          - accepted_values:
+              arguments: {values: [none, low, moderate, high]}
+      - {name: grass_pollen_mean, data_type: double precision, description: Daily mean of grass pollen (grains/m3).}
+      - {name: grass_pollen_max, data_type: double precision}
+      - name: grass_pollen_level
+        data_type: text
+        description: "REA level of the daily mean: none (< 1), low (1-25), moderate (26-50), high (> 50)."
+        data_tests:
+          - accepted_values:
+              arguments: {values: [none, low, moderate, high]}
+      - {name: dust_mean_ugm3, data_type: double precision, description: Daily mean of dust near the ground (ug/m3).}
+      - {name: dust_max_ugm3, data_type: double precision}
+      - {name: is_dust_over_threshold, data_type: boolean, description: The point alone reaches dust_episode_ugm3.}
+      - {name: uv_index_max, data_type: double precision, description: Highest UV index of the day (since August 2022).}
+
+  - name: fct_dust_episodes
+    description: >-
+      One row per Saharan dust episode: consecutive days whose mean dust of the model points reaches
+      dust_episode_ugm3 (gaps and islands). The PM10 of the official stations (EEA) during the episode is compared,
+      station by station, with their PM10 on the days without dust within dust_baseline_half_days of it; the CAMS
+      PM10 of the nearest model point on the same days gives the bias of the model the corrections use.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [episode_id]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "end_date >= start_date and peak_day between start_date and end_date"
+    columns:
+      - {name: episode_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: start_date, data_type: date, constraints: [{type: not_null}]}
+      - {name: end_date, data_type: date}
+      - name: days
+        data_type: integer
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments: {min_value: 1}
+      - {name: peak_day, data_type: date, description: Day with the highest mean dust of the island.}
+      - {name: peak_point, data_type: text, description: Model point with the most dust on the peak day.}
+      - {name: peak_dust_ugm3, data_type: double precision, description: Highest daily mean of a point (ug/m3).}
+      - {name: mean_dust_ugm3, data_type: double precision, description: Mean dust of the island over the episode.}
+      - {name: max_hourly_dust_ugm3, data_type: double precision}
+      - {name: stations, data_type: integer, description: EEA stations with PM10 both in the episode and around it.}
+      - {name: station_pm10_ugm3, data_type: double precision, description: Mean PM10 of those stations in the episode.}
+      - {name: baseline_pm10_ugm3, data_type: double precision, description: Their mean PM10 on the days around it without dust.}
+      - {name: pm10_excess_ugm3, data_type: double precision, description: How much higher the station PM10 is during the episode.}
+      - {name: model_pm10_ugm3, data_type: double precision, description: CAMS PM10 at the nearest model points in the episode.}
+      - {name: model_bias_ugm3, data_type: double precision, description: CAMS minus stations in the episode (positive = overestimates).}
+
+  - name: agg_dust_pm10_by_station
+    description: >-
+      PM10 of each official station (EEA) on Saharan dust days and on the other days, and the bias of the CAMS
+      PM10 of its nearest model point on each: what the dust adds at the station and how the model that fills its
+      gaps (config/corrections.yaml) errs then.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [station]
+    columns:
+      - {name: station, data_type: text, constraints: [{type: not_null}]}
+      - {name: model_point, data_type: text}
+      - {name: dust_days, data_type: integer}
+      - {name: other_days, data_type: integer}
+      - {name: pm10_dust_days_ugm3, data_type: double precision}
+      - {name: pm10_other_days_ugm3, data_type: double precision}
+      - {name: pm10_excess_ugm3, data_type: double precision, description: Dust days minus the other days.}
+      - {name: model_bias_dust_days_ugm3, data_type: double precision, description: CAMS minus station on dust days.}
+      - {name: model_bias_other_days_ugm3, data_type: double precision}
+      - {name: first_day, data_type: date}
+      - {name: last_day, data_type: date}
+
   - name: fct_observations_corrected
     description: >-
       Station observations (SOCIB, EEA) with their proposed corrections side by side, from the first correction
@@ -1366,3 +1464,50 @@ unit_tests:
         - {point: soller, day: "2026-08-03", sst_anomaly_c: 2.00, is_marine_heatwave: false}
         - {point: soller, day: "2026-08-04", sst_anomaly_c: 2.00, is_marine_heatwave: false}
         - {point: soller, day: "2026-08-05", sst_anomaly_c: 0.00, is_marine_heatwave: false}
+
+  - name: pollen_level_follows_the_rea_thresholds
+    description: >
+      The level is that of the daily mean, not of the peak hour - olive at 60 grains/m3 for one hour and 0 the next
+      is low; the thresholds differ by pollen (40 grains/m3 is low for olive but moderate for grass). A suspect value
+      is left out.
+    model: fct_pollen_dust_daily
+    given:
+      - input: ref('stg_open_meteo__observations')
+        rows:
+          - {entity: palma, local_date: "2026-05-01", metric: olive_pollen, value: 60, is_missing: false, is_suspect: false}
+          - {entity: palma, local_date: "2026-05-01", metric: olive_pollen, value: 0, is_missing: false, is_suspect: false}
+          - {entity: palma, local_date: "2026-05-01", metric: grass_pollen, value: 40, is_missing: false, is_suspect: false}
+          - {entity: palma, local_date: "2026-05-02", metric: olive_pollen, value: 250, is_missing: false, is_suspect: false}
+          - {entity: palma, local_date: "2026-05-02", metric: grass_pollen, value: 0.4, is_missing: false, is_suspect: false}
+          - {entity: palma, local_date: "2026-05-02", metric: dust, value: 30, is_missing: false, is_suspect: false}
+          - {entity: palma, local_date: "2026-05-02", metric: dust, value: 9999, is_missing: false, is_suspect: true}
+    expect:
+      rows:
+        - {point: palma, local_date: "2026-05-01", olive_pollen_mean: 30.0, olive_pollen_level: low, grass_pollen_level: moderate, dust_mean_ugm3: null, is_dust_over_threshold: false}
+        - {point: palma, local_date: "2026-05-02", olive_pollen_mean: 250.0, olive_pollen_level: high, grass_pollen_level: none, dust_mean_ugm3: 30.0, is_dust_over_threshold: true}
+
+  - name: dust_episode_pm10_excess_is_against_the_calm_days_around_it
+    description: >
+      Days 10 and 11 March are one dust episode and 13 March another; the calm 12th splits them. The excess of each
+      is its station PM10 minus that of the calm days within 15 days (9 and 12 March, 20), never of the other episode.
+    model: fct_dust_episodes
+    given:
+      - input: ref('int_dust__daily')
+        rows:
+          - {local_date: "2026-03-09", dust_mean_ugm3: 5, peak_point_dust_ugm3: 6, peak_point: palma, dust_max_ugm3: 8, points_over_threshold: 0, is_dust_day: false}
+          - {local_date: "2026-03-10", dust_mean_ugm3: 40, peak_point_dust_ugm3: 45, peak_point: palma, dust_max_ugm3: 70, points_over_threshold: 6, is_dust_day: true}
+          - {local_date: "2026-03-11", dust_mean_ugm3: 60, peak_point_dust_ugm3: 80, peak_point: inca, dust_max_ugm3: 120, points_over_threshold: 6, is_dust_day: true}
+          - {local_date: "2026-03-12", dust_mean_ugm3: 10, peak_point_dust_ugm3: 12, peak_point: palma, dust_max_ugm3: 15, points_over_threshold: 0, is_dust_day: false}
+          - {local_date: "2026-03-13", dust_mean_ugm3: 30, peak_point_dust_ugm3: 31, peak_point: palma, dust_max_ugm3: 40, points_over_threshold: 4, is_dust_day: true}
+      - input: ref('fct_air_quality_model_bias_daily')
+        rows:
+          - {station: bellver, metric: pm10, local_date: "2026-03-09", station_mean_ugm3: 18, model_mean_ugm3: 15}
+          - {station: bellver, metric: pm10, local_date: "2026-03-10", station_mean_ugm3: 50, model_mean_ugm3: 45}
+          - {station: bellver, metric: pm10, local_date: "2026-03-11", station_mean_ugm3: 70, model_mean_ugm3: 55}
+          - {station: bellver, metric: pm10, local_date: "2026-03-12", station_mean_ugm3: 22, model_mean_ugm3: 20}
+          - {station: bellver, metric: pm10, local_date: "2026-03-13", station_mean_ugm3: 90, model_mean_ugm3: 40}
+          - {station: bellver, metric: nitrogen_dioxide, local_date: "2026-03-10", station_mean_ugm3: 99, model_mean_ugm3: 1}
+    expect:
+      rows:
+        - {start_date: "2026-03-10", end_date: "2026-03-11", days: 2, peak_day: "2026-03-11", peak_point: inca, peak_dust_ugm3: 80, stations: 1, station_pm10_ugm3: 60.0, baseline_pm10_ugm3: 20.0, pm10_excess_ugm3: 40.0, model_bias_ugm3: -10.0}
+        - {start_date: "2026-03-13", end_date: "2026-03-13", days: 1, peak_day: "2026-03-13", peak_point: palma, peak_dust_ugm3: 31, stations: 1, station_pm10_ugm3: 90.0, baseline_pm10_ugm3: 20.0, pm10_excess_ugm3: 70.0, model_bias_ugm3: -50.0}

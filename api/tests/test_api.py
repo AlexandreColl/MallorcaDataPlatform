@@ -253,6 +253,7 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/mobility/routes", "/v1/mobility/bike-stations", "/v1/mobility/bikes/hourly",
         "/v1/weather/daily",
         "/v1/weather/episodes", "/v1/weather/model-bias", "/v1/weather/stations", "/v1/air-quality/latest",
+        "/v1/air-quality/pollen-dust", "/v1/air-quality/dust-episodes", "/v1/air-quality/dust-pm10",
         "/v1/sea/hourly", "/v1/sea/model-bias", "/v1/sea/temperature/daily", "/v1/sea/temperature/monthly",
         "/v1/sea/heatwaves", "/v1/earthquakes", "/v1/warnings", "/v1/warnings/zones",
         "/v1/population",
@@ -295,6 +296,9 @@ def test_settings_from_environment():
         ("/v1/weather/episodes", "gold.fct_weather_episodes"),
         ("/v1/weather/model-bias", "gold.agg_model_bias_by_station"),
         ("/v1/air-quality/latest", "gold.air_quality_hourly"),
+        ("/v1/air-quality/pollen-dust", "gold.fct_pollen_dust_daily"),
+        ("/v1/air-quality/dust-episodes", "gold.fct_dust_episodes"),
+        ("/v1/air-quality/dust-pm10", "gold.agg_dust_pm10_by_station"),
         ("/v1/sea/hourly", "gold.fct_sea_conditions_hourly"),
         ("/v1/sea/model-bias", "gold.agg_wave_model_bias_by_buoy"),
         ("/v1/sea/temperature/daily", "gold.fct_sea_temperature_daily"),
@@ -448,6 +452,36 @@ def test_sea_temperature_days_and_heatwaves_default_to_the_last_90_and_365_days(
     assert body[0]["start_date"] == "2025-06-20"
     api.get("/v1/sea/heatwaves", params={"from": "1991-01-01", "to": "2020-12-31"})
     assert db.calls[-1][1] == {"start": date(1991, 1, 1), "end": date(2020, 12, 31)}
+
+
+def test_pollen_and_dust_default_to_the_last_year_and_the_episodes_to_three():
+    day = {
+        "point": "palma",
+        "name": "Palma",
+        "local_date": date(2026, 5, 14),
+        "olive_pollen_mean": 61.2,
+        "olive_pollen_max": 138.1,
+        "olive_pollen_level": "moderate",
+        "grass_pollen_mean": 7.5,
+        "grass_pollen_max": 15.7,
+        "grass_pollen_level": "low",
+        "dust_mean_ugm3": 3.0,
+        "dust_max_ugm3": 6.0,
+        "is_dust_over_threshold": False,
+        "uv_index_max": 8.9,
+    }
+    db = FakeDatabase({"gold.fct_pollen_dust_daily": [day]})
+    api = client(db)
+
+    body = api.get("/v1/air-quality/pollen-dust").json()
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 364
+    assert body[0]["olive_pollen_level"] == "moderate"
+    api.get("/v1/air-quality/dust-episodes")
+    start, end = db.calls[-1][1]["start"], db.calls[-1][1]["end"]
+    assert (end - start).days == 3 * 365 - 1
+    api.get("/v1/air-quality/dust-episodes", params={"from": "2018-01-01", "to": "2026-11-27"})
+    assert db.calls[-1][1] == {"start": date(2018, 1, 1), "end": date(2026, 11, 27)}
 
 
 def test_station_temperatures_of_the_latest_day_or_a_chosen_one():
