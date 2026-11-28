@@ -1538,7 +1538,7 @@
               "longitude": "lon"
             },
             "config": {
-              "showLegend": true,
+              "showLegend": false,
               "style": {
                 "size": {
                   "fixed": 6
