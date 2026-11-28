@@ -54,6 +54,10 @@ def test_extract_builds_one_request_per_dataset(connector):
         "nitrogen_dioxide",
         "ozone",
         "european_aqi",
+        "olive_pollen",
+        "grass_pollen",
+        "dust",
+        "uv_index",
     ]
     assert payloads[0].key == "open_meteo/air_quality/window=20261023_20261023/payload.json"
 
@@ -89,8 +93,8 @@ def test_normalize_emits_common_schema(connector):
     payloads = connector.extract(WINDOW, REGION)
     obs = [o for p in payloads for o in connector.normalize(p, REGION)]
 
-    # 2 locations x 24 hours x (5 air quality + 5 weather metrics)
-    assert len(obs) == 2 * 24 * 10
+    # 2 locations x 24 hours x (9 air quality + 5 weather metrics)
+    assert len(obs) == 2 * 24 * 14
     assert {o.entity for o in obs} == {"palma", "inca"}
     assert all(o.source == "open_meteo" for o in obs)
     assert all(o.ts.tzinfo is UTC for o in obs)
@@ -99,6 +103,36 @@ def test_normalize_emits_common_schema(connector):
     units = {o.metric: o.unit for o in obs}
     assert units["pm2_5"] == "ug/m3"
     assert units["temperature_2m"] == "degC"
+    assert units["olive_pollen"] == units["grass_pollen"] == "grains/m3"
+    assert units["dust"] == "ug/m3"
+    assert units["uv_index"] == "uvi"
+
+
+def test_windows_before_a_metric_existed_do_not_ask_for_it(connector):
+    connector.extract(TimeWindow(date(2017, 1, 1), date(2017, 12, 31)), REGION)
+    connector.extract(TimeWindow(date(2021, 1, 1), date(2021, 12, 31)), REGION)
+
+    old, newer = (params["hourly"].split(",") for url, params in connector.http.calls if "air-quality" in url)
+    assert old == ["pm10", "pm2_5", "nitrogen_dioxide", "ozone", "european_aqi"]
+    assert newer == [*old, "olive_pollen", "grass_pollen", "dust"]  # UV starts in August 2022
+
+
+def test_hours_before_a_metric_existed_are_dropped_not_missing(connector):
+    payload = connector.extract(WINDOW, REGION)[0]
+    known = connector.available_since()
+    connector.available_since = lambda: {**known, "dust": date(2026, 10, 24)}  # dust starts the day after the window
+
+    obs = list(connector.normalize(payload, REGION))
+
+    assert not [o for o in obs if o.metric == "dust"]
+    assert {o.metric for o in obs} >= {"pm10", "olive_pollen", "uv_index"}
+
+
+def test_normalize_reads_only_the_metrics_the_request_asked_for(connector):
+    payload = connector.extract(WINDOW, REGION)[0]
+    payload.request["params"]["hourly"] = "pm10,pm2_5"  # a bronze payload from before the metric existed
+
+    assert {o.metric for o in connector.normalize(payload, REGION)} == {"pm10", "pm2_5"}
 
 
 def test_normalize_handles_single_location_and_nulls(connector):

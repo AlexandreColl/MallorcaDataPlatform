@@ -72,7 +72,7 @@ def test_bronze_roundtrip_and_idempotent_keys(store):
     assert keys_first == keys_second  # same window -> same objects (overwritten, versioned)
     assert len(store.client.objects) == 2
     normalized = bronze_to_silver(connector, keys_first, REGION, store)
-    assert len(normalized.observations) == 2 * 24 * 10
+    assert len(normalized.observations) == 2 * 24 * 14  # 9 air quality + 5 weather metrics
     assert normalized.entities == []  # these test points have no label
     assert normalized.routes == []  # not a transit feed
 
