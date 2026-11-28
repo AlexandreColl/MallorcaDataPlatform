@@ -1524,7 +1524,7 @@ unit_tests:
         - {reference_month: "2025-11-01", population_year: 2025, dwellings_per_1000_inhabitants: 138.7, beds_per_100_inhabitants: 85.2, previous_month: null, dwellings_change: null, dwellings_change_pct: null}
         - {reference_month: "2026-05-01", population_year: 2025, dwellings_per_1000_inhabitants: 136.3, beds_per_100_inhabitants: 83.2, previous_month: "2025-11-01", dwellings_change: -41, dwellings_change_pct: -0.0172}
 
-  - name: unemployment_seasonality_needs_a_whole_summer_and_no_suppressed_totals
+  - name: unemployment_seasonality_needs_whole_seasons
     description: >-
       Mallorca gets a ratio in 2025 (four summer months, four winter ones); Escorca does not, because one of its
       totals that year was "<5"; and 2013 gets none, because SEPE's file of that year stops in April.
