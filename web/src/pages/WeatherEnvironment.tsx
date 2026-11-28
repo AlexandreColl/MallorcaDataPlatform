@@ -70,7 +70,8 @@ function Waves({ hours }: { hours: SeaHour[] }) {
 function threshold(value: number, color: string) {
   return {
     symbol: "none", silent: true, data: [{ yAxis: value }],
-    lineStyle: { type: "dashed", color }, label: { formatter: String(value), color },
+    // The label sits above the line inside the plot: at its end it would be cut by the edge of the panel.
+    lineStyle: { type: "dashed", color }, label: { formatter: String(value), color, position: "insideEndTop" },
   };
 }
 
