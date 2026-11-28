@@ -35,6 +35,7 @@ from api.schemas import (
     MarineHeatwave,
     MobilityDay,
     ModelBias,
+    MunicipalUnemployment,
     Municipality,
     Observation,
     Page,
@@ -52,6 +53,8 @@ from api.schemas import (
     StopService,
     TourismMonth,
     TouristDwellings,
+    UnemploymentMonth,
+    UnemploymentSeasonality,
     TransitRoute,
     WarningZone,
     WaterReservesMonth,
@@ -74,6 +77,9 @@ CACHED_PATHS = (
     "/v1/tourism/monthly",
     "/v1/tourism/dwellings",
     "/v1/resources/monthly",
+    "/v1/unemployment/monthly",
+    "/v1/unemployment/municipalities",
+    "/v1/unemployment/seasonality",
     "/v1/sea/temperature/monthly",
     "/v1/population",
     "/v1/municipalities",
@@ -421,6 +427,35 @@ def warnings(warehouse: WarehouseDep, start: Start = None, end: End = None) -> l
     now = datetime.now(UTC)
     start, end = _window(start or now, end or now + timedelta(days=WARNINGS_AHEAD_DAYS))
     return [WeatherWarning(**row) for row in warehouse.warnings(start, end)]
+
+
+@router.get("/unemployment/monthly", tags=["monthly"])
+def unemployment_monthly(warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None) -> list[UnemploymentMonth]:
+    """Registered unemployment of Mallorca per month, by sex, age and sector (SEPE; default: every month).
+
+    A month is published some two weeks after it ends. Since 2022 SEPE publishes every count from 1 to 4 as `<5`.
+    """
+    return [UnemploymentMonth(**row) for row in warehouse.monthly("unemployment", from_, to)]
+
+
+@router.get("/unemployment/municipalities", tags=["monthly"])
+def municipal_unemployment(
+    warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None
+) -> list[MunicipalUnemployment]:
+    """Registered unemployment of every municipality of Mallorca per month (SEPE; default: the last 12 months)."""
+    return [MunicipalUnemployment(**row) for row in warehouse.municipal_unemployment(from_, to)]
+
+
+@router.get("/unemployment/seasonality", tags=["monthly"])
+def unemployment_seasonality(
+    warehouse: WarehouseDep,
+    area: Annotated[
+        str | None,
+        Query(pattern=r"^(mallorca|07\d{3})$", description="`mallorca` or an INE municipality code (default: all)."),
+    ] = None,
+) -> list[UnemploymentSeasonality]:
+    """Winter (November-February) against summer (June-September) unemployment per year, island first (SEPE)."""
+    return [UnemploymentSeasonality(**row) for row in warehouse.unemployment_seasonality(area)]
 
 
 @router.get("/tourism/dwellings", tags=["monthly"])

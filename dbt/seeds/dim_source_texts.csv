@@ -29,6 +29,8 @@ ine_population,ca,INE (padró),"Població de cada municipi de Mallorca a 1 de ge
 ine_population,en,INE (municipal register),"Population of each municipality of Mallorca on 1 January, by sex, yearly",CC BY 4.0
 ine_tourist_housing,ca,INE (habitatges turístics),"Habitatges turístics, places i places per habitatge anunciats a les plataformes de lloguer a cada municipi de Mallorca, dues vegades l’any",CC BY 4.0
 ine_tourist_housing,en,INE (tourist dwellings),"Tourist dwellings, beds and beds per dwelling listed on the holiday rental platforms in each municipality of Mallorca, twice a year",CC BY 4.0
+sepe_unemployment,ca,SEPE (atur registrat),"Persones en atur registrat a cada municipi de Mallorca, per sexe i edat i per sector, mensual des de 2006","Reutilització amb citació (condicions generals de datos.gob.es, RD 1495/2011): «Origen de los datos: Servicio Público de Empleo Estatal»"
+sepe_unemployment,en,SEPE (registered unemployment),"People registered as unemployed in each municipality of Mallorca, by sex and age and by sector, monthly since 2006","Reuse with citation (datos.gob.es general terms, RD 1495/2011): “Origen de los datos: Servicio Público de Empleo Estatal”"
 ibestat_iph,ca,Ibestat (pressió humana),"Persones presents a Mallorca cada dia, residents més visitants (IPH), diari",Reutilització amb citació (Llei 37/2007; sense llicència publicada)
 ibestat_iph,en,Ibestat (human pressure),"People present in Mallorca each day, residents plus visitors (IPH), daily",Reuse with citation (Law 37/2007; no licence published)
 redmar,ca,Ports de l’Estat (mareògrafs),Nivell de la mar horari als mareògrafs de Palma i Alcúdia (xarxa REDMAR),Dades públiques i gratuïtes amb citació obligatòria (sense llicència CC publicada)

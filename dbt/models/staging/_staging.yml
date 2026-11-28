@@ -66,6 +66,10 @@ models:
     description: >-
       INE experimental statistic of tourist dwellings, the dwellings, beds and beds per dwelling listed on the
       holiday rental platforms in each municipality of Mallorca, twice a year.
+  - name: stg_sepe_unemployment__observations
+    description: >-
+      SEPE registered unemployment, the people registered as unemployed in each municipality of Mallorca per
+      month, by sex and age band and by sector. Counts from 1 to 4 ("<5") are null.
   - name: stg_ibestat_iph__observations
     description: Ibestat Human Pressure Indicator, the people present in Mallorca each day (residents plus visitors).
   - name: stg_ign__observations

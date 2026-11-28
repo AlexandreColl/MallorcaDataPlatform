@@ -25,7 +25,7 @@ seeds:
           - not_null
           - accepted_values:
               arguments:
-                values: ["weather", "air", "sea", "energy", "seismic", "mobility", "tourism", "water", "population"]
+                values: ["weather", "air", "sea", "energy", "seismic", "mobility", "tourism", "water", "population", "labour"]
       - name: owner
         description: The publisher that owns the data and answers for its content (the platform only copies it).
         data_tests: [not_null]

@@ -1,6 +1,6 @@
 -- One row per month with everything that moves the island's resources: tourism (Dataestur, cruise passengers
--- included), groundwater reserves, rainfall and temperature (AEMET) and electricity demand (REData). Feeds the
--- "Turismo y recursos" and "Clima y agua" dashboards.
+-- included), groundwater reserves, rainfall and temperature (AEMET), electricity demand (REData) and registered
+-- unemployment (SEPE). Feeds the "Turismo y recursos" and "Clima y agua" dashboards.
 --
 -- Every series is seasonal (summer brings the tourists, the heat, the demand peak and the lowest reserves), so
 -- comparing raw months mostly shows the calendar. Each series also gets its anomaly against the mean of the same
@@ -24,6 +24,8 @@ months as (
     select month from {{ ref('fct_climate_monthly') }}
     union
     select month from demand
+    union
+    select month from {{ ref('fct_unemployment_island_monthly') }}
 ),
 
 joined as (
@@ -43,6 +45,9 @@ joined as (
         c.temperature_mean_c,
         c.temperature_anomaly_c,
         c.hot_days,
+        u.unemployed,
+        u.unemployed_per_1000_inhabitants,
+        u.unemployed_anomaly,
         case
             when d.demand_hours >= 0.9 * 24 * extract(day from m.month + interval '1 month' - interval '1 day')
                 then d.electricity_demand_gwh
@@ -52,6 +57,7 @@ joined as (
     left join {{ ref('fct_water_reserves_monthly') }} as w on m.month = w.month
     left join {{ ref('fct_climate_monthly') }} as c on m.month = c.month
     left join demand as d on m.month = d.month
+    left join {{ ref('fct_unemployment_island_monthly') }} as u on m.month = u.month
 ),
 
 climatology as (
@@ -87,5 +93,8 @@ select
     rain_anomaly,
     temperature_mean_c,
     temperature_anomaly_c,
-    hot_days
+    hot_days,
+    unemployed,
+    unemployed_per_1000_inhabitants,
+    unemployed_anomaly
 from climatology

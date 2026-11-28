@@ -790,6 +790,138 @@ models:
       - {name: dwellings_change, data_type: integer, description: Change against the previous count.}
       - {name: dwellings_change_pct, data_type: "numeric(8,4)", description: Relative change (0.01 = +1 %).}
 
+  - name: fct_unemployment_monthly
+    description: >-
+      Registered unemployment of each municipality of Mallorca per month (SEPE, Paro registrado por municipios): the
+      people registered as unemployed on the last working day of the month, by sex and age band and by sector, per
+      1,000 inhabitants of the register, against the same month a year earlier and against the mean of the same
+      calendar month. Since 2022 every count from 1 to 4 is published as "<5" and is null here; `is_suppressed` marks
+      a total that is one of them.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [municipality, month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "unemployed_men + unemployed_women = unemployed"
+          config:
+            where: "unemployed_men is not null and unemployed_women is not null"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "unemployed is null"
+          config:
+            where: "is_suppressed"
+    columns:
+      - name: municipality
+        data_type: text
+        description: INE municipality code.
+        constraints: [{type: not_null}]
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_municipalities')
+                field: municipality
+      - {name: municipality_name, data_type: text}
+      - {name: month, data_type: date, description: First day of the month (the register of its last working day)., constraints: [{type: not_null}]}
+      - name: season
+        data_type: text
+        description: "`summer` June to September, `winter` November to February, null for the months between."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["summer", "winter"]
+      - {name: is_suppressed, data_type: boolean, description: 'The total was published as "<5" (1 to 4 people).'}
+      - {name: unemployed, data_type: integer, description: People registered as unemployed; null when suppressed.}
+      - {name: unemployed_men, data_type: integer, description: Sum of the three bands of men; null if any is suppressed.}
+      - {name: unemployed_women, data_type: integer, description: Sum of the three bands of women; null if any is suppressed.}
+      - {name: unemployed_under_25, data_type: integer}
+      - {name: unemployed_45_plus, data_type: integer}
+      - {name: unemployed_men_under_25, data_type: integer}
+      - {name: unemployed_men_25_44, data_type: integer}
+      - {name: unemployed_men_45_plus, data_type: integer}
+      - {name: unemployed_women_under_25, data_type: integer}
+      - {name: unemployed_women_25_44, data_type: integer}
+      - {name: unemployed_women_45_plus, data_type: integer}
+      - {name: unemployed_agriculture, data_type: integer}
+      - {name: unemployed_industry, data_type: integer}
+      - {name: unemployed_construction, data_type: integer}
+      - {name: unemployed_services, data_type: integer}
+      - {name: unemployed_no_previous_job, data_type: integer, description: Registered without a previous job.}
+      - {name: population_year, data_type: integer, description: Year of the register the ratio uses (the latest up to the month).}
+      - {name: population, data_type: integer}
+      - {name: unemployed_per_1000_inhabitants, data_type: "numeric(8,1)", description: Against the whole population of the register, not the working age.}
+      - {name: unemployed_yoy, data_type: "numeric(8,4)", description: Against the same month a year earlier (0.01 = +1 %).}
+      - {name: same_month_mean, data_type: "numeric(10,1)", description: Mean of this calendar month over every year loaded.}
+      - {name: unemployed_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same calendar month (0.1 = 10 % more).}
+
+  - name: fct_unemployment_island_monthly
+    description: >-
+      Registered unemployment of Mallorca as a whole per month (SEPE): the sum of its 53 municipalities, by sex, age
+      and sector, per 1,000 inhabitants of the register, against the same month a year earlier and against the mean of
+      the same calendar month. A suppressed municipal total ("<5") adds nothing, so the island is short by at most 4
+      people for each of `suppressed_municipalities`.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [month]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "unemployed_men + unemployed_women <= unemployed + 4 * 6 * municipalities"
+    columns:
+      - {name: month, data_type: date, description: First day of the month., constraints: [{type: not_null}]}
+      - {name: season, data_type: text, description: "`summer` June to September, `winter` November to February."}
+      - {name: municipalities, data_type: integer, description: Municipalities in the file that month (53).}
+      - {name: suppressed_municipalities, data_type: integer, description: 'Municipalities whose total was "<5".'}
+      - {name: unemployed, data_type: integer}
+      - {name: unemployed_men, data_type: integer, description: Sum of the published cells of the three bands of men.}
+      - {name: unemployed_women, data_type: integer, description: Sum of the published cells of the three bands of women.}
+      - {name: unemployed_under_25, data_type: integer}
+      - {name: unemployed_45_plus, data_type: integer}
+      - {name: unemployed_agriculture, data_type: integer}
+      - {name: unemployed_industry, data_type: integer}
+      - {name: unemployed_construction, data_type: integer}
+      - {name: unemployed_services, data_type: integer}
+      - {name: unemployed_no_previous_job, data_type: integer}
+      - {name: services_share, data_type: "numeric(6,3)", description: Share of the unemployed whose last job was in services.}
+      - {name: population, data_type: integer, description: Sum of the registers the municipalities use that month.}
+      - {name: unemployed_per_1000_inhabitants, data_type: "numeric(8,1)"}
+      - {name: unemployed_yoy, data_type: "numeric(8,4)", description: Against the same month a year earlier.}
+      - {name: same_month_mean, data_type: "numeric(10,0)", description: Mean of this calendar month over every year loaded.}
+      - {name: unemployed_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same calendar month.}
+
+  - name: agg_unemployment_seasonality
+    description: >-
+      How seasonal registered unemployment is per calendar year, for Mallorca (`area` = mallorca) and each
+      municipality: the mean of the winter months (November to February) against that of the summer months (June to
+      September). A ratio only for years with the four summer months and three winter ones at least, and for a
+      municipality without suppressed totals that year.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - type: primary_key
+        columns: [area, year]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "winter_summer_ratio > 0"
+          config:
+            where: "winter_summer_ratio is not null"
+    columns:
+      - {name: area, data_type: text, description: "`mallorca` or the INE code of a municipality.", constraints: [{type: not_null}]}
+      - {name: area_name, data_type: text}
+      - {name: year, data_type: integer, constraints: [{type: not_null}]}
+      - {name: summer_months, data_type: integer}
+      - {name: winter_months, data_type: integer}
+      - {name: summer_mean, data_type: "numeric(10,0)"}
+      - {name: winter_mean, data_type: "numeric(10,0)"}
+      - {name: lowest_month, data_type: integer, description: Lowest month of the year.}
+      - {name: highest_month, data_type: integer, description: Highest month of the year.}
+      - {name: winter_summer_ratio, data_type: "numeric(8,3)", description: Winter mean / summer mean (1.6 = 60 % more unemployed in winter).}
+
   - name: fct_water_reserves_monthly
     description: >-
       Groundwater reserves of Mallorca per month (Govern de les Illes Balears): island-wide share of a full aquifer,
@@ -846,8 +978,8 @@ models:
 
   - name: fct_resources_monthly
     description: >-
-      One row per month with tourism (Dataestur, cruise passengers included), groundwater reserves, rainfall and temperature (AEMET) and
-      electricity demand (REData), each with its anomaly against the same calendar month, because every series is
+      One row per month with tourism (Dataestur, cruise passengers included), groundwater reserves, rainfall and temperature (AEMET),
+      electricity demand (REData) and registered unemployment (SEPE), each with its anomaly against the same calendar month, because every series is
       seasonal. Feeds the "Turismo y recursos" and "Clima y agua" dashboards.
     config:
       contract: {enforced: true}
@@ -875,6 +1007,9 @@ models:
       - {name: temperature_mean_c, data_type: "numeric(5,2)"}
       - {name: temperature_anomaly_c, data_type: "numeric(5,2)"}
       - {name: hot_days, data_type: "numeric(4,1)"}
+      - {name: unemployed, data_type: integer, description: People registered as unemployed in Mallorca (SEPE).}
+      - {name: unemployed_per_1000_inhabitants, data_type: "numeric(8,1)"}
+      - {name: unemployed_anomaly, data_type: "numeric(8,3)", description: Against the mean of the same month.}
 
   - name: fct_air_quality_model_bias_daily
     description: >-
@@ -1388,6 +1523,34 @@ unit_tests:
       rows:
         - {reference_month: "2025-11-01", population_year: 2025, dwellings_per_1000_inhabitants: 138.7, beds_per_100_inhabitants: 85.2, previous_month: null, dwellings_change: null, dwellings_change_pct: null}
         - {reference_month: "2026-05-01", population_year: 2025, dwellings_per_1000_inhabitants: 136.3, beds_per_100_inhabitants: 83.2, previous_month: "2025-11-01", dwellings_change: -41, dwellings_change_pct: -0.0172}
+
+  - name: unemployment_seasonality_needs_a_whole_summer_and_no_suppressed_totals
+    description: >-
+      Mallorca gets a ratio in 2025 (four summer months, four winter ones); Escorca does not, because one of its
+      totals that year was "<5"; and 2013 gets none, because SEPE's file of that year stops in April.
+    model: agg_unemployment_seasonality
+    given:
+      - input: ref('fct_unemployment_island_monthly')
+        rows:
+          - {month: "2025-01-01", season: winter, unemployed: 30000}
+          - {month: "2025-02-01", season: winter, unemployed: 29000}
+          - {month: "2025-06-01", season: summer, unemployed: 18000}
+          - {month: "2025-07-01", season: summer, unemployed: 17000}
+          - {month: "2025-08-01", season: summer, unemployed: 17000}
+          - {month: "2025-09-01", season: summer, unemployed: 18000}
+          - {month: "2025-11-01", season: winter, unemployed: 26000}
+          - {month: "2025-12-01", season: winter, unemployed: 27000}
+          - {month: "2013-01-01", season: winter, unemployed: 60000}
+          - {month: "2013-02-01", season: winter, unemployed: 61000}
+      - input: ref('fct_unemployment_monthly')
+        rows:
+          - {municipality: "07019", municipality_name: Escorca, month: "2025-01-01", season: winter, unemployed: null, is_suppressed: true}
+          - {municipality: "07019", municipality_name: Escorca, month: "2025-07-01", season: summer, unemployed: 5, is_suppressed: false}
+    expect:
+      rows:
+        - {area: mallorca, year: 2013, winter_summer_ratio: null}
+        - {area: mallorca, year: 2025, summer_mean: 17500, winter_mean: 28000, lowest_month: 17000, highest_month: 30000, winter_summer_ratio: 1.600}
+        - {area: "07019", year: 2025, winter_summer_ratio: null}
 
   - name: bike_station_hour_pivots_its_metrics_and_flags_an_empty_moment
     description: >-

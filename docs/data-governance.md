@@ -15,7 +15,7 @@ cambio. La decisión está en el [ADR 0020](adr/0020-gobierno-del-dato-en-el-cat
 
 | Campo | Qué dice | Valores |
 |---|---|---|
-| `domain` | Área temática: la unidad de la que respondería un dueño del dato | `weather`, `air`, `sea`, `energy`, `seismic`, `mobility`, `tourism`, `water`, `population` |
+| `domain` | Área temática: la unidad de la que respondería un dueño del dato | `weather`, `air`, `sea`, `energy`, `seismic`, `mobility`, `tourism`, `water`, `population`, `labour` |
 | `owner` | El organismo que publica el dato y responde de su contenido. La plataforma solo lo copia, lo valida y lo transforma | Texto |
 | `license` | La licencia o las condiciones de reutilización, tal como las publica el dueño | Texto |
 | `terms_url` | La página del dueño con esas condiciones | URL |
@@ -54,6 +54,7 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 | Ibestat (presión humana) | Ibestat | Reutilización con cita | Abierto | 120 días | 90 % |
 | INE (padrón) | INE | CC BY 4.0 | Abierto | 2 años | 90 % |
 | INE (viviendas turísticas) | INE | CC BY 4.0 | Abierto | 400 días | 90 % |
+| SEPE (paro registrado) | Servicio Público de Empleo Estatal | Reutilización con cita (condiciones generales de datos.gob.es): «Origen de los datos: Servicio Público de Empleo Estatal» | Abierto | 120 días | 90 % |
 | BiciPalma | SMAP (Ajuntament de Palma); feed GBFS de Nextbike | CC0 1.0 | Abierto | 48 h | 90 % |
 | IGN (sismos) | Instituto Geográfico Nacional | CC BY 4.0 | Abierto | Sin SLA: solo hay datos cuando hay sismos | 90 % |
 | GOIB (histórico) | Govern de les Illes Balears | CC BY (política de datos abiertos del Govern) | Abierto | Histórico cerrado en 2021 | 90 % |
