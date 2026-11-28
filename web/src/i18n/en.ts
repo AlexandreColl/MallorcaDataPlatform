@@ -23,7 +23,9 @@ export const en: Messages = {
     climate: {
       label: "Climate and water",
       title: "Climate and water",
-      description: "Aquifer reserves, rainfall of the hydrological year and air and sea temperature against normal.",
+      description:
+        "Aquifer reserves, rainfall of the hydrological year, air and sea temperature against normal and bathing " +
+        "water quality.",
     },
     mobility: {
       label: "Mobility",
@@ -60,7 +62,7 @@ export const en: Messages = {
     catalogue: "Catalogue",
     footer:
       "Open data from AEMET, SOCIB, Puertos del Estado, NOAA, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
-      "Govern de les Illes Balears and Open-Meteo. Map © OpenStreetMap.",
+      "Govern de les Illes Balears, Ministerio de Sanidad and Open-Meteo. Map © OpenStreetMap.",
   },
   data: {
     loadError: (error: string) => `The data could not be loaded: ${error}`,
@@ -410,6 +412,31 @@ export const en: Messages = {
     seaChart: "Sea temperature anomaly and marine heatwave days of each month",
     seaAnomaly: "Sea anomaly",
     heatwaveDays: "Heatwave days",
+  },
+  bathing: {
+    classes: { 4: "Excellent", 3: "Good", 2: "Sufficient", 1: "Poor" },
+    unclassified: "Not classified",
+    upgraded: (previous: string) => `Up from ${previous}`,
+    downgraded: (previous: string) => `Down from ${previous}`,
+    unchanged: "Same as the previous season",
+    classLine: (season: string) => `Class in ${season}`,
+    tooFewSamples: (samples: number) => `Only ${samples} samples in four seasons (16 are needed)`,
+    samplesLine: (samples: number, last: string) => `${samples} samples; the latest on ${last}`,
+    worstLine: (eColi: string, enterococci: string) =>
+      `Worst result: ${eColi} E. coli and ${enterococci} enterococci per 100 ml`,
+    restrictionsLine: (restrictions: number, bans: number) =>
+      `${restrictions} bathing ${restrictions === 1 ? "restriction" : "restrictions"}` +
+      (bans > 0 ? `, ${bans} of them a ban` : ""),
+    mapTitle: "Bathing water quality",
+    mapSubtitle: (season: string) =>
+      `Each beach with its class under the EU directive in ${season}, computed from four seasons of samples in ` +
+      "Náyade (Spanish Ministry of Health). Click a beach to see its card.",
+    trendTitle: "Excellent bathing waters",
+    trendSubtitle:
+      "Beaches in each class per season and share of excellent ones among those classified. A beach needs 16 " +
+      "samples, about two seasons, to get a class.",
+    trendChart: "Beaches in each class and share of excellent ones per season",
+    excellentShare: "Excellent",
   },
   mobilityPage: {
     dailyCallsChart: "Scheduled stop calls per day on each network",

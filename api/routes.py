@@ -18,6 +18,8 @@ from api.schemas import (
     AnomaliesDay,
     Anomaly,
     Aquifer,
+    BathingWaterSeason,
+    BathingWaterYear,
     BikesHour,
     BikeStation,
     ClimateMonth,
@@ -73,6 +75,8 @@ router = APIRouter(
 CACHED_PATHS = (
     "/v1/water/reserves",
     "/v1/water/aquifers",
+    "/v1/water/bathing",
+    "/v1/water/bathing/island",
     "/v1/climate/monthly",
     "/v1/tourism/monthly",
     "/v1/tourism/dwellings",
@@ -338,6 +342,27 @@ def water_reserves(warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth
 def water_aquifers(warehouse: WarehouseDep) -> list[Aquifer]:
     """The 18 aquifers of Mallorca in the latest published month, lowest first, with their change in 12 months."""
     return [Aquifer(**row) for row in warehouse.aquifers()]
+
+
+@router.get("/water/bathing", tags=["monthly"])
+def bathing_waters(
+    warehouse: WarehouseDep,
+    season: Annotated[
+        int | None, Query(ge=2000, le=2100, description="Bathing season (year); default: the latest one loaded.")
+    ] = None,
+) -> list[BathingWaterSeason]:
+    """Every bathing water of Mallorca in one season, worst first (Náyade).
+
+    Its samples, worst E. coli and enterococci, restrictions and the class of the Bathing Water Directive computed on
+    that season and the three before it (a reproduction of the method, not the official classification).
+    """
+    return [BathingWaterSeason(**row) for row in warehouse.bathing_waters(season)]
+
+
+@router.get("/water/bathing/island", tags=["monthly"])
+def bathing_water_years(warehouse: WarehouseDep) -> list[BathingWaterYear]:
+    """The bathing waters of Mallorca per season: how many in each class and the share of excellent ones (Náyade)."""
+    return [BathingWaterYear(**row) for row in warehouse.bathing_water_years()]
 
 
 @router.get("/climate/monthly", tags=["monthly"])

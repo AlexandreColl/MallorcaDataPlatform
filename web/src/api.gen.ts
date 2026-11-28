@@ -49,6 +49,69 @@ export interface Aquifer {
   change_12m_pts: number | null;
 }
 
+/** One bathing water of Mallorca in one season (gold.fct_bathing_water_seasons, Náyade). */
+export interface BathingWaterSeason {
+  /** Náyade id of the bathing water. */
+  bathing_water: string;
+  name: string | null;
+  /** INE municipality code. */
+  municipality: string;
+  municipality_name: string | null;
+  sampling_points: number;
+  lat: number;
+  lon: number;
+  season: number;
+  /** Point-days with a result that season. */
+  samples: number;
+  last_sample_date: string | null;
+  /** Highest E. coli of the season (cfu/100 ml). */
+  worst_e_coli: number | null;
+  /** Highest intestinal enterococci of the season (cfu/100 ml). */
+  worst_enterococci: number | null;
+  /** Samples that came with advice against bathing or a ban. */
+  samples_not_fit: number;
+  restrictions: number;
+  bans: number;
+  restricted_days: number;
+  /** Samples of the four seasons the class is computed on. */
+  assessed_samples: number;
+  assessed_seasons: number;
+  p95_e_coli: number | null;
+  p95_enterococci: number | null;
+  p90_e_coli: number | null;
+  p90_enterococci: number | null;
+  /** Directive 2006/7/EC: 4 excellent, 3 good, 2 sufficient, 1 poor; null below 16 samples. */
+  quality_class: number | null;
+  quality: string | null;
+  previous_quality_class: number | null;
+  /** Against the previous season: +1 one class better. */
+  quality_class_change: number | null;
+}
+
+/** The bathing waters of Mallorca as a whole in one season (gold.fct_bathing_water_island_yearly, Náyade). */
+export interface BathingWaterYear {
+  season: number;
+  bathing_waters: number;
+  /** Waters with at least 16 samples in their four-season set. */
+  classified: number;
+  excellent: number;
+  good: number;
+  sufficient: number;
+  poor: number;
+  /** Excellent / classified. */
+  excellent_share: number | null;
+  downgraded: number;
+  upgraded: number;
+  samples: number;
+  samples_not_fit: number;
+  samples_not_fit_share: number | null;
+  restrictions: number;
+  bans: number;
+  restricted_days: number;
+  worst_e_coli: number | null;
+  worst_enterococci: number | null;
+}
+
 /** One BiciPalma station on the latest day with values (gold.fct_bike_stations_daily). */
 export interface BikeStation {
   /** GBFS `station_id` of the operator (Nextbike). */

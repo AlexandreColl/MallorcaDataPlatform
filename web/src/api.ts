@@ -4,6 +4,8 @@
 import type {
   AirQualityNow,
   AnomaliesDay,
+  BathingWaterSeason,
+  BathingWaterYear,
   BikesHour,
   BikeStation,
   Aquifer,
@@ -95,6 +97,8 @@ export const api = {
   seaTemperature: (from: string) => get<SeaTemperatureMonth[]>(`/sea/temperature/monthly?from=${from}`),
   water: (from: string) => get<WaterReservesMonth[]>(`/water/reserves?from=${from}`),
   aquifers: () => get<Aquifer[]>("/water/aquifers"),
+  bathingWaters: () => get<BathingWaterSeason[]>("/water/bathing"),
+  bathingWaterYears: () => get<BathingWaterYear[]>("/water/bathing/island"),
   mobilityDaily: (from: string) => get<MobilityDay[]>(`/mobility/daily?from=${from}`),
   stops: () => get<StopService[]>("/mobility/stops"),
   routes: () => get<TransitRoute[]>("/mobility/routes"),

@@ -241,6 +241,25 @@ WHERE %(area)s::text IS NULL OR area = %(area)s
 ORDER BY area = 'mallorca' DESC, area, year
 """
 
+# Every bathing water of Mallorca in one season (Náyade); without a season, the latest one loaded.
+_BATHING_WATERS = """
+SELECT bathing_water, name, municipality, municipality_name, sampling_points, lat, lon, season, samples,
+       last_sample_date, worst_e_coli, worst_enterococci, samples_not_fit, restrictions, bans, restricted_days,
+       assessed_samples, assessed_seasons, p95_e_coli, p95_enterococci, p90_e_coli, p90_enterococci, quality_class,
+       quality, previous_quality_class, quality_class_change
+FROM gold.fct_bathing_water_seasons
+WHERE season = coalesce(%(season)s::integer, (SELECT max(season) FROM gold.fct_bathing_water_seasons))
+ORDER BY quality_class NULLS FIRST, worst_e_coli DESC NULLS LAST, bathing_water
+"""
+
+_BATHING_WATER_YEARS = """
+SELECT season, bathing_waters, classified, excellent, good, sufficient, poor, excellent_share, downgraded, upgraded,
+       samples, samples_not_fit, samples_not_fit_share, restrictions, bans, restricted_days, worst_e_coli,
+       worst_enterococci
+FROM gold.fct_bathing_water_island_yearly
+ORDER BY season
+"""
+
 # People present in Mallorca each day (Ibestat IPH) against its registered residents.
 _HUMAN_PRESSURE = """
 SELECT local_date, is_weekend, people_present, residents, register_year, people_over_residents, pressure_ratio
@@ -588,6 +607,14 @@ class Warehouse:
     def unemployment_seasonality(self, area: str | None) -> list[Row]:
         """Winter against summer unemployment per year, of the island first, then of each municipality."""
         return self.db.fetch_all(_UNEMPLOYMENT_SEASONALITY, {"area": area})
+
+    def bathing_waters(self, season: int | None) -> list[Row]:
+        """Every bathing water in one season (default: the latest), worst classified first."""
+        return self.db.fetch_all(_BATHING_WATERS, {"season": season})
+
+    def bathing_water_years(self) -> list[Row]:
+        """The island's bathing waters per season, oldest first."""
+        return self.db.fetch_all(_BATHING_WATER_YEARS)
 
     def human_pressure(self, start: date, end: date) -> list[Row]:
         """People present in Mallorca per day in ``[start, end]``, oldest first."""

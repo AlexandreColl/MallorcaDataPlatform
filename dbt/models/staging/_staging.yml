@@ -70,6 +70,10 @@ models:
     description: >-
       SEPE registered unemployment, the people registered as unemployed in each municipality of Mallorca per
       month, by sex and age band and by sector. Counts from 1 to 4 ("<5") are null.
+  - name: stg_nayade__observations
+    description: >-
+      Náyade (Ministerio de Sanidad), every sample of the bathing waters of Mallorca per sampling point and day:
+      E. coli, intestinal enterococci (cfu/100 ml) and the advice given with it, plus the bathing restrictions.
   - name: stg_ibestat_iph__observations
     description: Ibestat Human Pressure Indicator, the people present in Mallorca each day (residents plus visitors).
   - name: stg_ign__observations
