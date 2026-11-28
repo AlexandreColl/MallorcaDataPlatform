@@ -185,7 +185,7 @@ function BathingTrend({ rows }: { rows: BathingWaterYear[] }) {
           data: rows.map((r) => r[counts[c]]),
         })),
         {
-          name: m.excellentShare, type: "line", yAxisIndex: 1, color: "#0f172a", symbolSize: 7,
+          name: m.excellentShare, type: "line", yAxisIndex: 1, color: "#9333ea", symbolSize: 7,
           tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} %`) },
           data: rows.map((r) => (r.excellent_share === null ? null : 100 * r.excellent_share)),
         },
