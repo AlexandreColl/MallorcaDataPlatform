@@ -1452,7 +1452,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT name AS \"Playa\", municipality_name AS \"Municipio\", lat, lon, coalesce(quality_class, 0) AS quality_class, coalesce(quality, 'sin clase') AS \"Clase\", samples AS \"Muestras\", worst_e_coli AS \"Peor E. coli\", worst_enterococci AS \"Peores enterococos\", restrictions AS \"Restricciones\" FROM gold.fct_bathing_water_seasons WHERE season = (SELECT max(season) FROM gold.fct_bathing_water_seasons WHERE season <= extract(year FROM $__timeTo())::int)"
+          "rawSql": "SELECT name AS \"Playa\", municipality_name AS \"Municipio\", lat, lon, coalesce(quality_class, 0) AS quality_class, coalesce(quality, 'sin clase') AS \"Clase\", samples AS \"Muestras\", worst_e_coli AS \"Peor E. coli\", worst_enterococci AS \"Peores enterococos\", restrictions AS \"Restricciones\" FROM gold.fct_bathing_water_seasons WHERE season = (SELECT max(season) FROM gold.fct_bathing_water_seasons WHERE season <= extract(year FROM $__timeTo()::timestamptz)::int)"
         }
       ],
       "fieldConfig": {
