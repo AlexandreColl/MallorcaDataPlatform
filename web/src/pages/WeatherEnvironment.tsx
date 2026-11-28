@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { api, daysAgo, type SeaHour, type WeatherSourceDay } from "../api";
+import { api, daysAgo, type PollenDustDay, type SeaHour, type WeatherSourceDay } from "../api";
 import { Async, Table } from "../components/Async";
 import { Chart, SERIES } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
@@ -10,7 +10,18 @@ import { TemperatureZones } from "../components/TemperatureZones";
 import { WarningsMap } from "../components/WarningsMap";
 import { ready, useLoad } from "../hooks";
 import { messages } from "../i18n";
-import { airLayers, eaqiBand, eaqiBands, environmentKpis, episodeType, localTime, temperatureSubtitle } from "../lib/environment";
+import {
+  airLayers,
+  DUST_EPISODE_UGM3,
+  eaqiBand,
+  eaqiBands,
+  environmentKpis,
+  episodeType,
+  islandDays,
+  localTime,
+  POLLEN_MODERATE,
+  temperatureSubtitle,
+} from "../lib/environment";
 import { dayShort, number, orDash, placeName, signed } from "../lib/format";
 import { describe, levels } from "../lib/warnings";
 
@@ -55,6 +66,56 @@ function Waves({ hours }: { hours: SeaHour[] }) {
   return <Chart option={option} label={messages().weather.wavesChart} height={300} />;
 }
 
+/** A dashed horizontal line at a threshold, labelled with its value. */
+function threshold(value: number, color: string) {
+  return {
+    symbol: "none", silent: true, data: [{ yAxis: value }],
+    lineStyle: { type: "dashed", color }, label: { formatter: String(value), color },
+  };
+}
+
+function PollenSeason({ days }: { days: PollenDustDay[] }) {
+  const option = useCallback(() => {
+    const island = islandDays(days);
+    const m = messages().weather;
+    const [olive = "#000", grass = "#000"] = [SERIES[2], SERIES[0]];
+    return {
+      xAxis: { type: "category", data: island.map((d) => dayShort(d.date)) },
+      yAxis: { type: "value" }, // grains/m³, as the subtitle says: the unit has a name in each language
+      tooltip: { valueFormatter: orDash((v) => number(v, 1)) },
+      series: [
+        { name: m.olive, type: "line", symbol: "none", color: olive, data: island.map((d) => d.olive), markLine: threshold(POLLEN_MODERATE.olive, olive) },
+        { name: m.grass, type: "line", symbol: "none", color: grass, data: island.map((d) => d.grass), markLine: threshold(POLLEN_MODERATE.grass, grass) },
+      ],
+    };
+  }, [days]);
+  return <Chart option={option} label={messages().weather.pollenChart} height={300} />;
+}
+
+function SaharanDust({ days }: { days: PollenDustDay[] }) {
+  const option = useCallback(() => {
+    const island = islandDays(days);
+    const color = SERIES[2] ?? "#000";
+    return {
+      xAxis: { type: "category", data: island.map((d) => dayShort(d.date)) },
+      yAxis: { type: "value", axisLabel: { formatter: "{value} µg/m³" } },
+      tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} µg/m³`) },
+      series: [
+        {
+          name: messages().weather.dust, type: "bar", color, barCategoryGap: "10%",
+          data: island.map((d) => d.dust), markLine: threshold(DUST_EPISODE_UGM3, "#dc2626"),
+        },
+      ],
+    };
+  }, [days]);
+  return <Chart option={option} label={messages().weather.dustChart} height={300} />;
+}
+
+/** "2026-03-10" -> "10 mar 2026": dust episodes span several years. */
+const dayAndYear = (isoDay: string) => `${dayShort(isoDay)} ${isoDay.slice(0, 4)}`;
+/** A concentration in µg/m³ without decimals, or a dash. */
+const ugm3 = orDash((value) => number(value, 0));
+
 /** A wave height in metres with two decimals, or a dash. */
 const metres = orDash((value) => number(value, 2));
 
@@ -64,6 +125,9 @@ export function WeatherEnvironment() {
   const sea = useLoad(() => api.sea(daysAgo(7)));
   const episodes = useLoad(() => api.episodes(daysAgo(365)));
   const quakes = useLoad(api.earthquakes);
+  const pollenDust = useLoad(() => api.pollenDust(daysAgo(365)));
+  const dustEpisodes = useLoad(() => api.dustEpisodes(daysAgo(3 * 365)));
+  const dustStations = useLoad(api.dustPm10);
   const bias = useLoad(api.modelBias);
   const waveBias = useLoad(api.seaModelBias);
 
@@ -174,6 +238,42 @@ export function WeatherEnvironment() {
                   { label: "NO₂", value: (a) => (a.no2 === null ? "—" : number(a.no2)), numeric: true },
                   { label: "O₃", value: (a) => (a.o3 === null ? "—" : number(a.o3)), numeric: true },
                   { label: "PM10", value: (a) => (a.pm10 === null ? "—" : number(a.pm10)), numeric: true },
+                ]}
+              />
+            )}
+          </Async>
+        </Panel>
+        <Panel title={m.pollenTitle} subtitle={m.pollenSubtitle} wide>
+          <Async state={pollenDust} height={300}>{(rows) => <PollenSeason days={rows} />}</Async>
+        </Panel>
+        <Panel title={m.dustEpisodesTitle} subtitle={m.dustEpisodesSubtitle}>
+          <Async state={dustEpisodes}>
+            {(rows) => (
+              <Table
+                rows={rows.slice(0, 8)}
+                empty={m.noDustEpisodes}
+                columns={[
+                  { label: m.start, value: (e) => dayAndYear(e.start_date) },
+                  { label: m.days, value: (e) => number(e.days), numeric: true },
+                  { label: m.dust, value: (e) => ugm3(e.peak_dust_ugm3), numeric: true },
+                  { label: m.pm10Excess, value: (e) => (e.pm10_excess_ugm3 === null ? "—" : signed(e.pm10_excess_ugm3, 0)), numeric: true },
+                ]}
+              />
+            )}
+          </Async>
+        </Panel>
+        <Panel title={m.dustTitle} subtitle={m.dustSubtitle} wide>
+          <Async state={pollenDust} height={300}>{(rows) => <SaharanDust days={rows} />}</Async>
+        </Panel>
+        <Panel title={m.dustStationsTitle} subtitle={m.dustStationsSubtitle}>
+          <Async state={dustStations}>
+            {(rows) => (
+              <Table
+                rows={rows}
+                columns={[
+                  { label: m.station, value: (d) => placeName(d.station, d.name) },
+                  { label: m.withWithout, value: (d) => `${ugm3(d.pm10_dust_days_ugm3)} / ${ugm3(d.pm10_other_days_ugm3)}`, numeric: true },
+                  { label: m.camsBias, value: (d) => (d.model_bias_dust_days_ugm3 === null ? "—" : signed(d.model_bias_dust_days_ugm3, 0)), numeric: true },
                 ]}
               />
             )}

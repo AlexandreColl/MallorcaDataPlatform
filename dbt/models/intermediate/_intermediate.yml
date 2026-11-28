@@ -50,3 +50,14 @@ models:
       - unique_combination:
           arguments:
             columns: [point, day]
+
+  - name: int_dust__daily
+    description: >
+      Saharan dust over the island per local day (Open-Meteo CAMS): the mean of the daily means of the model points,
+      the point with the most and whether it is a dust day (`dust_episode_ugm3`). Feeds fct_dust_episodes and
+      agg_dust_pm10_by_station.
+    columns:
+      - name: local_date
+        data_tests: [not_null, unique]
+      - name: is_dust_day
+        data_tests: [not_null]

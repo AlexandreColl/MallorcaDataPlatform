@@ -613,6 +613,69 @@ class MarineHeatwave(BaseModel):
     has_preliminary_days: bool
 
 
+PollenLevel = Literal["none", "low", "moderate", "high"]
+
+
+class PollenDustDay(BaseModel):
+    """Pollen, Saharan dust and UV of one model point on one local day (gold.fct_pollen_dust_daily, CAMS)."""
+
+    point: str
+    name: str | None = Field(default=None, examples=["Palma"], description=NAME)
+    local_date: date
+    olive_pollen_mean: float | None = Field(description="Daily mean of olive pollen (grains/m³).")
+    olive_pollen_max: float | None = Field(description="Highest hour of the day (grains/m³).")
+    olive_pollen_level: PollenLevel | None = Field(
+        description="Level of the daily mean (Red Española de Aerobiología): low 1-50, moderate 51-200, high > 200."
+    )
+    grass_pollen_mean: float | None = Field(description="Daily mean of grass pollen (grains/m³).")
+    grass_pollen_max: float | None
+    grass_pollen_level: PollenLevel | None = Field(
+        description="Level of the daily mean (Red Española de Aerobiología): low 1-25, moderate 26-50, high > 50."
+    )
+    dust_mean_ugm3: float | None = Field(description="Daily mean of Saharan dust near the ground (µg/m³).")
+    dust_max_ugm3: float | None
+    is_dust_over_threshold: bool = Field(description="The point alone reaches the dust episode threshold (25 µg/m³).")
+    uv_index_max: float | None = Field(description="Highest UV index of the day (since August 2022).")
+
+
+class DustEpisode(BaseModel):
+    """A Saharan dust episode and the PM10 of the official stations during it (gold.fct_dust_episodes)."""
+
+    episode_id: str
+    start_date: date
+    end_date: date
+    days: int
+    peak_day: date
+    peak_point: str
+    peak_point_name: str | None = Field(default=None, examples=["Palma"], description=NAME)
+    peak_dust_ugm3: float | None = Field(description="Highest daily mean dust of a model point (µg/m³).")
+    mean_dust_ugm3: float | None = Field(description="Mean dust of the island over the episode (µg/m³).")
+    max_hourly_dust_ugm3: float | None
+    stations: int = Field(description="EEA stations with PM10 both in the episode and on the days around it.")
+    station_pm10_ugm3: float | None = Field(description="Their mean PM10 during the episode (µg/m³).")
+    baseline_pm10_ugm3: float | None = Field(description="Their mean PM10 on the days without dust within 15 days.")
+    pm10_excess_ugm3: float | None = Field(description="How much higher the station PM10 is during the episode.")
+    model_pm10_ugm3: float | None = Field(description="CAMS PM10 at the nearest model points during the episode.")
+    model_bias_ugm3: float | None = Field(description="CAMS minus stations during the episode (positive = higher).")
+
+
+class DustPm10Station(BaseModel):
+    """PM10 of an official station on dust days and on the other days (gold.agg_dust_pm10_by_station)."""
+
+    station: str
+    name: str | None = Field(default=None, examples=["Bellver"], description=NAME)
+    model_point: str | None
+    dust_days: int
+    other_days: int
+    pm10_dust_days_ugm3: float | None
+    pm10_other_days_ugm3: float | None
+    pm10_excess_ugm3: float | None = Field(description="Dust days minus the other days (µg/m³).")
+    model_bias_dust_days_ugm3: float | None = Field(description="CAMS minus station on dust days (µg/m³).")
+    model_bias_other_days_ugm3: float | None
+    first_day: date | None
+    last_day: date | None
+
+
 class SeaTemperatureMonth(BaseModel):
     """The sea around Mallorca in one month, from the satellite (gold.fct_sea_temperature_monthly, OISST)."""
 

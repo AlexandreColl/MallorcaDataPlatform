@@ -2,7 +2,8 @@
 
 - **API**: <https://open-meteo.com/en/docs/air-quality-api> y <https://open-meteo.com/en/docs>
 - **Autenticación**: ninguna (uso no comercial).
-- **Datasets**: `air_quality` (modelo CAMS Europa, ~11 km) y `weather` (modelos meteorológicos).
+- **Datasets**: `air_quality` (modelo CAMS Europa, ~11 km, con polen, polvo sahariano y UV) y `weather` (modelos
+  meteorológicos).
 - **Frecuencia**: horaria. La API de previsión sirve los últimos 92 días; los anteriores salen de su archivo
   (ver *Histórico*), así que una ejecución pide hasta un año (`max_days: 366`) y el *catch-up* sigue en 92 días.
 - **Puntos**: las `locations` de la región (6 en Mallorca), en una sola petición por dataset.
@@ -11,6 +12,9 @@
 |---|---|---|
 | pm10, pm2_5, nitrogen_dioxide, ozone | ug/m3 | ver `connector.yaml` |
 | european_aqi | eaqi | 0-500 |
+| olive_pollen, grass_pollen | grains/m3 | 0-10.000 y 0-5.000 (las trampas cuentan miles en los picos) |
+| dust | ug/m3 | 0-5.000 (polvo sahariano cerca del suelo) |
+| uv_index | uvi | 0-20 |
 | temperature_2m | degC | -15 a 50 |
 | relative_humidity_2m | pct | 0-100 |
 | precipitation | mm | 0-300 |
@@ -21,7 +25,9 @@
 
 `make backfill CONNECTORS=open_meteo START=2017-01-01 END=...` carga los años anteriores, uno por ejecución.
 
-- **Calidad del aire**: la misma API sirve el modelo CAMS Europa desde 2013, sin cambiar nada.
+- **Calidad del aire**: la misma API sirve el modelo CAMS Europa desde 2013, sin cambiar nada. El polvo, el polen y el
+  UV empiezan más tarde (ver abajo): `options.available_since` del YAML fija el primer día de cada uno, así que una
+  ventana anterior no los pide y las horas previas, siempre nulas, no se guardan como valores ausentes.
 - **Meteorología**: las ventanas que empiezan antes de los 92 días de la API de previsión piden
   `historical-forecast-api.open-meteo.com`, el archivo de las mismas previsiones (`history_url` en `connector.yaml`).
   - Desde el 16-11-2022 coincide hora a hora con la serie en vivo: probado del 20 al 23-11-2026 en Palma, 96 de 96

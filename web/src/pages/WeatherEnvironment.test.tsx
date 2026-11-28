@@ -20,6 +20,13 @@ const answers = {
   ],
   sea: [],
   episodes: [],
+  pollenDust: [
+    { point: "palma", name: "Palma", local_date: "2026-05-14", olive_pollen_mean: 61.2, grass_pollen_mean: 7.5, dust_mean_ugm3: 3 },
+  ],
+  dustEpisodes: [
+    { episode_id: "a", start_date: "2025-03-20", end_date: "2025-03-22", days: 3, peak_day: "2025-03-21", peak_point: "inca", peak_dust_ugm3: 97.4, stations: 6, pm10_excess_ugm3: 38.6 },
+  ],
+  dustPm10: [{ station: "bellver", name: "Bellver", dust_days: 40, other_days: 1500, pm10_dust_days_ugm3: 41.2, pm10_other_days_ugm3: 17.8, model_bias_dust_days_ugm3: 6.4 }],
   earthquakes: [{ ts: new Date().toISOString(), magnitude: 2.1, depth_km: 8, distance_to_palma_km: 40 }],
   seaModelBias: [
     { buoy: "portocolom_buoy", buoy_name: "Boya de Portocolom", model_point: "portocolom", model_point_name: "Portocolom", distance_km: 1.4, hours_compared: 300, wave_height_buoy_mean_m: 0.8, wave_height_model_mean_m: 0.95, wave_height_bias_m: 0.15, wave_height_mae_m: 0.2, wave_height_rmse_m: 0.27, wave_height_correlation: 0.912, model_ratio: 1.19, first_ts: null, last_ts: null },
@@ -65,6 +72,16 @@ describe("WeatherEnvironment", () => {
 
     const row = within(await panel("Oleaje: boyas frente al modelo")).getAllByRole("row")[1] as HTMLElement;
     expect(within(row).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Boya de Portocolom", "0,80 / 0,95", "+0,15", "0,91"]);
+  });
+
+  it("lists the dust episodes with the extra PM10 of the stations, and the dust at each station", async () => {
+    render(<WeatherEnvironment />);
+
+    const episode = within(await panel("Episodios de polvo sahariano")).getAllByRole("row")[1] as HTMLElement;
+    expect(within(episode).getAllByRole("cell").map((c) => c.textContent)).toEqual(["20 mar 2025", "3", "97", "+39"]);
+    const station = within(await panel("El polvo en las estaciones")).getAllByRole("row")[1] as HTMLElement;
+    expect(within(station).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Bellver", "41 / 18", "+6"]);
+    expect(screen.getByRole("figure", { name: "Polen de olivo y gramíneas, media diaria de la isla" })).toBeTruthy();
   });
 
   it("says when there is nothing to list", async () => {

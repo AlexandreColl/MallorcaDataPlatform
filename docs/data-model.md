@@ -227,6 +227,9 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `air_quality_hourly` | localidad y hora | Snapshot periódico, con la banda del índice europeo | Tabla | — |
 | `fct_air_quality_model_bias_daily` | estación, contaminante y día | Snapshot periódico | Tabla | ✅ |
 | `fct_air_quality_monthly` | fuente, estación, contaminante y mes | Snapshot periódico, con cobertura | Tabla | ✅ |
+| `fct_pollen_dust_daily` | punto del modelo y día local | Snapshot periódico: polen (con su nivel), polvo sahariano y UV de CAMS | Tabla | ✅ |
+| `fct_dust_episodes` | episodio de polvo sahariano | Transacción (evento): días seguidos de polvo, con islas y huecos, y el PM10 de las estaciones durante el episodio frente a los días de alrededor | Tabla | ✅ |
+| `agg_dust_pm10_by_station` | estación de la EEA | Agregado: PM10 y sesgo de CAMS los días con polvo y el resto | Tabla | ✅ |
 | `fct_electricity_daily` | día | Snapshot periódico, ancho | Tabla | ✅ |
 | `fct_bus_network_daily`, `fct_island_transit_daily` | día | Snapshot periódico | Tabla | ✅ |
 | `fct_bike_stations_hourly` | estación de BiciPalma y hora UTC | Snapshot periódico, ancho: media, mínimo y máximo de las instantáneas de 5 minutos de la hora. Incremental | Tabla | ✅ |

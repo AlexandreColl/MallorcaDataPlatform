@@ -177,6 +177,54 @@ export interface DetectorBenchmark {
   evaluated_at: string;
 }
 
+/** A Saharan dust episode and the PM10 of the official stations during it (gold.fct_dust_episodes). */
+export interface DustEpisode {
+  episode_id: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  peak_day: string;
+  peak_point: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  peak_point_name: string | null;
+  /** Highest daily mean dust of a model point (µg/m³). */
+  peak_dust_ugm3: number | null;
+  /** Mean dust of the island over the episode (µg/m³). */
+  mean_dust_ugm3: number | null;
+  max_hourly_dust_ugm3: number | null;
+  /** EEA stations with PM10 both in the episode and on the days around it. */
+  stations: number;
+  /** Their mean PM10 during the episode (µg/m³). */
+  station_pm10_ugm3: number | null;
+  /** Their mean PM10 on the days without dust within 15 days. */
+  baseline_pm10_ugm3: number | null;
+  /** How much higher the station PM10 is during the episode. */
+  pm10_excess_ugm3: number | null;
+  /** CAMS PM10 at the nearest model points during the episode. */
+  model_pm10_ugm3: number | null;
+  /** CAMS minus stations during the episode (positive = higher). */
+  model_bias_ugm3: number | null;
+}
+
+/** PM10 of an official station on dust days and on the other days (gold.agg_dust_pm10_by_station). */
+export interface DustPm10Station {
+  station: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  name: string | null;
+  model_point: string | null;
+  dust_days: number;
+  other_days: number;
+  pm10_dust_days_ugm3: number | null;
+  pm10_other_days_ugm3: number | null;
+  /** Dust days minus the other days (µg/m³). */
+  pm10_excess_ugm3: number | null;
+  /** CAMS minus station on dust days (µg/m³). */
+  model_bias_dust_days_ugm3: number | null;
+  model_bias_other_days_ugm3: number | null;
+  first_day: string | null;
+  last_day: string | null;
+}
+
 /** One earthquake located by the IGN, in its latest revision (gold.fct_earthquakes). */
 export interface Earthquake {
   event_id: string;
@@ -334,6 +382,32 @@ export interface Observation {
   quality: string;
   lat: number | null;
   lon: number | null;
+}
+
+/** Pollen, Saharan dust and UV of one model point on one local day (gold.fct_pollen_dust_daily, CAMS). */
+export interface PollenDustDay {
+  point: string;
+  /** The name the source publishes (silver.entities); null when the identifier already reads as a name. */
+  name: string | null;
+  local_date: string;
+  /** Daily mean of olive pollen (grains/m³). */
+  olive_pollen_mean: number | null;
+  /** Highest hour of the day (grains/m³). */
+  olive_pollen_max: number | null;
+  /** Level of the daily mean (Red Española de Aerobiología): low 1-50, moderate 51-200, high > 200. */
+  olive_pollen_level: "none" | "low" | "moderate" | "high" | null;
+  /** Daily mean of grass pollen (grains/m³). */
+  grass_pollen_mean: number | null;
+  grass_pollen_max: number | null;
+  /** Level of the daily mean (Red Española de Aerobiología): low 1-25, moderate 26-50, high > 50. */
+  grass_pollen_level: "none" | "low" | "moderate" | "high" | null;
+  /** Daily mean of Saharan dust near the ground (µg/m³). */
+  dust_mean_ugm3: number | null;
+  dust_max_ugm3: number | null;
+  /** The point alone reaches the dust episode threshold (25 µg/m³). */
+  is_dust_over_threshold: boolean;
+  /** Highest UV index of the day (since August 2022). */
+  uv_index_max: number | null;
 }
 
 /** Population of a municipality of Mallorca on 1 January (gold.fct_population_yearly, INE municipal register). */

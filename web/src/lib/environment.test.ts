@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { AirQualityNow, SeaHour, StationDay, WeatherSourceDay } from "../api";
-import { airLayers, environmentKpis, episodeType, localTime, temperatureSubtitle } from "./environment";
+import type { AirQualityNow, PollenDustDay, SeaHour, StationDay, WeatherSourceDay } from "../api";
+import { airLayers, environmentKpis, episodeType, islandDays, localTime, temperatureSubtitle } from "./environment";
 
 const day = (fields: Partial<WeatherSourceDay>) => ({ source: "open_meteo", temperature_max: null, ...fields }) as WeatherSourceDay;
 const air = (fields: Partial<AirQualityNow>) =>
@@ -62,5 +62,23 @@ describe("texts", () => {
     expect(temperatureSubtitle(null, null)).toMatch(/^Las 33 estaciones oficiales de AEMET, interpoladas/);
     expect(temperatureSubtitle(stations, null)).toMatch(/^Las 2 estaciones .* el 3 de noviembre de 2026 \(último día publicado\)/);
     expect(temperatureSubtitle(stations, "2026-11-03")).not.toMatch(/último día publicado/);
+  });
+});
+
+describe("islandDays", () => {
+  const point = (fields: Partial<PollenDustDay>) =>
+    ({ point: "palma", olive_pollen_mean: null, grass_pollen_mean: null, dust_mean_ugm3: null, ...fields }) as PollenDustDay;
+
+  it("averages the points of each day, oldest first, and leaves out the points without a value", () => {
+    const days = islandDays([
+      point({ local_date: "2026-05-02", olive_pollen_mean: 80, dust_mean_ugm3: 30 }),
+      point({ point: "inca", local_date: "2026-05-02", olive_pollen_mean: 40, dust_mean_ugm3: null }),
+      point({ local_date: "2026-05-01", grass_pollen_mean: 12 }),
+    ]);
+
+    expect(days).toEqual([
+      { date: "2026-05-01", olive: null, grass: 12, dust: null },
+      { date: "2026-05-02", olive: 60, grass: null, dust: 30 },
+    ]);
   });
 });

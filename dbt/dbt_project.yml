@@ -35,6 +35,18 @@ vars:
   sst_heatwave_percentile: 0.9
   sst_heatwave_min_days: 5
   sst_heatwave_max_gap_days: 2
+  # pollen levels on the daily mean in grains/m3: the thresholds of the Red Española de Aerobiología (REA), the share
+  # of sensitive people with symptoms, as published by the Ayuntamiento de Zaragoza
+  # (https://www.zaragoza.es/sede/servicio/informacion-polen/). Each value is where a level starts; below `low`
+  # there is no pollen.
+  pollen_levels:
+    olive_pollen: {low: 1, moderate: 51, high: 201}
+    grass_pollen: {low: 1, moderate: 26, high: 51}
+  # Saharan dust: a dust day when the mean of the island's model points reaches this daily mean of CAMS dust near the
+  # ground. 25 ug/m3 is half the EU daily limit for PM10 (50, Directive 2008/50/EC): the dust alone takes half of it.
+  dust_episode_ugm3: 25
+  # PM10 of the stations in a dust episode is compared with their PM10 on the days without dust this close to it
+  dust_baseline_half_days: 15
   # Connectors whose rows are events (see macros/event_sources.sql). ine_tourist_housing is `frequency: event` only
   # because its reference months are irregular: its rows are series of a municipality, so it is not listed here.
   event_sources: ["ign", "aemet_warnings"]

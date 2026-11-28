@@ -1,6 +1,6 @@
 // The figures of the weather and environment page: key figures, air quality points, local times and subtitles.
 
-import type { AirQualityNow, SeaHour, StationDay, WeatherSourceDay } from "../api";
+import type { AirQualityNow, PollenDustDay, SeaHour, StationDay, WeatherSourceDay } from "../api";
 import type { MapLayer } from "../components/PointMap";
 import { messages } from "../i18n";
 import { dayName, dayShort, number, placeName } from "./format";
@@ -18,6 +18,39 @@ export function eaqiBands(): { label: string; color: string }[] {
 /** The band of an index value (1 to 6). */
 export function eaqiBand(band: number): { label: string; color: string } | undefined {
   return eaqiBands()[band - 1];
+}
+
+/** Where the moderate level starts, in grains/m³ of daily mean (Red Española de Aerobiología; dbt vars.pollen_levels). */
+export const POLLEN_MODERATE = { olive: 51, grass: 26 } as const;
+/** A dust day: the island mean of CAMS dust reaches half the EU daily PM10 limit (dbt vars.dust_episode_ugm3). */
+export const DUST_EPISODE_UGM3 = 25;
+
+export interface IslandDay {
+  date: string;
+  olive: number | null;
+  grass: number | null;
+  dust: number | null;
+}
+
+/** The mean of a list without its nulls, or null when nothing is left. */
+function meanOf(values: (number | null)[]): number | null {
+  const known = values.filter((v): v is number => v !== null);
+  return known.length === 0 ? null : known.reduce((a, b) => a + b, 0) / known.length;
+}
+
+/** The island per day: the mean of the daily means of its model points, for pollen and dust, oldest day first. */
+export function islandDays(days: PollenDustDay[]): IslandDay[] {
+  const byDate = new Map<string, PollenDustDay[]>();
+  for (const d of days) byDate.set(d.local_date, [...(byDate.get(d.local_date) ?? []), d]);
+  return [...byDate.keys()].sort().map((date) => {
+    const points = byDate.get(date) ?? [];
+    return {
+      date,
+      olive: meanOf(points.map((p) => p.olive_pollen_mean)),
+      grass: meanOf(points.map((p) => p.grass_pollen_mean)),
+      dust: meanOf(points.map((p) => p.dust_mean_ugm3)),
+    };
+  });
 }
 
 export function episodeType(type: string): string {

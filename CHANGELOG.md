@@ -7,6 +7,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Open-Meteo: olive and grass pollen, Saharan dust and the UV index from the same CAMS air quality API, with their
+  canonical units (`grains/m3`, `ug/m3`, `uvi`) and physical ranges. Each starts on the first day the API serves it
+  (`options.available_since`: dust 2018-01-01, pollen 2020-10-07, UV 2022-08-04), so older windows neither ask for
+  it nor store empty hours as missing values. Birch, alder, mugwort and ragweed pollen are left out (trees and weeds
+  that are rare on the island; CAMS only brings plumes from elsewhere). The anomaly detectors skip the four metrics:
+  they are zero most of the time and their peaks are the events themselves (on Palma in 2025 the vote would flag
+  13 % of the UV hours and 4 % of the dust and grass pollen ones). History loaded since 2018. In the catalogue in
+  three languages.
+- dbt: `fct_pollen_dust_daily` (pollen, dust and UV per model point and day, with the pollen level of the daily mean
+  from the thresholds of the Red Española de Aerobiología), `int_dust__daily`, `fct_dust_episodes` (Saharan dust
+  episodes, days whose island mean reaches 25 µg/m³, half the EU daily PM10 limit, with gaps and islands, and the
+  PM10 of the EEA stations during each one against the calm days around it) and `agg_dust_pm10_by_station` (station
+  PM10 and CAMS bias on dust days and the rest, for the PM10 corrections that fill gaps with CAMS), with unit tests
+  of the pollen level and of the episode baseline. API: `GET /v1/air-quality/pollen-dust`, `/dust-episodes` and
+  `/dust-pm10`. Web: the pollen season, the Saharan dust of the last year, the dust episodes and the dust at each
+  station on Weather and environment. Grafana: pollen, dust against station PM10 and an episodes table on the
+  Weather and environment dashboard.
 - Dataestur: the cruise passengers of the Balearic port authority (`cruises` dataset, Puertos del Estado's port
   traffic `PUERTOS_DL`): monthly cruise passengers, cruise calls and all port passengers since January 2005, the
   five ports together (Palma is about two thirds). The APB's own per-port statistics are only PNG images, and its
