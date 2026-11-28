@@ -1,0 +1,86 @@
+;;;;PARO REGISTRADO POR MUNICIPIOS DESGLOSADO POR SEXO, TRAMOS DE EDAD Y SECTOR DE LA ACTIVIDAD ECONÓMICA;;;;;;;;;;;;;;;
+Código mes ;mes;Código de CA;Comunidad Autónoma;Codigo Provincia;Provincia;Codigo Municipio; Municipio;total Paro Registrado;Paro hombre edad < 25;Paro hombre edad 25 -45 ;Paro hombre edad >=45;Paro mujer edad < 25;Paro mujer edad 25 -45 ;Paro mujer edad >=45;Paro Agricultura;Paro Industria;Paro Construcción;Paro Servicios;Paro Sin empleo Anterior
+202501;Enero de 2025;1;Andalucía;4;Almería;04001;Abla;74;5;7;28;<5;14;19;10;<5;6;49;6
+202501;Enero de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;919;68;130;189;52;151;329;7;22;73;779;38
+202501;Enero de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;<5;0;0;0;<5;0;0;0;<5;0
+202501;Enero de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;1084;69;164;267;51;253;280;8;41;153;848;34
+202501;Enero de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;731;40;86;152;49;136;268;10;33;75;568;45
+202501;Enero de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;13512;838;1876;3072;709;2767;4250;127;508;1481;10154;1242
+202501;Enero de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;281;37;35;60;13;49;87;5;12;28;220;16
+202502;Febrero de 2025;1;Andalucía;4;Almería;04001;Abla;76;6;8;25;<5;14;22;11;<5;6;49;7
+202502;Febrero de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;860;65;107;189;40;145;314;5;25;76;721;33
+202502;Febrero de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;<5;0;0;0;<5;0;0;0;<5;0
+202502;Febrero de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;1094;66;171;268;48;257;284;7;35;152;866;34
+202502;Febrero de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;762;44;88;155;56;141;278;9;37;78;602;36
+202502;Febrero de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;13549;887;1810;3058;704;2801;4289;138;524;1456;10102;1329
+202502;Febrero de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;282;38;31;59;16;50;88;6;11;31;218;16
+202503;Marzo de 2025;1;Andalucía;4;Almería;04001;Abla;70;<5;7;24;0;11;24;11;<5;<5;47;5
+202503;Marzo de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;824;72;96;183;33;136;304;5;25;73;686;35
+202503;Marzo de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202503;Marzo de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;1043;67;163;261;36;236;280;8;35;140;823;37
+202503;Marzo de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;761;45;82;155;55;146;278;9;38;77;601;36
+202503;Marzo de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;13417;878;1753;3000;726;2788;4272;142;507;1448;9918;1402
+202503;Marzo de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;258;33;30;56;15;40;84;7;10;32;192;17
+202504;Abril de 2025;1;Andalucía;4;Almería;04001;Abla;67;<5;6;27;<5;9;21;11;<5;<5;44;5
+202504;Abril de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;740;55;71;169;21;127;297;5;19;69;610;37
+202504;Abril de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202504;Abril de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;913;45;142;240;25;207;254;9;29;132;710;33
+202504;Abril de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;678;29;73;149;38;124;265;6;35;67;532;38
+202504;Abril de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12642;722;1652;2937;561;2582;4188;136;490;1399;9289;1328
+202504;Abril de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;217;22;21;52;10;32;80;5;12;31;154;15
+202505;Mayo de 2025;1;Andalucía;4;Almería;04001;Abla;68;<5;5;25;<5;12;21;11;<5;5;46;<5
+202505;Mayo de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;681;35;68;156;17;117;288;<5;16;59;569;34
+202505;Mayo de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202505;Mayo de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;845;35;134;214;26;189;247;5;26;130;651;33
+202505;Mayo de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;606;25;64;142;20;112;243;5;35;68;458;40
+202505;Mayo de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12242;682;1560;2891;541;2472;4096;133;480;1394;8947;1288
+202505;Mayo de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;201;20;21;47;7;25;81;<5;10;28;147;13
+202506;Junio de 2025;1;Andalucía;4;Almería;04001;Abla;70;<5;5;26;<5;14;21;11;<5;5;49;<5
+202506;Junio de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;712;41;71;162;28;121;289;<5;21;72;581;34
+202506;Junio de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202506;Junio de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;843;35;151;228;25;167;237;7;32;162;603;39
+202506;Junio de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;596;26;56;143;22;106;243;7;36;61;452;40
+202506;Junio de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;11906;633;1527;2834;522;2368;4022;127;488;1380;8660;1251
+202506;Junio de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;186;20;25;45;7;20;69;<5;10;25;135;13
+202507;Julio de 2025;1;Andalucía;4;Almería;04001;Abla;74;<5;6;29;<5;15;21;11;<5;6;51;<5
+202507;Julio de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;722;34;69;164;40;126;289;5;24;66;599;28
+202507;Julio de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202507;Julio de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;891;30;165;249;22;190;235;<5;39;178;631;39
+202507;Julio de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;615;22;70;153;24;111;235;7;38;73;461;36
+202507;Julio de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12136;636;1555;2915;526;2487;4017;123;482;1443;8847;1241
+202507;Julio de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;206;12;33;53;5;29;74;<5;10;25;154;14
+202508;Agosto de 2025;1;Andalucía;4;Almería;04001;Abla;72;<5;8;28;<5;13;21;12;<5;5;49;<5
+202508;Agosto de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;747;43;72;165;44;133;290;<5;23;73;616;31
+202508;Agosto de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202508;Agosto de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;921;37;172;253;21;204;234;5;44;191;644;37
+202508;Agosto de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;634;18;81;150;24;125;236;8;38;74;481;33
+202508;Agosto de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12274;624;1634;2918;535;2528;4035;120;488;1468;9013;1185
+202508;Agosto de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;214;11;31;50;8;40;74;<5;11;27;163;11
+202509;Septiembre de 2025;1;Andalucía;4;Almería;04001;Abla;74;<5;9;29;<5;11;22;11;5;5;51;<5
+202509;Septiembre de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;781;53;91;166;54;129;288;<5;24;72;646;35
+202509;Septiembre de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;0;0;0;0;<5;0;0;0;<5;0
+202509;Septiembre de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;962;48;189;245;31;208;241;7;42;194;689;30
+202509;Septiembre de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;644;30;80;144;36;121;233;8;31;70;512;23
+202509;Septiembre de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12195;707;1616;2865;622;2393;3992;132;476;1420;8956;1211
+202509;Septiembre de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;222;25;27;53;23;24;70;<5;12;26;168;12
+202510;Octubre de 2025;1;Andalucía;4;Almería;04001;Abla;76;<5;9;27;<5;12;24;10;5;5;54;<5
+202510;Octubre de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;896;82;137;184;66;141;286;6;28;78;753;31
+202510;Octubre de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;<5;0;0;0;<5;0;0;0;<5;0
+202510;Octubre de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;1081;64;218;243;47;256;253;8;38;172;836;27
+202510;Octubre de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;680;38;70;144;37;141;250;7;30;67;555;21
+202510;Octubre de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12459;795;1676;2830;678;2477;4003;123;496;1384;9248;1208
+202510;Octubre de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;259;42;33;53;26;34;71;<5;12;28;203;12
+202511;Noviembre de 2025;1;Andalucía;4;Almería;04001;Abla;71;<5;9;25;<5;11;23;10;5;<5;50;<5
+202511;Noviembre de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;1043;114;174;191;80;178;306;5;27;71;904;36
+202511;Noviembre de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;<5;0;0;0;<5;0;0;0;<5;0
+202511;Noviembre de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;1257;75;251;256;80;301;294;7;38;164;1021;27
+202511;Noviembre de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;723;49;80;146;48;146;254;7;31;66;592;27
+202511;Noviembre de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12988;813;1847;2881;758;2653;4036;124;532;1349;9812;1171
+202511;Noviembre de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;332;50;43;56;36;65;82;<5;11;29;273;16
+202512;Diciembre de 2025;1;Andalucía;4;Almería;04001;Abla;67;<5;10;25;<5;9;20;10;<5;5;45;<5
+202512;Diciembre de 2025;4;Balears, Illes;7;Balears, Illes;07011;Calvià;940;81;144;194;68;169;284;7;27;75;802;29
+202512;Diciembre de 2025;4;Balears, Illes;7;Balears, Illes;07019;Escorca;<5;0;<5;0;0;0;<5;0;0;0;<5;0
+202512;Diciembre de 2025;4;Balears, Illes;7;Balears, Illes;07026;Eivissa;1180;66;226;254;64;296;274;8;39;165;932;36
+202512;Diciembre de 2025;4;Balears, Illes;7;Balears, Illes;07032;Maó;680;41;75;145;44;129;246;5;28;69;548;30
+202512;Diciembre de 2025;4;Balears, Illes;7;Balears, Illes;07040;Palma de Mallorca;12841;825;1847;2825;724;2621;3999;124;517;1339;9689;1172
+202512;Diciembre de 2025;4;Balears, Illes;7;Balears, Illes;07042;Pollença;320;52;42;53;36;58;79;<5;13;25;267;12

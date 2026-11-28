@@ -118,9 +118,12 @@ def rules_for(
     if not by_frequency and not config.is_event_source:  # no declared metrics: check all at the default frequency
         by_frequency[config.frequency_delta] = set()
 
-    rules: list[Rule] = [NotNullRule(), SourceQcRule(), DuplicateRule()]
+    # Metrics whose small values the source only publishes as a mark (``<5``): their nulls are neither failures of
+    # not_null nor gaps.
+    suppressed = frozenset(m.name for m in config.metrics.values() if m.suppressed_below is not None)
+    rules: list[Rule] = [NotNullRule(suppressed=suppressed), SourceQcRule(), DuplicateRule()]
     rules.extend(
-        GapRule(expected_steps(freq), freq, frozenset(metrics) or None)
+        GapRule(expected_steps(freq), freq, frozenset(metrics) or None, suppressed & metrics)
         for freq, metrics in sorted(by_frequency.items())
     )
     rules.extend(

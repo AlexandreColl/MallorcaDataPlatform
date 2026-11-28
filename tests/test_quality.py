@@ -182,3 +182,21 @@ def test_a_live_source_expects_no_hours_before_its_first_snapshot(spark):
 
     gaps = _results_by_rule(results)[("gaps", "bikes_available")]
     assert (gaps.checked, gaps.failed) == (4, 1)  # not 24 and 21: the hours before polling started are not gaps
+
+
+def test_suppressed_values_are_missing_but_neither_failures_nor_gaps(spark):
+    sepe = registry.load("sepe_unemployment")
+    window = TimeWindow(date(2026, 1, 1), date(2026, 3, 31))  # January, February and March
+
+    def month(m, value):
+        ts = datetime(2026, m, 1, tzinfo=UTC)
+        return Observation("sepe_unemployment", "07019", "unemployed", ts, value, "people")
+
+    # Escorca: "<5" in January (stored as null), 6 in February, and March left out of the file.
+    silver, results = apply_quality(_frame(spark, [month(1, None), month(2, 6.0)]), sepe, window)
+
+    by_rule = _results_by_rule(results)
+    assert by_rule[("not_null", "value")].passed  # a suppressed count is not a missing value...
+    assert {r.quality for r in silver.collect() if r.value is None} == {Quality.MISSING}  # ...though it has none
+    gaps = by_rule[("gaps", "unemployed")]
+    assert (gaps.checked, gaps.failed) == (3, 1)  # January was published; only March is a gap
