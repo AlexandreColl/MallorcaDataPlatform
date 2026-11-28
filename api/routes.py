@@ -35,8 +35,8 @@ from api.schemas import (
     MarineHeatwave,
     MobilityDay,
     ModelBias,
-    MunicipalUnemployment,
     Municipality,
+    MunicipalUnemployment,
     Observation,
     Page,
     PollenDustDay,
@@ -53,9 +53,9 @@ from api.schemas import (
     StopService,
     TourismMonth,
     TouristDwellings,
+    TransitRoute,
     UnemploymentMonth,
     UnemploymentSeasonality,
-    TransitRoute,
     WarningZone,
     WaterReservesMonth,
     WaveModelBias,
@@ -430,7 +430,9 @@ def warnings(warehouse: WarehouseDep, start: Start = None, end: End = None) -> l
 
 
 @router.get("/unemployment/monthly", tags=["monthly"])
-def unemployment_monthly(warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None) -> list[UnemploymentMonth]:
+def unemployment_monthly(
+    warehouse: WarehouseDep, from_: FromMonth = None, to: ToMonth = None
+) -> list[UnemploymentMonth]:
     """Registered unemployment of Mallorca per month, by sex, age and sector (SEPE; default: every month).
 
     A month is published some two weeks after it ends. Since 2022 SEPE publishes every count from 1 to 4 as `<5`.

@@ -38,6 +38,7 @@ exposures:
     depends_on:
       - ref('fct_resources_monthly')
       - ref('fct_tourism_monthly')
+      - ref('agg_unemployment_seasonality')
 
   - name: grafana_climate_water
     label: Grafana · Mallorca · Clima y agua
@@ -167,6 +168,9 @@ exposures:
       - ref('fct_tourist_dwellings')
       - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
+      - ref('fct_unemployment_monthly')
+      - ref('fct_unemployment_island_monthly')
+      - ref('agg_unemployment_seasonality')
 
   - name: web
     label: Web front end · Mallorca en datos
@@ -214,6 +218,9 @@ exposures:
       - ref('fct_tourist_dwellings')
       - ref('fct_human_pressure_daily')
       - ref('dim_municipalities')
+      - ref('fct_unemployment_monthly')
+      - ref('fct_unemployment_island_monthly')
+      - ref('agg_unemployment_seasonality')
 
   - name: corrections_phase
     label: Corrections with support sources (phase 4)

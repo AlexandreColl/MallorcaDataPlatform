@@ -466,7 +466,9 @@ class UnemploymentMonth(BaseModel):
     """Registered unemployment of Mallorca in one month (gold.fct_unemployment_island_monthly, SEPE)."""
 
     month: date
-    season: str | None = Field(examples=["winter"], description="`summer` (June-September), `winter` (November-February).")
+    season: str | None = Field(
+        examples=["winter"], description="`summer` (June-September), `winter` (November-February)."
+    )
     municipalities: int
     suppressed_municipalities: int = Field(description="Municipalities whose total was published as `<5`.")
     unemployed: int | None = Field(examples=[24876])
