@@ -186,7 +186,7 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
     turísticas es frente al recuento anterior, esté a la distancia que esté, y un recuento sin su padrón publicado
     usa el último padrón anterior.
   - `unemployment_seasonality_needs_whole_seasons`: el cociente invierno/verano del paro solo sale con los
-    cuatro meses de verano y al menos tres de invierno (el fichero de 2013 acaba en abril), y en un municipio
+    cuatro meses de verano y al menos tres de invierno (el año en curso aún no los tiene), y en un municipio
     solo sin totales «<5» ese año.
   - `water_reserve_anomaly_is_against_the_same_calendar_month`: la anomalía de las reservas es frente al mismo mes
     de otros años.

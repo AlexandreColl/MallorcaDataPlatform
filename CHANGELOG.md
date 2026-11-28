@@ -10,13 +10,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 - Connector `sepe_unemployment`: the registered unemployment of SEPE (Paro registrado por municipios) in the 53
   municipalities of Mallorca, monthly since January 2006: the total, six bands of sex and age and five sectors.
   One ~10 MB CSV per year with the whole of Spain; bronze keeps only the Balearic lines of the window's months and
-  the SHA-256 of the file. Municipality codes have 4 digits until 2018. History loaded (153,276 values). In the
+  the SHA-256 of the file. Municipality codes have 4 digits until 2018. History loaded (159,000 values). In the
   catalogue in three languages, with SEPE's reuse terms (datos.gob.es general conditions, attribution required),
   and a new `labour` domain.
 - Core: `suppressed_below` per metric in `connector.yaml`, for sources that publish small counts only as a mark
   (SEPE's `<5` since 2022). Those values are stored as null, never as the threshold; the `not_null` rule does not
   count them and the gaps rule counts a month with a row as published, so the 6,780 suppressed cells raise no
-  false alarms, while a month missing from the file (May-December 2013, December 2020) is still a gap.
+  false alarms, while a month missing from the file is still a gap.
+- `sepe_unemployment`: the months the yearly CSV leaves out (May-December 2013 and December 2020) come from SEPE's
+  monthly statistics, the Balearic PDF of each month (the province's XLS there is a damaged OLE file). Every line
+  is checked (the bands and the sectors add up to the total) and the 2013 months match the semester XLS of the
+  open data in all 5,088 cells of Mallorca. The history now has its 250 months, 2006-01 to 2026-10.
 - dbt: `fct_unemployment_monthly` (per municipality: subtotals, unemployment per 1,000 inhabitants of the
   register, year-on-year change and anomaly against the same month, `is_suppressed`),
   `fct_unemployment_island_monthly` (Mallorca, with the suppressed municipalities counted apart),

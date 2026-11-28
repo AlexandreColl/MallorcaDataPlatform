@@ -1,8 +1,8 @@
 -- How seasonal unemployment is, per year, in Mallorca as a whole (`area` = 'mallorca') and in each municipality (its
 -- INE code): the mean of the winter months (November to February) against the mean of the summer months (June to
 -- September) of the same calendar year. `winter_summer_ratio` 1.6 means 60 % more people registered as unemployed in
--- winter than in summer. A year counts only with its four summer months and at least three winter ones (the SEPE file
--- of 2013 stops in April and the one of 2020 in November), and a municipality only without suppressed totals in it.
+-- winter than in summer. A year counts only with its four summer months and at least three winter ones (the year in
+-- progress has not got them yet), and a municipality only without suppressed totals in it.
 with monthly as (
     select
         'mallorca' as area,
