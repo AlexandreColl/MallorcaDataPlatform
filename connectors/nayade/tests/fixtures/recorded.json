@@ -1,0 +1,128 @@
+{
+  "connector": "nayade",
+  "region": "mallorca",
+  "window": {
+    "start": "2023-01-01",
+    "end": "2026-11-27"
+  },
+  "requests": [
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoListaZonaAction.do",
+      "params": {
+        "codCCAA": "4",
+        "codMunicipio": "7042",
+        "codProvincia": "7"
+      },
+      "file": "01_ciudadanolistazonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1037",
+        "pestanya": "1"
+      },
+      "file": "02_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1037",
+        "pestanya": "3"
+      },
+      "file": "03_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1036",
+        "pestanya": "1"
+      },
+      "file": "04_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1036",
+        "pestanya": "3"
+      },
+      "file": "05_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1035",
+        "pestanya": "1"
+      },
+      "file": "06_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1035",
+        "pestanya": "3"
+      },
+      "file": "07_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1038",
+        "pestanya": "1"
+      },
+      "file": "08_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1038",
+        "pestanya": "3"
+      },
+      "file": "09_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1034",
+        "pestanya": "1"
+      },
+      "file": "10_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1034",
+        "pestanya": "3"
+      },
+      "file": "11_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1039",
+        "pestanya": "1"
+      },
+      "file": "12_ciudadanoverzonaaction_do.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano/ciudadanoVerZonaAction.do",
+      "params": {
+        "codZona": "1039",
+        "pestanya": "3"
+      },
+      "file": "13_ciudadanoverzonaaction_do.txt"
+    }
+  ]
+}

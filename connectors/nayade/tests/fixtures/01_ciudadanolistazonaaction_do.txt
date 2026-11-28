@@ -1,0 +1,147 @@
+<!--ciudadanoListaZona.jsp -->
+
+
+
+
+<html lang="es">
+<head>
+<!--Evita los ataques por ClickJacking -->
+<meta http-equiv="X-Frame-Options" content="deny"/>
+<META Http-Equiv="Cache-Control" Content="no-cache">
+<META Http-Equiv="Pragma" Content="no-cache"><META Http-Equiv="Expires" Content="0">
+<title>Sistema de Información Nacional de Aguas de Baño</title>
+<link rel="stylesheet" href="/Splayas/css/estilos.css" type="text/css">
+<script type="text/javascript" src ="/Splayas/js/funciones.js"></script>
+<script type="text/javascript" src ="/Splayas/js/menu_generator.js" ></script>
+
+<script type="text/javascript">
+   function verZona(codZona){
+      document.ciudadanoZonaForm.codZona.value = codZona;
+      document.ciudadanoZonaForm.actionProcedencia.value = "ciudadanoListaZonaAction";
+      document.ciudadanoZonaForm.action = "ciudadanoVerZonaAction.do";
+      document.ciudadanoZonaForm.submit();
+   }
+
+   function volver(){
+      document.ciudadanoZonaForm.codCCAA.value="";
+      document.ciudadanoZonaForm.codProvincia.value="";
+      document.ciudadanoZonaForm.codMunicipio.value="";
+      document.ciudadanoZonaForm.codZona.value="";
+      document.ciudadanoZonaForm.actionProcedencia.value="";
+      document.ciudadanoZonaForm.action="ciudadanoZonaAction.do";
+      document.ciudadanoZonaForm.submit();
+   }
+</script>
+</head>
+
+<body >
+
+<img src="/Splayas/images/logoSuperior.gif"/>
+<br><br>
+
+<script language="Javascript1.2">
+	var botones = new Array(4);
+	botones[0] = "Volver";
+	botones[1] = "javascript:volver()";
+        botones[2] = "Salir";
+        botones[3] = "indexCiudadanoAction.do";
+	pintaBotonesContext(botones,'/Splayas');
+</script>
+<form name="ciudadanoZonaForm" method="POST" action="/Splayas/ciudadano/ciudadanoZonaAction.do" enctype="multipart/form-data">
+   <input type="hidden" name="codZona" value="">
+   <input type="hidden" name="actionProcedencia" value="">
+   <input type="hidden" name="codCCAA" value="4">
+   <input type="hidden" name="codProvincia" value="7">
+   <input type="hidden" name="codMunicipio" value="7042">
+</form>
+
+<table border="0" cellpadding="0" cellspacing="0" class="tablaformTitulo">
+   <tr>
+      <td class="imageIzq"><img src="/Splayas/images/peston1.gif"  class="imageIzq"></td>
+      <td width="673" class="tituloMenuDesActivo">Listado de playas controladas oficialmente en el año&nbsp;2026</td>
+      <td class="imageDer"><img src="/Splayas/images/peston2.gif" class="imageDer"></td>
+    </tr>
+</table>
+<script>pieTablaFina();</script>
+<script>pieTablaFinaBlanca();</script>
+<script>pieTablaFina();</script>
+<table class="tablaform" border="0">
+  <tr>
+     <td class="apartadotabla" colspan="2">Parámetros de Búsqueda</td>
+     <td><div align="right"><a href="javascript:ayuda('/Splayas/html/ayuda/ayudaESP/ListadoPlayas.htm')"><img src="/Splayas/images/iconoAyuda.gif" width="32" height="32" border="0"></a></div></td>
+  </tr>
+  <tr>
+     <td width="20%" class="nombreCampoND">CCAA:</td>
+     <td class="valorCampoI">Islas Baleares</td>
+     <td>&nbsp;</td>
+  </tr>
+  <tr>
+     <td class="nombreCampoND">Provincia:</td>
+     <td class="valorCampoI">Balears (Illes)</td>
+     <td>&nbsp;</td>
+  </tr>
+  <tr>
+     <td class="nombreCampoND">Municipio:</td>
+     <td class="valorCampoI">Pollença</td>
+     <td>&nbsp;</td>
+  </tr>
+   <tr>
+      <td>&nbsp;</td>
+      <td>&nbsp;</td>
+     <td>&nbsp;</td>
+  </tr>
+</table>
+<script>pieTablaFina();</script>
+<script>pieTablaFinaBlanca();</script>
+<script>pieTablaFina();</script>
+
+<table class="tablaform" border="0">
+  <tr>
+     <td class="apartadotabla" colspan="2">Listado de Playas</td>
+  </tr>
+  
+  <tr>
+     <td class="nombreCampoND">Playas Marítimas</td>
+     <td>&nbsp;</td>
+  </tr>
+  
+     <tr>
+        <td class="valorCampoI">&nbsp;</td>
+        <td class="valorCampoI"><a href="javascript:verZona('1037')" class="valorCampo">PLAYA CALA BARQUES (CALA SANT VICENÇ)</a></td>
+     </tr>
+  
+     <tr>
+        <td class="valorCampoI">&nbsp;</td>
+        <td class="valorCampoI"><a href="javascript:verZona('1036')" class="valorCampo">PLAYA CALA MOLINS (CALA SANT VICENÇ)</a></td>
+     </tr>
+  
+     <tr>
+        <td class="valorCampoI">&nbsp;</td>
+        <td class="valorCampoI"><a href="javascript:verZona('1035')" class="valorCampo">PLAYA D&#39;ALBERCUIX( PORT DE POLLENÇA)</a></td>
+     </tr>
+  
+     <tr>
+        <td class="valorCampoI">&nbsp;</td>
+        <td class="valorCampoI"><a href="javascript:verZona('1038')" class="valorCampo">PLAYA DELS TAMARELLS (PORT DE POLLENÇA)</a></td>
+     </tr>
+  
+     <tr>
+        <td class="valorCampoI">&nbsp;</td>
+        <td class="valorCampoI"><a href="javascript:verZona('1034')" class="valorCampo">PLAYA FORMENTOR</a></td>
+     </tr>
+  
+     <tr>
+        <td class="valorCampoI">&nbsp;</td>
+        <td class="valorCampoI"><a href="javascript:verZona('1039')" class="valorCampo">PLAYA LLENAIRE(PORT DE POLLENÇA)</a></td>
+     </tr>
+  
+  <tr>
+     <td width="20%">&nbsp;</td>
+     <td>&nbsp;</td>
+  </tr>
+  
+  
+</table>
+<script>pieTabla();</script>
+</body>
+</html>
