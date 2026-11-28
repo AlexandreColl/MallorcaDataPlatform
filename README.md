@@ -126,6 +126,7 @@ días que ninguna carga correcta ha cubierto, desde el primero que falta, y si n
 | [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | Avisos meteorológicos de AEMET (lluvias, tormentas, viento, costeros…) por zona de Mallorca y hora, del nivel 0 al 3 | Sí |
 | [ine_population](connectors/ine_population/README.md) | ✅ | Población de los 53 municipios de Mallorca a 1 de enero, por sexo, del padrón del INE (desde 1996) | No |
 | [ine_tourist_housing](connectors/ine_tourist_housing/README.md) | ✅ | Viviendas turísticas y plazas de los 53 municipios de Mallorca, dos recuentos al año de la estadística experimental del INE (desde agosto de 2020) | No |
+| [sepe_unemployment](connectors/sepe_unemployment/README.md) | ✅ | Paro registrado de los 53 municipios de Mallorca cada mes, por sexo y edad y por sector, del SEPE (desde 2006) | No |
 | [ibestat_iph](connectors/ibestat_iph/README.md) | ✅ | Personas presentes en Mallorca cada día, residentes más visitantes (Indicador de Presión Humana del Ibestat, desde 1997) | No |
 
 ### Open-Meteo
@@ -202,6 +203,20 @@ reglas de calidad. En gold, `fct_tourist_dwellings` añade el cambio frente al r
 padrón. En la web, el mapa de Movilidad tiene una capa más: en mayo de 2026 había 14.756 viviendas turísticas en la
 isla (un 27 % menos que en agosto de 2020); Pollença tiene 132 por cada 1.000 habitantes y Palma, 1,2.
 [Detalle y pruebas reales](connectors/ine_tourist_housing/README.md).
+
+### SEPE (paro registrado)
+
+Las personas en paro registrado el último día hábil de cada mes en cada municipio de Mallorca, por sexo y edad y
+por sector, de los datos abiertos del SEPE (un CSV por año desde 2006, de unos 10 MB con toda España). Bronze guarda
+solo las líneas de Baleares de los meses de la ventana, con el SHA-256 del fichero entero. Desde 2022 el SEPE
+publica toda cifra de 1 a 4 como `<5`: se guarda como nulo, nunca como 5, y una opción nueva del core por métrica
+(`suppressed_below`) evita que las reglas de nulos y de huecos lo cuenten como fallo; un mes que falta en el
+fichero sí es un hueco (mayo a diciembre de 2013 y diciembre de 2020). En gold, `fct_unemployment_monthly` y
+`fct_unemployment_island_monthly` dan el paro por 1.000 habitantes, el interanual y la anomalía frente al mismo
+mes, y `agg_unemployment_seasonality` el paro de invierno frente al de verano: casi un 50 % más en invierno hasta
+2019 (1,49) y un 14 % en 2025, tras la reforma laboral de 2022. En la web, Turismo y recursos lo correlaciona con
+turistas, aeropuerto y cruceristas, y el mapa de Movilidad tiene una capa de paro por habitante.
+[Detalle y pruebas reales](connectors/sepe_unemployment/README.md).
 
 ### Ibestat (presión humana)
 

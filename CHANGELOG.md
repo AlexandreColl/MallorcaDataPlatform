@@ -7,6 +7,26 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Connector `sepe_unemployment`: the registered unemployment of SEPE (Paro registrado por municipios) in the 53
+  municipalities of Mallorca, monthly since January 2006: the total, six bands of sex and age and five sectors.
+  One ~10 MB CSV per year with the whole of Spain; bronze keeps only the Balearic lines of the window's months and
+  the SHA-256 of the file. Municipality codes have 4 digits until 2018. History loaded (153,276 values). In the
+  catalogue in three languages, with SEPE's reuse terms (datos.gob.es general conditions, attribution required),
+  and a new `labour` domain.
+- Core: `suppressed_below` per metric in `connector.yaml`, for sources that publish small counts only as a mark
+  (SEPE's `<5` since 2022). Those values are stored as null, never as the threshold; the `not_null` rule does not
+  count them and the gaps rule counts a month with a row as published, so the 6,780 suppressed cells raise no
+  false alarms, while a month missing from the file (May-December 2013, December 2020) is still a gap.
+- dbt: `fct_unemployment_monthly` (per municipality: subtotals, unemployment per 1,000 inhabitants of the
+  register, year-on-year change and anomaly against the same month, `is_suppressed`),
+  `fct_unemployment_island_monthly` (Mallorca, with the suppressed municipalities counted apart),
+  `agg_unemployment_seasonality` (winter over summer unemployment per year, island and municipalities, with a unit
+  test) and the unemployment columns of `fct_resources_monthly`. API: `GET /v1/unemployment/monthly`,
+  `/v1/unemployment/municipalities` and `/v1/unemployment/seasonality`, and the new columns of
+  `GET /v1/resources/monthly`. Web: unemployment against tourists, airport and cruise passengers (Pearson with and
+  without the yearly cycle) and two panels on Tourism and resources; an unemployment-per-inhabitant layer, a line
+  in the municipality card and a table column on the Mobility map. Grafana: panels 14 and 15 of Tourism and
+  resources.
 - Open-Meteo: olive and grass pollen, Saharan dust and the UV index from the same CAMS air quality API, with their
   canonical units (`grains/m3`, `ug/m3`, `uvi`) and physical ranges. Each starts on the first day the API serves it
   (`options.available_since`: dust 2018-01-01, pollen 2020-10-07, UV 2022-08-04), so older windows neither ask for

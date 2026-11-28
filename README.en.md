@@ -129,6 +129,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [aemet_warnings](connectors/aemet_warnings/README.md) | ✅ | AEMET weather warnings (rain, storms, wind, coastal…) per zone of Mallorca and hour, level 0 to 3 | Yes |
 | [ine_population](connectors/ine_population/README.md) | ✅ | Population of Mallorca's 53 municipalities on 1 January, by sex, from the INE register (since 1996) | No |
 | [ine_tourist_housing](connectors/ine_tourist_housing/README.md) | ✅ | Tourist dwellings and beds of Mallorca's 53 municipalities, two counts a year from INE's experimental statistic (since August 2020) | No |
+| [sepe_unemployment](connectors/sepe_unemployment/README.md) | ✅ | Registered unemployment of Mallorca's 53 municipalities each month, by sex and age and by sector, from SEPE (since 2006) | No |
 | [ibestat_iph](connectors/ibestat_iph/README.md) | ✅ | People present in Mallorca each day, residents plus visitors (Ibestat's Human Pressure Indicator, since 1997) | No |
 
 ### Open-Meteo
@@ -204,6 +205,21 @@ other quality rules apply. In gold, `fct_tourist_dwellings` adds the change sinc
 against the register. On the web, the Mobility map has one more layer: in May 2026 the island had 14,756 tourist
 dwellings (27 % fewer than in August 2020); Pollença has 132 per 1,000 inhabitants and Palma 1.2.
 [Details and real tests](connectors/ine_tourist_housing/README.md).
+
+### SEPE (registered unemployment)
+
+The people registered as unemployed on the last working day of each month in each municipality of Mallorca, by
+sex and age and by sector, from SEPE's open data (one CSV a year since 2006, about 10 MB with the whole of Spain).
+Bronze keeps only the Balearic lines of the window's months, with the SHA-256 of the whole file. Since 2022 SEPE
+publishes every count from 1 to 4 as `<5`: it is stored as null, never as 5, and a new per-metric option of the
+core (`suppressed_below`) keeps the null and gaps rules from counting it as a failure; a month missing from the
+file is still a gap (May to December 2013 and December 2020). In gold, `fct_unemployment_monthly` and
+`fct_unemployment_island_monthly` give the unemployment per 1,000 inhabitants, the year-on-year change and the
+anomaly against the same month, and `agg_unemployment_seasonality` winter against summer unemployment: almost
+50 % more in winter up to 2019 (1.49) and 14 % in 2025, after the 2022 labour reform. On the web, Tourism and
+resources correlates it with tourists, the airport and cruise passengers, and the Mobility map has an
+unemployment-per-inhabitant layer.
+[Details and real tests](connectors/sepe_unemployment/README.md).
 
 ### Ibestat (human pressure)
 
