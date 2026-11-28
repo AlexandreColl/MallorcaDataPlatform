@@ -8,9 +8,10 @@
 --   3 good:       95th percentile <= 500 and <= 200
 --   2 sufficient: 90th percentile <= 500 and <= 185
 --   1 poor:       otherwise
--- and is not classified with fewer than 16 samples in the set (the directive's minimum for four seasons). Náyade
--- keeps only the last four seasons, so the first ones loaded are assessed on fewer seasons (`assessed_seasons`), and
--- the samples of every sampling point of a water count, while the official assessment may leave out samples of
+-- and is not classified with fewer than 16 samples in the set (the directive's minimum) or with a single season: a
+-- water with several sampling points reaches 16 samples in one season, which is not an assessment of four. Náyade
+-- keeps only the last four seasons, so the first ones loaded are assessed on fewer (`assessed_seasons`), and the
+-- samples of every sampling point of a water count, while the official assessment may leave out samples of
 -- short-term pollution: this is a reproduction of the method, not the official classification.
 with samples as (
     select
@@ -110,7 +111,7 @@ classified as (
     select
         *,
         case
-            when assessed_samples < 16 then null
+            when assessed_samples < 16 or assessed_seasons < 2 then null
             when p95_e_coli <= 250 and p95_enterococci <= 100 then 4
             when p95_e_coli <= 500 and p95_enterococci <= 200 then 3
             when p90_e_coli <= 500 and p90_enterococci <= 185 then 2

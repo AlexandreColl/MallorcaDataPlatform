@@ -968,7 +968,7 @@ models:
             where: "quality_class is not null"
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "assessed_samples >= 16"
+            expression: "assessed_samples >= 16 and assessed_seasons >= 2"
           config:
             where: "quality_class is not null"
     columns:
@@ -999,7 +999,7 @@ models:
       - {name: p95_enterococci, data_type: "numeric(10,1)"}
       - {name: p90_e_coli, data_type: "numeric(10,1)", description: "90th percentile of the directive, 10^(mean + 1.282 sd)."}
       - {name: p90_enterococci, data_type: "numeric(10,1)"}
-      - {name: quality_class, data_type: integer, description: "4 excellent, 3 good, 2 sufficient, 1 poor; null with fewer than 16 samples."}
+      - {name: quality_class, data_type: integer, description: "4 excellent, 3 good, 2 sufficient, 1 poor; null with fewer than 16 samples or a single season."}
       - name: quality
         data_type: text
         data_tests:
@@ -1556,8 +1556,9 @@ unit_tests:
 
   - name: bathing_water_class_follows_the_directive_percentiles
     description: >-
-      16 clean samples make an excellent water; 16 samples of 1,000 E. coli across two points a poor one (its 90th
-      percentile is 1,000), and with a ban of 5 days; three samples are too few to classify.
+      16 clean samples over two seasons make an excellent water; 16 samples of 1,000 E. coli over two seasons and two
+      points a poor one (its 90th percentile is 1,000), with a ban of 5 days. A first season alone is not classified,
+      even with 16 samples of several points, and three samples are too few.
     model: fct_bathing_water_seasons
     given:
       - input: ref('stg_nayade__observations')
@@ -1565,12 +1566,22 @@ unit_tests:
         rows: |
           select 'nayade' as source, '07042_1001_PM1' as entity, m as metric, d::date as local_date,
                  10.0::double precision as value, false as is_missing, 39.9 as lat, 3.05 as lon
-          from generate_series('2026-05-01'::date, '2026-05-16', interval '1 day') as d
+          from generate_series('2025-05-01'::date, '2025-05-08', interval '1 day') as d
+          cross join unnest(array['e_coli', 'enterococci']) as m
+          union all
+          select 'nayade', '07042_1001_PM1', m, d::date, 10.0, false, 39.9, 3.05
+          from generate_series('2026-05-01'::date, '2026-05-08', interval '1 day') as d
           cross join unnest(array['e_coli', 'enterococci']) as m
           union all
           select 'nayade', '07042_1002_' || p, m, d::date, case m when 'e_coli' then 1000.0 else 300.0 end,
                  false, 39.9, 3.06
-          from generate_series('2025-06-01'::date, '2025-06-08', interval '1 day') as d
+          from generate_series('2024-06-01'::date, '2024-06-04', interval '1 day') as d
+          cross join unnest(array['e_coli', 'enterococci']) as m
+          cross join unnest(array['PM1', 'PM2']) as p
+          union all
+          select 'nayade', '07042_1002_' || p, m, d::date, case m when 'e_coli' then 1000.0 else 300.0 end,
+                 false, 39.9, 3.06
+          from generate_series('2025-06-01'::date, '2025-06-04', interval '1 day') as d
           cross join unnest(array['e_coli', 'enterococci']) as m
           cross join unnest(array['PM1', 'PM2']) as p
           union all
@@ -1592,8 +1603,10 @@ unit_tests:
           - {municipality: "07042", name: Pollença}
     expect:
       rows:
-        - {bathing_water: "1001", name: Playa Uno, municipality_name: Pollença, season: 2026, sampling_points: 1, samples: 16, assessed_samples: 16, bans: 0, quality_class: 4, quality: excellent}
-        - {bathing_water: "1002", name: Playa Dos, municipality_name: Pollença, season: 2025, sampling_points: 2, samples: 16, assessed_samples: 16, bans: 1, quality_class: 1, quality: poor}
+        - {bathing_water: "1001", name: Playa Uno, municipality_name: Pollença, season: 2025, sampling_points: 1, samples: 8, assessed_samples: 8, bans: 0, quality_class: null, quality: null}
+        - {bathing_water: "1001", name: Playa Uno, municipality_name: Pollença, season: 2026, sampling_points: 1, samples: 8, assessed_samples: 16, bans: 0, quality_class: 4, quality: excellent}
+        - {bathing_water: "1002", name: Playa Dos, municipality_name: Pollença, season: 2024, sampling_points: 2, samples: 8, assessed_samples: 8, bans: 0, quality_class: null, quality: null}
+        - {bathing_water: "1002", name: Playa Dos, municipality_name: Pollença, season: 2025, sampling_points: 2, samples: 8, assessed_samples: 16, bans: 1, quality_class: 1, quality: poor}
         - {bathing_water: "1003", name: Playa Tres, municipality_name: Pollença, season: 2026, sampling_points: 1, samples: 3, assessed_samples: 3, bans: 0, quality_class: null, quality: null}
 
   - name: bathing_water_island_share_counts_classified_only
