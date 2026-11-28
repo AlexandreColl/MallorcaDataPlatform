@@ -212,8 +212,9 @@ The people registered as unemployed on the last working day of each month in eac
 sex and age and by sector, from SEPE's open data (one CSV a year since 2006, about 10 MB with the whole of Spain).
 Bronze keeps only the Balearic lines of the window's months, with the SHA-256 of the whole file. Since 2022 SEPE
 publishes every count from 1 to 4 as `<5`: it is stored as null, never as 5, and a new per-metric option of the
-core (`suppressed_below`) keeps the null and gaps rules from counting it as a failure; a month missing from the
-file is still a gap (May to December 2013 and December 2020). In gold, `fct_unemployment_monthly` and
+core (`suppressed_below`) keeps the null and gaps rules from counting it as a failure. The months missing from
+the CSV (May to December 2013 and December 2020) come from the province's monthly PDF, checked line by line. In
+gold, `fct_unemployment_monthly` and
 `fct_unemployment_island_monthly` give the unemployment per 1,000 inhabitants, the year-on-year change and the
 anomaly against the same month, and `agg_unemployment_seasonality` winter against summer unemployment: almost
 50 % more in winter up to 2019 (1.49) and 14 % in 2025, after the 2022 labour reform. On the web, Tourism and

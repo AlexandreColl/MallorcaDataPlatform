@@ -1,0 +1,34 @@
+{
+  "connector": "sepe_unemployment",
+  "region": "mallorca",
+  "window": {
+    "start": "2020-10-15",
+    "end": "2020-12-31"
+  },
+  "requests": [
+    {
+      "method": "get_bytes",
+      "url": "https://sede.sepe.gob.es/es/portaltrabaja/resources/sede/datos_abiertos/datos/Paro_por_municipios_2020_csv.csv",
+      "params": {},
+      "file": "01_paro_por_municipios_2020_csv_csv.bin"
+    },
+    {
+      "method": "get_text",
+      "url": "https://www.sepe.es/HomeSepe/que-es-el-sepe/estadisticas/datos-estadisticos/municipios.html",
+      "params": {},
+      "file": "02_municipios_html.txt"
+    },
+    {
+      "method": "get_text",
+      "url": "https://www.sepe.es/HomeSepe/que-es-el-sepe/estadisticas/datos-estadisticos/municipios/2020/diciembre.html",
+      "params": {},
+      "file": "03_diciembre_html.txt"
+    },
+    {
+      "method": "get_bytes",
+      "url": "https://www.sepe.es/HomeSepe/dam/jcr:264c48c9-d760-4017-82c5-3fa1dcc298b1/MUNI_BALEARES_1220.pdf",
+      "params": {},
+      "file": "04_muni_baleares_1220_pdf.bin"
+    }
+  ]
+}

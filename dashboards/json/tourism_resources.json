@@ -1383,7 +1383,7 @@
       "id": 15,
       "type": "barchart",
       "title": "Paro de invierno frente al de verano",
-      "description": "Paro medio de noviembre a febrero entre el de junio a septiembre de cada año (gold.agg_unemployment_seasonality). 1,5 son un 50 % más de parados en invierno. Sin barra, los años incompletos (el fichero de 2013 acaba en abril, el de 2020 en noviembre; el año en curso). Desde la reforma laboral de 2022 los fijos discontinuos sin actividad no cuentan como parados.",
+      "description": "Paro medio de noviembre a febrero entre el de junio a septiembre de cada año (gold.agg_unemployment_seasonality). 1,5 son un 50 % más de parados en invierno. Sin barra, el año en curso, que aún no tiene su invierno. Desde la reforma laboral de 2022 los fijos discontinuos sin actividad no cuentan como parados.",
       "gridPos": {
         "h": 9,
         "w": 8,

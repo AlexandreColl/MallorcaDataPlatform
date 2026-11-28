@@ -36,6 +36,16 @@ options:
     Paro Construcción: unemployed_construction
     Paro Servicios: unemployed_services
     Paro Sin empleo Anterior: unemployed_no_previous_job
+  # Months the yearly CSV leaves out (2013 stops in April, 2020 in November). When a window needs one of them and its
+  # CSV still lacks it, it is read from SEPE's monthly statistics: the province's PDF, linked from the month's page
+  # (`index_url` links every month; the province's XLS there is a damaged OLE file). The PDF names the municipalities
+  # without codes; `aliases` are the names that differ from the register's (DEYA, PALMA DE MALLORCA, and SANT LLORENÇ
+  # DES CARDASSAR, cut short in the table).
+  missing_months:
+    index_url: https://www.sepe.es/HomeSepe/que-es-el-sepe/estadisticas/datos-estadisticos/municipios.html
+    file_prefix: MUNI_BALEARES
+    months: ["2013-05", "2013-06", "2013-07", "2013-08", "2013-09", "2013-10", "2013-11", "2013-12", "2020-12"]
+    aliases: {"DEYA": "07018", "PALMA DE MALLORCA": "07040", "SANT LLORENÇ DES CARDA": "07051"}
   # INE code, name and centre of every municipality of Mallorca (the same as ine_population, from the IGN boundaries
   # of dim_municipalities). SEPE writes the code with 4 digits until 2018 (7040) and with 5 since 2019 (07040).
   municipalities:

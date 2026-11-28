@@ -10,16 +10,22 @@ lines of the province of the window's months, with the SHA-256 and size of the w
 municipalities of the region and writes one observation per municipality, column and month, stamped on the first
 day of the month at local midnight. Since 2022 every count from 1 to 4 is published as ``<5``: it is stored as a null
 value, and the metrics declare ``suppressed_below`` so the quality rules do not count it as missing or as a gap.
+
+Two yearly files leave months out (2013 stops in April, 2020 in November). For the months listed in
+``options.missing_months`` that the CSV does not have, ``extract`` also downloads SEPE's monthly PDF of the province
+(see ``monthly_pdf``), kept whole in bronze, and ``normalize`` reads its lines.
 """
 
 from __future__ import annotations
 
+import base64
 import csv
 import hashlib
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
+from connectors.sepe_unemployment import monthly_pdf
 from core.connectors import BaseConnector, ConnectorError
 from core.models import Observation, Quality, RawPayload, Region, TimeWindow
 
@@ -84,10 +90,16 @@ class SepeUnemploymentConnector(BaseConnector):
     """Registered unemployment of every municipality of Mallorca, by sex and age and by sector, per month (SEPE)."""
 
     def extract(self, window: TimeWindow, region: Region) -> list[RawPayload]:  # noqa: ARG002 - see normalize
-        """One payload per yearly file the window touches, with the province's lines of the window's months."""
+        """One payload per yearly file the window touches, with the province's lines of the window's months.
+
+        Plus one per month of ``missing_months`` inside the window that its yearly file does not have: SEPE's monthly
+        PDF of the province.
+        """
         options = self.config.options
         months = set(window.month_starts())
         first_year = max(window.start.year, int(options["first_year"]))
+        fallback = {date.fromisoformat(f"{m}-01") for m in (options.get("missing_months") or {}).get("months", [])}
+        index: str | None = None
         payloads = []
         for year in range(first_year, window.end.year + 1):
             year_months = {m for m in months if m.year == year}
@@ -112,14 +124,74 @@ class SepeUnemploymentConnector(BaseConnector):
                     partition=str(year),
                 )
             )
+            present = {month_of(line.split(_DELIMITER, 1)[0]) for line in lines[_TITLE_LINES + 1 :]}
+            for month in sorted((year_months - present) & fallback):
+                if index is None:
+                    index = self.http.get_text(str(options["missing_months"]["index_url"]))
+                payloads.append(self._monthly_pdf(window, month, index))
         return payloads
+
+    def _monthly_pdf(self, window: TimeWindow, month: date, index: str) -> RawPayload:
+        """SEPE's monthly PDF of the province for ``month``, found from the index page and the month's page."""
+        spec = self.config.options["missing_months"]
+        page = monthly_pdf.month_page(index, str(spec["index_url"]), month)
+        url = monthly_pdf.pdf_link(self.http.get_text(page), page, str(spec["file_prefix"]))
+        document = self.http.get_bytes(url)
+        return RawPayload(
+            source=self.name,
+            dataset="municipalities",
+            window=window,
+            request={
+                "format": "pdf",
+                "month": month.isoformat(),
+                "page": page,
+                "url": url,
+                "sha256": hashlib.sha256(document).hexdigest(),
+                "bytes": len(document),
+            },
+            body=base64.b64encode(document).decode("ascii"),
+            partition=f"pdf-{month:%Y-%m}",
+        )
+
+    def _normalize_pdf(self, payload: RawPayload, region: Region) -> Iterator[Observation]:
+        """One observation per municipality of the region and column of a monthly PDF (its zeros are real zeros)."""
+        options = self.config.options
+        month = date.fromisoformat(str(payload.request["month"]))
+        if month not in set(payload.window.month_starts()):
+            return
+        municipalities: Mapping[str, Mapping[str, Any]] = options["municipalities"]
+        names = {code: str(place["name"]) for code, place in municipalities.items()}
+        text = monthly_pdf.pdf_text(base64.b64decode(payload.body))
+        rows = monthly_pdf.by_code(monthly_pdf.parse_rows(text, month), names, options["missing_months"]["aliases"])
+        metrics = list(options["columns"].values())  # the PDF's cells come in the order of the CSV's columns
+        ts = datetime.combine(month, time(), tzinfo=ZoneInfo(str(options["timezone"])))
+        for code, values in rows.items():
+            place = municipalities[code]
+            if not region.contains(place["lat"], place["lon"]):
+                continue
+            for metric_name, value in zip(metrics, values, strict=True):
+                metric = self.config.metrics[metric_name]
+                yield Observation(
+                    source=self.name,
+                    entity=code,
+                    metric=metric.name,
+                    ts=ts,
+                    value=value,
+                    unit=metric.unit,
+                    lat=float(place["lat"]),
+                    lon=float(place["lon"]),
+                )
 
     def normalize(self, payload: RawPayload, region: Region) -> Iterator[Observation]:
         """One observation per municipality of the region, mapped column and month inside the window.
 
         Raises:
-            ConnectorError: if the header lacks a column of the YAML or the identity columns.
+            ConnectorError: if the header lacks a column of the YAML or the identity columns, or a monthly PDF cannot
+                be read.
         """
+        if payload.request.get("format") == "pdf":
+            yield from self._normalize_pdf(payload, region)
+            return
         options = self.config.options
         municipalities: Mapping[str, Mapping[str, Any]] = options["municipalities"]
         columns: Mapping[str, str] = options["columns"]
