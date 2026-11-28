@@ -1548,9 +1548,9 @@ unit_tests:
           - {municipality: "07019", municipality_name: Escorca, month: "2025-07-01", season: summer, unemployed: 5, is_suppressed: false}
     expect:
       rows:
-        - {area: mallorca, year: 2013, winter_summer_ratio: null}
-        - {area: mallorca, year: 2025, summer_mean: 17500, winter_mean: 28000, lowest_month: 17000, highest_month: 30000, winter_summer_ratio: 1.600}
-        - {area: "07019", year: 2025, winter_summer_ratio: null}
+        - {area: mallorca, year: 2013, summer_months: 0, winter_months: 2, winter_summer_ratio: null}
+        - {area: mallorca, year: 2025, summer_months: 4, winter_months: 4, winter_summer_ratio: 1.600}
+        - {area: "07019", year: 2025, summer_months: 1, winter_months: 0, winter_summer_ratio: null}
 
   - name: bike_station_hour_pivots_its_metrics_and_flags_an_empty_moment
     description: >-
