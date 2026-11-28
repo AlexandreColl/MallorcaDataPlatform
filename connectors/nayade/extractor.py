@@ -13,7 +13,7 @@ its pages, which answer a plain GET without a session, are enough:
 
 ``extract`` walks the municipalities of the region and keeps, per bathing water, the part of those pages below their
 menus (the scripts and the navigation are the same on every page); ``normalize`` reads the tables. The entity is the
-sampling point, ``<municipality>_<bathing water>_<point>`` (``07040_1033_PM3``): a bathing water may have up to seven,
+sampling point, ``<municipality>_<bathing water>_<point>`` (``07040_1033_PM3``): a bathing water may have up to six,
 and the municipality in the id links it with ``dim_municipalities`` in gold.
 """
 

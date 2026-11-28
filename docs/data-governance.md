@@ -54,6 +54,7 @@ Los tests de dbt exigen que cada fuente tenga su ficha completa:
 | Ibestat (presión humana) | Ibestat | Reutilización con cita | Abierto | 120 días | 90 % |
 | INE (padrón) | INE | CC BY 4.0 | Abierto | 2 años | 90 % |
 | INE (viviendas turísticas) | INE | CC BY 4.0 | Abierto | 400 días | 90 % |
+| Náyade (aguas de baño) | Ministerio de Sanidad | Reutilización citando la fuente y la fecha de actualización (aviso legal del Ministerio, Ley 37/2007) | Abierto | 240 días | 90 % |
 | SEPE (paro registrado) | Servicio Público de Empleo Estatal | Reutilización con cita (condiciones generales de datos.gob.es): «Origen de los datos: Servicio Público de Empleo Estatal» | Abierto | 120 días | 90 % |
 | BiciPalma | SMAP (Ajuntament de Palma); feed GBFS de Nextbike | CC0 1.0 | Abierto | 48 h | 90 % |
 | IGN (sismos) | Instituto Geográfico Nacional | CC BY 4.0 | Abierto | Sin SLA: solo hay datos cuando hay sismos | 90 % |

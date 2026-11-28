@@ -130,6 +130,7 @@ source at all when nothing is missing ([ADR 0021](docs/adr/0021-solo-los-dias-qu
 | [ine_population](connectors/ine_population/README.md) | ✅ | Population of Mallorca's 53 municipalities on 1 January, by sex, from the INE register (since 1996) | No |
 | [ine_tourist_housing](connectors/ine_tourist_housing/README.md) | ✅ | Tourist dwellings and beds of Mallorca's 53 municipalities, two counts a year from INE's experimental statistic (since August 2020) | No |
 | [sepe_unemployment](connectors/sepe_unemployment/README.md) | ✅ | Registered unemployment of Mallorca's 53 municipalities each month, by sex and age and by sector, from SEPE (since 2006) | No |
+| [nayade](connectors/nayade/README.md) | ✅ | E. coli and enterococci of every sample of Mallorca's 87 bathing waters in season, with the bathing advice and the restrictions (Náyade, Spanish Ministry of Health, since 2023) | No |
 | [ibestat_iph](connectors/ibestat_iph/README.md) | ✅ | People present in Mallorca each day, residents plus visitors (Ibestat's Human Pressure Indicator, since 1997) | No |
 
 ### Open-Meteo
@@ -376,6 +377,19 @@ bodies and the island in an ODS sheet, and ten years of the island in the PDF ch
 change name every month, so the connector finds them on the page by the link text. As reserves are seasonal,
 `fct_water_reserves_monthly` compares each month with the mean of the same month in other years. Real test: August
 2026, 38 %, the lowest August in ten years (11.5 points below the mean).
+
+### Bathing waters (Náyade)
+
+Every sample of Mallorca's 87 bathing waters (113 sampling points) from April to September: *E. coli*, intestinal
+enterococci and the advice that came with it, plus the bathing restrictions. Náyade, the national system of the
+Spanish Ministry of Health, has no API: the connector reads its form pages, which answer without a session, and keeps
+the four seasons they show (since 2023). With no samples in winter it is an event source: seven months without data
+are not gaps. In gold, `fct_bathing_water_seasons` computes the class of the EU Directive 2006/7/EC (95th and 90th
+percentiles of the logarithms over four seasons) for each bathing water and season, with its change against the
+previous one, and `fct_bathing_water_island_yearly` the share of excellent waters: 73.6 % in 2024, 75.9 % in 2025
+and 79.3 % in 2026 (69 excellent, 16 good, 1 sufficient and 1 poor). The web draws them on a map of Climate and
+water, with each beach's card, and Grafana in two panels. The EEA's official classification is left for later: its
+service did not answer on the day of the test. [Details and real tests](connectors/nayade/README.md).
 
 ### Dataestur (tourism)
 
