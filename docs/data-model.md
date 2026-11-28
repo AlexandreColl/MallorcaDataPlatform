@@ -124,7 +124,7 @@ con un grano declarado y dimensiones compartidas entre dominios.
 | `dim_locations` | `source, entity` | Derivada de silver: nombre (de `silver.entities`), coordenadas y cobertura temporal | Tipo 1 en la tabla y tipo 2 en el snapshot `snap_locations`: si una estación se reubica, la versión anterior se cierra |
 | `dim_routes` | `source, route` | `silver.routes`: nombre, tipo (bus, tren, metro), color y recorrido en GeoJSON | Tipo 1: cada ejecución sustituye las líneas de la red |
 | `dim_metrics` | `source, metric` | Derivada de silver: unidad, número de entidades y cobertura | Tipo 1. La clave primaria impide que una métrica tenga dos unidades |
-| `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde 1996 (el primer padrón) hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
+| `dim_date` | `date_day` | Calendario de `dbt_utils.date_spine`, desde el 1-9-1981 (el primer día de NOAA OISST) hasta un año después de hoy: semana ISO, fin de semana y estación meteorológica | Fija |
 
 ### Dimensiones de un dominio
 
