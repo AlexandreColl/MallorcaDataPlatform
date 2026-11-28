@@ -1426,6 +1426,276 @@
         "showHeader": true,
         "cellHeight": "sm"
       }
+    },
+    {
+      "id": 15,
+      "type": "geomap",
+      "title": "Calidad de las aguas de baño (última temporada)",
+      "description": "Cada agua de baño de Mallorca con su clase de la directiva 2006/7/CE en la última temporada del rango, calculada en gold con las muestras de E. coli y enterococos de cuatro temporadas de Náyade (Ministerio de Sanidad): azul excelente, verde buena, amarillo suficiente, rojo insuficiente; gris, sin clase todavía.",
+      "gridPos": {
+        "h": 13,
+        "w": 14,
+        "x": 0,
+        "y": 51
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT name AS \"Playa\", municipality_name AS \"Municipio\", lat, lon, coalesce(quality_class, 0) AS quality_class, coalesce(quality, 'sin clase') AS \"Clase\", samples AS \"Muestras\", worst_e_coli AS \"Peor E. coli\", worst_enterococci AS \"Peores enterococos\", restrictions AS \"Restricciones\" FROM gold.fct_bathing_water_seasons WHERE season = (SELECT max(season) FROM gold.fct_bathing_water_seasons WHERE season <= extract(year FROM $__timeTo()::timestamptz)::int)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#8E8E8E",
+                "value": null
+              },
+              {
+                "color": "#F2495C",
+                "value": 1
+              },
+              {
+                "color": "#FADE2A",
+                "value": 2
+              },
+              {
+                "color": "#73BF69",
+                "value": 3
+              },
+              {
+                "color": "#5794F2",
+                "value": 4
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "excellent": {
+                  "text": "excelente"
+                },
+                "good": {
+                  "text": "buena"
+                },
+                "sufficient": {
+                  "text": "suficiente"
+                },
+                "poor": {
+                  "text": "insuficiente"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 39.62,
+          "lon": 2.95,
+          "zoom": 9
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "basemap": {
+          "type": "osm-standard",
+          "name": "OpenStreetMap",
+          "config": {}
+        },
+        "tooltip": {
+          "mode": "details"
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Aguas de baño por clase",
+            "tooltip": true,
+            "location": {
+              "mode": "coords",
+              "latitude": "lat",
+              "longitude": "lon"
+            },
+            "config": {
+              "showLegend": false,
+              "style": {
+                "size": {
+                  "fixed": 6
+                },
+                "color": {
+                  "field": "quality_class",
+                  "fixed": "#8E8E8E"
+                },
+                "opacity": 0.9,
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/marker/circle.svg"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": "barchart",
+      "title": "Aguas de baño de cada clase por temporada",
+      "description": "Aguas de baño de Mallorca en cada clase de la directiva por temporada. Una playa necesita 16 muestras en dos temporadas por lo menos para tener clase, y Náyade solo guarda las cuatro últimas: la primera temporada cargada queda sin clasificar.",
+      "gridPos": {
+        "h": 13,
+        "w": 10,
+        "x": 14,
+        "y": 51
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "warehouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "warehouse"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT season::text AS \"Temporada\", excellent AS \"Excelente\", good AS \"Buena\", sufficient AS \"Suficiente\", poor AS \"Insuficiente\", round(100 * excellent_share, 1) AS \"% excelentes\" FROM gold.fct_bathing_water_island_yearly WHERE classified > 0 ORDER BY season"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Excelente"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Buena"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#73BF69"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Suficiente"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#FADE2A"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Insuficiente"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F2495C"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% excelentes"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "vertical",
+        "stacking": "normal",
+        "xField": "Temporada",
+        "showValue": "auto",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
     }
   ]
 }

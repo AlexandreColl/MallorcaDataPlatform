@@ -1,0 +1,101 @@
+name: nayade
+description: Náyade (Ministerio de Sanidad) - E. coli and intestinal enterococci of every sample taken at the bathing waters of Mallorca during the season, the advice that came with it and the bathing restrictions, no API key
+entrypoint: connectors.nayade.extractor:NayadeConnector
+enabled: true
+# Samples are taken about every two weeks from April to September and nothing at all in winter, so the dataset is
+# irregular events: no gaps rule (the seven months without samples are not missing), and a window without a sample
+# is a valid, empty result.
+frequency: event
+# Náyade only shows the last four seasons (the window the EU classification is computed on) and the whole of them
+# comes in every answer, so every run re-reads the last 400 days: a sample keyed in late, or corrected, is picked up.
+min_days: 400
+max_days: 1500         # backfills: the oldest season Náyade still shows (2023 on 2026-11-28)
+secrets: []
+
+options:
+  base_url: https://nayadeciudadano.sanidad.gob.es/Splayas/ciudadano
+  timezone: Europe/Madrid
+  # Náyade's ids of the Balearic Islands (codCCAA) and of their province (codProvincia).
+  region_id: "4"
+  province_id: "7"
+  # Zone of the UTM coordinates of the sampling points (ETRS89, the same as WGS84 at map scale).
+  utm_zone: 31
+  # Advice that Náyade writes next to each sample, and the ordinal code it is stored as (bathing_advice).
+  advice:
+    "Zona Apta para el baño": 0
+    "Recomendación de no baño": 1
+    "Zona donde queda prohibido el baño temporalmente": 2
+  # Municipalities of Mallorca: INE code (Náyade asks for it without the leading zero), name and centre (the same as
+  # ine_population, from the IGN boundaries of dim_municipalities). The centre only decides whether the municipality
+  # is in the region; every sampling point is then checked against the region with its own coordinates.
+  municipalities:
+    "07001": {name: "Alaró", lat: 39.7239, lon: 2.8019}
+    "07003": {name: "Alcúdia", lat: 39.8432, lon: 3.1124}
+    "07004": {name: "Algaida", lat: 39.5653, lon: 2.9026}
+    "07005": {name: "Andratx", lat: 39.5816, lon: 2.4056}
+    "07006": {name: "Artà", lat: 39.7156, lon: 3.3293}
+    "07007": {name: "Banyalbufar", lat: 39.6812, lon: 2.527}
+    "07008": {name: "Binissalem", lat: 39.6844, lon: 2.8585}
+    "07009": {name: "Búger", lat: 39.7579, lon: 2.9839}
+    "07010": {name: "Bunyola", lat: 39.7085, lon: 2.7127}
+    "07011": {name: "Calvià", lat: 39.5493, lon: 2.5076}
+    "07012": {name: "Campanet", lat: 39.7981, lon: 2.9675}
+    "07013": {name: "Campos", lat: 39.4065, lon: 3.0151}
+    "07014": {name: "Capdepera", lat: 39.6971, lon: 3.4273}
+    "07016": {name: "Consell", lat: 39.6662, lon: 2.8182}
+    "07017": {name: "Costitx", lat: 39.6562, lon: 2.9491}
+    "07018": {name: "Deià", lat: 39.7486, lon: 2.6481}
+    "07019": {name: "Escorca", lat: 39.828, lon: 2.8496}
+    "07020": {name: "Esporles", lat: 39.6635, lon: 2.5868}
+    "07021": {name: "Estellencs", lat: 39.6485, lon: 2.4755}
+    "07022": {name: "Felanitx", lat: 39.4519, lon: 3.1607}
+    "07025": {name: "Fornalutx", lat: 39.7987, lon: 2.7519}
+    "07027": {name: "Inca", lat: 39.7122, lon: 2.944}
+    "07028": {name: "Lloret de Vistalegre", lat: 39.6183, lon: 2.9764}
+    "07029": {name: "Lloseta", lat: 39.7208, lon: 2.8561}
+    "07030": {name: "Llubí", lat: 39.6984, lon: 3.0249}
+    "07031": {name: "Llucmajor", lat: 39.4501, lon: 2.8512}
+    "07033": {name: "Manacor", lat: 39.5554, lon: 3.2351}
+    "07034": {name: "Mancor de la Vall", lat: 39.7611, lon: 2.8656}
+    "07035": {name: "Maria de la Salut", lat: 39.6748, lon: 3.0937}
+    "07036": {name: "Marratxí", lat: 39.6237, lon: 2.7296}
+    "07038": {name: "Montuïri", lat: 39.5647, lon: 2.9896}
+    "07039": {name: "Muro", lat: 39.7576, lon: 3.0855}
+    "07040": {name: "Palma", lat: 39.5831, lon: 2.6988}
+    "07041": {name: "Petra", lat: 39.6282, lon: 3.1424}
+    "07042": {name: "Pollença", lat: 39.8867, lon: 3.0289}
+    "07043": {name: "Porreres", lat: 39.5075, lon: 3.03}
+    "07044": {name: "Sa Pobla", lat: 39.779, lon: 3.0299}
+    "07045": {name: "Puigpunyent", lat: 39.6255, lon: 2.5301}
+    "07047": {name: "Sencelles", lat: 39.6403, lon: 2.8974}
+    "07049": {name: "Sant Joan", lat: 39.5886, lon: 3.0444}
+    "07051": {name: "Sant Llorenç des Cardassar", lat: 39.6168, lon: 3.3062}
+    "07053": {name: "Santa Eugènia", lat: 39.6182, lon: 2.8324}
+    "07055": {name: "Santa Margalida", lat: 39.7213, lon: 3.1547}
+    "07056": {name: "Santa María del Camí", lat: 39.6641, lon: 2.7708}
+    "07057": {name: "Santanyí", lat: 39.3499, lon: 3.1321}
+    "07058": {name: "Selva", lat: 39.7674, lon: 2.9091}
+    "07059": {name: "ses Salines", lat: 39.3306, lon: 3.0433}
+    "07060": {name: "Sineu", lat: 39.6464, lon: 3.0221}
+    "07061": {name: "Sóller", lat: 39.7756, lon: 2.7055}
+    "07062": {name: "Son Servera", lat: 39.6404, lon: 3.3711}
+    "07063": {name: "Valldemossa", lat: 39.7024, lon: 2.6192}
+    "07065": {name: "Vilafranca de Bonany", lat: 39.5557, lon: 3.1171}
+    "07901": {name: "Ariany", lat: 39.6557, lon: 3.1335}
+
+datasets:
+  # Two tables of the same page per bathing water: the samples (one row per sampling point and sampling day) and
+  # the restrictions (one row per sampling point and restriction, from its opening to its closing day).
+  bathing_waters: {}
+
+# metric name -> dataset, canonical unit, valid range (values outside it are labelled suspect)
+metrics:
+  # Náyade gives most results as MPN (NMP) and some as CFU (UFC) per 100 ml; the Directive 2006/7/EC treats both
+  # the same. 10 is the detection limit of the method, written as 10 when nothing is found.
+  e_coli:          {dataset: bathing_waters, unit: cfu/100ml, min: 0, max: 100000}
+  enterococci:     {dataset: bathing_waters, unit: cfu/100ml, min: 0, max: 100000}
+  # 0 fit for bathing, 1 bathing not advised, 2 bathing temporarily banned (options.advice).
+  bathing_advice:  {dataset: bathing_waters, unit: level, min: 0, max: 2}
+  # Days from the opening of a restriction to its closing (null while it is still open), on its opening day.
+  incident_days:   {dataset: bathing_waters, unit: days, min: 0, max: 200}
+  incident_level:  {dataset: bathing_waters, unit: level, min: 1, max: 2}

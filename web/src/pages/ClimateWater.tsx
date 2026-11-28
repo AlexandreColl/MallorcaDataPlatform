@@ -1,12 +1,22 @@
 import { useCallback, useMemo } from "react";
 
-import { api, type Aquifer, type ClimateMonth, type SeaTemperatureMonth, type WaterReservesMonth } from "../api";
+import {
+  api,
+  type Aquifer,
+  type BathingWaterSeason,
+  type BathingWaterYear,
+  type ClimateMonth,
+  type SeaTemperatureMonth,
+  type WaterReservesMonth,
+} from "../api";
 import { Async } from "../components/Async";
 import { Chart } from "../components/Chart";
 import { KpiRow } from "../components/KpiCard";
 import { Panel } from "../components/Layout";
+import { PointMap } from "../components/PointMap";
 import { ready, useLoad } from "../hooks";
 import { messages } from "../i18n";
+import { bathingLayers, QUALITY_CLASSES, QUALITY_COLORS, qualityName } from "../lib/bathing";
 import { monthAbbreviation, monthName, monthShort, number, orDash } from "../lib/format";
 import { buildKpi, HOT_DAYS_SPEC, type Kpi, RAIN_SPEC, WATER_SPECS } from "../lib/kpis";
 
@@ -151,11 +161,47 @@ function Aquifers({ rows }: { rows: Aquifer[] }) {
   return <Chart option={option} label={m.aquifersChart} height={460} />;
 }
 
+/** The beaches coloured by their class of the directive in the latest season; a click opens the beach's card. */
+function BathingMap({ rows }: { rows: BathingWaterSeason[] }) {
+  const layers = useMemo(() => bathingLayers(rows), [rows]);
+  return <PointMap layers={layers} height={440} />;
+}
+
+/** Beaches of each class per season (stacked bars) and the share of excellent ones among the classified (line). */
+function BathingTrend({ rows }: { rows: BathingWaterYear[] }) {
+  const m = messages().bathing;
+  const option = useCallback(() => {
+    const counts = { 4: "excellent", 3: "good", 2: "sufficient", 1: "poor" } as const;
+    return {
+      xAxis: { type: "category", data: rows.map((r) => String(r.season)) },
+      yAxis: [
+        { type: "value", minInterval: 1 },
+        { type: "value", min: 0, max: 100, splitLine: { show: false }, axisLabel: { formatter: "{value} %" } },
+      ],
+      tooltip: { trigger: "axis" },
+      series: [
+        ...QUALITY_CLASSES.map((c) => ({
+          name: qualityName(c), type: "bar", stack: "classes", color: QUALITY_COLORS[c],
+          data: rows.map((r) => r[counts[c]]),
+        })),
+        {
+          name: m.excellentShare, type: "line", yAxisIndex: 1, color: "#9333ea", symbolSize: 7,
+          tooltip: { valueFormatter: orDash((v) => `${number(v, 1)} %`) },
+          data: rows.map((r) => (r.excellent_share === null ? null : 100 * r.excellent_share)),
+        },
+      ],
+    };
+  }, [rows, m]);
+  return <Chart option={option} label={m.trendChart} />;
+}
+
 export function ClimateWater() {
   const water = useLoad(() => api.water(SINCE));
   const climate = useLoad(() => api.climate(SINCE));
   const aquifers = useLoad(api.aquifers);
   const sea = useLoad(() => api.seaTemperature(SINCE));
+  const bathing = useLoad(api.bathingWaters);
+  const bathingYears = useLoad(api.bathingWaterYears);
 
   const kpis = useMemo(() => {
     const w = ready(water);
@@ -167,7 +213,9 @@ export function ClimateWater() {
   }, [water, climate]);
 
   const aquiferMonth = aquifers.status === "ready" && aquifers.data[0] ? monthName(aquifers.data[0].month) : "";
+  const bathingSeason = bathing.status === "ready" && bathing.data[0] ? String(bathing.data[0].season) : "";
   const m = messages().climate;
+  const b = messages().bathing;
 
   return (
     <>
@@ -187,6 +235,12 @@ export function ClimateWater() {
         </Panel>
         <Panel title={m.seaTitle} subtitle={m.seaSubtitle}>
           <Async state={sea}>{(rows) => <SeaAnomaly rows={rows} />}</Async>
+        </Panel>
+        <Panel title={b.mapTitle} subtitle={b.mapSubtitle(bathingSeason)}>
+          <Async state={bathing} height={440}>{(rows) => <BathingMap rows={rows} />}</Async>
+        </Panel>
+        <Panel title={b.trendTitle} subtitle={b.trendSubtitle}>
+          <Async state={bathingYears}>{(rows) => <BathingTrend rows={rows} />}</Async>
         </Panel>
       </div>
     </>

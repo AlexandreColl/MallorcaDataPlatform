@@ -20,7 +20,9 @@ export const es = {
     climate: {
       label: "Clima y agua",
       title: "Clima y agua",
-      description: "Reservas de los acuíferos, lluvia del año hidrológico y temperatura del aire y del mar frente a lo normal.",
+      description:
+        "Reservas de los acuíferos, lluvia del año hidrológico, temperatura del aire y del mar frente a lo normal " +
+        "y calidad de las aguas de baño.",
     },
     mobility: {
       label: "Movilidad",
@@ -58,7 +60,7 @@ export const es = {
     catalogue: "Catálogo",
     footer:
       "Datos abiertos de AEMET, SOCIB, Puertos del Estado, NOAA, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
-      "Govern de les Illes Balears y Open-Meteo. Mapa © OpenStreetMap.",
+      "Govern de les Illes Balears, Ministerio de Sanidad y Open-Meteo. Mapa © OpenStreetMap.",
   },
   data: {
     loadError: (error: string) => `No se pudieron cargar los datos: ${error}`,
@@ -410,6 +412,31 @@ export const es = {
     seaChart: "Anomalía de la temperatura del mar y días de ola de calor marina de cada mes",
     seaAnomaly: "Anomalía del mar",
     heatwaveDays: "Días de ola de calor",
+  },
+  bathing: {
+    classes: { 4: "Excelente", 3: "Buena", 2: "Suficiente", 1: "Insuficiente" },
+    unclassified: "Sin clasificar",
+    upgraded: (previous: string) => `Sube desde ${previous}`,
+    downgraded: (previous: string) => `Baja desde ${previous}`,
+    unchanged: "Igual que la temporada anterior",
+    classLine: (season: string) => `Clase en ${season}`,
+    tooFewSamples: (samples: number) => `Solo ${samples} muestras en cuatro temporadas (hacen falta 16)`,
+    samplesLine: (samples: number, last: string) => `${samples} muestras; la última, el ${last}`,
+    worstLine: (eColi: string, enterococci: string) =>
+      `Peor resultado: ${eColi} E. coli y ${enterococci} enterococos por 100 ml`,
+    restrictionsLine: (restrictions: number, bans: number) =>
+      `${restrictions} ${restrictions === 1 ? "restricción" : "restricciones"} del baño` +
+      (bans > 0 ? `, ${bans} con prohibición` : ""),
+    mapTitle: "Calidad de las aguas de baño",
+    mapSubtitle: (season: string) =>
+      `Cada playa con su clase de la directiva europea en ${season}, calculada con las muestras de cuatro ` +
+      "temporadas de Náyade (Ministerio de Sanidad). Pulsa una playa para ver su ficha.",
+    trendTitle: "Aguas de baño excelentes",
+    trendSubtitle:
+      "Playas de cada clase por temporada y porcentaje de excelentes entre las clasificadas. Una playa necesita 16 " +
+      "muestras, unas dos temporadas, para tener clase.",
+    trendChart: "Playas de cada clase y porcentaje de excelentes por temporada",
+    excellentShare: "Excelentes",
   },
   mobilityPage: {
     dailyCallsChart: "Pasos programados por día en cada red",

@@ -6,7 +6,14 @@ from fastapi.testclient import TestClient
 
 from api import __version__
 from api.main import create_app
-from api.schemas import MunicipalUnemployment, ResourcesMonth, TourismMonth, UnemploymentSeasonality
+from api.schemas import (
+    BathingWaterSeason,
+    BathingWaterYear,
+    MunicipalUnemployment,
+    ResourcesMonth,
+    TourismMonth,
+    UnemploymentSeasonality,
+)
 from api.settings import Settings
 
 TS = datetime(2026, 10, 27, 10, tzinfo=UTC)
@@ -255,7 +262,8 @@ def test_openapi_documents_every_endpoint(db):
         "/v1/health", "/v1/sources", "/v1/sources/{source}", "/v1/observations", "/v1/anomalies", "/v1/corrections",
         "/v1/observations/export",
         "/v1/series", "/v1/series/daily",
-        "/v1/water/reserves", "/v1/water/aquifers", "/v1/climate/monthly", "/v1/tourism/monthly",
+        "/v1/water/reserves", "/v1/water/aquifers",         "/v1/water/bathing", "/v1/water/bathing/island",
+        "/v1/climate/monthly", "/v1/tourism/monthly",
         "/v1/tourism/dwellings", "/v1/resources/monthly", "/v1/unemployment/monthly",
         "/v1/unemployment/municipalities", "/v1/unemployment/seasonality", "/v1/locations", "/v1/mobility/daily",
         "/v1/mobility/stops",
@@ -300,6 +308,8 @@ def test_settings_from_environment():
         ("/v1/warnings/zones", "gold.dim_warning_zones"),
         ("/v1/population", "gold.fct_population_yearly"),
         ("/v1/tourism/dwellings", "gold.fct_tourist_dwellings"),
+        ("/v1/water/bathing", "gold.fct_bathing_water_seasons"),
+        ("/v1/water/bathing/island", "gold.fct_bathing_water_island_yearly"),
         ("/v1/unemployment/monthly", "gold.fct_unemployment_island_monthly"),
         ("/v1/unemployment/municipalities", "gold.fct_unemployment_monthly"),
         ("/v1/unemployment/seasonality", "gold.agg_unemployment_seasonality"),
@@ -461,6 +471,59 @@ def test_resources_months_carry_the_unemployment():
     body = client(db).get("/v1/resources/monthly").json()
 
     assert (body[0]["unemployed"], body[0]["unemployed_anomaly"]) == (21879, -0.437)
+
+
+def test_bathing_waters_default_to_the_latest_season():
+    tamarells = dict.fromkeys(BathingWaterSeason.model_fields) | {
+        "bathing_water": "1038",
+        "municipality": "07042",
+        "sampling_points": 3,
+        "lat": 39.9,
+        "lon": 3.08,
+        "season": 2026,
+        "samples": 27,
+        "samples_not_fit": 2,
+        "restrictions": 2,
+        "bans": 0,
+        "restricted_days": 4,
+        "assessed_samples": 108,
+        "assessed_seasons": 4,
+        "quality_class": 3,
+        "quality": "good",
+    }
+    db = FakeDatabase({"gold.fct_bathing_water_seasons": [tamarells]})
+    api = client(db)
+
+    body = api.get("/v1/water/bathing").json()
+
+    assert db.calls[-1][1] == {"season": None}
+    assert (body[0]["quality_class"], body[0]["quality"]) == (3, "good")
+    api.get("/v1/water/bathing", params={"season": 2024})
+    assert db.calls[-1][1] == {"season": 2024}
+    assert api.get("/v1/water/bathing", params={"season": 1066}).status_code == 422
+
+
+def test_bathing_water_years_carry_the_share_of_excellent_waters():
+    year = dict.fromkeys(BathingWaterYear.model_fields) | {
+        "season": 2026,
+        "bathing_waters": 87,
+        "classified": 87,
+        "excellent": 80,
+        "good": 5,
+        "sufficient": 1,
+        "poor": 1,
+        "excellent_share": 0.92,
+        "downgraded": 2,
+        "upgraded": 1,
+        "samples": 1065,
+        "samples_not_fit": 30,
+        "restrictions": 20,
+        "bans": 5,
+        "restricted_days": 60,
+    }
+    db = FakeDatabase({"gold.fct_bathing_water_island_yearly": [year]})
+
+    assert client(db).get("/v1/water/bathing/island").json()[0]["excellent_share"] == 0.92
 
 
 def test_tourist_dwellings_filter_by_reference_month():

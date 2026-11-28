@@ -60,6 +60,8 @@ exposures:
       - ref('fct_sea_temperature_monthly')
       - ref('fct_marine_heatwaves')
       - ref('dim_locations')
+      - ref('fct_bathing_water_seasons')
+      - ref('fct_bathing_water_island_yearly')
 
   - name: grafana_mobility
     label: Grafana · Mallorca · Movilidad
@@ -171,6 +173,8 @@ exposures:
       - ref('fct_unemployment_monthly')
       - ref('fct_unemployment_island_monthly')
       - ref('agg_unemployment_seasonality')
+      - ref('fct_bathing_water_seasons')
+      - ref('fct_bathing_water_island_yearly')
 
   - name: web
     label: Web front end · Mallorca en datos
@@ -221,6 +225,8 @@ exposures:
       - ref('fct_unemployment_monthly')
       - ref('fct_unemployment_island_monthly')
       - ref('agg_unemployment_seasonality')
+      - ref('fct_bathing_water_seasons')
+      - ref('fct_bathing_water_island_yearly')
 
   - name: corrections_phase
     label: Corrections with support sources (phase 4)

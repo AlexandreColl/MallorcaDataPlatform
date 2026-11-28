@@ -235,6 +235,8 @@ Grafana, la API y quien escriba SQL no tienen que conocer los nombres de las mé
 | `fct_bike_stations_hourly` | estación de BiciPalma y hora UTC | Snapshot periódico, ancho: media, mínimo y máximo de las instantáneas de 5 minutos de la hora. Incremental | Tabla | ✅ |
 | `fct_bike_stations_daily` | estación de BiciPalma y día | Agregado de las horas: ocupación media y horas sin bicis o sin anclajes | Tabla | ✅ |
 | `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly` | mes | Snapshot periódico, con la anomalía frente al mismo mes | Tabla | ✅ |
+| `fct_bathing_water_seasons` | agua de baño y temporada | Snapshot periódico: muestras, peores resultados, restricciones y clase de la directiva 2006/7/CE calculada con cuatro temporadas, y su cambio | Tabla | ✅ |
+| `fct_bathing_water_island_yearly` | temporada | Agregado: aguas de baño de cada clase y porcentaje de excelentes | Tabla | ✅ |
 | `fct_earthquakes` | sismo, en su última revisión | Transacción (evento) | Tabla | — |
 | `fct_population_yearly` | municipio y año | Snapshot periódico: padrón a 1 de enero, densidad y cambio frente al padrón anterior | Tabla | ✅ |
 | `fct_tourist_dwellings` | municipio y mes de referencia | Snapshot periódico irregular: dos recuentos al año del INE, con el cambio frente al recuento anterior y el peso frente al padrón | Tabla | ✅ |

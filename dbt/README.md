@@ -70,6 +70,7 @@ flowchart LR
 | core | `fct_resources_monthly` (contrato) | mes: turismo, reservas, lluvia, temperatura, demanda eléctrica y paro registrado, cada una con su anomalía frente al mismo mes |
 | climate | `fct_climate_monthly` (contrato) | mes: lluvia y temperatura de las estaciones de AEMET, anomalía frente al mismo mes, días calurosos y lluvia acumulada del año hidrológico |
 | water | `fct_water_reserves_monthly` (contrato), `dim_aquifers` (seed) | mes: reservas de la isla, variación y anomalía frente al mismo mes de otros años, acuíferos bajo el 30 % |
+| water | `fct_bathing_water_seasons`, `fct_bathing_water_island_yearly` (contrato) | agua de baño y temporada / temporada: muestras de Náyade, peores resultados, restricciones y clase de la directiva 2006/7/CE (percentiles de los logaritmos de cuatro temporadas), y el porcentaje de excelentes de la isla |
 | tourism | `fct_tourism_monthly` (contrato) | mes: turistas internacionales, gasto, ocupación hotelera, pasajeros del aeropuerto e interanual |
 | tourism | `fct_tourist_dwellings` (contrato) | municipio y mes de referencia: viviendas turísticas, plazas, por habitante y cambio frente al recuento anterior |
 | labour | `fct_unemployment_monthly`, `fct_unemployment_island_monthly` (contrato) | municipio y mes / mes: paro registrado del SEPE por sexo y edad y por sector, por 1.000 habitantes, interanual y anomalía frente al mismo mes; los «<5» quedan nulos y marcados |
@@ -156,6 +157,7 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
 - Mensuales: `fct_tourism_monthly`, `fct_water_reserves_monthly`, `fct_climate_monthly`, `fct_resources_monthly`.
 - Turismo por municipio: `fct_tourist_dwellings`.
 - Paro registrado: `fct_unemployment_monthly`, `fct_unemployment_island_monthly`, `agg_unemployment_seasonality`.
+- Aguas de baño: `fct_bathing_water_seasons`, `fct_bathing_water_island_yearly`.
 - Calidad: `fct_anomaly_evaluations`.
 
 ## Tests
@@ -185,6 +187,10 @@ no en Grafana ni en la API. `tests/test_data_model_docs.py` comprueba que esta l
   - `tourist_dwellings_change_is_against_the_previous_count`: el cambio de las viviendas
     turísticas es frente al recuento anterior, esté a la distancia que esté, y un recuento sin su padrón publicado
     usa el último padrón anterior.
+  - `bathing_water_class_follows_the_directive_percentiles`: 16 muestras limpias en dos temporadas dan un agua
+    excelente y 16 de 1.000 *E. coli* una insuficiente; una primera temporada sola no tiene clase aunque sus
+    varios puntos sumen 16 muestras. `bathing_water_island_share_counts_classified_only`: el porcentaje de
+    excelentes es sobre las aguas clasificadas.
   - `unemployment_seasonality_needs_whole_seasons`: el cociente invierno/verano del paro solo sale con los
     cuatro meses de verano y al menos tres de invierno (el año en curso aún no los tiene), y en un municipio
     solo sin totales «<5» ese año.

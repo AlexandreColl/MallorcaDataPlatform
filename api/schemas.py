@@ -221,6 +221,63 @@ class Aquifer(BaseModel):
     change_12m_pts: float | None
 
 
+class BathingWaterSeason(BaseModel):
+    """One bathing water of Mallorca in one season (gold.fct_bathing_water_seasons, Náyade)."""
+
+    bathing_water: str = Field(examples=["1038"], description="Náyade id of the bathing water.")
+    name: str | None = Field(examples=["Playa dels Tamarells (Port de Pollença)"])
+    municipality: str = Field(examples=["07042"], description="INE municipality code.")
+    municipality_name: str | None = Field(examples=["Pollença"])
+    sampling_points: int
+    lat: float
+    lon: float
+    season: int = Field(examples=[2026])
+    samples: int = Field(description="Point-days with a result that season.")
+    last_sample_date: date | None
+    worst_e_coli: int | None = Field(examples=[1291], description="Highest E. coli of the season (cfu/100 ml).")
+    worst_enterococci: int | None = Field(description="Highest intestinal enterococci of the season (cfu/100 ml).")
+    samples_not_fit: int = Field(description="Samples that came with advice against bathing or a ban.")
+    restrictions: int
+    bans: int
+    restricted_days: int
+    assessed_samples: int = Field(description="Samples of the four seasons the class is computed on.")
+    assessed_seasons: int
+    p95_e_coli: float | None
+    p95_enterococci: float | None
+    p90_e_coli: float | None
+    p90_enterococci: float | None
+    quality_class: int | None = Field(
+        examples=[4],
+        description="Directive 2006/7/EC: 4 excellent, 3 good, 2 sufficient, 1 poor; null below 16 samples.",
+    )
+    quality: str | None = Field(examples=["excellent"])
+    previous_quality_class: int | None
+    quality_class_change: int | None = Field(description="Against the previous season: +1 one class better.")
+
+
+class BathingWaterYear(BaseModel):
+    """The bathing waters of Mallorca as a whole in one season (gold.fct_bathing_water_island_yearly, Náyade)."""
+
+    season: int
+    bathing_waters: int
+    classified: int = Field(description="Waters with at least 16 samples in their four-season set.")
+    excellent: int
+    good: int
+    sufficient: int
+    poor: int
+    excellent_share: float | None = Field(examples=[0.92], description="Excellent / classified.")
+    downgraded: int
+    upgraded: int
+    samples: int
+    samples_not_fit: int
+    samples_not_fit_share: float | None
+    restrictions: int
+    bans: int
+    restricted_days: int
+    worst_e_coli: int | None
+    worst_enterococci: int | None
+
+
 class ClimateMonth(BaseModel):
     """Climate of Mallorca in one month from the AEMET stations (gold.fct_climate_monthly)."""
 

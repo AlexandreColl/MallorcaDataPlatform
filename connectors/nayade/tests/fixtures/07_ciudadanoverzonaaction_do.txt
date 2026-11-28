@@ -1,0 +1,1269 @@
+<!--ciudadanoVerDatosAnuales.jsp -->
+
+
+
+
+
+<html lang="es">
+   <head>
+   <!--Evita los ataques por ClickJacking -->
+<meta http-equiv="X-Frame-Options" content="deny"/>
+      <META Http-Equiv="Cache-Control" Content="no-cache">
+      <META Http-Equiv="Pragma" Content="no-cache"><META Http-Equiv="Expires" Content="0">
+      <title>Sistema de Información Nacional de Aguas de Baño</title>
+      <link rel="stylesheet" href="/Splayas/css/estilos.css" type="text/css">
+      <script type="text/javascript" src ="/Splayas/js/funciones.js"></script>
+      <script type="text/javascript" src ="/Splayas/js/validacion.js"></script>
+      <script type="text/javascript" src ="/Splayas/js/calendar.js"></script>
+      <script type="text/javascript" src ="/Splayas/js/menu_generator.js" ></script>
+      <script type="text/javascript">
+
+      function enviar(pestania){
+	    document.ciudadanoZonaForm.pestanya.value=pestania;
+	    document.ciudadanoZonaForm.action="ciudadanoVerZonaAction.do";
+	    document.ciudadanoZonaForm.submit();
+      }
+
+      function volver(){
+         document.ciudadanoZonaForm.pestanya.value="";
+         if(document.ciudadanoZonaForm.actionProcedencia.value=="ciudadanoZonaAction"){
+            document.ciudadanoZonaForm.codCCAA.value="";
+            document.ciudadanoZonaForm.codProvincia.value="";
+            document.ciudadanoZonaForm.codMunicipio.value="";
+            document.ciudadanoZonaForm.codZona.value="";
+            document.ciudadanoZonaForm.denZona.value="";
+            document.ciudadanoZonaForm.provinciaMapa.value="";
+            document.ciudadanoZonaForm.pestanya.value="";
+            document.ciudadanoZonaForm.actionProcedencia.value="";
+            document.ciudadanoZonaForm.action="ciudadanoZonaAction.do";
+            document.ciudadanoZonaForm.submit();
+         }
+         if(document.ciudadanoZonaForm.actionProcedencia.value=="ciudadanoListaZonaAction"){
+            document.ciudadanoZonaForm.action="ciudadanoListaZonaAction.do";
+            document.ciudadanoZonaForm.submit();
+         }
+      }
+
+      function imprimir(){
+	   var ventana=window.open('/Splayas/html/ciudadano/CiudadanoVerZonav.html','imprimir','resizable=yes,toolbar=no,status=yes,scrollbars=yes,location=no,menubar=no,directories=no,width=800,height=540');
+      }
+
+      function ampliar(datosAdmin){
+	   openChild("ciudadanoAmpliarInformacionAction.do?datos="+datosAdmin,"selector", 475, 225, 0, 0 , 0);
+	}
+
+       function ampliarIncidencia(datosInci) {
+          openChild("ciudadanoAmpliarInformacionIncidenciaAction.do?datos="+datosInci,"selector", 475, 225, 0, 0 , 0);
+       }
+
+      </script>
+   </head>
+   <body >
+
+<img src="/Splayas/images/logoSuperior.gif"/>
+<br><br>
+
+      <script language="Javascript1.2">
+      	var botones= new Array(6);
+        botones[0] = "Imprimir";
+	botones[1] = "javascript:imprimir()";
+	botones[2] = "Volver";
+	botones[3] = "javascript:volver()";
+       botones[4] = "Salir";
+       botones[5] = "indexCiudadanoAction.do";
+        pintaBotonesContext(botones,'/Splayas');
+      </script>
+
+      <form name="ciudadanoZonaForm" method="POST" action="/Splayas/ciudadano/ciudadanoVerZonaAction.do" enctype="multipart/form-data">
+         <input type="hidden" name="pestanya" value="3">
+         <input type="hidden" name="actionProcedencia" value="">
+         <input type="hidden" name="codZona" value="1035">
+         <input type="hidden" name="provinciaMapa" value="">
+         <input type="hidden" name="codCCAA" value="">
+         <input type="hidden" name="codProvincia" value="">
+         <input type="hidden" name="codMunicipio" value="">
+         <input type="hidden" name="denZona" value="">
+         <input type="hidden" name="codPlaya" value="">
+
+      <table width="200" border="0" cellpadding="0" cellspacing="0" class="tablaformTitulo">
+         <tr>
+            <td width="20"><img src="/Splayas/images/peston1.gif" width="20" height="20"></td>
+            <td width="200" class="tituloMenuDesActivo"><a href="javascript:enviar('1')">Localizacion</a></td>
+            <td width="20"><img src="/Splayas/images/peston2.gif" width="20" height="20"></td>
+            <td width="20"><img src="/Splayas/images/peston1.gif" width="20" height="20"></td>
+            <td width="200" class="tituloMenuDesActivo"><a href="javascript:enviar('2')">Playa</a></td>
+            <td width="20"><img src="/Splayas/images/peston2.gif" width="20" height="20"></td>
+            <td width="20"><img src="/Splayas/images/b1.gif" width="20" height="20"></td>
+            <td width="200" class="tituloMenuActivo">Muestreos</td>
+            <td width="20"><img src="/Splayas/images/b2.gif" width="20" height="20"></td>
+            <td width="20"><img src="/Splayas/images/peston1.gif" width="20" height="20"></td>
+            <td width="200" class="tituloMenuDesActivo"><a href="javascript:enviar('4')">Enlaces Interés</a></td>
+            <td width="20"><img src="/Splayas/images/peston2.gif" width="20" height="20"></td>
+         </tr>
+      </table>
+
+      <!--SE MUESTRA LA INFORMACION DE LOS PUNTOS DE MUESTREO -->
+      <script>pieTablaFina();</script>
+<table border="0" class="tablaform">
+	<tr>
+		<td >
+	        	<div align="right"><a href="javascript:ayuda('/Splayas/html/ayuda/ayudaESP/MuestreosTemporadaActiva.htm')"><img src="/Splayas/images/iconoAyuda.gif" width="32" height="32" border="0"></a></div>
+		</td>
+      	</tr>
+</table>
+
+        
+           <table class="tablaform">
+              <tr>
+                 <td class="apartadotabla" width="20%">Punto Muestreo:</td>
+                 <td class="nombreCampoNI">PLAYA D&#39;ALBERCUIX( PORT DE POLLENÇA) PM1  </td>
+               </tr>
+            <table class="tablaform"  border="0">
+               
+                  <tr>
+                     <td class="apartadotabla">Muestreos:</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td>&nbsp;</td>
+                     <td class="nombreCampoNI">Fecha Toma</td>
+                     <td class="nombreCampoNI">Escherichia coli</td>
+                     <td class="nombreCampoNI">Enterococo</td>
+                     <td class="nombreCampoNI">Observaciones</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/09/2026</td>
+                        <td class="valorCampoI">379 NMP/100 mL</td>
+                        <td class="valorCampoI">52 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">24/08/2026</td>
+                        <td class="valorCampoI">75 NMP/100 mL</td>
+                        <td class="valorCampoI">98 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">28/07/2026</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">13/07/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">29/06/2026</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/06/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">18/05/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">04/05/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/04/2026</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">18/09/2025</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">25/08/2025</td>
+                        <td class="valorCampoI">189 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">01/08/2025</td>
+                        <td class="valorCampoI">260 UFC/100 mL</td>
+                        <td class="valorCampoI">10 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">08/07/2025</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">23/06/2025</td>
+                        <td class="valorCampoI">479 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/06/2025</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">20/05/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">05/05/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/04/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">11/09/2024</td>
+                        <td class="valorCampoI">317 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/09/2024</td>
+                        <td class="valorCampoI">201 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">05/08/2024</td>
+                        <td class="valorCampoI">86 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/07/2024</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/07/2024</td>
+                        <td class="valorCampoI">52 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">10/06/2024</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">20/05/2024</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">06/05/2024</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">09/04/2024</td>
+                        <td class="valorCampoI">272 NMP/100 mL</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">11/09/2023</td>
+                        <td class="valorCampoI">146 NMP/100 mL</td>
+                        <td class="valorCampoI">40 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">28/08/2023</td>
+                        <td class="valorCampoI">373 NMP/100 mL</td>
+                        <td class="valorCampoI">840 UFC/100 mL</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('481731');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">01/08/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/07/2023</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">03/07/2023</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">06/06/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">22/05/2023</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">08/05/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/04/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+               
+               
+               <!--INFORMACION INCIDENCIA -->
+               
+               
+                  <tr>
+                     <td width="5%">&nbsp;</td>
+                     <td class="nombreCampoNI"></td>
+                  </tr>
+               
+               <!--FIN INFORMACION INCIDENCIA -->
+               <tr>
+                  <td>&nbsp;</td>
+               </tr>
+               <script>pieTablaFina();</script>
+            </table>
+         
+           <table class="tablaform">
+              <tr>
+                 <td class="apartadotabla" width="20%">Punto Muestreo:</td>
+                 <td class="nombreCampoNI">PLAYA D&#39;ALBERCUIX( PORT DE POLLENÇA) PM2  </td>
+               </tr>
+            <table class="tablaform"  border="0">
+               
+                  <tr>
+                     <td class="apartadotabla">Muestreos:</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td>&nbsp;</td>
+                     <td class="nombreCampoNI">Fecha Toma</td>
+                     <td class="nombreCampoNI">Escherichia coli</td>
+                     <td class="nombreCampoNI">Enterococo</td>
+                     <td class="nombreCampoNI">Observaciones</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/09/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">24/08/2026</td>
+                        <td class="valorCampoI">471 NMP/100 mL</td>
+                        <td class="valorCampoI">97 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">28/07/2026</td>
+                        <td class="valorCampoI">231 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">13/07/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">86 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">29/06/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/06/2026</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">18/05/2026</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">04/05/2026</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">200 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/04/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">09/09/2025</td>
+                        <td class="valorCampoI">211 NMP/100 mL</td>
+                        <td class="valorCampoI">160 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">25/08/2025</td>
+                        <td class="valorCampoI">233 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">01/08/2025</td>
+                        <td class="valorCampoI">210 UFC/100 mL</td>
+                        <td class="valorCampoI">22 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">08/07/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">23/06/2025</td>
+                        <td class="valorCampoI">439 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/06/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">20/05/2025</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">05/05/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">28/04/2025</td>
+                        <td class="valorCampoI">218 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">11/09/2024</td>
+                        <td class="valorCampoI">299 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">27/08/2024</td>
+                        <td class="valorCampoI">12033 NMP/100 mL</td>
+                        <td class="valorCampoI">189 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona donde queda prohibido el baño temporalmente</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('517383');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">05/08/2024</td>
+                        <td class="valorCampoI">473 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/07/2024</td>
+                        <td class="valorCampoI">175 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/07/2024</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">86 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">10/06/2024</td>
+                        <td class="valorCampoI">175 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">20/05/2024</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">06/05/2024</td>
+                        <td class="valorCampoI">30 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">09/04/2024</td>
+                        <td class="valorCampoI">134 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">14/09/2023</td>
+                        <td class="valorCampoI">150 UFC/100 mL</td>
+                        <td class="valorCampoI">10 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">30/08/2023</td>
+                        <td class="valorCampoI">85 NMP/100 mL</td>
+                        <td class="valorCampoI">45 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">01/08/2023</td>
+                        <td class="valorCampoI">148 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/07/2023</td>
+                        <td class="valorCampoI">98 NMP/100 mL</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">03/07/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">06/06/2023</td>
+                        <td class="valorCampoI">199 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">22/05/2023</td>
+                        <td class="valorCampoI">109 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">08/05/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/04/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+               
+               
+               <!--INFORMACION INCIDENCIA -->
+               
+               
+                  <tr>
+                     <td width="5%">&nbsp;</td>
+                     <td class="nombreCampoNI"></td>
+                  </tr>
+               
+               <!--FIN INFORMACION INCIDENCIA -->
+               <tr>
+                  <td>&nbsp;</td>
+               </tr>
+               <script>pieTablaFina();</script>
+            </table>
+         
+           <table class="tablaform">
+              <tr>
+                 <td class="apartadotabla" width="20%">Punto Muestreo:</td>
+                 <td class="nombreCampoNI">PLAYA D&#39;ALBERCUIX( PORT DE POLLENÇA) PM3  </td>
+               </tr>
+            <table class="tablaform"  border="0">
+               
+                  <tr>
+                     <td class="apartadotabla">Muestreos:</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td>&nbsp;</td>
+                     <td class="nombreCampoNI">Fecha Toma</td>
+                     <td class="nombreCampoNI">Escherichia coli</td>
+                     <td class="nombreCampoNI">Enterococo</td>
+                     <td class="nombreCampoNI">Observaciones</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/09/2026</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">24/08/2026</td>
+                        <td class="valorCampoI">573 NMP/100 mL</td>
+                        <td class="valorCampoI">52 NMP/100 mL</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('607451');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">28/07/2026</td>
+                        <td class="valorCampoI">148 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">13/07/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">29/06/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/06/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">18/05/2026</td>
+                        <td class="valorCampoI">465 NMP/100 mL</td>
+                        <td class="valorCampoI">175 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">04/05/2026</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/04/2026</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">09/09/2025</td>
+                        <td class="valorCampoI">97 NMP/100 mL</td>
+                        <td class="valorCampoI">41 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">25/08/2025</td>
+                        <td class="valorCampoI">75 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">01/08/2025</td>
+                        <td class="valorCampoI">51 UFC/100 mL</td>
+                        <td class="valorCampoI">10 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">08/07/2025</td>
+                        <td class="valorCampoI">31 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">26/06/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/06/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">20/05/2025</td>
+                        <td class="valorCampoI">110 NMP/100 mL</td>
+                        <td class="valorCampoI">180 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">05/05/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">07/04/2025</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">11/09/2024</td>
+                        <td class="valorCampoI">1309 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('525924');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">27/08/2024</td>
+                        <td class="valorCampoI">932 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('517381');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">09/08/2024</td>
+                        <td class="valorCampoI">288 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/07/2024</td>
+                        <td class="valorCampoI">480 NMP/100 mL</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">02/07/2024</td>
+                        <td class="valorCampoI">122 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">10/06/2024</td>
+                        <td class="valorCampoI">86 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">20/05/2024</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">06/05/2024</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">09/04/2024</td>
+                        <td class="valorCampoI">148 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">11/09/2023</td>
+                        <td class="valorCampoI">216 NMP/100 mL</td>
+                        <td class="valorCampoI">40 UFC/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">28/08/2023</td>
+                        <td class="valorCampoI">459 NMP/100 mL</td>
+                        <td class="valorCampoI">430 UFC/100 mL</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('481729');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">01/08/2023</td>
+                        <td class="valorCampoI">110 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/07/2023</td>
+                        <td class="valorCampoI">218 NMP/100 mL</td>
+                        <td class="valorCampoI">20 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">03/07/2023</td>
+                        <td class="valorCampoI">933 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        
+                           <td width="5%">
+                              <a href="javascript:ampliar('478083');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                           </td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">06/06/2023</td>
+                        <td class="valorCampoI">63 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">22/05/2023</td>
+                        <td class="valorCampoI">75 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">08/05/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">17/04/2023</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">10 NMP/100 mL</td>
+                        <td class="valorCampoI">Zona Apta para el baño</td>
+                        
+                     </tr>
+                  
+               
+               
+               <!--INFORMACION INCIDENCIA -->
+               
+                  <tr>
+                     <td class="apartadotabla">Incidentes:</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  <tr>
+                     <td>&nbsp;</td>
+                     <td class="nombreCampoNI">Fecha Apertura Incidente</td>
+                     <td class="nombreCampoNI">Fecha Cierre Incidente</td>
+                     <td class="nombreCampoNI">Observaciones</td>
+                     <td class="nombreCampoNI"></td>
+                     <td>&nbsp;</td>
+                  </tr>
+                  
+                     <tr>
+                        <td width="5%">&nbsp;</td>
+                        <td class="valorCampoI">24/08/2026</td>
+                        <td class="valorCampoI">26/08/2026</td>
+                        <td class="valorCampoI">Recomendación de no baño</td>
+                        <td class="valorCampoI"></td>
+
+                        <td width="5%">
+                           <a href="javascript:ampliarIncidencia('5398');" class="valorCampoI"><img src="/Splayas/images/botonMas.gif" width="15" height="15" border="0"></a>
+                        </td>
+
+                     </tr>
+                  
+               
+               
+               <!--FIN INFORMACION INCIDENCIA -->
+               <tr>
+                  <td>&nbsp;</td>
+               </tr>
+               <script>pieTablaFina();</script>
+            </table>
+         
+         </table>
+         <script>pieTabla();</script>
+      </form>
+   </body>
+</html>

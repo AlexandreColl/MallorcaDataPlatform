@@ -6,7 +6,7 @@ set -euo pipefail
 
 COMPOSE=${COMPOSE:-docker compose}
 DAG_ID=mallorca_pipeline
-CONNECTORS='"open_meteo", "open_meteo_marine", "redata", "socib", "redmar", "noaa_oisst", "ign", "emt_palma", "ctm", "dataestur", "water_reserves", "eea_air_quality", "ine_population", "ine_tourist_housing", "sepe_unemployment", "ibestat_iph"'
+CONNECTORS='"open_meteo", "open_meteo_marine", "redata", "socib", "redmar", "noaa_oisst", "ign", "emt_palma", "ctm", "dataestur", "water_reserves", "eea_air_quality", "ine_population", "ine_tourist_housing", "sepe_unemployment", "nayade", "ibestat_iph"'
 # AEMET needs an API key: it joins the E2E only when .env has one (in CI, the AEMET_API_KEY repository secret).
 if grep -Eq '^AEMET_API_KEY=.+' .env 2>/dev/null; then CONNECTORS+=', "aemet", "aemet_warnings"'; fi
 # only_missing false: the second run must load the same window again, to prove it duplicates nothing.

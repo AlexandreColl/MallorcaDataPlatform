@@ -7,6 +7,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Added
 
+- Connector `nayade`: the samples of the 87 bathing waters of Mallorca (113 sampling points) in Náyade, the
+  national bathing water system of the Spanish Ministry of Health: E. coli and intestinal enterococci (cfu/100 ml),
+  the advice given with each sample and the bathing restrictions, for the four seasons Náyade shows (since April
+  2023). Náyade has no API: the connector reads its form pages (latin1 HTML, no session needed) with the standard
+  library's HTML parser and converts the UTM coordinates of the points to degrees. An event source: no gaps rule for
+  the months without samples. History loaded (12,295 values). In the catalogue in three languages, with the
+  Ministry's reuse terms.
+- dbt: `fct_bathing_water_seasons` (per bathing water and season: samples, worst results, restrictions and the class
+  of Directive 2006/7/EC computed on four seasons, with a unit test) and `fct_bathing_water_island_yearly` (classes
+  and share of excellent waters per season). API: `GET /v1/water/bathing` and `/v1/water/bathing/island`. Web: a
+  map of the beaches by class with each beach's card and the classes per season on Climate and water. Grafana:
+  panels 15 and 16 of Climate and water.
 - Connector `sepe_unemployment`: the registered unemployment of SEPE (Paro registrado por municipios) in the 53
   municipalities of Mallorca, monthly since January 2006: the total, six bands of sex and age and five sectors.
   One ~10 MB CSV per year with the whole of Spain; bronze keeps only the Balearic lines of the window's months and

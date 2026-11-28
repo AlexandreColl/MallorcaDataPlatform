@@ -22,7 +22,9 @@ export const ca: Messages = {
     climate: {
       label: "Clima i aigua",
       title: "Clima i aigua",
-      description: "Reserves dels aqüífers, pluja de l’any hidrològic i temperatura de l’aire i de la mar respecte del que és normal.",
+      description:
+        "Reserves dels aqüífers, pluja de l’any hidrològic, temperatura de l’aire i de la mar respecte del que és " +
+        "normal i qualitat de les aigües de bany.",
     },
     mobility: {
       label: "Mobilitat",
@@ -61,7 +63,7 @@ export const ca: Messages = {
     catalogue: "Catàleg",
     footer:
       "Dades obertes d’AEMET, SOCIB, Ports de l’Estat, NOAA, EEA, REData, IGN, INE, EMT, CTM, SEGITTUR, " +
-      "Govern de les Illes Balears i Open-Meteo. Mapa © OpenStreetMap.",
+      "Govern de les Illes Balears, Ministeri de Sanitat i Open-Meteo. Mapa © OpenStreetMap.",
   },
   data: {
     loadError: (error: string) => `No s’han pogut carregar les dades: ${error}`,
@@ -413,6 +415,31 @@ export const ca: Messages = {
     seaChart: "Anomalia de la temperatura de la mar i dies d’onada de calor marina de cada mes",
     seaAnomaly: "Anomalia de la mar",
     heatwaveDays: "Dies d’onada de calor",
+  },
+  bathing: {
+    classes: { 4: "Excel·lent", 3: "Bona", 2: "Suficient", 1: "Insuficient" },
+    unclassified: "Sense classificar",
+    upgraded: (previous: string) => `Puja des de ${previous}`,
+    downgraded: (previous: string) => `Baixa des de ${previous}`,
+    unchanged: "Igual que la temporada anterior",
+    classLine: (season: string) => `Classe el ${season}`,
+    tooFewSamples: (samples: number) => `Només ${samples} mostres en quatre temporades (en calen 16)`,
+    samplesLine: (samples: number, last: string) => `${samples} mostres; la darrera, el ${last}`,
+    worstLine: (eColi: string, enterococci: string) =>
+      `Pitjor resultat: ${eColi} E. coli i ${enterococci} enterococs per 100 ml`,
+    restrictionsLine: (restrictions: number, bans: number) =>
+      `${restrictions} ${restrictions === 1 ? "restricció" : "restriccions"} del bany` +
+      (bans > 0 ? `, ${bans} amb prohibició` : ""),
+    mapTitle: "Qualitat de les aigües de bany",
+    mapSubtitle: (season: string) =>
+      `Cada platja amb la seva classe de la directiva europea el ${season}, calculada amb les mostres de quatre ` +
+      "temporades de Náyade (Ministeri de Sanitat). Pitja una platja per veure’n la fitxa.",
+    trendTitle: "Aigües de bany excel·lents",
+    trendSubtitle:
+      "Platges de cada classe per temporada i percentatge d’excel·lents entre les classificades. Una platja necessita " +
+      "16 mostres, unes dues temporades, per tenir classe.",
+    trendChart: "Platges de cada classe i percentatge d’excel·lents per temporada",
+    excellentShare: "Excel·lents",
   },
   mobilityPage: {
     dailyCallsChart: "Passos programats per dia a cada xarxa",
