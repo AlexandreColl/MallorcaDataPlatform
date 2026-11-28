@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { api, type ResourcesMonth, type TourismMonth } from "../api";
+import { api, type ResourcesMonth, type TourismMonth, type UnemploymentSeasonality } from "../api";
 import { Async } from "../components/Async";
 import { Chart, type ChartColors } from "../components/Chart";
 import { CorrelationCard } from "../components/CorrelationCard";
@@ -11,6 +11,7 @@ import { messages } from "../i18n";
 import { compact, monthShort, number, orDash } from "../lib/format";
 import { buildKpi, type Kpi, RESOURCE_SPECS, TOURISM_SPECS } from "../lib/kpis";
 import { deseasonalize, movingAverage, pearson } from "../lib/stats";
+import { latestSeasonality, unemploymentCorrelations } from "../lib/unemployment";
 
 const SINCE = "2016-01-01";
 const KPI_COLORS = ["#d97706", "#2563eb", "#0d9488", "#db2777", "#7c3aed"];
@@ -21,6 +22,28 @@ const HOTELS = "#db2777";
 const SPENDING = "#15803d";
 const CRUISES = "#0d9488";
 const AIRPORT = "#2563eb";
+const UNEMPLOYMENT = "#e11d48";
+
+/** The winter/summer ratio of unemployment in Mallorca, one bar per year (the incomplete years have none). */
+function SeasonalityChart({ rows }: { rows: UnemploymentSeasonality[] }) {
+  const m = messages().tourism;
+  const option = useCallback(
+    () => ({
+      xAxis: { type: "category", data: rows.map((r) => String(r.year)) },
+      yAxis: { type: "value", min: 0, axisLabel: { formatter: (v: number) => number(v, 1) } },
+      tooltip: { valueFormatter: orDash((v) => number(v, 2)) },
+      series: [
+        {
+          name: m.winterSummer, type: "bar", data: rows.map((r) => r.winter_summer_ratio), color: UNEMPLOYMENT,
+          itemStyle: { opacity: 0.75 },
+          markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", opacity: 0.6 }, data: [{ yAxis: 1 }], label: { show: false } },
+        },
+      ],
+    }),
+    [rows, m],
+  );
+  return <Chart option={option} label={m.seasonalityChart} height={280} />;
+}
 
 const months = (rows: { month: string }[]) => rows.map((r) => monthShort(r.month));
 
@@ -81,6 +104,7 @@ const percent = (v: number) => `${number(v)} %`;
 export function Tourism() {
   const tourism = useLoad(() => api.tourism(SINCE));
   const resources = useLoad(() => api.resources(SINCE));
+  const seasonality = useLoad(api.unemploymentSeasonality);
 
   const kpis = useMemo(() => {
     const t = ready(tourism);
@@ -96,6 +120,10 @@ export function Tourism() {
     const res = ready(resources);
     return t && res ? correlations(res, t) : null;
   }, [tourism, resources]);
+  const u = useMemo(() => {
+    const res = ready(resources);
+    return res ? unemploymentCorrelations(res) : null;
+  }, [resources]);
   const m = messages().tourism;
 
   return (
@@ -106,6 +134,13 @@ export function Tourism() {
           <CorrelationCard label={m.touristsWater} color={WATER} {...r.water} />
           <CorrelationCard label={m.touristsElectricity} color={ELECTRICITY} {...r.electricity} />
           <CorrelationCard label={m.hotelsSpending} color={HOTELS} {...r.hotels} />
+        </section>
+      )}
+      {u && (
+        <section className="kpis correlations" aria-label={m.unemployed}>
+          <CorrelationCard label={m.touristsUnemployment} color={UNEMPLOYMENT} {...u.tourists} />
+          <CorrelationCard label={m.airportUnemployment} color={AIRPORT} {...u.airport} />
+          <CorrelationCard label={m.cruisesUnemployment} color={CRUISES} {...u.cruises} />
         </section>
       )}
       <div className="grid">
@@ -148,6 +183,21 @@ export function Tourism() {
               />
             )}
           </Async>
+        </Panel>
+        <Panel title={m.unemploymentTitle} subtitle={m.unemploymentSubtitle} full>
+          <Async state={resources} height={320}>
+            {(rows) => (
+              <PairChart
+                rows={rows}
+                label={m.unemploymentChart}
+                left={{ name: m.airportPassengers, values: rows.map((x) => x.airport_passengers), color: AIRPORT, format: compact, bars: true }}
+                right={{ name: m.unemployed, values: rows.map((x) => x.unemployed), color: UNEMPLOYMENT, format: compact }}
+              />
+            )}
+          </Async>
+        </Panel>
+        <Panel title={m.seasonalityTitle} subtitle={m.seasonalitySubtitle(latestSeasonality(ready(seasonality) ?? []))} full>
+          <Async state={seasonality} height={280}>{(rows) => <SeasonalityChart rows={rows} />}</Async>
         </Panel>
         <Panel title={m.hotelsTitle} subtitle={m.hotelsSubtitle} full>
           <Async state={tourism} height={320}>

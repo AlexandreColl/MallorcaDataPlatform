@@ -4,9 +4,10 @@ import { messages } from "../i18n";
 import { monthName, number, signed } from "../lib/format";
 import type { MunicipalityRow } from "../lib/mobility";
 import { binColor } from "../lib/population";
+import { unemploymentLine } from "../lib/unemployment";
 import { type MapArea, type MapLayer, PointMap } from "./PointMap";
 
-type View = "density" | "service" | "growth" | "tourism" | "none";
+type View = "density" | "service" | "growth" | "tourism" | "unemployment" | "none";
 
 /** The legends are functions: their last entry names the unit in the language of the page. */
 const VIEWS: Record<View, { legend: () => string[]; bounds: number[]; colors: string[] }> = {
@@ -32,6 +33,12 @@ const VIEWS: Record<View, { legend: () => string[]; bounds: number[]; colors: st
     bounds: [5, 10, 25, 50, 100],
     colors: ["#fff7ed", "#fed7aa", "#fdba74", "#fb923c", "#ea580c", "#9a3412"],
   },
+  // Registered unemployment per 1,000 inhabitants of the register (SEPE, latest month). Rose, apart from the rest.
+  unemployment: {
+    legend: () => ["< 10", "10-15", "15-20", "20-25", "25-30", messages().mobility.unemploymentTop],
+    bounds: [10, 15, 20, 25, 30],
+    colors: ["#fff1f2", "#fecdd3", "#fda4af", "#fb7185", "#e11d48", "#881337"],
+  },
   // Only the borders, so the stops stand out on the basemap.
   none: { legend: () => [], bounds: [], colors: [] },
 };
@@ -55,6 +62,7 @@ export function MobilityMap({ rows, stops, year, selected, onSelect }: {
       if (view === "density") return r.latest?.density_per_km2 ?? null;
       if (view === "service") return r.perThousand;
       if (view === "tourism") return r.dwellings?.dwellings_per_1000_inhabitants ?? null;
+      if (view === "unemployment") return r.unemployment?.unemployed_per_1000_inhabitants ?? null;
       return r.growth;
     };
     return rows.flatMap((r): MapArea[] => {
@@ -70,6 +78,7 @@ export function MobilityMap({ rows, stops, year, selected, onSelect }: {
               number(r.dwellings.dwellings_per_1000_inhabitants ?? 0, 1),
               monthName(r.dwellings.reference_month),
             ),
+        unemploymentLine(r.unemployment),
       ];
       const color = view === "none" ? "rgba(0, 0, 0, 0)" : binColor(value(r), scale.bounds, scale.colors);
       return r.place.polygon.map((ring) => ({ polygon: ring, color, popup, id: r.place.municipality }));

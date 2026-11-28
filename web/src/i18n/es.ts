@@ -9,13 +9,13 @@ export const es = {
       label: "Inicio",
       title: "Mallorca en datos",
       description:
-        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Diecinueve fuentes abiertas, " +
+        "Agua, clima, turismo y energía de la isla, comparados con lo normal para cada mes. Veinte fuentes abiertas, " +
         "con la calidad comprobada en cada carga.",
     },
     tourism: {
       label: "Turismo y recursos",
       title: "Turismo y recursos",
-      description: "Cuántos turistas llegan cada mes y qué pasa a la vez con el agua y la electricidad.",
+      description: "Cuántos turistas llegan cada mes y qué pasa a la vez con el agua, la electricidad y el paro.",
     },
     climate: {
       label: "Clima y agua",
@@ -168,6 +168,7 @@ export const es = {
       cruise_passengers: "Cruceristas",
       cruise_calls: "Escalas de cruceros",
       port_passengers: "Pasajeros de los puertos",
+      unemployed: "Paro registrado",
       international_tourists: "Turistas internacionales",
       international_tourist_nights: "Pernoctaciones de turistas internacionales",
       international_tourist_spending: "Gasto de turistas internacionales",
@@ -303,11 +304,13 @@ export const es = {
       service: "Servicio por habitante",
       growth: "Crecimiento en 10 años",
       tourism: "Viviendas turísticas",
+      unemployment: "Paro registrado",
       none: "Sin colorear",
     },
     densityTop: "≥ 500 hab./km²",
     serviceTop: "≥ 800 pasos por 1.000 hab.",
     tourismTop: "≥ 100 viviendas turísticas por 1.000 hab.",
+    unemploymentTop: "≥ 30 en paro por 1.000 hab.",
     colourBy: "Color de los municipios",
     placePopulation: (people: string, density: string) => `${people} hab. · ${density} hab./km²`,
     noGrowth: "Sin dato de hace 10 años",
@@ -316,6 +319,10 @@ export const es = {
     placeTourism: (dwellings: string, perThousand: string, month: string) =>
       `${dwellings} viviendas turísticas en ${month} · ${perThousand} por 1.000 hab.`,
     noTourism: "Sin recuento de viviendas turísticas",
+    placeUnemployment: (people: string, perThousand: string, month: string) =>
+      `${people} en paro registrado en ${month} · ${perThousand} por 1.000 hab.`,
+    placeSuppressed: (month: string) => `Menos de 5 en paro registrado en ${month}`,
+    noUnemployment: "Sin dato de paro registrado",
     trend: (from: number, to: number, rate: string) => `${from}–${to}: ${rate} %/año`,
     projection: (year: number) => `Proyección a ${year}`,
     restOfIsland: "Resto de la isla",
@@ -362,6 +369,22 @@ export const es = {
     cruisesChart: "Cruceristas de Baleares y pasajeros del aeropuerto de Palma, con su tendencia",
     cruisePassengers: "Cruceristas",
     airportPassengers: "Aeropuerto de Palma",
+    touristsUnemployment: "Turistas y paro registrado",
+    airportUnemployment: "Aeropuerto y paro registrado",
+    cruisesUnemployment: "Cruceristas y paro registrado",
+    unemploymentTitle: "Paro registrado y aeropuerto",
+    unemploymentSubtitle:
+      "Personas en paro registrado en el SEPE en los 53 municipios el último día de cada mes, frente a los " +
+      "pasajeros del aeropuerto de Palma; en discontinua, la tendencia. El paro baja cuando abre la temporada.",
+    unemploymentChart: "Paro registrado en Mallorca y pasajeros del aeropuerto de Palma, con su tendencia",
+    unemployed: "Paro registrado",
+    seasonalityTitle: "Paro de invierno frente al de verano",
+    seasonalitySubtitle: (latest: string | null) =>
+      "Paro medio de noviembre a febrero entre el de junio a septiembre de cada año: 1,5 son un 50 % más de " +
+      `parados en invierno. Desde la reforma laboral de 2022 los fijos discontinuos sin actividad no cuentan como ` +
+      `parados.${latest ? ` Último año completo: ${latest}.` : ""}`,
+    seasonalityChart: "Cociente entre el paro de invierno y el de verano en Mallorca, cada año",
+    winterSummer: "Invierno / verano",
   },
   climate: {
     reserves: "Reservas",
@@ -421,6 +444,7 @@ export const es = {
     tenYears: "10 años",
     callsPerThousand: "Pasos por 1.000",
     dwellingsPerThousand: "Viv. turísticas por 1.000",
+    unemployedPerThousand: "Paro por 1.000",
     pressureTitle: "Población real presente",
     dailyCallsTitle: "Pasos programados por día",
     dailyCallsSubtitle: "Suma de los vehículos que pasan por cada parada, según los horarios GTFS.",
@@ -571,6 +595,7 @@ export const es = {
       tourism: "Turismo",
       water: "Agua",
       population: "Población",
+      labour: "Trabajo",
     },
     meets: "Cumple",
     breaches: (oldData: boolean, failures: boolean) =>

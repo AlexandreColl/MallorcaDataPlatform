@@ -11,7 +11,8 @@ function month(m: string, fields: Partial<ResourcesMonth>): ResourcesMonth {
     hotel_bed_occupancy_pct: null,
     electricity_demand_gwh: null, electricity_demand_anomaly: null, reserves_pct: null, reserves_change_1m_pts: null,
     reserves_anomaly_pts: null, rain_mm: null, rain_hydrological_year_mm: null, rain_anomaly: null,
-    temperature_mean_c: null, temperature_anomaly_c: null, hot_days: null, ...fields,
+    temperature_mean_c: null, temperature_anomaly_c: null, hot_days: null, unemployed: null,
+    unemployed_per_1000_inhabitants: null, unemployed_anomaly: null, ...fields,
   };
 }
 
