@@ -211,8 +211,9 @@ Las personas en paro registrado el último día hábil de cada mes en cada munic
 por sector, de los datos abiertos del SEPE (un CSV por año desde 2006, de unos 10 MB con toda España). Bronze guarda
 solo las líneas de Baleares de los meses de la ventana, con el SHA-256 del fichero entero. Desde 2022 el SEPE
 publica toda cifra de 1 a 4 como `<5`: se guarda como nulo, nunca como 5, y una opción nueva del core por métrica
-(`suppressed_below`) evita que las reglas de nulos y de huecos lo cuenten como fallo; un mes que falta en el
-fichero sí es un hueco (mayo a diciembre de 2013 y diciembre de 2020). En gold, `fct_unemployment_monthly` y
+(`suppressed_below`) evita que las reglas de nulos y de huecos lo cuenten como fallo. Los meses que faltan en el
+CSV (mayo a diciembre de 2013 y diciembre de 2020) salen del PDF mensual de la provincia, comprobado fila a fila.
+En gold, `fct_unemployment_monthly` y
 `fct_unemployment_island_monthly` dan el paro por 1.000 habitantes, el interanual y la anomalía frente al mismo
 mes, y `agg_unemployment_seasonality` el paro de invierno frente al de verano: casi un 50 % más en invierno hasta
 2019 (1,49) y un 14 % en 2025, tras la reforma laboral de 2022. En la web, Turismo y recursos lo correlaciona con

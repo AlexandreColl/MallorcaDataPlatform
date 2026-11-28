@@ -1689,7 +1689,7 @@ unit_tests:
   - name: unemployment_seasonality_needs_whole_seasons
     description: >-
       Mallorca gets a ratio in 2025 (four summer months, four winter ones); Escorca does not, because one of its
-      totals that year was "<5"; and 2013 gets none, because SEPE's file of that year stops in April.
+      totals that year was "<5"; and 2026 gets none, because its winter (November and December) has not come yet.
     model: agg_unemployment_seasonality
     given:
       - input: ref('fct_unemployment_island_monthly')
@@ -1702,15 +1702,15 @@ unit_tests:
           - {month: "2025-09-01", season: summer, unemployed: 18000}
           - {month: "2025-11-01", season: winter, unemployed: 26000}
           - {month: "2025-12-01", season: winter, unemployed: 27000}
-          - {month: "2013-01-01", season: winter, unemployed: 60000}
-          - {month: "2013-02-01", season: winter, unemployed: 61000}
+          - {month: "2026-01-01", season: winter, unemployed: 23406}
+          - {month: "2026-02-01", season: winter, unemployed: 23000}
       - input: ref('fct_unemployment_monthly')
         rows:
           - {municipality: "07019", municipality_name: Escorca, month: "2025-01-01", season: winter, unemployed: null, is_suppressed: true}
           - {municipality: "07019", municipality_name: Escorca, month: "2025-07-01", season: summer, unemployed: 5, is_suppressed: false}
     expect:
       rows:
-        - {area: mallorca, year: 2013, summer_months: 0, winter_months: 2, winter_summer_ratio: null}
+        - {area: mallorca, year: 2026, summer_months: 0, winter_months: 2, winter_summer_ratio: null}
         - {area: mallorca, year: 2025, summer_months: 4, winter_months: 4, winter_summer_ratio: "1.600"}
         - {area: "07019", year: 2025, summer_months: 1, winter_months: 0, winter_summer_ratio: null}
 

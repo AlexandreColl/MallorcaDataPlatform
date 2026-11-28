@@ -36,6 +36,26 @@ meses de la ventana, tal como vienen, con el SHA-256 y el tamaño del fichero en
 Formentera quedan en bronze aunque `normalize` solo deje los 53 municipios de Mallorca (los del YAML cuyo centro cae
 en la región). Un payload por año (`partition=<año>`).
 
+## Los meses que faltan en el CSV: el PDF mensual
+
+El CSV de 2013 acaba en abril y el de 2020 en noviembre. Los XLS semestrales de datos.gob.es tienen mayo a
+diciembre de 2013, pero tampoco diciembre de 2020, y leerlos pediría un lector de XLS (BIFF) que la imagen no tiene.
+Las [estadísticas mensuales del SEPE](https://www.sepe.es/HomeSepe/que-es-el-sepe/estadisticas/datos-estadisticos/municipios.html)
+tienen todos los meses desde 2005, un PDF y un XLS por provincia; el XLS de Baleares es un fichero OLE dañado que
+no abre ningún lector, así que el conector lee el PDF con `pypdf`, que ya estaba en la imagen (`monthly_pdf.py`):
+
+- `options.missing_months` lista los meses que faltan. Si la ventana incluye uno y su CSV sigue sin tenerlo,
+  `extract` lee la página índice, la del mes (`2020/diciembre.html`, `2013/mayo-2013.html`) y el PDF
+  `MUNI_BALEARES_MMAA.pdf`, que guarda entero en bronze (base64, con su SHA-256; `partition=pdf-AAAA-MM`). Si un
+  día el CSV trae ese mes, gana el CSV y no se pide nada más.
+- El PDF da una línea por municipio, con el nombre en mayúsculas y sin código, y las doce cifras en el orden del
+  CSV; una celda vacía es un cero (hasta 2021 no hay `<5`). Los nombres se comparan sin acentos y con el artículo
+  delante (`POBLA, SA` es `SA POBLA`); `aliases` cubre los tres que no coinciden: `DEYA`, `PALMA DE MALLORCA` y
+  `SANT LLORENÇ DES CARDA` (cortado en la tabla).
+- **Cada línea se comprueba**: los seis tramos y los cinco sectores suman el total, el PDF debe ser del mes pedido
+  y deben estar los 53 municipios. Una cifra leída en la columna equivocada hace fallar la carga en vez de
+  cargarse.
+
 ## Los «<5»: nulos que no son huecos
 
 Desde 2022 el SEPE publica toda cifra de 1 a 4 como `<5`, por secreto estadístico; hasta 2021 daba la cifra exacta
@@ -86,18 +106,18 @@ gold, `fct_unemployment_monthly.is_suppressed` marca un total `<5` y la suma de 
 
 - **Hay ficheros de 2006 a 2026, todos con la misma cabecera**, pero con dos diferencias: el código de municipio
   tiene 4 dígitos hasta 2018 (`7040`) y 5 desde 2019 (`07040`), y los `<5` empiezan en 2022. El de 2005 no existe.
-- **Dos huecos reales**: el CSV de 2013 acaba en abril (faltan mayo a diciembre) y el de 2020 en noviembre (falta
-  diciembre). La regla de huecos lo marca en esos dos años (12 métricas cada uno) y el cociente invierno/verano de
-  2013 queda vacío. Los XLS semestrales de datos.gob.es sí tienen esos meses; leerlos pediría un lector de XLS
-  (BIFF) que la imagen no tiene.
-- **La carga completa son 153.276 valores** (53 municipios × 12 métricas × 241 meses), 6.780 de ellos `<5`.
+- **Dos huecos en los CSV**: el de 2013 acaba en abril (faltan mayo a diciembre) y el de 2020 en noviembre (falta
+  diciembre). Salen de los PDF mensuales: los ocho de 2013 coinciden con los XLS semestrales en las 5.088 celdas de
+  Mallorca, y Palma tenía 34.476 parados en diciembre de 2020.
+- **La carga completa son 159.000 valores** (53 municipios × 12 métricas × 250 meses, sin huecos), 6.780 de
+  ellos `<5`, y ninguna regla de calidad falla en ningún año.
 - **El máximo fue enero de 2012, con 79.396 parados** (90,6 por cada 1.000 habitantes); **el mínimo, mayo de 2026,
   con 20.187** (21,0). Palma tenía 12.571 en enero de 2026, como en la prueba del 26-11-2026.
 - **La isla tiene ahora mucho menos paro de invierno que antes**: el cociente invierno/verano era 1,59 en 2006 y
   1,49 en 2019 (casi un 50 % más de parados en invierno), y ha bajado a 1,22 en 2022, 1,13 en 2023, 1,10 en 2024 y
   1,14 en 2025. La caída coincide con la reforma laboral de 2022: los fijos discontinuos entre temporadas no cuentan
   como parados registrados. En la crisis de 2009-2012 el cociente también bajó (1,20-1,25), pero porque el paro de
-  verano se disparó. 2020 es el único año con más paro en verano que en invierno (0,90).
+  verano se disparó (2013, ya completo: 1,27). 2020 es el único año con más paro en verano que en invierno (0,96).
 - **Por municipio, los más estacionales son los de costa**: Son Servera (1,74 de media en 2022-2025), Capdepera
   (1,72), Alcúdia (1,65) y Santanyí (1,51). Los del interior, como Sineu o Santa Eugènia, no tienen ciclo (0,98-1,00).
 - **En octubre de 2026, Inca era el municipio con más paro por habitante** (35,1 por cada 1.000), por delante de
@@ -118,3 +138,6 @@ Los ficheros enteros pasan del límite de 2 MB de `make record-fixtures`, así q
 recortaron a mano: título, cabecera y las líneas de Palma, Pollença, Escorca y Calvià (Mallorca), Maó y Eivissa (otras
 islas) y Abla (Almería, otra provincia). Se guardan byte a byte (`.gitattributes`: `binary`), con sus finales de línea
 CRLF. La grabación de 2026-11-28 cubre de octubre de 2025 a octubre de 2026 (ficheros de 2025 y 2026).
+
+`tests/fixtures_2020/` cubre el camino del PDF (del 15-10-2020 al 31-12-2020): el CSV de 2020 recortado, la
+página índice y la de diciembre reducidas a sus enlaces y `MUNI_BALEARES_1220.pdf` entero (37 KB).
