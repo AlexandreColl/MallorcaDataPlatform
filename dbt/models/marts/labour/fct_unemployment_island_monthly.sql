@@ -48,10 +48,10 @@ select
     unemployed_construction::int as unemployed_construction,
     unemployed_services::int as unemployed_services,
     unemployed_no_previous_job::int as unemployed_no_previous_job,
-    round((unemployed_services / nullif(unemployed, 0))::numeric, 3)::numeric(6, 3) as services_share,
+    round((unemployed_services::numeric / nullif(unemployed, 0)), 3)::numeric(6, 3) as services_share,
     population::int as population,
-    round((1000 * unemployed / nullif(population, 0))::numeric, 1)::numeric(8, 1) as unemployed_per_1000_inhabitants,
-    round((unemployed / nullif(unemployed_year_before, 0) - 1)::numeric, 4)::numeric(8, 4) as unemployed_yoy,
+    round((1000 * unemployed::numeric / nullif(population, 0)), 1)::numeric(8, 1) as unemployed_per_1000_inhabitants,
+    round((unemployed::numeric / nullif(unemployed_year_before, 0) - 1), 4)::numeric(8, 4) as unemployed_yoy,
     round(same_month_mean::numeric, 0)::numeric(10, 0) as same_month_mean,
-    round((unemployed / nullif(same_month_mean, 0) - 1)::numeric, 3)::numeric(8, 3) as unemployed_anomaly
+    round((unemployed::numeric / nullif(same_month_mean, 0) - 1), 3)::numeric(8, 3) as unemployed_anomaly
 from with_context
